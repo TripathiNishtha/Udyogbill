@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet publish $(Get-ChildItem -Recurse -Filter "*Api*.csproj" | Select-Object -First 1 -ExpandProperty FullName) -c Release -o /app/publish || dotnet publish $(Get-ChildItem -Recurse -Filter "*.csproj" | Select-Object -First 1 -ExpandProperty FullName) -c Release -o /app/publish
+RUN dotnet publish $(find . -name "*.csproj" | grep -i "api" | head -n 1) -c Release -o /app/publish || dotnet publish $(find . -name "*.csproj" | head -n 1) -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
