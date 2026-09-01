@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>UdyogBill.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.3.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UdyogBill.Application\UdyogBill.Application.csproj" />
+    <ProjectReference Include="..\UdyogBill.Infrastructure\UdyogBill.Infrastructure.csproj" />
+    <ProjectReference Include="..\UdyogBill.Persistence\UdyogBill.Persistence.csproj" />
+    <ProjectReference Include="..\UdyogBill.Shared\UdyogBill.Shared.csproj" />
+  </ItemGroup>
+</Project>

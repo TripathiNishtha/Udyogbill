@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>UdyogBill.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UdyogBill.Domain\UdyogBill.Domain.csproj" />
+    <ProjectReference Include="..\UdyogBill.Shared\UdyogBill.Shared.csproj" />
+  </ItemGroup>
+</Project>
