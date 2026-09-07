@@ -84,17 +84,85 @@ function RegisterContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
+    // 1. Client-side field validations
+    if (!formData.businessName.trim()) {
+      setError("Please enter your Business Legal Name.");
+      return;
+    }
+    if (!formData.adminFullName.trim()) {
+      setError("Please enter Admin Full Name.");
+      return;
+    }
+    const cleanPhone = formData.primaryPhone.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      setError("Please enter a valid 10-digit mobile number (e.g. 9876543210).");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.adminEmail.trim())) {
+      setError("Please enter a valid work email address (e.g. name@company.com).");
+      return;
+    }
+    if (!formData.adminPassword || formData.adminPassword.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+    if (!formData.industryId) {
+      setError("Please select a Business Category / Industry.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      await authService.registerTenant(formData);
+      await authService.registerTenant({
+        ...formData,
+        primaryPhone: cleanPhone,
+        businessName: formData.businessName.trim(),
+        tradeName: formData.tradeName.trim() || formData.businessName.trim(),
+        adminFullName: formData.adminFullName.trim(),
+        adminEmail: formData.adminEmail.trim().toLowerCase(),
+      });
       setSuccess(true);
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Registration failed. Please check inputs and try again.");
+      // Extract exact backend message from ApiErrorResponse or validation errors
+      const respData = err.response?.data;
+      let detailedMsg = "";
+
+      if (respData) {
+        if (respData.userMessage) {
+          detailedMsg = respData.userMessage;
+        } else if (respData.message) {
+          detailedMsg = respData.message;
+        } else if (respData.error) {
+          detailedMsg = respData.error;
+        } else if (respData.errors && typeof respData.errors === "object") {
+          // Flatten ModelState / validation error dictionary
+          const errList: string[] = [];
+          for (const key in respData.errors) {
+            const val = respData.errors[key];
+            if (Array.isArray(val)) {
+              errList.push(...val);
+            } else if (typeof val === "string") {
+              errList.push(val);
+            }
+          }
+          if (errList.length > 0) {
+            detailedMsg = errList.join(" • ");
+          }
+        }
+      }
+
+      if (!detailedMsg) {
+        detailedMsg = err.message || "Registration failed. Please check inputs and try again.";
+      }
+
+      setError(detailedMsg);
     } finally {
       setLoading(false);
     }
