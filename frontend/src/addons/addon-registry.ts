@@ -64,19 +64,15 @@ export function isAddonActiveInConfig(
       if (typeof parsed[addon.id] === "boolean") {
         return parsed[addon.id];
       }
+      const cleanKey = addon.id.toLowerCase().replace(/[-_]/g, "");
+      for (const [k, v] of Object.entries(parsed)) {
+        if (k.toLowerCase().replace(/[-_]/g, "") === cleanKey && typeof v === "boolean") {
+          return v;
+        }
+      }
     }
   } catch {
     // Ignore JSON parsing issues
-  }
-
-  // Accounting is a core platform capability enabled by default for all subscribed tenants unless explicitly turned off
-  if (addon.id === "accounting") {
-    return true;
-  }
-
-  // If addon has specific boolean feature flags, check if any of them is enabled
-  if (addon.featureKeys.length > 0) {
-    return addon.featureKeys.some((k) => !!config[k]);
   }
 
   return false;

@@ -102,14 +102,18 @@ export interface ProfitAndLossReport {
 class AccountingService {
   public async isAddonEnabled(): Promise<boolean> {
     try {
-      const res = await apiClient.get<any>("/tenant/addons/active");
-      const list = res.data?.data ?? res.data;
-      if (Array.isArray(list)) {
-        return list.some((a: any) => a.addonSlug === "accounting" || a.slug === "accounting" || a.code === "accounting");
+      const res = await apiClient.get<any>("/tenant/subscription/status");
+      const data = res.data?.data ?? res.data;
+      if (data?.addons && Array.isArray(data.addons)) {
+        return data.addons.some(
+          (a: any) =>
+            (a.code === "ADDON_ACCOUNTING" || a.code?.toLowerCase() === "accounting" || a.slug === "accounting") &&
+            !!a.isEnrolled
+        );
       }
-      return true;
+      return false;
     } catch {
-      return true;
+      return false;
     }
   }
 

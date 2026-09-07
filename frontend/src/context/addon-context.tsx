@@ -59,7 +59,7 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
       if (subData.status === "fulfilled" && subData.value?.addons) {
         const activeCodes = subData.value.addons
           .filter((a: any) => a.isEnrolled && (!a.enrolledExpiresAtUtc || new Date(a.enrolledExpiresAtUtc).getTime() > Date.now()))
-          .map((a: any) => a.code.replace("ADDON_", "").toLowerCase());
+          .map((a: any) => a.code.replace("ADDON_", "").toLowerCase().replace(/_/g, "-"));
         setEnrolledAddonIds(activeCodes);
       }
     } catch (err) {
@@ -75,15 +75,41 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
 
   const isAddonActive = useCallback(
     (addonId: string): boolean => {
-      const cleanId = addonId.toLowerCase();
+      const cleanId = addonId.toLowerCase().replace("addon_", "").replace(/_/g, "-");
+
+      // 1. Pharma SFA is a specialized field force add-on
       if (cleanId === "pharma-sfa") {
-        return !!activePack?.isPharmaSfaActive;
+        if (activePack?.isPharmaSfaActive) return true;
+        if (enrolledAddonIds.includes("pharma-sfa") || enrolledAddonIds.includes("pharma_sfa")) return true;
+        const addon = getAddonById("pharma-sfa");
+        return addon ? isAddonActiveInConfig(addon, industryConfig) : false;
       }
-      if (industryCode && industryCode.toLowerCase() === cleanId) return true;
-      if (industryCode === "SERVICE_SECTOR" && (cleanId === "service" || cleanId === "service_sector")) return true;
+
+      // 2. Industry-specific vertical suites (pharma, fmcg, garments, manufacturing)
+      // Active ONLY if tenant's registered primary industry matches, or if explicitly enrolled / enabled
+      const INDUSTRY_ADDON_IDS = ["pharma", "fmcg", "garments", "manufacturing"];
+      if (INDUSTRY_ADDON_IDS.includes(cleanId)) {
+        const tenantIndustry = (industryCode || "OTHER").trim().toUpperCase();
+        const mappedTenantIndustry = tenantIndustry === "HARDWARE" ? "manufacturing" : tenantIndustry.toLowerCase();
+
+        if (mappedTenantIndustry === cleanId) return true;
+        if (enrolledAddonIds.includes(cleanId) || enrolledAddonIds.includes(cleanId.replace(/-/g, "_"))) return true;
+        const addon = getAddonById(cleanId);
+        return addon ? isAddonActiveInConfig(addon, industryConfig) : false;
+      }
+
+      // 3. Optional / paid Add-ons (e.g. accounting, whatsapp, etc.)
+      // Active ONLY if enrolled via subscription or explicitly enabled in configurationJson
+      if (enrolledAddonIds.includes(cleanId) || enrolledAddonIds.includes(cleanId.replace(/-/g, "_"))) {
+        return true;
+      }
+
       const addon = getAddonById(addonId);
-      if (!addon) return enrolledAddonIds.includes(cleanId);
-      return isAddonActiveInConfig(addon, industryConfig) || enrolledAddonIds.includes(cleanId);
+      if (addon) {
+        return isAddonActiveInConfig(addon, industryConfig);
+      }
+
+      return false;
     },
     [industryConfig, enrolledAddonIds, industryCode, activePack]
   );
@@ -97,14 +123,8 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
   );
 
   const activeAddons = useMemo(() => {
-    return ALL_ADDONS.filter((addon) => {
-      if (addon.id === "pharma-sfa") {
-        return !!activePack?.isPharmaSfaActive;
-      }
-      if (industryCode && industryCode.toLowerCase() === addon.id.toLowerCase()) return true;
-      return isAddonActiveInConfig(addon, industryConfig) || enrolledAddonIds.includes(addon.id.toLowerCase());
-    });
-  }, [industryConfig, enrolledAddonIds, industryCode, activePack]);
+    return ALL_ADDONS.filter((addon) => isAddonActive(addon.id));
+  }, [isAddonActive]);
 
   const activeNavGroups = useMemo(() => {
     return activeAddons
