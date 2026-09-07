@@ -52,7 +52,7 @@ class _SfaAuthCheckScreenState extends State<SfaAuthCheckScreen> {
   Future<void> _checkAuth() async {
     try {
       final token = await _storage.read(key: AppConstants.keyToken);
-      if (token != null && token.isNotEmpty) {
+      if (token != null && token.isNotEmpty && token != 'offline-demo-token') {
         _isAuthenticated = true;
       }
     } catch (_) {

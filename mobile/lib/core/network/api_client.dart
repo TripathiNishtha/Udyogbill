@@ -9,7 +9,7 @@ class ApiClient {
   ApiClient({String? baseUrl}) {
     dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl ?? AppConstants.physicalDeviceApiUrl,
+        baseUrl: baseUrl ?? AppConstants.productionApiUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         headers: {

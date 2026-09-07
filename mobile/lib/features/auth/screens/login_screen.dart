@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../app/shell/native_shell_screen.dart';
@@ -45,34 +46,44 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
-    final serverUrl = _serverUrlController.text.trim();
+    final serverUrl = _serverUrlController.text.trim().isNotEmpty
+        ? _serverUrlController.text.trim()
+        : AppConstants.productionApiUrl;
 
     try {
       final client = ApiClient(baseUrl: serverUrl);
       final response = await client.post('/auth/login', data: {
-        'email': username.contains('@') ? username : '$username@udyogbill.com',
-        'username': username,
+        'email': username,
         'password': password,
       });
 
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
-        final token = data['token'] ?? data['accessToken'] ?? 'sample-token';
-        final tenantId = data['tenantId'] ?? 'demo-tenant';
-        final tenantName = data['tenantName'] ?? 'Demo Retail Store';
-        final role = data['role'] ?? 'Admin';
+        final token = data['accessToken'] ?? data['token'] ?? '';
+        final user = data['user'] is Map ? data['user'] as Map : {};
+        final tenantId = user['tenantId'] ?? data['tenantId'] ?? '';
+        final tenantName = user['businessName'] ?? data['tenantName'] ?? 'UdyogBill Enterprise';
+        final fullName = user['fullName'] ?? '';
+
+        final rolesList = user['roles'] as List? ?? [];
+        final role = rolesList.isNotEmpty
+            ? rolesList.first.toString()
+            : (data['role'] ?? 'User');
 
         await _storage.write(key: AppConstants.keyToken, value: token.toString());
         await _storage.write(key: AppConstants.keyTenantId, value: tenantId.toString());
         await _storage.write(key: AppConstants.keyTenantName, value: tenantName.toString());
         await _storage.write(key: AppConstants.keyUserRole, value: role.toString());
+        if (fullName.isNotEmpty) {
+          await _storage.write(key: 'user_full_name', value: fullName.toString());
+        }
         await _storage.write(key: AppConstants.keyApiUrl, value: serverUrl);
 
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => widget.isSfaOnly
-                ? const PharmaSfaShellScreen()
+                ? const PharmaSfaShellScreen(isSfaOnly: true)
                 : const NativeShellScreen(),
           ),
         );
@@ -82,33 +93,22 @@ class _LoginScreenState extends State<LoginScreen> {
           _errorMessage = response.data?['message'] ?? 'Login failed. Invalid credentials.';
         });
       }
-    } catch (e) {
-      // If network fails, allow local demo login for demo user
-      if (username.toLowerCase() == 'demo' && password == 'demo') {
-        await _storage.write(key: AppConstants.keyToken, value: 'offline-demo-token');
-        await _storage.write(key: AppConstants.keyTenantId, value: 'demo-tenant');
-        await _storage.write(key: AppConstants.keyTenantName, value: 'UdyogBill Demo Mart');
-        await _storage.write(key: AppConstants.keyUserRole, value: widget.isSfaOnly ? 'MR' : 'Store Admin');
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Working in Offline/Local Mode with SQLite!'),
-            backgroundColor: AppTheme.accent,
-          ),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => widget.isSfaOnly
-                ? const PharmaSfaShellScreen()
-                : const NativeShellScreen(),
-          ),
-        );
-        return;
+    } on DioException catch (de) {
+      String msg = 'Could not connect to server. Please check internet connection.';
+      if (de.response?.data != null) {
+        final d = de.response!.data;
+        if (d is Map) {
+          msg = d['userMessage'] ?? d['message'] ?? (d['errors'] != null ? d['errors'].toString() : msg);
+        }
+      } else if (de.type == DioExceptionType.connectionTimeout || de.type == DioExceptionType.receiveTimeout) {
+        msg = 'Server connection timed out. Please try again.';
       }
-
       setState(() {
-        _errorMessage = 'Could not connect to server.\nCheck Wi-Fi or tap "Continue Offline".';
+        _errorMessage = msg;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Login error: ${e.toString()}';
       });
     } finally {
       if (mounted) {
@@ -122,12 +122,13 @@ class _LoginScreenState extends State<LoginScreen> {
     await _storage.write(key: AppConstants.keyTenantId, value: 'demo-tenant');
     await _storage.write(key: AppConstants.keyTenantName, value: 'UdyogBill Demo Mart');
     await _storage.write(key: AppConstants.keyUserRole, value: widget.isSfaOnly ? 'MR' : 'Store Admin');
+    await _storage.write(key: 'user_full_name', value: widget.isSfaOnly ? 'Demo MR' : 'Demo Store Admin');
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => widget.isSfaOnly
-            ? const PharmaSfaShellScreen()
+            ? const PharmaSfaShellScreen(isSfaOnly: true)
             : const NativeShellScreen(),
       ),
     );
@@ -222,18 +223,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
 
                   const Text(
-                    'Username / Mobile',
+                    'Email / Mobile / Username',
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF334155)),
                   ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _usernameController,
                     decoration: InputDecoration(
-                      hintText: 'Enter username or 10-digit mobile',
+                      hintText: 'e.g. demo@udyogbill.com or 9876543210',
                       prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF64748B)),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter username' : null,
+                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter email or mobile' : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -289,11 +290,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            _usernameController.text = 'demo';
-                            _passwordController.text = 'demo';
+                            _usernameController.text = 'demo@udyogbill.com';
+                            _passwordController.text = 'Udyogbill';
                           },
                           icon: const Icon(Icons.flash_on, size: 16, color: AppTheme.accent),
-                          label: const Text('Fill Demo', style: TextStyle(fontSize: 12)),
+                          label: const Text('Fill Demo ID', style: TextStyle(fontSize: 12)),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -304,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            _usernameController.text = 'superadmin';
+                            _usernameController.text = 'superadmin@udyogbill.com';
                             _passwordController.text = 'Saurabh@1993';
                           },
                           icon: const Icon(Icons.security, size: 16, color: AppTheme.primary),
@@ -324,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _loginOfflineDirectly,
                     icon: const Icon(Icons.offline_bolt_outlined, size: 18, color: AppTheme.success),
                     label: const Text(
-                      'Use Offline / Instant Demo (No Internet)',
+                      'Offline Demo Mode (No Login Required)',
                       style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.w700, fontSize: 13),
                     ),
                   ),
@@ -356,7 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _serverUrlController,
                       decoration: InputDecoration(
                         labelText: 'API Base URL',
-                        hintText: 'http://192.168.29.127:5050/api/v1',
+                        hintText: 'https://udyogbill.com/api/v1',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         isDense: true,
                       ),
