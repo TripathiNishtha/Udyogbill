@@ -24,14 +24,16 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
   const [activePack, setActivePack] = useState<any | null>(null);
   const [industryCode, setIndustryCode] = useState<string>("OTHER");
   const [enrolledAddonIds, setEnrolledAddonIds] = useState<string[]>([]);
+  const [isSfaActiveFromQuota, setIsSfaActiveFromQuota] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   const loadConfig = useCallback(async () => {
     try {
-      const [configData, subData, packData] = await Promise.allSettled([
+      const [configData, subData, packData, sfaQuotaData] = await Promise.allSettled([
         tenantAppService.getIndustryConfig(),
         tenantAppService.getSubscriptionStatus(),
         tenantAppService.getActiveIndustryPack(),
+        tenantAppService.getPharmaSfaQuota(),
       ]);
 
       if (configData.status === "fulfilled" && configData.value) {
@@ -56,6 +58,13 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
         setIndustryCode(resolvedCode);
       }
 
+      if (sfaQuotaData.status === "fulfilled" && sfaQuotaData.value) {
+        const quota = sfaQuotaData.value?.data ?? sfaQuotaData.value;
+        if (quota?.isPharmaSfaActive || quota?.IsPharmaSfaActive) {
+          setIsSfaActiveFromQuota(true);
+        }
+      }
+
       if (subData.status === "fulfilled" && subData.value?.addons) {
         const activeCodes = subData.value.addons
           .filter((a: any) => a.isEnrolled && (!a.enrolledExpiresAtUtc || new Date(a.enrolledExpiresAtUtc).getTime() > Date.now()))
@@ -78,9 +87,16 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
       const cleanId = addonId.toLowerCase().replace("addon_", "").replace(/_/g, "-");
 
       // 1. Pharma SFA is a specialized field force add-on
+      // Visible in portal ONLY for tenants who have active SFA subscription or entitlement
       if (cleanId === "pharma-sfa") {
-        if (activePack?.isPharmaSfaActive) return true;
-        if (enrolledAddonIds.includes("pharma-sfa") || enrolledAddonIds.includes("pharma_sfa")) return true;
+        if (isSfaActiveFromQuota) return true;
+        if (activePack?.isPharmaSfaActive || activePack?.IsPharmaSfaActive) return true;
+        if (
+          enrolledAddonIds.includes("pharma-sfa") ||
+          enrolledAddonIds.includes("pharma_sfa") ||
+          enrolledAddonIds.includes("addon-pharma-sfa") ||
+          enrolledAddonIds.includes("addon_pharma_sfa")
+        ) return true;
         const addon = getAddonById("pharma-sfa");
         return addon ? isAddonActiveInConfig(addon, industryConfig) : false;
       }

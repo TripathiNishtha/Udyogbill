@@ -406,9 +406,15 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             bool isExplicitActive = false;
             string key = a.Code.Replace("ADDON_", "").ToLower();
             if (configDict.TryGetValue(key, out var val)) isExplicitActive = val;
+            else if (configDict.TryGetValue(key.Replace("_", "-"), out var valHyphen)) isExplicitActive = valHyphen;
+
+            if (a.Code == "ADDON_PHARMA_SFA" && tenant.IsPharmaSfaActive)
+            {
+                isExplicitActive = true;
+            }
 
             bool isEnrolled = enr != null || isExplicitActive;
-            DateTimeOffset? exp = enr?.ExpiresAtUtc ?? (isExplicitActive ? DateTimeOffset.UtcNow.AddDays(30) : null);
+            DateTimeOffset? exp = enr?.ExpiresAtUtc ?? (isExplicitActive ? DateTimeOffset.UtcNow.AddDays(365) : null);
             int remDays = exp.HasValue ? Math.Max(0, (int)(exp.Value - DateTimeOffset.UtcNow).TotalDays) : 0;
 
             return new AddonCatalogItemDto(
