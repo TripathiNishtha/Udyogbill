@@ -556,7 +556,13 @@ public record SubmitDoctorVisitRequest(
     string? SamplesGivenJson,
     string? GiftsGivenJson,
     string? DoctorFeedback,
-    DateTime? NextVisitDate
+    DateTime? NextVisitDate,
+    double? DistanceFromClinicMeters = null,
+    bool? IsWithinGeofence = true,
+    string? OutOfRangeReason = null,
+    bool? IsMockLocationDetected = false,
+    DateTime? InTime = null,
+    DateTime? OutTime = null
 );
 
 public record SubmitChemistVisitRequest(
@@ -566,7 +572,13 @@ public record SubmitChemistVisitRequest(
     double? Longitude,
     bool PobOrderBooked,
     decimal PobOrderAmount,
-    string? Feedback
+    string? Feedback,
+    double? DistanceFromShopMeters = null,
+    bool? IsWithinGeofence = true,
+    string? OutOfRangeReason = null,
+    bool? IsMockLocationDetected = false,
+    DateTime? InTime = null,
+    DateTime? OutTime = null
 );
 
 public record SubmitStockistVisitRequest(
@@ -961,6 +973,22 @@ public record SeedDemoDataResponseDto(
     int SamplesCreated,
     int PobOrdersCreated,
     string Message
+);
+
+#endregion
+
+#region 6. Admin Geofencing & Location Compliance
+
+public record SfaGeofenceConfigDto(
+    bool IsGeofencingEnabled,
+    int GeofenceRadiusMeters,
+    bool AllowOutOfRangeWithReason
+);
+
+public record UpdateEntityLocationRequest(
+    double Latitude,
+    double Longitude,
+    double? GeofenceRadiusMeters = null
 );
 
 #endregion

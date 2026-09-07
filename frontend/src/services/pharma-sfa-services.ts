@@ -883,8 +883,41 @@ export const pharmaSfaService = {
   async deactivatePharmaAddon(tenantId: string) {
     const res = await apiClient.post(`/superadmin/pharma-sfa/deactivate/${tenantId}`);
     return res.data;
+  },
+
+  // Geofencing & Location Compliance
+  async getGeofenceConfig(): Promise<SfaGeofenceConfig> {
+    const res = await apiClient.get<SfaGeofenceConfig>("/tenant/sfa/geofence-config");
+    return res.data;
+  },
+
+  async updateGeofenceConfig(data: SfaGeofenceConfig): Promise<boolean> {
+    const res = await apiClient.put<boolean>("/tenant/sfa/geofence-config", data);
+    return res.data;
+  },
+
+  async updateDoctorLocation(doctorId: string, data: UpdateEntityLocation): Promise<boolean> {
+    const res = await apiClient.put<boolean>(`/tenant/sfa/doctors/${doctorId}/location`, data);
+    return res.data;
+  },
+
+  async updateChemistLocation(chemistId: string, data: UpdateEntityLocation): Promise<boolean> {
+    const res = await apiClient.put<boolean>(`/tenant/sfa/chemists/${chemistId}/location`, data);
+    return res.data;
   }
 };
+
+export interface SfaGeofenceConfig {
+  isGeofencingEnabled: boolean;
+  geofenceRadiusMeters: number;
+  allowOutOfRangeWithReason: boolean;
+}
+
+export interface UpdateEntityLocation {
+  latitude: number;
+  longitude: number;
+  geofenceRadiusMeters?: number;
+}
 
 export const superAdminPharmaSfaService = {
   calculateQuote: pharmaSfaService.calculateQuote,

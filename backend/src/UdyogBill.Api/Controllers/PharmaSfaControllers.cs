@@ -611,6 +611,42 @@ public class TenantPharmaSfaController : BaseApiController
     }
 
     #endregion
+
+    #region Geofencing & Location Compliance
+
+    [HttpGet("geofence-config")]
+    [ProducesResponseType(typeof(SfaGeofenceConfigDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetGeofenceConfig(CancellationToken cancellationToken)
+    {
+        var result = await _sfaService.GetGeofenceConfigAsync(cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPut("geofence-config")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateGeofenceConfig([FromBody] SfaGeofenceConfigDto request, CancellationToken cancellationToken)
+    {
+        var result = await _sfaService.UpdateGeofenceConfigAsync(request, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPut("doctors/{id:guid}/location")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateDoctorLocation(Guid id, [FromBody] UpdateEntityLocationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sfaService.UpdateDoctorLocationAsync(id, request, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPut("chemists/{id:guid}/location")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateChemistLocation(Guid id, [FromBody] UpdateEntityLocationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sfaService.UpdateChemistLocationAsync(id, request, cancellationToken);
+        return HandleResult(result);
+    }
+
+    #endregion
 }
 
 

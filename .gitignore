@@ -11,5 +11,6 @@ infrastructure/pgsql/
 scratch/
 scratch_*
 preview_output.html
-0
+publish-backend/
+*.tsbuildinfo
 

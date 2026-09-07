@@ -121,6 +121,12 @@ public interface IPharmaSfaService
     Task<Result<CalculatedSchemeResultDto>> EvaluateSchemeAsync(CalculateSchemeRequest request, CancellationToken cancellationToken = default);
     Task<Result<IReadOnlyList<SecondarySalesReconciliationDto>>> GetSecondarySalesReconciliationAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
     Task<Result<SeedDemoDataResponseDto>> SeedDemoDataAsync(CancellationToken cancellationToken = default);
+
+    // Sprint 6: Admin Geofencing & Location Compliance
+    Task<Result<SfaGeofenceConfigDto>> GetGeofenceConfigAsync(CancellationToken cancellationToken = default);
+    Task<Result<bool>> UpdateGeofenceConfigAsync(SfaGeofenceConfigDto request, CancellationToken cancellationToken = default);
+    Task<Result<bool>> UpdateDoctorLocationAsync(Guid doctorId, UpdateEntityLocationRequest request, CancellationToken cancellationToken = default);
+    Task<Result<bool>> UpdateChemistLocationAsync(Guid chemistId, UpdateEntityLocationRequest request, CancellationToken cancellationToken = default);
 }
 
 

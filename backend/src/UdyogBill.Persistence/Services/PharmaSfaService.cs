@@ -1758,6 +1758,87 @@ public class PharmaSfaService : IPharmaSfaService
             Status = SfaPlanStatus.Submitted
         };
 
+        // Check Geofence policy if enabled by Tenant Admin
+        var geofenceConfigRes = await GetGeofenceConfigAsync(cancellationToken);
+        var geofenceConfig = geofenceConfigRes.Data ?? new SfaGeofenceConfigDto(false, 150, true);
+
+        if (geofenceConfig.IsGeofencingEnabled)
+        {
+            foreach (var v in request.DoctorVisits)
+            {
+                var doc = await _context.SfaDoctors.FirstOrDefaultAsync(d => d.Id == v.DoctorId && d.TenantId == tenantId, cancellationToken);
+                if (doc != null)
+                {
+                    if (!doc.Latitude.HasValue && !doc.Longitude.HasValue && v.Latitude.HasValue && v.Longitude.HasValue)
+                    {
+                        // Auto-tag doctor's clinic on first recorded visit
+                        doc.Latitude = v.Latitude;
+                        doc.Longitude = v.Longitude;
+                        doc.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                    }
+                    else if (doc.Latitude.HasValue && doc.Longitude.HasValue && v.Latitude.HasValue && v.Longitude.HasValue)
+                    {
+                        var dist = CalculateHaversineDistanceMeters(doc.Latitude.Value, doc.Longitude.Value, v.Latitude.Value, v.Longitude.Value);
+                        var allowedRadius = doc.GeofenceRadiusMeters > 0 ? doc.GeofenceRadiusMeters : geofenceConfig.GeofenceRadiusMeters;
+                        if (dist > allowedRadius)
+                        {
+                            if (!geofenceConfig.AllowOutOfRangeWithReason)
+                            {
+                                return Result<Guid>.Failure(
+                                    $"Visit to Dr. {doc.Name} blocked: You are {Math.Round(dist)}m away from clinic. Admin has set a strict geofence radius of {allowedRadius}m. Please report from the clinic.",
+                                    "GEOFENCE_VIOLATION"
+                                );
+                            }
+                            else if (string.IsNullOrWhiteSpace(v.OutOfRangeReason))
+                            {
+                                return Result<Guid>.Failure(
+                                    $"Visit to Dr. {doc.Name} is outside clinic radius ({Math.Round(dist)}m vs {allowedRadius}m permitted). Please provide an Out-of-Range reason to submit.",
+                                    "OUT_OF_RANGE_REASON_REQUIRED"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var c in request.ChemistVisits)
+            {
+                var chm = await _context.SfaChemists.FirstOrDefaultAsync(ch => ch.Id == c.ChemistId && ch.TenantId == tenantId, cancellationToken);
+                if (chm != null)
+                {
+                    if (!chm.Latitude.HasValue && !chm.Longitude.HasValue && c.Latitude.HasValue && c.Longitude.HasValue)
+                    {
+                        // Auto-tag chemist shop on first recorded visit
+                        chm.Latitude = c.Latitude;
+                        chm.Longitude = c.Longitude;
+                        chm.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                    }
+                    else if (chm.Latitude.HasValue && chm.Longitude.HasValue && c.Latitude.HasValue && c.Longitude.HasValue)
+                    {
+                        var dist = CalculateHaversineDistanceMeters(chm.Latitude.Value, chm.Longitude.Value, c.Latitude.Value, c.Longitude.Value);
+                        var allowedRadius = chm.GeofenceRadiusMeters > 0 ? chm.GeofenceRadiusMeters : geofenceConfig.GeofenceRadiusMeters;
+                        if (dist > allowedRadius)
+                        {
+                            if (!geofenceConfig.AllowOutOfRangeWithReason)
+                            {
+                                return Result<Guid>.Failure(
+                                    $"Visit to Chemist {chm.ShopName} blocked: You are {Math.Round(dist)}m away from shop. Permitted radius is {allowedRadius}m.",
+                                    "GEOFENCE_VIOLATION"
+                                );
+                            }
+                            else if (string.IsNullOrWhiteSpace(c.OutOfRangeReason))
+                            {
+                                return Result<Guid>.Failure(
+                                    $"Visit to Chemist {chm.ShopName} is outside shop radius ({Math.Round(dist)}m vs {allowedRadius}m permitted). Please provide an Out-of-Range reason.",
+                                    "OUT_OF_RANGE_REASON_REQUIRED"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         foreach (var v in request.DoctorVisits)
         {
             dcr.DoctorVisits.Add(new SfaDcrDoctorVisit
@@ -3753,6 +3834,142 @@ public class PharmaSfaService : IPharmaSfaService
             pobOrdersCount,
             msg
         ));
+    }
+
+    #endregion
+
+    #region 6. Admin Geofencing & Location Compliance
+
+    public static double CalculateHaversineDistanceMeters(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371000.0; // Earth radius in meters
+        var dLat = (lat2 - lat1) * Math.PI / 180.0;
+        var dLon = (lon2 - lon1) * Math.PI / 180.0;
+        var a = Math.Sin(dLat / 2.0) * Math.Sin(dLat / 2.0) +
+                Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0) *
+                Math.Sin(dLon / 2.0) * Math.Sin(dLon / 2.0);
+        var c = 2.0 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1.0 - a));
+        return Math.Round(R * c, 1);
+    }
+
+    public async Task<Result<SfaGeofenceConfigDto>> GetGeofenceConfigAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var settings = await _context.TenantSettings
+            .Where(s => s.TenantId == tenantId && s.Category == "PharmaSfa")
+            .ToListAsync(cancellationToken);
+
+        bool isEnabled = false;
+        int radiusMeters = 150;
+        bool allowWithReason = true;
+
+        var enabledSetting = settings.FirstOrDefault(s => s.Key == "SFA_GEOFENCE_ENABLED");
+        if (enabledSetting != null && bool.TryParse(enabledSetting.Value, out var parsedEnabled))
+        {
+            isEnabled = parsedEnabled;
+        }
+
+        var radiusSetting = settings.FirstOrDefault(s => s.Key == "SFA_GEOFENCE_RADIUS_METERS");
+        if (radiusSetting != null && int.TryParse(radiusSetting.Value, out var parsedRadius))
+        {
+            radiusMeters = parsedRadius > 0 ? parsedRadius : 150;
+        }
+
+        var allowSetting = settings.FirstOrDefault(s => s.Key == "SFA_ALLOW_OUT_OF_RANGE_WITH_REASON");
+        if (allowSetting != null && bool.TryParse(allowSetting.Value, out var parsedAllow))
+        {
+            allowWithReason = parsedAllow;
+        }
+
+        return Result<SfaGeofenceConfigDto>.Success(new SfaGeofenceConfigDto(isEnabled, radiusMeters, allowWithReason));
+    }
+
+    public async Task<Result<bool>> UpdateGeofenceConfigAsync(SfaGeofenceConfigDto request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var settings = await _context.TenantSettings
+            .Where(s => s.TenantId == tenantId && s.Category == "PharmaSfa")
+            .ToListAsync(cancellationToken);
+
+        void UpsertSetting(string key, string value, string valueType)
+        {
+            var s = settings.FirstOrDefault(x => x.Key == key);
+            if (s == null)
+            {
+                s = new Domain.Entities.Tenants.TenantSetting
+                {
+                    TenantId = tenantId,
+                    Category = "PharmaSfa",
+                    Key = key,
+                    Value = value,
+                    ValueType = valueType
+                };
+                _context.TenantSettings.Add(s);
+            }
+            else
+            {
+                s.Value = value;
+                s.ValueType = valueType;
+                s.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            }
+        }
+
+        UpsertSetting("SFA_GEOFENCE_ENABLED", request.IsGeofencingEnabled.ToString().ToLowerInvariant(), "boolean");
+        UpsertSetting("SFA_GEOFENCE_RADIUS_METERS", Math.Max(10, request.GeofenceRadiusMeters).ToString(), "number");
+        UpsertSetting("SFA_ALLOW_OUT_OF_RANGE_WITH_REASON", request.AllowOutOfRangeWithReason.ToString().ToLowerInvariant(), "boolean");
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<bool>> UpdateDoctorLocationAsync(Guid doctorId, UpdateEntityLocationRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var doctor = await _context.SfaDoctors
+            .FirstOrDefaultAsync(d => d.Id == doctorId && d.TenantId == tenantId, cancellationToken);
+
+        if (doctor == null)
+        {
+            return Result<bool>.Failure("Doctor not found.", "NOT_FOUND");
+        }
+
+        doctor.Latitude = request.Latitude;
+        doctor.Longitude = request.Longitude;
+        if (request.GeofenceRadiusMeters.HasValue && request.GeofenceRadiusMeters.Value > 0)
+        {
+            doctor.GeofenceRadiusMeters = request.GeofenceRadiusMeters.Value;
+        }
+        doctor.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<bool>> UpdateChemistLocationAsync(Guid chemistId, UpdateEntityLocationRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var chemist = await _context.SfaChemists
+            .FirstOrDefaultAsync(c => c.Id == chemistId && c.TenantId == tenantId, cancellationToken);
+
+        if (chemist == null)
+        {
+            return Result<bool>.Failure("Chemist not found.", "NOT_FOUND");
+        }
+
+        chemist.Latitude = request.Latitude;
+        chemist.Longitude = request.Longitude;
+        if (request.GeofenceRadiusMeters.HasValue && request.GeofenceRadiusMeters.Value > 0)
+        {
+            chemist.GeofenceRadiusMeters = request.GeofenceRadiusMeters.Value;
+        }
+        chemist.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
     }
 
     #endregion
