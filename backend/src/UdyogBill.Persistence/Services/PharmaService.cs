@@ -37,6 +37,9 @@ public class PharmaService : IPharmaService
     {
         var query = _context.ItemBatches
             .Include(b => b.Item)
+                .ThenInclude(i => i.PrimaryUom)
+            .Include(b => b.Item)
+                .ThenInclude(i => i.SecondaryUom)
             .Include(b => b.WarehouseStocks)
             .Where(b => b.TenantId == TenantId && b.IsActive);
 
@@ -62,6 +65,12 @@ public class PharmaService : IPharmaService
             var isExpired = days < 0;
             var isNear = days >= 0 && days <= 90;
             var stock = b.WarehouseStocks.Sum(ws => ws.CurrentQuantity);
+            var packRatio = (b.Item != null && b.Item.ConversionRatio.HasValue && b.Item.ConversionRatio.Value > 0)
+                ? b.Item.ConversionRatio.Value
+                : 10m; // Default 10 tablets per strip in Indian pharma
+            var primaryUom = b.Item?.PrimaryUom?.Symbol ?? "STRIP";
+            var secondaryUom = b.Item?.SecondaryUom?.Symbol ?? "TAB";
+            var tabletPrice = Math.Round(b.SaleRate / (packRatio > 0 ? packRatio : 1m), 2);
 
             return new PharmaBatchDto(
                 Id: b.Id,
@@ -84,7 +93,11 @@ public class PharmaService : IPharmaService
                 IsExpired: isExpired,
                 IsNearExpiry: isNear,
                 DaysToExpiry: days,
-                IsQuarantined: b.IsQuarantined
+                IsQuarantined: b.IsQuarantined,
+                PackRatio: packRatio,
+                PrimaryUnit: primaryUom,
+                SecondaryUnit: secondaryUom,
+                UnitTabletPrice: tabletPrice
             );
         }).ToList();
 
@@ -168,6 +181,11 @@ public class PharmaService : IPharmaService
         await _context.SaveChangesAsync(cancellationToken);
 
         var days = (int)(batch.ExpiryDate.Date - DateTime.UtcNow.Date).TotalDays;
+        var packRatio = (item.ConversionRatio.HasValue && item.ConversionRatio.Value > 0)
+            ? item.ConversionRatio.Value
+            : 10m;
+        var tabletPrice = Math.Round(batch.SaleRate / (packRatio > 0 ? packRatio : 1m), 2);
+
         var dto = new PharmaBatchDto(
             Id: batch.Id,
             ItemId: batch.ItemId,
@@ -189,10 +207,85 @@ public class PharmaService : IPharmaService
             IsExpired: days < 0,
             IsNearExpiry: days >= 0 && days <= 90,
             DaysToExpiry: days,
-            IsQuarantined: batch.IsQuarantined
+            IsQuarantined: batch.IsQuarantined,
+            PackRatio: packRatio,
+            PrimaryUnit: "STRIP",
+            SecondaryUnit: "TAB",
+            UnitTabletPrice: tabletPrice
         );
 
         return Result<PharmaBatchDto>.Success(dto);
+    }
+
+    public async Task<Result<PharmaDashboardSummaryDto>> GetPharmaDashboardMetricsAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow.Date;
+        var in30Days = now.AddDays(30);
+        var in60Days = now.AddDays(60);
+        var in90Days = now.AddDays(90);
+
+        var batches = await _context.ItemBatches
+            .Include(b => b.WarehouseStocks)
+            .Where(b => b.TenantId == TenantId && b.IsActive)
+            .ToListAsync(cancellationToken);
+
+        int count30 = 0;
+        int count60 = 0;
+        int count90 = 0;
+        decimal totalLossVal = 0m;
+        int quarantinedCount = 0;
+
+        foreach (var b in batches)
+        {
+            var stock = b.WarehouseStocks.Sum(ws => ws.CurrentQuantity);
+            if (b.IsQuarantined || b.QuarantinedStock > 0)
+            {
+                quarantinedCount++;
+            }
+
+            if (stock > 0)
+            {
+                if (b.ExpiryDate <= in30Days)
+                {
+                    count30++;
+                    totalLossVal += (stock * (b.PurchaseRate > 0 ? b.PurchaseRate : b.SaleRate));
+                }
+                else if (b.ExpiryDate <= in60Days)
+                {
+                    count60++;
+                    totalLossVal += (stock * (b.PurchaseRate > 0 ? b.PurchaseRate : b.SaleRate));
+                }
+                else if (b.ExpiryDate <= in90Days)
+                {
+                    count90++;
+                    totalLossVal += (stock * (b.PurchaseRate > 0 ? b.PurchaseRate : b.SaleRate));
+                }
+            }
+        }
+
+        // H1 dispensed today
+        var startOfToday = DateTime.UtcNow.Date;
+        var endOfToday = startOfToday.AddDays(1);
+        var h1Count = await _context.ScheduleH1RegisterEntries
+            .Where(r => r.TenantId == TenantId && r.SupplyDate >= startOfToday && r.SupplyDate < endOfToday)
+            .CountAsync(cancellationToken);
+
+        var doctorsCount = await _context.DoctorPrescribers
+            .Where(d => d.TenantId == TenantId && !d.IsDeleted && d.IsActive)
+            .CountAsync(cancellationToken);
+
+        var summary = new PharmaDashboardSummaryDto(
+            ExpiringCount30Days: count30,
+            ExpiringCount60Days: count60,
+            ExpiringCount90Days: count90,
+            ExpiringStockValue: Math.Round(totalLossVal, 2),
+            ScheduleH1DispensedToday: h1Count,
+            QuarantinedBatchesCount: quarantinedCount,
+            ActiveBatchesCount: batches.Count,
+            RegisteredDoctorsCount: doctorsCount
+        );
+
+        return Result<PharmaDashboardSummaryDto>.Success(summary);
     }
 
     #endregion
@@ -661,7 +754,11 @@ public class PharmaService : IPharmaService
                 d.Email,
                 d.IncentivePercent,
                 d.AssignedMrName,
-                d.IsActive
+                d.IsActive,
+                d.IncentivePercent,
+                0m,
+                0m,
+                0m
             ))
             .ToListAsync(cancellationToken);
 
@@ -672,6 +769,15 @@ public class PharmaService : IPharmaService
         SaveDoctorPrescriberRequest request,
         CancellationToken cancellationToken = default)
     {
+        var incentive = request.IncentivePercent ?? request.CommissionPercent ?? 0m;
+        string qual = request.Qualification?.Trim() ?? string.Empty;
+        string spec = request.Specialization?.Trim() ?? string.Empty;
+        string regNo = request.RegistrationNumber?.Trim() ?? string.Empty;
+        string clinic = request.ClinicHospitalName?.Trim() ?? string.Empty;
+        string addr = string.IsNullOrWhiteSpace(request.Address) ? "Main Road" : request.Address.Trim();
+        string city = string.IsNullOrWhiteSpace(request.City) ? "Delhi" : request.City.Trim();
+        string mobile = request.Mobile?.Trim() ?? string.Empty;
+
         DoctorPrescriber doc;
         if (request.Id.HasValue && request.Id.Value != Guid.Empty)
         {
@@ -681,17 +787,17 @@ public class PharmaService : IPharmaService
             if (doc == null)
                 return Result<DoctorPrescriberDto>.Failure("Doctor not found.", "NOT_FOUND");
 
-            doc.Code = request.Code.Trim();
+            doc.Code = string.IsNullOrWhiteSpace(request.Code) ? doc.Code : request.Code.Trim();
             doc.Name = request.Name.Trim();
-            doc.Qualification = request.Qualification.Trim();
-            doc.Specialization = request.Specialization.Trim();
-            doc.RegistrationNumber = request.RegistrationNumber.Trim();
-            doc.ClinicHospitalName = request.ClinicHospitalName.Trim();
-            doc.Address = request.Address.Trim();
-            doc.City = request.City.Trim();
-            doc.Mobile = request.Mobile.Trim();
+            doc.Qualification = qual;
+            doc.Specialization = spec;
+            doc.RegistrationNumber = regNo;
+            doc.ClinicHospitalName = clinic;
+            doc.Address = addr;
+            doc.City = city;
+            doc.Mobile = mobile;
             doc.Email = request.Email?.Trim();
-            doc.IncentivePercent = request.IncentivePercent;
+            doc.IncentivePercent = incentive;
             doc.AssignedMrName = request.AssignedMrName?.Trim();
             doc.IsActive = request.IsActive;
         }
@@ -702,15 +808,15 @@ public class PharmaService : IPharmaService
                 TenantId = TenantId,
                 Code = string.IsNullOrWhiteSpace(request.Code) ? $"DOC-{Random.Shared.Next(100, 999)}" : request.Code.Trim(),
                 Name = request.Name.Trim(),
-                Qualification = request.Qualification.Trim(),
-                Specialization = request.Specialization.Trim(),
-                RegistrationNumber = request.RegistrationNumber.Trim(),
-                ClinicHospitalName = request.ClinicHospitalName.Trim(),
-                Address = request.Address.Trim(),
-                City = request.City.Trim(),
-                Mobile = request.Mobile.Trim(),
+                Qualification = qual,
+                Specialization = spec,
+                RegistrationNumber = regNo,
+                ClinicHospitalName = clinic,
+                Address = addr,
+                City = city,
+                Mobile = mobile,
                 Email = request.Email?.Trim(),
-                IncentivePercent = request.IncentivePercent,
+                IncentivePercent = incentive,
                 AssignedMrName = request.AssignedMrName?.Trim(),
                 IsActive = request.IsActive
             };
@@ -733,7 +839,11 @@ public class PharmaService : IPharmaService
             doc.Email,
             doc.IncentivePercent,
             doc.AssignedMrName,
-            doc.IsActive
+            doc.IsActive,
+            CommissionPercent: doc.IncentivePercent,
+            TotalPrescriptionsValue: 0m,
+            TotalCommissionPaid: 0m,
+            BalanceCommission: 0m
         ));
     }
 

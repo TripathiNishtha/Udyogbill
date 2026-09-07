@@ -4,6 +4,7 @@ using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Catalog;
 using UdyogBill.Domain.Entities.Identity;
 using UdyogBill.Domain.Entities.Subscriptions;
+using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared.Constants;
@@ -31,6 +32,7 @@ public class DatabaseSeeder
         await SeedIndustriesAndModulesAsync(cancellationToken);
         await SeedPlansAsync(cancellationToken);
         await SeedAddOnsAsync(cancellationToken);
+        await SeedCommercialConfigAsync(cancellationToken);
         await SeedSuperAdminAsync(cancellationToken);
         await SeedDemoTenantAndUsersAsync(cancellationToken);
         await SeedPermissionsAsync(cancellationToken);
@@ -122,6 +124,37 @@ ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""BankName"" text;
 ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""BankAccountNumber"" text;
 ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""BankIfsc"" text;
 ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""BankBranch"" text;
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IsAiAddonActive"" boolean NOT NULL DEFAULT FALSE;
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansLimit"" integer NOT NULL DEFAULT 500;
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansUsed"" integer NOT NULL DEFAULT 0;
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryTypeCode"" text NOT NULL DEFAULT 'OTHER';
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""ActiveIndustryModule"" text NOT NULL DEFAULT 'OTHER';
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryModuleStatus"" integer NOT NULL DEFAULT 1;
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryActivatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW();
+ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""MaxAllowedUsers"" integer NOT NULL DEFAULT 2;
+
+CREATE TABLE IF NOT EXISTS ""PlatformCommercialConfigs"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""CoreAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 3999,
+    ""CoreBiennialPrice"" numeric(18, 2) NOT NULL DEFAULT 6999,
+    ""IncludedUsers"" integer NOT NULL DEFAULT 2,
+    ""SingleUserAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 799,
+    ""FiveUserPackAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 2999,
+    ""AiProAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 1499,
+    ""AiProMonthlyScanLimit"" integer NOT NULL DEFAULT 500,
+    ""GstRatePercent"" numeric(5, 2) NOT NULL DEFAULT 18.0,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""LastUpdatedByEmail"" text NULL,
+    ""Notes"" text NULL,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""CreatedBy"" text NULL,
+    ""UpdatedBy"" text NULL,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedAtUtc"" timestamp with time zone NULL;
+ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid NULL;
 
 ALTER TABLE ""tenants"" ALTER COLUMN ""SmtpPort"" DROP NOT NULL;
 ALTER TABLE ""tenants"" ALTER COLUMN ""SmtpPort"" SET DEFAULT 587;
@@ -153,6 +186,8 @@ ALTER TABLE ""parties"" ADD COLUMN IF NOT EXISTS ""RouteName"" text NULL;
 ALTER TABLE ""parties"" ADD COLUMN IF NOT EXISTS ""BrokerName"" text NULL;
 
 ALTER TABLE ""items"" ADD COLUMN IF NOT EXISTS ""TrackInventory"" boolean NOT NULL DEFAULT TRUE;
+ALTER TABLE ""items"" ALTER COLUMN ""TaxRate"" TYPE numeric(18, 4);
+ALTER TABLE ""items"" ALTER COLUMN ""CessRate"" TYPE numeric(18, 4);
 
 ALTER TABLE ""SubscriptionInvoices"" ADD COLUMN IF NOT EXISTS ""IsInterState"" boolean NOT NULL DEFAULT FALSE;
 ALTER TABLE ""SubscriptionInvoices"" ADD COLUMN IF NOT EXISTS ""CgstRatePercent"" numeric NOT NULL DEFAULT 0;
@@ -412,6 +447,78 @@ CREATE TABLE IF NOT EXISTS ""PromotionalCoupons"" (
     ""DeletedAtUtc"" timestamp with time zone NULL,
     ""DeletedBy"" uuid NULL
 );
+
+CREATE TABLE IF NOT EXISTS ""ReferralProgramConfigs"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""IsEnabled"" boolean NOT NULL DEFAULT TRUE,
+    ""RewardType"" integer NOT NULL DEFAULT 1,
+    ""DefaultRewardAmount"" numeric NOT NULL DEFAULT 500,
+    ""PayoutScheduleDays"" integer NOT NULL DEFAULT 1,
+    ""MinimumPayoutThreshold"" numeric NOT NULL DEFAULT 500,
+    ""TermsAndConditions"" text NULL,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""TenantReferralProfiles"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""ReferralCode"" text NOT NULL,
+    ""CustomRewardAmount"" numeric NULL,
+    ""UpiId"" text NULL,
+    ""BankName"" text NULL,
+    ""BankAccountNumber"" text NULL,
+    ""BankIfsc"" text NULL,
+    ""AccountHolderName"" text NULL,
+    ""TotalReferralsCount"" integer NOT NULL DEFAULT 0,
+    ""PaidConversionsCount"" integer NOT NULL DEFAULT 0,
+    ""TotalEarnedAmount"" numeric NOT NULL DEFAULT 0,
+    ""TotalPaidOutAmount"" numeric NOT NULL DEFAULT 0,
+    ""PendingBalanceAmount"" numeric NOT NULL DEFAULT 0,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""TenantReferralConversions"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""ReferrerTenantId"" uuid NOT NULL,
+    ""RefereeTenantId"" uuid NOT NULL,
+    ""ReferralCodeUsed"" text NOT NULL,
+    ""RegistrationDateUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""Status"" integer NOT NULL DEFAULT 1,
+    ""FirstPaidDateUtc"" timestamp with time zone NULL,
+    ""SubscriptionInvoiceId"" uuid NULL,
+    ""SubscriptionAmount"" numeric NULL,
+    ""CommissionRewardAmount"" numeric NOT NULL DEFAULT 0,
+    ""ScheduledPayoutDateUtc"" timestamp with time zone NULL,
+    ""PaidAtUtc"" timestamp with time zone NULL,
+    ""PayoutReference"" text NULL,
+    ""PayoutMode"" text NULL,
+    ""AdminNotes"" text NULL,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ""IX_TenantReferralProfiles_ReferralCode"" ON ""TenantReferralProfiles"" (""ReferralCode"");
+CREATE INDEX IF NOT EXISTS ""IX_TenantReferralProfiles_TenantId"" ON ""TenantReferralProfiles"" (""TenantId"");
+CREATE INDEX IF NOT EXISTS ""IX_TenantReferralConversions_ReferrerTenantId"" ON ""TenantReferralConversions"" (""ReferrerTenantId"");
+CREATE INDEX IF NOT EXISTS ""IX_TenantReferralConversions_RefereeTenantId"" ON ""TenantReferralConversions"" (""RefereeTenantId"");
 
 CREATE TABLE IF NOT EXISTS ""NotificationGatewayConfigs"" (
     ""Id"" uuid NOT NULL PRIMARY KEY,
@@ -1201,6 +1308,163 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
     ""DeletedAtUtc"" timestamp with time zone NULL,
     ""DeletedBy"" uuid NULL
 );
+
+CREATE TABLE IF NOT EXISTS ""SfaDivisions"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""Code"" text NOT NULL,
+    ""Name"" text NOT NULL,
+    ""Description"" text NULL,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""SfaPatches"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""Code"" text NOT NULL,
+    ""Name"" text NOT NULL,
+    ""DivisionId"" uuid NULL,
+    ""AreaTerritoryId"" uuid NULL,
+    ""HeadquarterCity"" text NULL,
+    ""Description"" text NULL,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""SfaBeats"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""Code"" text NOT NULL,
+    ""Name"" text NOT NULL,
+    ""PatchId"" uuid NOT NULL,
+    ""ScheduledDayOfWeek"" integer NULL,
+    ""SequenceOrder"" integer NOT NULL DEFAULT 1,
+    ""RouteDescription"" text NULL,
+    ""EstimatedDistanceKm"" numeric NOT NULL DEFAULT 12,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""SfaDoctorAllocationHistories"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""DoctorId"" uuid NOT NULL,
+    ""FromMrUserId"" uuid NULL,
+    ""ToMrUserId"" uuid NOT NULL,
+    ""EffectiveDate"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""Reason"" text NOT NULL,
+    ""ApprovedByUserId"" uuid NULL,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""SfaExpensePolicies"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""PolicyName"" text NOT NULL DEFAULT 'Standard Pharma Field Policy',
+    ""HqDailyAllowance"" numeric NOT NULL DEFAULT 250,
+    ""ExHqDailyAllowance"" numeric NOT NULL DEFAULT 350,
+    ""OutstationDailyAllowance"" numeric NOT NULL DEFAULT 600,
+    ""RatePerKmTwoWheeler"" numeric NOT NULL DEFAULT 3.50,
+    ""RatePerKmFourWheeler"" numeric NOT NULL DEFAULT 7.00,
+    ""HotelAllowancePerNight"" numeric NOT NULL DEFAULT 1200,
+    ""MaxMonthlyExpenseLimit"" numeric NOT NULL DEFAULT 25000,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""SfaUserHierarchies"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""UserId"" uuid NOT NULL,
+    ""Designation"" text NOT NULL DEFAULT 'MR',
+    ""HeadquartersTown"" text NULL,
+    ""ReportsToUserId"" uuid NULL,
+    ""AbmUserId"" uuid NULL,
+    ""RsmUserId"" uuid NULL,
+    ""ZsmUserId"" uuid NULL,
+    ""TerritoryId"" uuid NULL,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""SfaSchemeMasters"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""SchemeCode"" text NOT NULL,
+    ""SchemeName"" text NOT NULL,
+    ""DivisionId"" uuid NULL,
+    ""ItemId"" uuid NULL,
+    ""SchemeType"" integer NOT NULL DEFAULT 1,
+    ""ValidFromUtc"" timestamp with time zone NOT NULL,
+    ""ValidToUtc"" timestamp with time zone NOT NULL,
+    ""MinimumOrderQuantity"" numeric NOT NULL DEFAULT 1,
+    ""MinimumOrderValue"" numeric NULL,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""Description"" text NULL,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
+
+CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NOT NULL,
+    ""SchemeMasterId"" uuid NOT NULL,
+    ""MinQuantity"" numeric NOT NULL,
+    ""MaxQuantity"" numeric NULL,
+    ""FreeQuantity"" numeric NOT NULL DEFAULT 0,
+    ""DiscountPercent"" numeric NOT NULL DEFAULT 0,
+    ""FlatDiscountAmount"" numeric NOT NULL DEFAULT 0,
+    ""FreeItemId"" uuid NULL,
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+    ""CreatedBy"" uuid NULL,
+    ""UpdatedAtUtc"" timestamp with time zone NULL,
+    ""UpdatedBy"" uuid NULL,
+    ""DeletedAtUtc"" timestamp with time zone NULL,
+    ""DeletedBy"" uuid NULL
+);
 ";
             var statements = sql.Split(new[] { "CREATE TABLE IF NOT EXISTS" }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var stmt in statements)
@@ -1225,6 +1489,9 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""BankAccountNumber"" text;",
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""BankIfsc"" text;",
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""BankBranch"" text;",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IsAiAddonActive"" boolean NOT NULL DEFAULT FALSE;",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansLimit"" integer NOT NULL DEFAULT 500;",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansUsed"" integer NOT NULL DEFAULT 0;",
                 // Address & Contact fields
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AddressLine1"" text;",
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AddressLine2"" text;",
@@ -1270,7 +1537,56 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
                 @"ALTER TABLE ""ItemBatches"" ADD COLUMN IF NOT EXISTS ""IsQuarantined"" boolean NOT NULL DEFAULT FALSE;",
                 @"ALTER TABLE ""Items"" ADD COLUMN IF NOT EXISTS ""DrugSchedule"" text NULL;",
                 @"ALTER TABLE ""Items"" ADD COLUMN IF NOT EXISTS ""StorageCondition"" text NULL;",
-                @"ALTER TABLE ""Items"" ADD COLUMN IF NOT EXISTS ""PackagingRatio"" text NULL;"
+                @"ALTER TABLE ""Items"" ADD COLUMN IF NOT EXISTS ""PackagingRatio"" text NULL;",
+
+                // Pharma CBO SFA Hierarchy & Master Alters
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""DivisionId"" uuid NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""PatchId"" uuid NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""MonthlyTargetAmount"" numeric NOT NULL DEFAULT 250000;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""Mobile"" text NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""Email"" text NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""Gender"" text NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""EmergencyContact"" text NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""ReportingAbmUserId"" uuid NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""ReportingRsmUserId"" uuid NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""ReportingZsmUserId"" uuid NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""DeviceId"" text NULL;",
+                @"ALTER TABLE ""SfaEmployeeProfiles"" ADD COLUMN IF NOT EXISTS ""AppVersion"" text NULL;",
+
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""DivisionId"" uuid NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""PatchId"" uuid NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""BeatId"" uuid NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""PreferredVisitDay"" text NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""PreferredVisitTime"" text NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""Latitude"" double precision NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""Longitude"" double precision NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""GeofenceRadiusMeters"" double precision NOT NULL DEFAULT 200;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""SubSpecialty"" text NULL;",
+                @"ALTER TABLE ""SfaDoctors"" ADD COLUMN IF NOT EXISTS ""Priority"" text NULL DEFAULT 'High';",
+
+                @"ALTER TABLE ""SfaChemists"" ADD COLUMN IF NOT EXISTS ""PatchId"" uuid NULL;",
+                @"ALTER TABLE ""SfaChemists"" ADD COLUMN IF NOT EXISTS ""BeatId"" uuid NULL;",
+                @"ALTER TABLE ""SfaChemists"" ADD COLUMN IF NOT EXISTS ""PreferredVisitDay"" text NULL;",
+                @"ALTER TABLE ""SfaChemists"" ADD COLUMN IF NOT EXISTS ""Latitude"" double precision NULL;",
+                @"ALTER TABLE ""SfaChemists"" ADD COLUMN IF NOT EXISTS ""Longitude"" double precision NULL;",
+                @"ALTER TABLE ""SfaChemists"" ADD COLUMN IF NOT EXISTS ""GeofenceRadiusMeters"" double precision NOT NULL DEFAULT 200;",
+
+                // Sprint 2 Tour Plan Enhancements
+                @"ALTER TABLE ""SfaTourPlanItems"" ADD COLUMN IF NOT EXISTS ""ActivityType"" text NOT NULL DEFAULT 'FieldWork';",
+                @"ALTER TABLE ""SfaTourPlanItems"" ADD COLUMN IF NOT EXISTS ""PatchId"" uuid NULL;",
+                @"ALTER TABLE ""SfaTourPlanItems"" ADD COLUMN IF NOT EXISTS ""BeatId"" uuid NULL;",
+                @"ALTER TABLE ""SfaTourPlanItems"" ADD COLUMN IF NOT EXISTS ""TargetDoctorIdsJson"" text NULL;",
+
+                // Sprint 4 & 5 Enhancements
+                @"ALTER TABLE ""SfaDailyCallReports"" ADD COLUMN IF NOT EXISTS ""PlannedDistanceKm"" numeric NOT NULL DEFAULT 0;",
+                @"ALTER TABLE ""SfaDailyCallReports"" ADD COLUMN IF NOT EXISTS ""ActualGpsDistanceKm"" numeric NOT NULL DEFAULT 0;",
+                @"ALTER TABLE ""SfaDailyCallReports"" ADD COLUMN IF NOT EXISTS ""IsVarianceFlagged"" boolean NOT NULL DEFAULT FALSE;",
+                @"ALTER TABLE ""SfaChemists"" ADD COLUMN IF NOT EXISTS ""PreferredStockistId"" uuid NULL;",
+                @"ALTER TABLE ""SfaPobOrders"" ADD COLUMN IF NOT EXISTS ""StockistFulfillmentStatus"" text NOT NULL DEFAULT 'NotRouted';",
+                @"ALTER TABLE ""SfaPobOrders"" ADD COLUMN IF NOT EXISTS ""StockistRemarks"" text NULL;",
+                @"ALTER TABLE ""SfaPobOrders"" ADD COLUMN IF NOT EXISTS ""ExpectedDeliveryDate"" timestamp with time zone NULL;",
+                @"ALTER TABLE ""SfaPobOrderItems"" ADD COLUMN IF NOT EXISTS ""AppliedSchemeId"" uuid NULL;",
+                @"ALTER TABLE ""SfaPobOrderItems"" ADD COLUMN IF NOT EXISTS ""AppliedSchemeName"" text NULL;"
             };
 
             foreach (var alterStmt in alterStatements)
@@ -1293,7 +1609,8 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
 
     private async Task SeedIndustriesAndModulesAsync(CancellationToken cancellationToken)
     {
-        if (await _context.Industries.AnyAsync(cancellationToken)) return;
+        if (!await _context.Modules.AnyAsync(cancellationToken))
+        {
 
         // 1. Define Core Modules
         var modSales = new Module { Code = "SALES", Name = "Sales & Invoicing", Description = "Invoicing, Quotations, POS, Returns, and Dispatch", Icon = "receipt", DisplayOrder = 1, IsCore = true };
@@ -1315,27 +1632,57 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
         var featMultiUOM = new Feature { Module = modInventory, Code = "FEAT_MULTI_UOM", Name = "Multi-UOM Packaging Conversion", Description = "Case to Piece conversion and scheme discounts", FeatureType = FeatureType.IndustrySpecific, DisplayOrder = 7 };
 
         _context.Features.AddRange(featBatchTracking, featExpiryManagement, featSerialTracking, featMatrixVariants, featRecipeBOM, featDrugCompliance, featMultiUOM);
+        }
 
-        // 3. Define 14 Target Industries
-        var industries = new List<Industry>
+        // 3. Define 7 Canonical Target Industries
+        var canonical = new[]
         {
-            new() { Code = "PHARMA", Name = "Pharmaceuticals & Healthcare", Description = "Pharma Distribution, Chemists, Medicine Wholesale with Batch, Expiry, and Schedule H1 Compliance", Icon = "activity", DisplayOrder = 1 },
-            new() { Code = "FMCG", Name = "FMCG Distribution", Description = "Fast Moving Consumer Goods with Multi-UOM, Route Sales, Schemes, and Bulk Packaging", Icon = "truck", DisplayOrder = 2 },
-            new() { Code = "WHOLESALE", Name = "B2B Wholesale Trading", Description = "High-volume wholesale with Tier Pricing, Credit Terms, and Broker Commission", Icon = "briefcase", DisplayOrder = 3 },
-            new() { Code = "RETAIL", Name = "Retail Store & POS", Description = "Fast Barcode POS Billing, Customer Loyalty, and Quick Payment processing", Icon = "shopping-cart", DisplayOrder = 4 },
-            new() { Code = "BAKERY", Name = "Bakery & Confectionery", Description = "Bakery manufacturing with Recipe BOM, Short Shelf-Life, and Daily Shift Batches", Icon = "coffee", DisplayOrder = 5 },
-            new() { Code = "B2B_DIST", Name = "B2B Distribution & Logistics", Description = "Enterprise distribution with Delivery Challans, Multi-Warehouse fulfillment, and E-Way bills", Icon = "box", DisplayOrder = 6 },
-            new() { Code = "HARDWARE", Name = "Hardware & Building Materials", Description = "Hardware, Paint, Sanitary with Multi-Rate Taxes and Weight/Dimension conversions", Icon = "tool", DisplayOrder = 7 },
-            new() { Code = "GARMENTS", Name = "Garments & Apparel", Description = "Apparel with Size-Color-Style Matrix, Custom Barcode Tags, and Seasonal Cataloging", Icon = "tag", DisplayOrder = 8 },
-            new() { Code = "GENERAL_TRADING", Name = "General Trading", Description = "Standard trading businesses with Multi-rate GST, Invoicing, and Stock Ledger", Icon = "globe", DisplayOrder = 9 },
-            new() { Code = "GROCERY", Name = "Supermarket & Grocery", Description = "Grocery stores with Weighing Scale integration, Fast Search, and Perishable alerts", Icon = "shopping-bag", DisplayOrder = 10 },
-            new() { Code = "ELECTRONICS", Name = "Electronics & Appliances", Description = "Electronics with Serial/IMEI numbers, Warranty tracking, and Service/RMA logs", Icon = "tv", DisplayOrder = 11 },
-            new() { Code = "ELECTRICAL", Name = "Electrical Goods", Description = "Electricals with Drum/Coil Lengths, Brand grouping, and Warranty records", Icon = "zap", DisplayOrder = 12 },
-            new() { Code = "COSMETICS", Name = "Cosmetics & Personal Care", Description = "Beauty products with Shade Variants, Batch numbers, and Expiry tracking", Icon = "smile", DisplayOrder = 13 },
-            new() { Code = "FOOTWEAR", Name = "Footwear & Shoes", Description = "Shoe stores with Size Matrix (UK/US/EU), Colors, and Box Pack tracking", Icon = "compass", DisplayOrder = 14 }
+            new Industry { Code = "PHARMA", Name = "Pharmaceuticals & Healthcare", Description = "Pharma Distribution, Chemists, Medicine Wholesale with Batch, Expiry, and Schedule H1 Compliance", Icon = "activity", DisplayOrder = 1, IsActive = true },
+            new Industry { Code = "FMCG", Name = "FMCG Distribution & Grocery", Description = "Fast Moving Consumer Goods with Multi-UOM, Route Sales, Schemes, and Bulk Packaging", Icon = "truck", DisplayOrder = 2, IsActive = true },
+            new Industry { Code = "ELECTRONICS", Name = "Electronics, Appliances & Mobile", Description = "Electronics with Serial/IMEI numbers, Warranty tracking, and Service/RMA logs", Icon = "tv", DisplayOrder = 3, IsActive = true },
+            new Industry { Code = "GARMENTS", Name = "Garments, Apparel & Footwear", Description = "Apparel with Size-Color-Style Matrix, Custom Barcode Tags, and Seasonal Cataloging", Icon = "tag", DisplayOrder = 4, IsActive = true },
+            new Industry { Code = "HARDWARE", Name = "Hardware, Paint & Building Materials", Description = "Hardware, Paint, Sanitary with Multi-Rate Taxes and Weight/Dimension conversions", Icon = "tool", DisplayOrder = 5, IsActive = true },
+            new Industry { Code = "SERVICE_SECTOR", Name = "Service Sector & Consulting", Description = "Consulting, repairs, and professional services with job sheets and recurring invoicing", Icon = "briefcase", DisplayOrder = 6, IsActive = true },
+            new Industry { Code = "OTHER", Name = "General Trading & Retail", Description = "Standard retail & wholesale trading with multi-rate GST, POS invoicing, and stock ledger", Icon = "globe", DisplayOrder = 7, IsActive = true }
         };
 
-        _context.Industries.AddRange(industries);
+        if (!await _context.Industries.AnyAsync(cancellationToken))
+        {
+            _context.Industries.AddRange(canonical);
+        }
+        else
+        {
+            // Soft-deactivate any legacy non-canonical industries
+            var canonicalCodes = new HashSet<string> { "PHARMA", "FMCG", "ELECTRONICS", "GARMENTS", "HARDWARE", "SERVICE_SECTOR", "OTHER" };
+            var legacyIndustries = await _context.Industries.IgnoreQueryFilters()
+                .Where(i => !canonicalCodes.Contains(i.Code))
+                .ToListAsync(cancellationToken);
+
+            foreach (var leg in legacyIndustries)
+            {
+                leg.IsActive = false;
+                leg.IsDeleted = true;
+            }
+
+            foreach (var c in canonical)
+            {
+                var existing = await _context.Industries.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Code == c.Code, cancellationToken);
+                if (existing == null)
+                {
+                    _context.Industries.Add(c);
+                }
+                else
+                {
+                    existing.IsActive = true;
+                    existing.IsDeleted = false;
+                    existing.Name = c.Name;
+                    existing.Description = c.Description;
+                    existing.DisplayOrder = c.DisplayOrder;
+                }
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task SeedPlansAsync(CancellationToken cancellationToken)
@@ -1452,6 +1799,119 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
         _context.AddOns.AddRange(addons);
     }
 
+    private async Task SeedCommercialConfigAsync(CancellationToken cancellationToken)
+    {
+        if (!await _context.PlatformCommercialConfigs.IgnoreQueryFilters().AnyAsync(cancellationToken))
+        {
+            _context.PlatformCommercialConfigs.Add(new PlatformCommercialConfig
+            {
+                CoreAnnualPrice = 3999m,
+                CoreBiennialPrice = 6999m,
+                IncludedUsers = 2,
+                SingleUserAnnualPrice = 799m,
+                FiveUserPackAnnualPrice = 2999m,
+                AiProAnnualPrice = 1499m,
+                AiProMonthlyScanLimit = 500,
+                GstRatePercent = 18.0m,
+                IsActive = true,
+                Notes = "Default canonical commercial pricing configuration"
+            });
+        }
+
+        // Ensure canonical plans exist
+        if (!await _context.Plans.IgnoreQueryFilters().AnyAsync(p => p.Code == "CORE_ANNUAL", cancellationToken))
+        {
+            _context.Plans.Add(new Plan
+            {
+                Code = "CORE_ANNUAL",
+                Name = "UdyogBill Core (1 Year)",
+                Description = "Complete SaaS billing & ERP with 2 users included and your chosen industry pack",
+                BillingCycle = BillingCycle.Annually,
+                Price = 3999m,
+                TrialDays = 14,
+                MaxUsers = 2,
+                MaxBranches = 1,
+                MaxWarehouses = 2,
+                MaxInvoicesPerMonth = 5000,
+                MaxStorageMb = 5120,
+                IsPopular = true,
+                DisplayOrder = 1
+            });
+        }
+        if (!await _context.Plans.IgnoreQueryFilters().AnyAsync(p => p.Code == "CORE_BIENNIAL", cancellationToken))
+        {
+            _context.Plans.Add(new Plan
+            {
+                Code = "CORE_BIENNIAL",
+                Name = "UdyogBill Core (2 Years Deal)",
+                Description = "2 Years subscription with savings, 2 users included and your chosen industry pack",
+                BillingCycle = BillingCycle.Annually,
+                Price = 6999m,
+                TrialDays = 14,
+                MaxUsers = 2,
+                MaxBranches = 2,
+                MaxWarehouses = 3,
+                MaxInvoicesPerMonth = 10000,
+                MaxStorageMb = 10240,
+                IsPopular = false,
+                DisplayOrder = 2
+            });
+        }
+
+        // Ensure canonical add-ons exist
+        if (!await _context.AddOns.IgnoreQueryFilters().AnyAsync(a => a.Code == "ADDON_EXTRA_1_USER", cancellationToken))
+        {
+            _context.AddOns.Add(new AddOn
+            {
+                Code = "ADDON_EXTRA_1_USER",
+                Name = "Additional Team Member (1 User)",
+                Description = "Add 1 additional operator / user seat to your organization",
+                Price = 799m,
+                AnnualPrice = 799m,
+                BillingCycle = BillingCycle.Annually,
+                AdditionalUsers = 1,
+                IsActive = true
+            });
+        }
+        if (!await _context.AddOns.IgnoreQueryFilters().AnyAsync(a => a.Code == "ADDON_EXTRA_5_USERS", cancellationToken))
+        {
+            _context.AddOns.Add(new AddOn
+            {
+                Code = "ADDON_EXTRA_5_USERS",
+                Name = "5 Additional Users Pack",
+                Description = "Add 5 additional operator / user seats to your organization",
+                Price = 2999m,
+                AnnualPrice = 2999m,
+                BillingCycle = BillingCycle.Annually,
+                AdditionalUsers = 5,
+                IsActive = true
+            });
+        }
+        if (!await _context.AddOns.IgnoreQueryFilters().AnyAsync(a => a.Code == "ADDON_AI_PRO", cancellationToken))
+        {
+            _context.AddOns.Add(new AddOn
+            {
+                Code = "ADDON_AI_PRO",
+                Name = "AI Pro Purchase Bill Scanner",
+                Description = "AI-powered purchase bill OCR, smart item extraction, batch detection (500 scans/month)",
+                Price = 1499m,
+                AnnualPrice = 1499m,
+                BillingCycle = BillingCycle.Annually,
+                IsActive = true
+            });
+        }
+
+        // Ensure SERVICE_SECTOR and OTHER industries exist
+        if (!await _context.Industries.IgnoreQueryFilters().AnyAsync(i => i.Code == "SERVICE_SECTOR", cancellationToken))
+        {
+            _context.Industries.Add(new Industry { Code = "SERVICE_SECTOR", Name = "Service Sector & Consulting", Description = "Consulting, repairs, and professional services with job sheets and recurring invoicing", Icon = "briefcase", DisplayOrder = 15 });
+        }
+        if (!await _context.Industries.IgnoreQueryFilters().AnyAsync(i => i.Code == "OTHER", cancellationToken))
+        {
+            _context.Industries.Add(new Industry { Code = "OTHER", Name = "General Trading & Retail", Description = "Standard retail & wholesale trading with multi-rate GST, POS invoicing, and stock ledger", Icon = "globe", DisplayOrder = 16 });
+        }
+    }
+
     private async Task SeedSuperAdminAsync(CancellationToken cancellationToken)
     {
         var passwordHash = _passwordHasher.HashPassword("Saurabh@1993", out var salt);
@@ -1506,8 +1966,15 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
         }
     }
 
-    private async Task SeedDemoTenantAndUsersAsync(CancellationToken cancellationToken)
+    public async Task SeedDemoTenantAndUsersAsync(CancellationToken cancellationToken)
     {
+        var hasAnyTenant = await _context.Tenants.IgnoreQueryFilters().AnyAsync(cancellationToken);
+        if (!hasAnyTenant)
+        {
+            await SeedDemoTenantsForceAsync(cancellationToken);
+            return;
+        }
+
         var tenantPasswordHash = _passwordHasher.HashPassword("Udyogbill", out var tenantSalt);
 
         // Update all existing tenant admins with the password "Udyogbill"
@@ -1566,6 +2033,195 @@ CREATE TABLE IF NOT EXISTS ""StockTransferItems"" (
                 }
             }
         }
+    }
+
+    public async Task SeedDemoTenantsForceAsync(CancellationToken cancellationToken)
+    {
+        var pharmaInd = await _context.Industries.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Code == "PHARMA", cancellationToken)
+                        ?? await _context.Industries.IgnoreQueryFilters().FirstOrDefaultAsync(cancellationToken);
+        if (pharmaInd == null) return;
+
+        var garmentsInd = await _context.Industries.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Code == "GARMENTS" || i.Code == "APPAREL", cancellationToken)
+                          ?? pharmaInd;
+        var retailInd = await _context.Industries.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Code == "RETAIL" || i.Code == "FMCG", cancellationToken)
+                        ?? pharmaInd;
+
+        var enterprisePlan = await _context.Plans.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Code == "ENTERPRISE", cancellationToken)
+                             ?? await _context.Plans.IgnoreQueryFilters().FirstOrDefaultAsync(cancellationToken);
+        var proPlan = await _context.Plans.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Code == "PROFESSIONAL", cancellationToken)
+                      ?? enterprisePlan;
+        var starterPlan = await _context.Plans.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Code == "STARTER", cancellationToken)
+                          ?? enterprisePlan;
+
+        var pwdHash = _passwordHasher.HashPassword("Udyogbill", out var salt);
+
+        // 1. Medipharm
+        if (!await _context.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Code == "MEDIPHARM", cancellationToken))
+        {
+            var t1 = new Tenant
+            {
+                Code = "MEDIPHARM",
+                BusinessName = "Medipharm Healthcare & Pharmaceuticals",
+                TradeName = "Medipharm Lifesciences",
+                IndustryId = pharmaInd.Id,
+                Status = TenantStatus.Active,
+                AdminEmail = "suresh@citypharma.com",
+                PrimaryPhone = "+91 98765 43210",
+                GSTIN = "09AAACM1234F1Z1",
+                PAN = "AAACM1234F",
+                State = "Uttar Pradesh",
+                StateCode = "09",
+                City = "Noida",
+                Pincode = "201309",
+                AddressLine1 = "Tower B, Cyber City, Sector 62",
+                DrugLicenseNumber = "UP-NOI-2024-98765",
+                SmtpPort = 587,
+                SmtpEnableSsl = true,
+                IsActive = true
+            };
+            _context.Tenants.Add(t1);
+
+            var b1 = new TenantBranch { TenantId = t1.Id, BranchCode = "HO-01", BranchName = "Head Office Branch", IsHeadOffice = true, IsActive = true, GSTIN = t1.GSTIN };
+            _context.TenantBranches.Add(b1);
+            var w1 = new TenantWarehouse { TenantId = t1.Id, Branch = b1, WarehouseCode = "MAIN-01", WarehouseName = "Main Central Depot", IsDefault = true, IsActive = true };
+            _context.TenantWarehouses.Add(w1);
+            var c1 = new TenantIndustryConfig { TenantId = t1.Id, IndustryId = t1.IndustryId, EnableBatchTracking = true, EnableExpiryTracking = true, EnableScheduleH1DrugTracking = true, EnableEWayBill = true, ConfigurationJson = "{}" };
+            _context.TenantIndustryConfigs.Add(c1);
+
+            if (enterprisePlan != null)
+            {
+                _context.TenantSubscriptions.Add(new TenantSubscription
+                {
+                    TenantId = t1.Id,
+                    PlanId = enterprisePlan.Id,
+                    Status = SubscriptionStatus.Active,
+                    StartsAtUtc = DateTimeOffset.UtcNow.AddDays(-15),
+                    EndsAtUtc = DateTimeOffset.UtcNow.AddDays(350),
+                    TrialEndsAtUtc = DateTimeOffset.UtcNow.AddDays(350),
+                    AutoRenew = true,
+                    PricePaid = enterprisePlan.Price
+                });
+            }
+
+            var r1 = new Role { TenantId = t1.Id, Name = "Tenant Administrator", Code = "TENANT_ADMIN", IsSystemRole = true, IsActive = true };
+            _context.Roles.Add(r1);
+
+            var u1 = new User { TenantId = t1.Id, Email = "suresh@citypharma.com", FullName = "Suresh Sharma", PhoneNumber = "+91 98765 43210", PasswordHash = pwdHash, PasswordSalt = salt, IsTenantAdmin = true, IsActive = true, EmailConfirmed = true, Designation = "Managing Director" };
+            var u1Demo = new User { TenantId = t1.Id, Email = "demo@udyogbill.com", FullName = "Demo Store Admin", PhoneNumber = "9876543210", PasswordHash = pwdHash, PasswordSalt = salt, IsTenantAdmin = true, IsActive = true, EmailConfirmed = true, Designation = "Store Manager" };
+            _context.Users.AddRange(u1, u1Demo);
+            _context.UserRoles.Add(new UserRole { TenantId = t1.Id, User = u1, Role = r1 });
+            _context.UserRoles.Add(new UserRole { TenantId = t1.Id, User = u1Demo, Role = r1 });
+        }
+
+        // 2. Apex Fashion & Garments
+        if (!await _context.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Code == "APEXFASHION", cancellationToken))
+        {
+            var t2 = new Tenant
+            {
+                Code = "APEXFASHION",
+                BusinessName = "Apex Fashion & Garments Studio",
+                TradeName = "Apex Apparels & Textiles",
+                IndustryId = garmentsInd.Id,
+                Status = TenantStatus.Active,
+                AdminEmail = "amit@apexfashion.com",
+                PrimaryPhone = "+91 98111 22334",
+                GSTIN = "07AAACP9988G1Z2",
+                PAN = "AAACP9988G",
+                State = "Delhi",
+                StateCode = "07",
+                City = "Connaught Place, New Delhi",
+                Pincode = "110001",
+                AddressLine1 = "Shop 12-14, Palika Bazaar",
+                SmtpPort = 587,
+                SmtpEnableSsl = true,
+                IsActive = true
+            };
+            _context.Tenants.Add(t2);
+
+            var b2 = new TenantBranch { TenantId = t2.Id, BranchCode = "HO-01", BranchName = "CP Flagship Store", IsHeadOffice = true, IsActive = true, GSTIN = t2.GSTIN };
+            _context.TenantBranches.Add(b2);
+            var w2 = new TenantWarehouse { TenantId = t2.Id, Branch = b2, WarehouseCode = "MAIN-01", WarehouseName = "Stock Warehouse", IsDefault = true, IsActive = true };
+            _context.TenantWarehouses.Add(w2);
+            var c2 = new TenantIndustryConfig { TenantId = t2.Id, IndustryId = t2.IndustryId, EnableSizeColorMatrix = true, EnableEWayBill = true, ConfigurationJson = "{}" };
+            _context.TenantIndustryConfigs.Add(c2);
+
+            if (proPlan != null)
+            {
+                _context.TenantSubscriptions.Add(new TenantSubscription
+                {
+                    TenantId = t2.Id,
+                    PlanId = proPlan.Id,
+                    Status = SubscriptionStatus.Active,
+                    StartsAtUtc = DateTimeOffset.UtcNow.AddDays(-10),
+                    EndsAtUtc = DateTimeOffset.UtcNow.AddDays(355),
+                    TrialEndsAtUtc = DateTimeOffset.UtcNow.AddDays(355),
+                    AutoRenew = true,
+                    PricePaid = proPlan.Price
+                });
+            }
+
+            var r2 = new Role { TenantId = t2.Id, Name = "Tenant Administrator", Code = "TENANT_ADMIN", IsSystemRole = true, IsActive = true };
+            _context.Roles.Add(r2);
+            var u2 = new User { TenantId = t2.Id, Email = "amit@apexfashion.com", FullName = "Amit Verma", PhoneNumber = "+91 98111 22334", PasswordHash = pwdHash, PasswordSalt = salt, IsTenantAdmin = true, IsActive = true, EmailConfirmed = true, Designation = "Founder & CEO" };
+            _context.Users.Add(u2);
+            _context.UserRoles.Add(new UserRole { TenantId = t2.Id, User = u2, Role = r2 });
+        }
+
+        // 3. Sharma Supermarket (Trial)
+        if (!await _context.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Code == "SHARMAKIRANA", cancellationToken))
+        {
+            var t3 = new Tenant
+            {
+                Code = "SHARMAKIRANA",
+                BusinessName = "Sharma Supermarket & Wholesale Kirana",
+                TradeName = "Sharma Super Mart",
+                IndustryId = retailInd.Id,
+                Status = TenantStatus.Trial,
+                AdminEmail = "sharma@sharmamart.com",
+                PrimaryPhone = "+91 98222 33445",
+                GSTIN = "27AAACS5544H1Z3",
+                PAN = "AAACS5544H",
+                State = "Maharashtra",
+                StateCode = "27",
+                City = "Andheri East, Mumbai",
+                Pincode = "400069",
+                AddressLine1 = "Plot 45, MIDC Central Road",
+                SmtpPort = 587,
+                SmtpEnableSsl = true,
+                IsActive = true
+            };
+            _context.Tenants.Add(t3);
+
+            var b3 = new TenantBranch { TenantId = t3.Id, BranchCode = "HO-01", BranchName = "Main Supermarket", IsHeadOffice = true, IsActive = true, GSTIN = t3.GSTIN };
+            _context.TenantBranches.Add(b3);
+            var w3 = new TenantWarehouse { TenantId = t3.Id, Branch = b3, WarehouseCode = "MAIN-01", WarehouseName = "Grocery Depot", IsDefault = true, IsActive = true };
+            _context.TenantWarehouses.Add(w3);
+            var c3 = new TenantIndustryConfig { TenantId = t3.Id, IndustryId = t3.IndustryId, EnableBatchTracking = true, EnableExpiryTracking = true, EnableEWayBill = true, ConfigurationJson = "{}" };
+            _context.TenantIndustryConfigs.Add(c3);
+
+            if (starterPlan != null)
+            {
+                _context.TenantSubscriptions.Add(new TenantSubscription
+                {
+                    TenantId = t3.Id,
+                    PlanId = starterPlan.Id,
+                    Status = SubscriptionStatus.Trial,
+                    StartsAtUtc = DateTimeOffset.UtcNow,
+                    EndsAtUtc = DateTimeOffset.UtcNow.AddDays(14),
+                    TrialEndsAtUtc = DateTimeOffset.UtcNow.AddDays(14),
+                    AutoRenew = false,
+                    PricePaid = 0m
+                });
+            }
+
+            var r3 = new Role { TenantId = t3.Id, Name = "Tenant Administrator", Code = "TENANT_ADMIN", IsSystemRole = true, IsActive = true };
+            _context.Roles.Add(r3);
+            var u3 = new User { TenantId = t3.Id, Email = "sharma@sharmamart.com", FullName = "Ramesh Sharma", PhoneNumber = "+91 98222 33445", PasswordHash = pwdHash, PasswordSalt = salt, IsTenantAdmin = true, IsActive = true, EmailConfirmed = true, Designation = "Owner" };
+            _context.Users.Add(u3);
+            _context.UserRoles.Add(new UserRole { TenantId = t3.Id, User = u3, Role = r3 });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task SeedPermissionsAsync(CancellationToken cancellationToken)

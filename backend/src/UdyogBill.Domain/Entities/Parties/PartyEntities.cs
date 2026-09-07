@@ -17,7 +17,8 @@ public enum CustomerType
     Wholesale = 4,
     Government = 5,
     Exporter = 6,
-    SEZ = 7
+    SEZ = 7,
+    D2C = 8
 }
 
 public enum SupplierType

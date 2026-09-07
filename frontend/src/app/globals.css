@@ -1,838 +1,166 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #020617;
-  --foreground: #f8fafc;
-}
 
-/* Light Theme Mode */
+/* ==========================================================================
+   UDYOGBILL DESIGN SYSTEM & THEME ARCHITECTURE
+   WCAG AA Compliant Multi-Theme Semantic Token System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Theme A: Professional Light (Default Enterprise Clean Accounting)
+   Crisp white cards, slate-50 canvas, charcoal text, high-contrast borders.
+   -------------------------------------------------------------------------- */
+:root,
 html.theme-light,
 body.theme-light {
-  --background: #fef3e8;
-  --foreground: #0f172a;
-  background-color: #fef3e8 !important;
-  color: #0f172a !important;
-}
-
-/* Card & Surface Backgrounds in Light Theme */
-html.theme-light [class*="bg-slate-900"] {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
-
-html.theme-light [class*="bg-slate-950"] {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-}
-
-html.theme-light thead[class*="bg-slate-950"],
-html.theme-light thead {
-  background-color: #f1f5f9 !important;
-  color: #475569 !important;
-}
-
-/* High-Contrast Text in Light Theme */
-html.theme-light h1,
-html.theme-light h2,
-html.theme-light h3,
-html.theme-light h4,
-html.theme-light .text-white:not(button[class*="bg-"]):not(button[class*="bg-"] *):not(a[class*="bg-indigo-"] *):not(a[class*="bg-emerald-"] *):not(a[class*="bg-blue-"] *):not(a[class*="bg-amber-600"] *):not(a[class*="bg-rose-"] *),
-html.theme-light .text-slate-100,
-html.theme-light .text-slate-200 {
-  color: #0f172a !important;
-  font-weight: 700 !important;
-}
-
-html.theme-light .text-slate-300,
-html.theme-light .text-slate-400,
-html.theme-light .text-slate-500 {
-  color: #334155 !important;
-  font-weight: 600 !important;
-}
-
-html.theme-light .text-indigo-300,
-html.theme-light .text-indigo-400 {
-  color: #4338ca !important;
-}
-
-html.theme-light .text-emerald-400 {
-  color: #059669 !important;
-}
-
-html.theme-light .text-amber-400 {
-  color: #b45309 !important;
-}
-
-html.theme-light .text-rose-400 {
-  color: #dc2626 !important;
-}
-
-/* Crisp Enterprise Borders in Light Theme */
-html.theme-light [class*="border-slate-800"],
-html.theme-light [class*="border-slate-700"],
-html.theme-light [class*="border-slate-900"] {
-  border-color: #e2e8f0 !important;
-}
-
-html.theme-light [class*="divide-slate-800"] > :not([hidden]) ~ :not([hidden]) {
-  border-color: #e2e8f0 !important;
-}
-
-/* Hover & Interactive States in Light Theme */
-html.theme-light .hover\:bg-slate-800:hover,
-html.theme-light .hover\:bg-slate-800\/40:hover,
-html.theme-light .hover\:bg-slate-700:hover {
-  background-color: #f1f5f9 !important;
-}
-
-html.theme-light .hover\:text-white:hover {
-  color: #0f172a !important;
-}
-
-html.theme-light select option {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
-
-/* Vibrant Colourful Light Theme Mode */
-html.theme-vibrant,
-body.theme-vibrant {
   --background: #f1f5f9;
   --foreground: #0f172a;
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-
-/* Card & Surface Backgrounds in Vibrant Theme */
-html.theme-vibrant [class*="bg-slate-900"] {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05) !important;
-}
-
-html.theme-vibrant [class*="bg-slate-950"] {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-}
-
-html.theme-vibrant thead[class*="bg-slate-950"],
-html.theme-vibrant thead {
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%) !important;
-  color: #334155 !important;
-}
-
-/* High-Contrast Text in Vibrant Theme */
-html.theme-vibrant h1,
-html.theme-vibrant h2,
-html.theme-vibrant h3,
-html.theme-vibrant h4,
-html.theme-vibrant .text-white:not(button[class*="bg-"]):not(button[class*="bg-"] *):not(a[class*="bg-indigo-"] *):not(a[class*="bg-emerald-"] *):not(a[class*="bg-blue-"] *):not(a[class*="bg-amber-600"] *):not(a[class*="bg-rose-"] *),
-html.theme-vibrant .text-slate-100,
-html.theme-vibrant .text-slate-200 {
-  color: #0f172a !important;
-  font-weight: 700 !important;
-}
-
-html.theme-vibrant .text-slate-300,
-html.theme-vibrant .text-slate-400,
-html.theme-vibrant .text-slate-500 {
-  color: #334155 !important;
-  font-weight: 600 !important;
-}
-
-html.theme-vibrant .text-indigo-300,
-html.theme-vibrant .text-indigo-400 {
-  color: #4338ca !important;
-}
-
-html.theme-vibrant .text-emerald-400 {
-  color: #059669 !important;
-}
-
-html.theme-vibrant .text-amber-400 {
-  color: #b45309 !important;
-}
-
-html.theme-vibrant .text-rose-400 {
-  color: #dc2626 !important;
-}
-
-/* Borders & Dividers in Vibrant Theme */
-html.theme-vibrant [class*="border-slate-800"],
-html.theme-vibrant [class*="border-slate-700"],
-html.theme-vibrant [class*="border-slate-900"] {
-  border-color: #e2e8f0 !important;
-}
-
-html.theme-vibrant [class*="divide-slate-800"] > :not([hidden]) ~ :not([hidden]) {
-  border-color: #e2e8f0 !important;
-}
-
-/* Colourful KPI Card Accents in Vibrant Theme */
-html.theme-vibrant .grid > div:nth-child(1).bg-slate-900\/90 {
-  border-top: 3px solid #6366f1 !important;
-  background: linear-gradient(180deg, #faf5ff 0%, #ffffff 45%) !important;
-}
-
-html.theme-vibrant .grid > div:nth-child(2).bg-slate-900\/90 {
-  border-top: 3px solid #10b981 !important;
-  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 45%) !important;
-}
-
-html.theme-vibrant .grid > div:nth-child(3).bg-slate-900\/90 {
-  border-top: 3px solid #f59e0b !important;
-  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 45%) !important;
-}
-
-html.theme-vibrant .grid > div:nth-child(4).bg-slate-900\/90 {
-  border-top: 3px solid #f43f5e !important;
-  background: linear-gradient(180deg, #fff1f2 0%, #ffffff 45%) !important;
-}
-
-html.theme-vibrant .grid > div:nth-child(5).bg-slate-900\/90 {
-  border-top: 3px solid #8b5cf6 !important;
-  background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 45%) !important;
-}
-
-html.theme-vibrant .grid > div:nth-child(6).bg-slate-900\/90 {
-  border-top: 3px solid #06b6d4 !important;
-  background: linear-gradient(180deg, #ecfeff 0%, #ffffff 45%) !important;
-}
-
-/* Quick Action Colourful Cards */
-html.theme-vibrant a[href*="/app/sales/invoices"].bg-slate-900 {
-  border-color: #c7d2fe !important;
-  background-color: #eef2ff !important;
-}
-
-html.theme-vibrant a[href*="/app/sales/quotations"].bg-slate-900 {
-  border-color: #bae6fd !important;
-  background-color: #f0f9ff !important;
-}
-
-html.theme-vibrant a[href*="/app/purchase/orders"].bg-slate-900 {
-  border-color: #a7f3d0 !important;
-  background-color: #ecfdf5 !important;
-}
-
-html.theme-vibrant a[href*="/app/parties/customers"].bg-slate-900 {
-  border-color: #bfdbfe !important;
-  background-color: #eff6ff !important;
-}
-
-html.theme-vibrant a[href*="/app/inventory/items"].bg-slate-900 {
-  border-color: #ddd6fe !important;
-  background-color: #f5f3ff !important;
-}
-
-html.theme-vibrant a[href*="/app/expenses"].bg-slate-900 {
-  border-color: #fecdd3 !important;
-  background-color: #fff1f2 !important;
-}
-
-/* Hover & Interactive States in Vibrant Theme */
-html.theme-vibrant .hover\:bg-slate-800:hover,
-html.theme-vibrant .hover\:bg-slate-800\/40:hover,
-html.theme-vibrant .hover\:bg-slate-700:hover {
-  background-color: #f8fafc !important;
-}
-
-html.theme-vibrant .hover\:text-white:hover {
-  color: #0f172a !important;
-}
-
-html.theme-vibrant select option {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
-
-/* ==========================================================================
-   Royal Navy Blue Theme - Full HD High Contrast
-   ========================================================================== */
-html.theme-navy,
-body.theme-navy {
-  --background: #050d24;
-  --foreground: #f8fafc;
-  background-color: #050d24 !important;
-  color: #f8fafc !important;
-}
-
-html.theme-navy main,
-html.theme-navy header,
-html.theme-navy aside {
-  color: #f8fafc !important;
-}
-
-html.theme-navy [class*="bg-slate-950"],
-html.theme-navy [class*="bg-slate-900/90"],
-html.theme-navy [class*="bg-white"] {
-  background-color: #0b1536 !important;
-  border-color: #1c2b5e !important;
-  color: #f8fafc !important;
-}
-
-html.theme-navy [class*="bg-slate-900"] {
-  background-color: #0f1c48 !important;
-  border-color: #1c2b5e !important;
-  color: #f8fafc !important;
-}
-
-html.theme-navy [class*="border-slate-800"],
-html.theme-navy [class*="border-slate-700"],
-html.theme-navy [class*="border-slate-200"] {
-  border-color: #1c2b5e !important;
-}
-
-/* Headings & Titles in Navy - Pure Brilliant White */
-html.theme-navy h1,
-html.theme-navy h2,
-html.theme-navy h3,
-html.theme-navy h4,
-html.theme-navy .text-white,
-html.theme-navy .text-slate-900,
-html.theme-navy .text-slate-950,
-html.theme-navy main .text-slate-900,
-html.theme-navy main .text-slate-950 {
-  color: #ffffff !important;
-  font-weight: 800 !important;
-}
-
-/* Subtitles in Navy - High-Contrast Light Silvery Slate */
-html.theme-navy .text-slate-400,
-html.theme-navy .text-slate-500,
-html.theme-navy .text-slate-600,
-html.theme-navy main .text-slate-400,
-html.theme-navy main .text-slate-600 {
-  color: #cbd5e1 !important;
-  font-weight: 600 !important;
-}
-
-/* Quick Action Cards in Navy */
-html.theme-navy a[href*="/app/sales/invoices"],
-html.theme-navy a[href*="/app/sales/quotations"],
-html.theme-navy a[href*="/app/purchase/orders"],
-html.theme-navy a[href*="/app/parties/customers"],
-html.theme-navy a[href*="/app/inventory/items"],
-html.theme-navy a[href*="/app/expenses"] {
-  background-color: #0d1a42 !important;
-  border-color: #23346d !important;
-}
-
-html.theme-navy a[href*="/app/sales/invoices"] .p-2.rounded-lg,
-html.theme-navy a[href*="/app/sales/quotations"] .p-2.rounded-lg,
-html.theme-navy a[href*="/app/parties/customers"] .p-2.rounded-lg,
-html.theme-navy a[href*="/app/inventory/items"] .p-2.rounded-lg {
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  border: 1px solid rgba(59, 130, 246, 0.4) !important;
-  color: #60a5fa !important;
-}
-
-html.theme-navy a[href*="/app/sales/invoices"] svg,
-html.theme-navy a[href*="/app/sales/quotations"] svg,
-html.theme-navy a[href*="/app/parties/customers"] svg {
-  color: #60a5fa !important;
-}
-
-html.theme-navy a[href*="/app/purchase/orders"] .p-2.rounded-lg {
-  background-color: rgba(16, 185, 129, 0.2) !important;
-  border: 1px solid rgba(16, 185, 129, 0.4) !important;
-  color: #34d399 !important;
-}
-
-html.theme-navy a[href*="/app/purchase/orders"] svg {
-  color: #34d399 !important;
-}
-
-html.theme-navy a[href*="/app/expenses"] .p-2.rounded-lg {
-  background-color: rgba(244, 63, 94, 0.2) !important;
-  border: 1px solid rgba(244, 63, 94, 0.4) !important;
-  color: #fb7185 !important;
-}
-
-html.theme-navy a[href*="/app/expenses"] svg {
-  color: #fb7185 !important;
-}
-
-/* Alert Cards in Navy */
-html.theme-navy a[class*="bg-rose-"],
-html.theme-navy div[class*="bg-rose-"] {
-  background-color: rgba(136, 19, 55, 0.3) !important;
-  border: 1.5px solid rgba(244, 63, 94, 0.5) !important;
-}
-
-html.theme-navy a[class*="bg-indigo-"],
-html.theme-navy div[class*="bg-indigo-"] {
-  background-color: rgba(30, 58, 138, 0.3) !important;
-  border: 1.5px solid rgba(96, 165, 250, 0.5) !important;
-}
-
-html.theme-navy a[class*="bg-amber-"],
-html.theme-navy div[class*="bg-amber-"] {
-  background-color: rgba(120, 53, 15, 0.3) !important;
-  border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
-}
-
-/* ==========================================================================
-   Pharma Emerald Green Theme - Full HD High Contrast
-   ========================================================================== */
-html.theme-emerald,
-body.theme-emerald {
-  --background: #021e17;
-  --foreground: #f8fafc;
-  background-color: #021e17 !important;
-  color: #f8fafc !important;
-}
-
-html.theme-emerald main,
-html.theme-emerald header,
-html.theme-emerald aside {
-  color: #f8fafc !important;
-}
-
-html.theme-emerald [class*="bg-slate-950"],
-html.theme-emerald [class*="bg-slate-900/90"],
-html.theme-emerald [class*="bg-white"] {
-  background-color: #042a20 !important;
-  border-color: #0a4837 !important;
-  color: #f8fafc !important;
-}
-
-html.theme-emerald [class*="bg-slate-900"] {
-  background-color: #06382b !important;
-  border-color: #0a4837 !important;
-  color: #f8fafc !important;
-}
-
-html.theme-emerald [class*="border-slate-800"],
-html.theme-emerald [class*="border-slate-700"],
-html.theme-emerald [class*="border-slate-200"] {
-  border-color: #0a4837 !important;
-}
-
-/* Headings & Titles in Emerald - Pure Brilliant White */
-html.theme-emerald h1,
-html.theme-emerald h2,
-html.theme-emerald h3,
-html.theme-emerald h4,
-html.theme-emerald .text-white,
-html.theme-emerald .text-slate-900,
-html.theme-emerald .text-slate-950,
-html.theme-emerald main .text-slate-900,
-html.theme-emerald main .text-slate-950 {
-  color: #ffffff !important;
-  font-weight: 800 !important;
-}
-
-/* Subtitles in Emerald - High-Contrast Light Silvery Slate */
-html.theme-emerald .text-slate-400,
-html.theme-emerald .text-slate-500,
-html.theme-emerald .text-slate-600,
-html.theme-emerald main .text-slate-400,
-html.theme-emerald main .text-slate-600 {
-  color: #cbd5e1 !important;
-  font-weight: 600 !important;
-}
-
-/* Quick Action Cards in Emerald */
-html.theme-emerald a[href*="/app/sales/invoices"],
-html.theme-emerald a[href*="/app/sales/quotations"],
-html.theme-emerald a[href*="/app/purchase/orders"],
-html.theme-emerald a[href*="/app/parties/customers"],
-html.theme-emerald a[href*="/app/inventory/items"],
-html.theme-emerald a[href*="/app/expenses"] {
-  background-color: #053327 !important;
-  border-color: #0d5642 !important;
-}
-
-html.theme-emerald a[href*="/app/sales/invoices"] .p-2.rounded-lg,
-html.theme-emerald a[href*="/app/sales/quotations"] .p-2.rounded-lg,
-html.theme-emerald a[href*="/app/purchase/orders"] .p-2.rounded-lg,
-html.theme-emerald a[href*="/app/parties/customers"] .p-2.rounded-lg,
-html.theme-emerald a[href*="/app/inventory/items"] .p-2.rounded-lg {
-  background-color: rgba(16, 185, 129, 0.2) !important;
-  border: 1px solid rgba(16, 185, 129, 0.4) !important;
-  color: #34d399 !important;
-}
-
-html.theme-emerald a[href*="/app/sales/invoices"] svg,
-html.theme-emerald a[href*="/app/sales/quotations"] svg,
-html.theme-emerald a[href*="/app/purchase/orders"] svg,
-html.theme-emerald a[href*="/app/parties/customers"] svg {
-  color: #34d399 !important;
-}
-
-html.theme-emerald a[href*="/app/expenses"] .p-2.rounded-lg {
-  background-color: rgba(244, 63, 94, 0.2) !important;
-  border: 1px solid rgba(244, 63, 94, 0.4) !important;
-  color: #fb7185 !important;
-}
-
-html.theme-emerald a[href*="/app/expenses"] svg {
-  color: #fb7185 !important;
-}
-
-/* Alert Cards in Emerald */
-html.theme-emerald a[class*="bg-rose-"],
-html.theme-emerald div[class*="bg-rose-"] {
-  background-color: rgba(136, 19, 55, 0.3) !important;
-  border: 1.5px solid rgba(244, 63, 94, 0.5) !important;
-}
-
-html.theme-emerald a[class*="bg-indigo-"],
-html.theme-emerald div[class*="bg-indigo-"] {
-  background-color: rgba(30, 58, 138, 0.3) !important;
-  border: 1.5px solid rgba(96, 165, 250, 0.5) !important;
-}
-
-html.theme-emerald a[class*="bg-amber-"],
-html.theme-emerald div[class*="bg-amber-"] {
-  background-color: rgba(120, 53, 15, 0.3) !important;
-  border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
-}
-
-/* ==========================================================================
-   Warm Amber (Classic ERP) Theme Mode
-   Matches the warm cream canvas, deep espresso sidebar, and amber accents
-   ========================================================================== */
-html.theme-amber,
-body.theme-amber {
-  --background: #fbf6ef;
-  --foreground: #1c1917;
-  background-color: #fbf6ef !important;
-  color: #1c1917 !important;
-}
-
-/* 1. Sidebar in Warm Amber - Ultra-Crisp, Razor-Sharp Full HD Menu */
-html.theme-amber aside,
-html.theme-amber aside.bg-slate-950,
-html.theme-amber aside [class*="bg-slate-950"] {
-  background-color: #16100d !important;
-  border-color: #2b1e17 !important;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
-  text-rendering: optimizeLegibility !important;
-}
-
-/* Sidebar Logo Badge */
-html.theme-amber aside [class*="from-indigo-500"] {
-  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
-  color: #ffffff !important;
-}
-
-/* Sidebar Active Menu Link (Compact Executive Pill with Razor-Sharp Pure White Text) */
-html.theme-amber aside nav a.bg-indigo-600,
-html.theme-amber aside nav [class*="bg-indigo-600"] {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  font-size: 12px !important;
-  padding-top: 0.375rem !important;
-  padding-bottom: 0.375rem !important;
-  box-shadow: 0 2px 8px -1px rgba(245, 158, 11, 0.35) !important;
-  border-radius: 0.5rem !important;
-  text-shadow: none !important;
-}
-
-html.theme-amber aside nav a.bg-indigo-600 svg,
-html.theme-amber aside nav [class*="bg-indigo-600"] svg {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  width: 14px !important;
-  height: 14px !important;
-}
-
-/* Sidebar Inactive Links - Clean, Crisp, High-Contrast & Transparent */
-html.theme-amber aside nav a:not(.bg-indigo-600) {
-  background-color: transparent !important;
-  color: #cbd5e1 !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  padding-top: 0.375rem !important;
-  padding-bottom: 0.375rem !important;
-  border-radius: 0.5rem !important;
-  text-shadow: none !important;
-}
-
-html.theme-amber aside nav a:not(.bg-indigo-600):hover {
-  background-color: rgba(245, 158, 11, 0.12) !important;
-  color: #ffffff !important;
-}
-
-/* Sidebar Inactive Icons - Sharp Golden Amber */
-html.theme-amber aside nav a:not(.bg-indigo-600) svg {
-  color: #f59e0b !important;
-  stroke: #f59e0b !important;
-  width: 14px !important;
-  height: 14px !important;
-}
-
-/* Category Section Headers (OVERVIEW, ORDER-TO-CASH, etc.) */
-html.theme-amber aside nav button[type="button"],
-html.theme-amber aside nav button[type="button"] span {
-  color: #d97706 !important;
-  font-size: 10px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.08em !important;
-  text-shadow: none !important;
-}
-
-/* Sidebar Brand Header - High Visibility & Premium Warm Glow */
-html.theme-amber aside .shrink-0.border-b,
-html.theme-amber aside [class*="border-b"][class*="bg-slate-950"] {
-  background-color: #16100d !important;
-  border-bottom: 1px solid #33231a !important;
-}
-
-/* Company Name in Sidebar - Bright, Crisp, Highly Visible White without Blur */
-html.theme-amber aside .text-sm.font-black,
-html.theme-amber aside [class*="text-sm font-black"] {
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.01em !important;
-  text-shadow: none !important;
-}
-
-/* Tenant Code - Warm Amber Gold Badge */
-html.theme-amber aside [class*="text-[10px] font-mono"],
-html.theme-amber aside .text-slate-400 {
-  color: #fbbf24 !important;
-  font-weight: 700 !important;
-}
-
-/* Logo Box - Highlighted with Warm Gold Border & Subtle Glow */
-html.theme-amber aside .w-10.h-10 {
-  background-color: #261c17 !important;
-  border: 1.5px solid #f59e0b !important;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35) !important;
-}
 
-/* Search Bar in Sidebar - Crisp & High Contrast */
-html.theme-amber aside input {
-  background-color: #271d18 !important;
-  border: 1px solid #4a3528 !important;
-  color: #ffffff !important;
-}
-
-html.theme-amber aside input::placeholder {
-  color: #a8a29e !important;
-}
-
-html.theme-amber aside input:focus {
-  border-color: #f59e0b !important;
-  box-shadow: 0 0 0 1px #f59e0b !important;
-}
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-sunken: #e2e8f0;
+
+  --primary: #16a34a;
+  --primary-foreground: #ffffff;
+  --primary-hover: #15803d;
+
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --secondary-hover: #e2e8f0;
+
+  --accent: #0284c7;
+  --accent-foreground: #ffffff;
 
-html.theme-amber aside .relative svg {
-  color: #f59e0b !important;
-}
-
-/* 2. Top Header & Navbar in Warm Amber */
-html.theme-amber header,
-html.theme-amber [data-tenant-header],
-html.theme-amber header[class*="bg-slate-950"],
-html.theme-amber [class*="border-b border-slate-800"].bg-slate-950 {
-  background-color: #fffdfa !important;
-  border-color: #fed7aa !important;
-  color: #1c1917 !important;
-}
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --success-muted: #dcfce7;
 
-/* 3. Main Workspace & Cards in Warm Amber */
-html.theme-amber main {
-  background-color: #fbf6ef !important;
-  color: #1c1917 !important;
-}
-
-/* Crisp White Cards with Subtle Warm Borders */
-html.theme-amber main [class*="bg-slate-900"],
-html.theme-amber main [class*="bg-slate-900/80"],
-html.theme-amber main [class*="bg-slate-900/90"] {
-  background-color: #ffffff !important;
-  color: #1c1917 !important;
-  border-color: #fed7aa !important;
-  box-shadow: 0 1px 3px 0 rgba(180, 83, 9, 0.05), 0 1px 2px -1px rgba(180, 83, 9, 0.05) !important;
-}
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --warning-muted: #fef3c7;
 
-html.theme-amber main [class*="bg-slate-950"] {
-  background-color: #fffaf5 !important;
-  color: #1c1917 !important;
-  border-color: #fed7aa !important;
-}
+  --danger: #dc2626;
+  --danger-foreground: #ffffff;
+  --danger-muted: #fee2e2;
 
-/* Table Headers in Soft Warm Peach */
-html.theme-amber thead[class*="bg-slate-950"],
-html.theme-amber thead[class*="bg-slate-900"],
-html.theme-amber thead {
-  background-color: #fff7ed !important;
-  color: #78350f !important;
-  border-color: #fed7aa !important;
-}
+  --info: #2563eb;
+  --info-foreground: #ffffff;
+  --info-muted: #dbeafe;
+
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-subtle: #f1f5f9;
+
+  --input: #ffffff;
+  --input-foreground: #0f172a;
+  --input-border: #cbd5e1;
 
-html.theme-amber tbody tr:hover {
-  background-color: #fff8f0 !important;
-}
+  --ring: #16a34a;
 
-/* 4. Full HD High-Contrast Typography & Hierarchy in Warm Amber */
-html.theme-amber main h1,
-html.theme-amber main h2,
-html.theme-amber main h3,
-html.theme-amber main h4,
-html.theme-amber header h1,
-html.theme-amber header h2 {
-  color: #0f172a !important;
-  font-weight: 800 !important;
-}
+  --table-header: #f8fafc;
+  --table-header-foreground: #475569;
+  --table-row: #ffffff;
+  --table-row-hover: #f8fafc;
+  --table-border: #e2e8f0;
 
-/* Primary text & card titles (except colored action buttons) */
-html.theme-amber main .text-white:not(button[class*="bg-"]):not(button[class*="bg-"] *):not(a[class*="bg-indigo-"] *):not(a[class*="bg-emerald-"] *):not(a[class*="bg-blue-"] *):not(a[class*="bg-amber-600"] *):not(a[class*="bg-rose-"] *),
-html.theme-amber main .text-slate-100,
-html.theme-amber main .text-slate-200,
-html.theme-amber header .text-white:not(button[class*="bg-"]):not(button[class*="bg-"] *):not(a[class*="bg-"] *),
-html.theme-amber [data-tenant-header] .text-white:not(button[class*="bg-"]):not(button[class*="bg-"] *) {
-  color: #0f172a !important;
-  font-weight: 700 !important;
-}
+  --sidebar: #ffffff;
+  --sidebar-foreground: #475569;
+  --sidebar-active: #16a34a;
+  --sidebar-active-foreground: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-hover: #f1f5f9;
 
-/* Secondary labels & descriptions - Deep Crisp Charcoal Slate (Never washed out!) */
-html.theme-amber main .text-slate-300,
-html.theme-amber main .text-slate-400,
-html.theme-amber main .text-slate-500,
-html.theme-amber header .text-slate-300,
-html.theme-amber header .text-slate-400,
-html.theme-amber header .text-slate-500 {
-  color: #334155 !important;
-  font-weight: 600 !important;
-}
+  --navbar: #ffffff;
+  --navbar-foreground: #0f172a;
+  --navbar-border: #e2e8f0;
 
-html.theme-amber main .text-slate-600,
-html.theme-amber main .text-slate-700 {
-  color: #1e293b !important;
-  font-weight: 700 !important;
+  color-scheme: light;
 }
 
-html.theme-amber main .text-slate-900,
-html.theme-amber main .text-slate-950,
-html.theme-light main .text-slate-900,
-html.theme-light main .text-slate-950,
-html.theme-vibrant main .text-slate-900,
-html.theme-vibrant main .text-slate-950 {
-  color: #0f172a !important;
-  font-weight: 800 !important;
-}
+/* --------------------------------------------------------------------------
+   2. Theme B: Premium Dark (Deep Midnight Slate)
+   Calm, deep slate foundation, elevated surfaces, subtle borders.
+   -------------------------------------------------------------------------- */
+html.dark,
+body.dark,
+html.theme-dark,
+body.theme-dark {
+  --background: #0b0f19;
+  --foreground: #e2e8f0;
 
-/* Vivid, High-Contrast Accents for Numbers and Badges */
-html.theme-amber .text-indigo-400,
-html.theme-amber .text-indigo-500,
-html.theme-amber .text-indigo-600 {
-  color: #4338ca !important;
-}
+  --surface: #121a29;
+  --surface-elevated: #1a2538;
+  --surface-muted: #0e1522;
+  --surface-sunken: #080c14;
 
-html.theme-amber .text-emerald-400,
-html.theme-amber .text-emerald-500,
-html.theme-amber .text-emerald-600 {
-  color: #047857 !important;
-}
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --primary-hover: #4f46e5;
 
-html.theme-amber .text-amber-400,
-html.theme-amber .text-amber-500,
-html.theme-amber .text-amber-600 {
-  color: #b45309 !important;
-}
+  --secondary: #1a2538;
+  --secondary-foreground: #e2e8f0;
+  --secondary-hover: #24334a;
 
-html.theme-amber .text-rose-400,
-html.theme-amber .text-rose-500,
-html.theme-amber .text-rose-600 {
-  color: #b91c1c !important;
-}
+  --accent: #38bdf8;
+  --accent-foreground: #0b0f19;
 
-html.theme-amber .text-blue-400,
-html.theme-amber .text-blue-500,
-html.theme-amber .text-blue-600 {
-  color: #1d4ed8 !important;
-}
+  --success: #10b981;
+  --success-foreground: #ffffff;
+  --success-muted: rgba(16, 185, 129, 0.12);
 
-html.theme-amber .text-purple-400,
-html.theme-amber .text-purple-500,
-html.theme-amber .text-purple-600 {
-  color: #6d28d9 !important;
-}
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --warning-muted: rgba(245, 158, 11, 0.12);
 
-/* 5. Enterprise Borders & Dividers */
-html.theme-amber main [class*="border-slate-800"],
-html.theme-amber main [class*="border-slate-700"],
-html.theme-amber main [class*="border-slate-850"],
-html.theme-amber main [class*="border-slate-900"],
-html.theme-amber main [class*="border-slate-200"] {
-  border-color: #fed7aa !important;
-}
+  --danger: #ef4444;
+  --danger-foreground: #ffffff;
+  --danger-muted: rgba(239, 68, 68, 0.12);
 
-html.theme-amber main [class*="divide-slate-800"] > :not([hidden]) ~ :not([hidden]),
-html.theme-amber main [class*="divide-slate-850"] > :not([hidden]) ~ :not([hidden]) {
-  border-color: #fed7aa !important;
-}
+  --info: #3b82f6;
+  --info-foreground: #ffffff;
+  --info-muted: rgba(59, 130, 246, 0.12);
 
-/* 6. Form Inputs & Selects in Main Canvas */
-html.theme-amber main input:not(aside input),
-html.theme-amber main select:not(aside select),
-html.theme-amber main textarea {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  font-weight: 600 !important;
-  border-color: #fed7aa !important;
-}
+  --muted: #1a2538;
+  --muted-foreground: #8a99ad;
 
-html.theme-amber main select option {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
+  --border: #1c273a;
+  --border-strong: #2a3a54;
+  --border-subtle: #141c2a;
 
-html.theme-amber main [class*="bg-slate-850"] {
-  background-color: #fff8f0 !important;
-  border-color: #fed7aa !important;
-}
+  --input: #0e1522;
+  --input-foreground: #e2e8f0;
+  --input-border: #24334a;
 
-/* 7. Quick Action & KPI Cards in Amber Theme */
-html.theme-amber main a.bg-slate-900,
-html.theme-amber main a[class*="bg-slate-900"],
-html.theme-amber main a.bg-white,
-html.theme-amber main a[class*="bg-white"] {
-  background-color: #ffffff !important;
-  border-color: #fed7aa !important;
-  box-shadow: 0 1px 3px 0 rgba(180, 83, 9, 0.08) !important;
-}
+  --ring: #6366f1;
 
-html.theme-amber main a.bg-slate-900:hover,
-html.theme-amber main a[class*="bg-slate-900"]:hover,
-html.theme-amber main a.bg-white:hover,
-html.theme-amber main a[class*="bg-white"]:hover {
-  background-color: #fffaf5 !important;
-  border-color: #f59e0b !important;
-  box-shadow: 0 4px 12px 0 rgba(180, 83, 9, 0.12) !important;
-}
+  --table-header: #0e1522;
+  --table-header-foreground: #8a99ad;
+  --table-row: #121a29;
+  --table-row-hover: #1a2538;
+  --table-border: #182333;
 
-html.theme-amber main button.bg-slate-800,
-html.theme-amber main .bg-slate-800 {
-  background-color: #fef3e7 !important;
-  color: #1e293b !important;
-  border-color: #fed7aa !important;
-}
+  --sidebar: #080c14;
+  --sidebar-foreground: #8a99ad;
+  --sidebar-active: #6366f1;
+  --sidebar-active-foreground: #ffffff;
+  --sidebar-border: #162030;
+  --sidebar-hover: #121a29;
 
-html.theme-amber main button.bg-slate-800:hover {
-  background-color: #fde8d0 !important;
-  color: #1c1917 !important;
-}
+  --navbar: #0e1522;
+  --navbar-foreground: #e2e8f0;
+  --navbar-border: #182333;
 
-/* Hover States in Main Content */
-html.theme-amber main .hover\:bg-slate-800:hover,
-html.theme-amber main .hover\:bg-slate-800\/40:hover,
-html.theme-amber main .hover\:bg-slate-700:hover {
-  background-color: #fff7ed !important;
+  color-scheme: dark;
 }
 
-html.theme-amber main .hover\:text-white:hover {
-  color: #1c1917 !important;
-}
 
 
 html,
@@ -840,7 +168,7 @@ body {
   color: var(--foreground);
   background-color: var(--background);
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ==========================================================================
@@ -896,6 +224,133 @@ html.theme-light button[class*="bg-slate-700"] {
   border: 1px solid #475569 !important;
   color: #ffffff !important;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ==========================================================================
+   LIGHT THEME ACCESSIBILITY & 100% VISIBILITY GUARANTEE
+   Ensures throughout the entire software that in light theme:
+   - Modals and forms are clean white & light surfaces with high contrast
+   - No jet-black/dark-navy input boxes or sub-cards leak into light theme
+   - All labels, headings, helper texts and placeholders are crisp & readable
+   - Dark theme retains full deep midnight slate styling when activated
+   ========================================================================== */
+
+/* 1. Form Inputs, Selects & Textareas in Light Theme */
+html:not(.dark) input[class*="bg-slate-9"],
+html:not(.dark) input[class*="bg-slate-8"],
+html:not(.dark) select[class*="bg-slate-9"],
+html:not(.dark) select[class*="bg-slate-8"],
+html:not(.dark) textarea[class*="bg-slate-9"],
+html:not(.dark) textarea[class*="bg-slate-8"],
+html.theme-light input[class*="bg-slate-9"],
+html.theme-light input[class*="bg-slate-8"],
+html.theme-light select[class*="bg-slate-9"],
+html.theme-light select[class*="bg-slate-8"],
+html.theme-light textarea[class*="bg-slate-9"],
+html.theme-light textarea[class*="bg-slate-8"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) input[class*="bg-slate-9"]::placeholder,
+html:not(.dark) textarea[class*="bg-slate-9"]::placeholder,
+html.theme-light input[class*="bg-slate-9"]::placeholder,
+html.theme-light textarea[class*="bg-slate-9"]::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 2. Labels & Form Field Headings in Light Theme */
+html:not(.dark) label[class*="text-slate-3"],
+html:not(.dark) label[class*="text-slate-4"],
+html:not(.dark) label[class*="text-gray-4"],
+html.theme-light label[class*="text-slate-3"],
+html.theme-light label[class*="text-slate-4"],
+html.theme-light label[class*="text-gray-4"] {
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+/* 3. Modal Titles & Card Headings in Light Theme */
+html:not(.dark) .bg-white h1.text-white,
+html:not(.dark) .bg-white h2.text-white,
+html:not(.dark) .bg-white h3.text-white,
+html:not(.dark) .bg-white h4.text-white,
+html:not(.dark) .bg-surface h1.text-white,
+html:not(.dark) .bg-surface h2.text-white,
+html:not(.dark) .bg-surface h3.text-white,
+html:not(.dark) .bg-surface h4.text-white,
+html:not(.dark) [role="dialog"] h1.text-white,
+html:not(.dark) [role="dialog"] h2.text-white,
+html:not(.dark) [role="dialog"] h3.text-white,
+html:not(.dark) [role="dialog"] h4.text-white,
+html.theme-light .bg-white h1.text-white,
+html.theme-light .bg-white h2.text-white,
+html.theme-light .bg-white h3.text-white,
+html.theme-light .bg-white h4.text-white,
+html.theme-light .bg-surface h3.text-white,
+html.theme-light [role="dialog"] h3.text-white {
+  color: #0f172a !important;
+}
+
+/* 4. Sub-cards, Pricing Boxes, Attribute Sections inside Modals in Light Theme */
+html:not(.dark) .bg-white div[class*="bg-slate-900"],
+html:not(.dark) .bg-surface div[class*="bg-slate-900"],
+html:not(.dark) [role="dialog"] div[class*="bg-slate-900"],
+html.theme-light .bg-white div[class*="bg-slate-900"],
+html.theme-light .bg-surface div[class*="bg-slate-900"],
+html.theme-light [role="dialog"] div[class*="bg-slate-900"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Sub-card titles & text inside light theme */
+html:not(.dark) .bg-white div[class*="bg-slate-900"] > div.text-white,
+html:not(.dark) .bg-surface div[class*="bg-slate-900"] > div.text-white,
+html:not(.dark) [role="dialog"] div[class*="bg-slate-900"] > div.text-white,
+html.theme-light .bg-white div[class*="bg-slate-900"] > div.text-white,
+html.theme-light .bg-surface div[class*="bg-slate-900"] > div.text-white,
+html.theme-light [role="dialog"] div[class*="bg-slate-900"] > div.text-white {
+  color: #0f172a !important;
+}
+
+/* 5. Tables inside Modals and Light Theme Containers */
+html:not(.dark) .bg-white thead[class*="bg-slate-9"],
+html:not(.dark) .bg-surface thead[class*="bg-slate-9"],
+html:not(.dark) [role="dialog"] thead[class*="bg-slate-9"],
+html.theme-light .bg-white thead[class*="bg-slate-9"],
+html.theme-light .bg-surface thead[class*="bg-slate-9"],
+html.theme-light [role="dialog"] thead[class*="bg-slate-9"] {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-white tbody[class*="bg-slate-9"],
+html:not(.dark) .bg-surface tbody[class*="bg-slate-9"],
+html:not(.dark) [role="dialog"] tbody[class*="bg-slate-9"],
+html.theme-light .bg-white tbody[class*="bg-slate-9"],
+html.theme-light .bg-surface tbody[class*="bg-slate-9"],
+html.theme-light [role="dialog"] tbody[class*="bg-slate-9"] {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .bg-white tr[class*="hover:bg-slate-800"]:hover,
+html:not(.dark) .bg-surface tr[class*="hover:bg-slate-800"]:hover,
+html:not(.dark) [role="dialog"] tr[class*="hover:bg-slate-800"]:hover,
+html.theme-light .bg-white tr[class*="hover:bg-slate-800"]:hover,
+html.theme-light .bg-surface tr[class*="hover:bg-slate-800"]:hover,
+html.theme-light [role="dialog"] tr[class*="hover:bg-slate-800"]:hover {
+  background-color: #f8fafc !important;
+}
+
+/* 6. High Contrast for Secondary / Muted Text in Light Mode */
+html:not(.dark) p.text-slate-400,
+html:not(.dark) span.text-slate-400,
+html.theme-light p.text-slate-400,
+html.theme-light span.text-slate-400 {
+  color: #64748b !important;
 }
 
 /* Print Specific Isolation Rules */
@@ -975,4 +430,196 @@ div[data-nextjs-scroll-focus-boundary] + div:has(svg) {
   transform: scale(0.7) !important;
   transform-origin: bottom left !important;
 }
+
+/* ==========================================================================
+   PUBLIC MARKETING WEBSITE STRICT FULL HD VISIBILITY & ISOLATION
+   Guarantees that public marketing pages are never tainted by ERP dark/slate themes
+   ========================================================================== */
+html.marketing-active,
+body.marketing-active,
+html.marketing-active body {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.marketing-site-wrapper {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Headings in marketing must always be dark charcoal / high contrast */
+.marketing-site-wrapper h1,
+.marketing-site-wrapper h2,
+.marketing-site-wrapper h3,
+.marketing-site-wrapper h4,
+.marketing-site-wrapper h5,
+.marketing-site-wrapper h6 {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+/* Paragraphs, descriptions, list items */
+.marketing-site-wrapper p,
+.marketing-site-wrapper li,
+.marketing-site-wrapper span:not([class*="bg-"]):not(button *):not(a[class*="bg-"] *) {
+  color: #334155;
+}
+
+.marketing-site-wrapper .text-gray-900 {
+  color: #0f172a !important;
+}
+
+.marketing-site-wrapper .text-gray-800 {
+  color: #1e293b !important;
+}
+
+.marketing-site-wrapper .text-gray-700 {
+  color: #334155 !important;
+}
+
+.marketing-site-wrapper .text-gray-600 {
+  color: #475569 !important;
+}
+
+.marketing-site-wrapper .text-gray-500 {
+  color: #64748b !important;
+}
+
+.marketing-site-wrapper .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+/* Marketing cards: Crisp pure white background with soft border */
+.marketing-site-wrapper .bg-white {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.marketing-site-wrapper .bg-gray-50 {
+  background-color: #f8fafc !important;
+}
+
+.marketing-site-wrapper .border-gray-100,
+.marketing-site-wrapper .border-gray-200 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Allow gradient clip text to shine through */
+.marketing-site-wrapper .bg-clip-text {
+  color: transparent !important;
+}
+
+/* Retain dark background for footer and hero visual terminal specifically */
+.marketing-site-wrapper footer,
+footer.footer,
+.footer {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
+  background-color: #0f172a !important;
+  color: #94a3b8 !important;
+}
+
+.marketing-site-wrapper footer h4,
+.marketing-site-wrapper footer .footer-nav-title,
+footer.footer .footer-nav-title,
+.footer .footer-nav-title {
+  color: #ffffff !important;
+}
+
+.marketing-site-wrapper footer p,
+footer.footer p,
+.footer p {
+  color: #94a3b8 !important;
+}
+
+.marketing-site-wrapper footer a,
+footer.footer a,
+.footer a {
+  color: #cbd5e1 !important;
+}
+
+.marketing-site-wrapper footer a:hover,
+footer.footer a:hover,
+.footer a:hover {
+  color: #f97316 !important;
+}
+
+/* Final CTA section with dark gradient */
+.marketing-site-wrapper section.relative.overflow-hidden h2,
+.marketing-site-wrapper section.relative.overflow-hidden p.text-gray-300 {
+  color: #ffffff !important;
+}
+
+/* Contact Demo Card Dark Left Box: crisp white & light slate text */
+.cta-corp__left,
+.marketing-site-wrapper .cta-corp__left {
+  background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 100%) !important;
+  color: #f8fafc !important;
+}
+
+.cta-corp__left h2,
+.cta-corp__left .cta-corp__title,
+.marketing-site-wrapper .cta-corp__left h2,
+.marketing-site-wrapper .cta-corp__left .cta-corp__title {
+  color: #ffffff !important;
+}
+
+.cta-corp__left p,
+.cta-corp__left .cta-corp__text,
+.marketing-site-wrapper .cta-corp__left p,
+.marketing-site-wrapper .cta-corp__left .cta-corp__text {
+  color: #cbd5e1 !important;
+}
+
+.cta-corp__left li,
+.marketing-site-wrapper .cta-corp__left li {
+  color: #f1f5f9 !important;
+}
+
+.cta-corp__left .cta-corp__tag,
+.marketing-site-wrapper .cta-corp__left .cta-corp__tag {
+  color: #86efac !important;
+  background: rgba(22, 163, 74, 0.2) !important;
+  border-color: rgba(134, 239, 172, 0.4) !important;
+}
+
+/* White text on solid colored buttons & badges */
+.marketing-site-wrapper a[class*="bg-orange-"]:not([class*="text-"]),
+.marketing-site-wrapper a[class*="bg-green-"]:not([class*="text-"]),
+.marketing-site-wrapper button[class*="bg-orange-"]:not([class*="text-"]),
+.marketing-site-wrapper button[class*="bg-green-"]:not([class*="text-"]) {
+  color: #ffffff !important;
+}
+
+.marketing-site-wrapper a[class*="text-orange-"],
+.marketing-site-wrapper button[class*="text-orange-"],
+.marketing-site-wrapper span[class*="text-orange-"] {
+  color: #ea580c !important;
+}
+
+.marketing-site-wrapper a[class*="text-slate-600"],
+.marketing-site-wrapper button[class*="text-slate-600"],
+.marketing-site-wrapper span[class*="text-slate-600"] {
+  color: #475569 !important;
+}
+
+.marketing-site-wrapper a[class*="text-slate-700"],
+.marketing-site-wrapper button[class*="text-slate-700"],
+.marketing-site-wrapper span[class*="text-slate-700"] {
+  color: #334155 !important;
+}
+
+.marketing-site-wrapper a[class*="text-slate-800"],
+.marketing-site-wrapper button[class*="text-slate-800"],
+.marketing-site-wrapper span[class*="text-slate-800"] {
+  color: #1e293b !important;
+}
+
+.marketing-site-wrapper a[class*="text-slate-900"],
+.marketing-site-wrapper button[class*="text-slate-900"],
+.marketing-site-wrapper span[class*="text-slate-900"] {
+  color: #0f172a !important;
+}
+
+
 

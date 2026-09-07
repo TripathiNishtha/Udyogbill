@@ -1,0 +1,34 @@
+html {
+    height: 100%;
+    background: #fff8f0 !important;
+}
+body {
+    min-height: 100vh;
+    background: #fff8f0 !important;
+    margin: 0;
+    padding: 0;
+}
+
+/* Auth marketing headings */
+.login-box h1,
+.right-col > .row > h1 {
+    color: #1a120b;
+}
+
+.ub-register-page h1,
+.ub-register-page h2,
+.ub-register-page h3 {
+    color: #1a120b;
+}
+
+/* Light auth page: header/nav links readable */
+body .right-col header a,
+body .right-col nav a,
+body .right-col nav .tw-text-white,
+body .right-col header .tw-text-white {
+    color: #1a120b !important;
+}
+
+body .right-col nav .tw-border-white {
+    border-color: #f58220 !important;
+}

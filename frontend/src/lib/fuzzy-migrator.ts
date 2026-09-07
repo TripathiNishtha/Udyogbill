@@ -148,18 +148,54 @@ export const SOFTWARE_PRESETS: Record<string, { label: string; icon: string; ite
 
 // 2. Universal Synonym Dictionary for Fuzzy Auto-Matching
 const ITEM_SYNONYMS: Record<keyof StandardProductRow, string[]> = {
-  name: ["name", "item", "product", "item_name", "product_name", "dawa", "medicine", "particulars", "description", "p_name", "pname", "विवरण", "सामग्री"],
-  sku: ["sku", "code", "item_code", "product_code", "itemcode", "barcode", "part_no", "partno", "कोड"],
-  hsn: ["hsn", "hsn_code", "hsncode", "sac", "hsn/sac", "commodity_code", "हसन"],
-  category: ["category", "cat", "group", "item_group", "dept", "department", "श्रेणी"],
-  unit: ["unit", "uom", "unit_of_measure", "base_unit", "packaging", "pack", "इकाई"],
-  taxRate: ["tax", "tax_rate", "tax_per", "tax_percent", "gst", "gst_rate", "gst_%", "tax_%", "टैक्स"],
-  salePrice: ["sale_price", "saleprice", "sale_rate", "salerate", "s_rate", "srate", "selling_price", "rate", "price", "mrp", "बिक्री_दर", "दर"],
-  purchasePrice: ["purchase_price", "purchaseprice", "purchase_rate", "purchaserate", "p_rate", "prate", "buy_price", "buy_rate", "cost", "cost_price", "खरीद_दर"],
-  mrp: ["mrp", "m.r.p", "m.r.p.", "maximum_retail_price", "प्रिंट_रेट"],
-  openingStock: ["stock", "opening_stock", "opening_quantity", "current_stock", "qty", "quantity", "bal_qty", "balance", "closing_stock", "स्टॉक", "मात्रा"],
-  batchNumber: ["batch", "batch_no", "batchno", "lot", "lot_no", "बैच"],
-  expiryDate: ["exp", "expiry", "exp_date", "exp_dt", "expiry_date", "valid_till", "एक्सपायरी"]
+  name: [
+    "name", "item", "product", "item_name", "product_name", "dawa", "medicine", "particulars", 
+    "description", "p_name", "pname", "item_desc", "itemdescription", "productdescription",
+    "itemname", "productname", "items", "products", "item_details", "itemdetails",
+    "विवरण", "सामग्री", "उत्पाद", "वस्तु"
+  ],
+  sku: [
+    "sku", "code", "item_code", "product_code", "itemcode", "barcode", "part_no", "partno", 
+    "item_id", "prod_code", "pcode", "item_no", "itemno", "कोड"
+  ],
+  hsn: [
+    "hsn", "hsn_code", "hsncode", "sac", "hsn/sac", "commodity_code", "hsn_sac", "hsnsac", "हसन"
+  ],
+  category: [
+    "category", "cat", "group", "item_group", "dept", "department", "cat_name", "category_name", 
+    "item_type", "group_name", "श्रेणी"
+  ],
+  unit: [
+    "unit", "uom", "unit_of_measure", "base_unit", "packaging", "pack", "packing", "u_o_m", "measure", "इकाई"
+  ],
+  taxRate: [
+    "tax", "tax_rate", "tax_per", "tax_percent", "gst", "gst_rate", "gst_%", "tax_%", "igst", 
+    "taxable_rate", "gst_slab", "टैक्स", "जीएसटी"
+  ],
+  salePrice: [
+    "sale_price", "saleprice", "sale_rate", "salerate", "s_rate", "srate", "selling_price", 
+    "rate", "price", "mrp", "s_price", "sellingrate", "sales_rate", "salesrate", "retail_rate", 
+    "billing_rate", "बिक्री_दर", "दर"
+  ],
+  purchasePrice: [
+    "purchase_price", "purchaseprice", "purchase_rate", "purchaserate", "p_rate", "prate", 
+    "buy_price", "buy_rate", "cost", "cost_price", "p_price", "costprice", "buying_price", "खरीद_दर"
+  ],
+  mrp: [
+    "mrp", "m.r.p", "m.r.p.", "maximum_retail_price", "print_rate", "max_retail_price", "प्रिंट_रेट"
+  ],
+  openingStock: [
+    "stock", "opening_stock", "opening_quantity", "current_stock", "qty", "quantity", "bal_qty", 
+    "balance", "closing_stock", "cl_qty", "op_qty", "available_qty", "in_stock", "qty_on_hand", 
+    "stk", "stk_qty", "स्टॉक", "मात्रा"
+  ],
+  batchNumber: [
+    "batch", "batch_no", "batchno", "lot", "lot_no", "lot_number", "b_no", "batch_num", "बैच"
+  ],
+  expiryDate: [
+    "exp", "expiry", "exp_date", "exp_dt", "expiry_date", "valid_till", "exp_date_time", 
+    "expiry_dt", "expdate", "एक्सपायरी"
+  ]
 };
 
 const PARTY_SYNONYMS: Record<keyof StandardPartyRow, string[]> = {
@@ -185,9 +221,12 @@ export function autoMapColumns(headers: string[], type: "item" | "party", select
   if (selectedPreset && SOFTWARE_PRESETS[selectedPreset]) {
     const presetMap = type === "item" ? SOFTWARE_PRESETS[selectedPreset].itemMap : SOFTWARE_PRESETS[selectedPreset].partyMap;
     for (const h of headers) {
-      const normH = h.toLowerCase().trim();
-      if (presetMap[normH]) {
-        mapping[presetMap[normH]] = h;
+      const normH = normalizeString(h);
+      for (const [pKey, standardTarget] of Object.entries(presetMap)) {
+        if (normH === normalizeString(pKey) || normH.includes(normalizeString(pKey))) {
+          mapping[standardTarget] = h;
+          break;
+        }
       }
     }
   }
@@ -213,23 +252,107 @@ export function autoMapColumns(headers: string[], type: "item" | "party", select
   return mapping;
 }
 
+export function extractTableFromSheet(rawRows: any[][]): { headers: string[]; rows: Record<string, any>[] } {
+  if (!rawRows || rawRows.length === 0) return { headers: [], rows: [] };
+
+  // Helper to test if a string matches any item column synonym
+  const isLikelyColumnHeader = (cellVal: string): boolean => {
+    const norm = normalizeString(cellVal);
+    if (!norm) return false;
+    for (const synList of Object.values(ITEM_SYNONYMS)) {
+      if (synList.some((s) => {
+        const normS = normalizeString(s);
+        return norm === normS || norm.includes(normS) || normS.includes(norm);
+      })) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Find the header row index (the first row containing keywords like name, item, rate, price, mrp, etc.)
+  let headerRowIndex = -1;
+  for (let i = 0; i < Math.min(rawRows.length, 25); i++) {
+    const row = rawRows[i];
+    if (!Array.isArray(row)) continue;
+
+    let matchCount = 0;
+    let hasNameOrItem = false;
+
+    for (const cell of row) {
+      if (cell === null || cell === undefined) continue;
+      const str = String(cell).trim();
+      if (!str) continue;
+
+      if (isLikelyColumnHeader(str)) {
+        matchCount++;
+        const norm = normalizeString(str);
+        if (["name", "item", "product", "itemname", "productname", "particulars", "description", "pname", "p_name", "dawa"].some(n => norm.includes(n))) {
+          hasNameOrItem = true;
+        }
+      }
+    }
+
+    // A row is considered a header if it contains product/item or 2+ recognized accounting columns
+    if (hasNameOrItem || matchCount >= 2) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  // Fallback to row 0 if no clear header was detected
+  if (headerRowIndex === -1) {
+    headerRowIndex = 0;
+  }
+
+  const rawHeadersRow = rawRows[headerRowIndex] || [];
+
+  // Determine max columns across all rows to prevent column truncation
+  let maxCols = rawHeadersRow.length;
+  for (let r = 0; r < rawRows.length; r++) {
+    if (Array.isArray(rawRows[r]) && rawRows[r].length > maxCols) {
+      maxCols = rawRows[r].length;
+    }
+  }
+
+  const headers: string[] = [];
+  for (let j = 0; j < maxCols; j++) {
+    const h = String(rawHeadersRow[j] || "").trim();
+    headers.push(h || `Column_${j + 1}`);
+  }
+
+  const rows: Record<string, any>[] = [];
+  for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
+    const rowData = rawRows[i];
+    if (!Array.isArray(rowData) || rowData.length === 0) continue;
+
+    const rowObj: Record<string, any> = {};
+    let hasAnyData = false;
+
+    for (let j = 0; j < headers.length; j++) {
+      const val = rowData[j];
+      const cleanedVal = val !== undefined && val !== null ? String(val).trim() : "";
+      rowObj[headers[j]] = cleanedVal;
+      if (cleanedVal) hasAnyData = true;
+    }
+
+    if (hasAnyData) {
+      rows.push(rowObj);
+    }
+  }
+
+  return { headers, rows };
+}
+
 export function parseCsvText(csvText: string): { headers: string[]; rows: Record<string, any>[] } {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return { headers: [], rows: [] };
 
-  const rawHeaders = lines[0].split(",").map((h) => h.replace(/^["']|["']$/g, "").trim());
-  const rows: Record<string, any>[] = [];
+  const rawRows: string[][] = lines.map(line => {
+    return line.split(",").map(v => v.replace(/^["']|["']$/g, "").trim());
+  });
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map((v) => v.replace(/^["']|["']$/g, "").trim());
-    const rowObj: Record<string, any> = {};
-    for (let j = 0; j < rawHeaders.length; j++) {
-      rowObj[rawHeaders[j]] = values[j] !== undefined ? values[j] : "";
-    }
-    rows.push(rowObj);
-  }
-
-  return { headers: rawHeaders, rows };
+  return extractTableFromSheet(rawRows);
 }
 
 export function transformToStandardProducts(
@@ -239,14 +362,55 @@ export function transformToStandardProducts(
 ): StandardProductRow[] {
   return rawRows
     .map((row) => {
-      const name = String(row[columnMap["name"]] || "").trim();
+      let name = String(row[columnMap["name"]] || "").trim();
+      
+      // Fallback: If no explicit column mapped or value is empty, inspect row keys for any product name
+      if (!name) {
+        for (const [k, v] of Object.entries(row)) {
+          const normKey = normalizeString(k);
+          if (["name", "item", "product", "itemname", "productname", "pname", "p_name", "particulars", "description", "itemdesc", "विवरण", "उत्पाद"].some(sub => normKey.includes(sub))) {
+            const candidate = String(v || "").trim();
+            if (candidate && isNaN(Number(candidate))) {
+              name = candidate;
+              break;
+            }
+          }
+        }
+      }
+
+      // If still no name, check if any column in the row contains valid text (e.g. Column_1, Column_2)
+      if (!name) {
+        for (const val of Object.values(row)) {
+          const s = String(val || "").trim();
+          if (s && s.length >= 2 && isNaN(Number(s)) && !s.startsWith("INV") && !s.startsWith("GST") && !s.includes("@")) {
+            name = s;
+            break;
+          }
+        }
+      }
+
+      // If STILL no name, take whatever value is in the very first column
+      if (!name) {
+        const firstVal = Object.values(row)[0];
+        if (firstVal !== undefined && firstVal !== null) {
+          const s = String(firstVal).trim();
+          if (s && s !== "0") name = s;
+        }
+      }
+
       if (!name) return null;
 
       const salePrice = parseFloat(String(row[columnMap["salePrice"]] || "0").replace(/[^0-9.]/g, "")) || 0;
       const purchasePrice = parseFloat(String(row[columnMap["purchasePrice"]] || "0").replace(/[^0-9.]/g, "")) || (salePrice * 0.8);
       const mrp = parseFloat(String(row[columnMap["mrp"]] || "0").replace(/[^0-9.]/g, "")) || (salePrice * 1.1);
       const openingStock = parseFloat(String(row[columnMap["openingStock"]] || "0").replace(/[^0-9.]/g, "")) || 0;
-      const taxRate = parseFloat(String(row[columnMap["taxRate"]] || "").replace(/[^0-9.]/g, "")) || defaultGstRate;
+      const rawTax = parseFloat(String(row[columnMap["taxRate"]] || "").replace(/[^0-9.]/g, ""));
+      let taxRate = isNaN(rawTax) || rawTax < 0 ? defaultGstRate : rawTax;
+      if (taxRate > 100 && taxRate <= 2800) {
+        taxRate = taxRate / 100; // Handle basis points e.g. 1800 => 18%
+      } else if (taxRate > 100) {
+        taxRate = defaultGstRate;
+      }
 
       return {
         name,
@@ -255,10 +419,10 @@ export function transformToStandardProducts(
         category: String(row[columnMap["category"]] || "").trim() || "General",
         unit: String(row[columnMap["unit"]] || "").trim() || "PCS",
         taxRate,
-        salePrice,
-        purchasePrice,
-        mrp,
-        openingStock,
+        salePrice: Math.max(0, salePrice),
+        purchasePrice: Math.max(0, purchasePrice),
+        mrp: Math.max(0, mrp),
+        openingStock: Math.max(0, openingStock),
         batchNumber: String(row[columnMap["batchNumber"]] || "").trim() || undefined,
         expiryDate: String(row[columnMap["expiryDate"]] || "").trim() || undefined
       };

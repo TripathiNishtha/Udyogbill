@@ -121,6 +121,11 @@ public class SalesInvoiceItemConfiguration : IEntityTypeConfiguration<SalesInvoi
             .WithMany()
             .HasForeignKey(i => i.BatchId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(i => i.Variant)
+            .WithMany()
+            .HasForeignKey(i => i.VariantId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

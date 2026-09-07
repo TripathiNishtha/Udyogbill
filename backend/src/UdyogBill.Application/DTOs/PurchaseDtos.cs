@@ -211,6 +211,7 @@ public record CreatePurchaseBillItemRequest
     public Guid? BatchId { get; set; }
     public string? BatchNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }
+    public Guid? VariantId { get; set; }
     public decimal Quantity { get; set; } = 1m;
     public Guid UomId { get; set; }
     public decimal UnitPrice { get; set; }
@@ -369,6 +370,7 @@ public record CreatePurchaseReturnItemRequest
     public string ItemSku { get; set; } = string.Empty;
     public Guid? BatchId { get; set; }
     public string? BatchNumber { get; set; }
+    public Guid? VariantId { get; set; }
     public decimal ReturnQuantity { get; set; } = 1m;
     public decimal UnitPrice { get; set; }
     public decimal GstRate { get; set; }

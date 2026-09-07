@@ -188,6 +188,34 @@ public class BulkImportService : IBulkImportService
                 itemAttrs["rackLocation"] = row.RackLocation.Trim();
             }
 
+            // Sanitize rates and quantities to prevent any numeric overflow or invalid values
+            var sanitizedTaxRate = row.TaxRate;
+            if (sanitizedTaxRate > 100m && sanitizedTaxRate <= 2800m)
+            {
+                sanitizedTaxRate = sanitizedTaxRate / 100m; // Basis points (e.g. 1800 => 18%)
+            }
+            else if (sanitizedTaxRate > 100m || sanitizedTaxRate < 0m)
+            {
+                sanitizedTaxRate = 18.0m;
+            }
+
+            var sanitizedCessRate = row.CessRate;
+            if (sanitizedCessRate > 100m && sanitizedCessRate <= 2800m)
+            {
+                sanitizedCessRate = sanitizedCessRate / 100m;
+            }
+            else if (sanitizedCessRate > 100m || sanitizedCessRate < 0m)
+            {
+                sanitizedCessRate = 0m;
+            }
+
+            var sanitizedPurchasePrice = Math.Max(0m, row.PurchasePrice);
+            var sanitizedSalePrice = Math.Max(0m, row.SalePrice);
+            var sanitizedMrp = row.Mrp > 0m ? row.Mrp : (sanitizedSalePrice > 0m ? sanitizedSalePrice : (sanitizedPurchasePrice > 0m ? sanitizedPurchasePrice : 100m));
+            var sanitizedMinStock = Math.Max(0m, row.MinimumStockAlert);
+            var sanitizedReorderQty = row.ReorderQuantity > 0m ? row.ReorderQuantity : 10m;
+            var sanitizedOpeningStock = Math.Max(0m, row.OpeningStock);
+
             Item item;
             if (existingItem != null)
             {
@@ -199,13 +227,13 @@ public class BulkImportService : IBulkImportService
                 item.PrimaryUom = uom;
                 item.HSNCode = row.HsnCode?.Trim() ?? item.HSNCode;
                 item.Barcode = row.Barcode?.Trim() ?? item.Barcode;
-                item.TaxRate = row.TaxRate;
-                item.CessRate = row.CessRate;
-                item.PurchasePrice = row.PurchasePrice;
-                item.SellingPrice = row.SalePrice;
-                item.MRP = row.Mrp > 0 ? row.Mrp : row.SalePrice;
-                item.MinimumStockAlert = row.MinimumStockAlert;
-                item.ReorderQuantity = row.ReorderQuantity > 0 ? row.ReorderQuantity : 10;
+                item.TaxRate = sanitizedTaxRate;
+                item.CessRate = sanitizedCessRate;
+                item.PurchasePrice = sanitizedPurchasePrice;
+                item.SellingPrice = sanitizedSalePrice;
+                item.MRP = sanitizedMrp;
+                item.MinimumStockAlert = sanitizedMinStock;
+                item.ReorderQuantity = sanitizedReorderQty;
                 item.AttributesJson = itemAttrs.Count > 0 ? JsonSerializer.Serialize(itemAttrs) : item.AttributesJson;
             }
             else
@@ -221,13 +249,13 @@ public class BulkImportService : IBulkImportService
                     PrimaryUom = uom,
                     HSNCode = row.HsnCode?.Trim(),
                     Barcode = row.Barcode?.Trim(),
-                    TaxRate = row.TaxRate,
-                    CessRate = row.CessRate,
-                    PurchasePrice = row.PurchasePrice,
-                    SellingPrice = row.SalePrice,
-                    MRP = row.Mrp > 0 ? row.Mrp : row.SalePrice,
-                    MinimumStockAlert = row.MinimumStockAlert,
-                    ReorderQuantity = row.ReorderQuantity > 0 ? row.ReorderQuantity : 10,
+                    TaxRate = sanitizedTaxRate,
+                    CessRate = sanitizedCessRate,
+                    PurchasePrice = sanitizedPurchasePrice,
+                    SellingPrice = sanitizedSalePrice,
+                    MRP = sanitizedMrp,
+                    MinimumStockAlert = sanitizedMinStock,
+                    ReorderQuantity = sanitizedReorderQty,
                     TrackInventory = true,
                     TrackBatches = !string.IsNullOrWhiteSpace(row.BatchNumber),
                     AttributesJson = itemAttrs.Count > 0 ? JsonSerializer.Serialize(itemAttrs) : "{}",
@@ -239,7 +267,7 @@ public class BulkImportService : IBulkImportService
             }
 
             // Handle Opening Stock
-            if (row.OpeningStock > 0 && warehouseId.HasValue && warehouseId.Value != Guid.Empty && existingItem == null)
+            if (sanitizedOpeningStock > 0 && warehouseId.HasValue && warehouseId.Value != Guid.Empty && existingItem == null)
             {
                 ItemBatch? batch = null;
                 if (!string.IsNullOrWhiteSpace(row.BatchNumber))
@@ -267,7 +295,7 @@ public class BulkImportService : IBulkImportService
                     Item = item,
                     WarehouseId = warehouseId.Value,
                     Batch = batch,
-                    CurrentQuantity = row.OpeningStock
+                    CurrentQuantity = sanitizedOpeningStock
                 };
                 _context.ItemWarehouseStocks.Add(stock);
 
@@ -278,14 +306,14 @@ public class BulkImportService : IBulkImportService
                     WarehouseId = warehouseId.Value,
                     Batch = batch,
                     MovementType = StockMovementType.PhysicalAdjustment,
-                    Quantity = row.OpeningStock,
+                    Quantity = sanitizedOpeningStock,
                     QuantityBefore = 0,
-                    QuantityAfter = row.OpeningStock,
+                    QuantityAfter = sanitizedOpeningStock,
                     UnitCost = item.PurchasePrice,
-                    TotalCost = item.PurchasePrice * row.OpeningStock,
+                    TotalCost = item.PurchasePrice * sanitizedOpeningStock,
                     ReferenceDocumentType = "OpeningStockMigration",
                     ReferenceDocumentNumber = "MIG-OP-STOCK",
-                    Notes = $"Opening stock migration ({row.OpeningStock} {uom.Code})"
+                    Notes = $"Opening stock migration ({sanitizedOpeningStock} {uom.Code})"
                 };
                 _context.StockMovements.Add(movement);
             }

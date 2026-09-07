@@ -73,4 +73,7 @@ public static class Permissions
 
     public const string ReportsView = "reports.view";
     public const string ReportsExport = "reports.export";
+
+    // AI Copilot & Assistant
+    public const string AiAssistantUse = "ai_assistant.use";
 }

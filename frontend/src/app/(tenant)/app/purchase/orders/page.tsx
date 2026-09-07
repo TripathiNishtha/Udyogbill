@@ -15,12 +15,15 @@ import {
   Building2,
   Calendar,
   IndianRupee,
-  Layers
+  Layers,
+  Printer
 } from "lucide-react";
 import { purchaseService } from "@/services/purchase-services";
 import { inventoryService } from "@/services/inventory-services";
 import { partyService } from "@/services/party-services";
 import { tenantAppService, BranchDetails, WarehouseDetails } from "@/services/tenant-app-services";
+import { printRawHtml } from "@/lib/print-helper";
+import { printTemplateService } from "@/services/print-template-services";
 import {
   PurchaseOrderList,
   PurchaseOrderDetails,
@@ -190,6 +193,24 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const [printingId, setPrintingId] = useState<string | null>(null);
+
+  const handlePrintPo = async (orderId: string, orderNumber: string) => {
+    try {
+      setPrintingId(orderId);
+      const preview = await printTemplateService.renderPreview({
+        documentId: orderId,
+        documentType: 5 // Purchase Order
+      });
+      printRawHtml(preview.renderedHtml, `Purchase_Order_${orderNumber}`, "A4 portrait", "6mm");
+    } catch (err) {
+      console.error("Print PO error:", err);
+      alert("Failed to render Purchase Order print preview.");
+    } finally {
+      setPrintingId(null);
+    }
+  };
+
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 1:
@@ -305,12 +326,23 @@ export default function PurchaseOrdersPage() {
                     <td className="py-3.5 px-4 text-right font-mono font-medium text-white">₹{po.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
                     <td className="py-3.5 px-4 text-center">{getStatusBadge(po.status)}</td>
                     <td className="py-3.5 px-4 text-center">
-                      <button
-                        onClick={() => handleViewOrder(po.id)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 transition"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-center space-x-1.5">
+                        <button
+                          onClick={() => handleViewOrder(po.id)}
+                          title="View Details"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 transition"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handlePrintPo(po.id, po.orderNumber)}
+                          disabled={printingId === po.id}
+                          title="Print Purchase Order (A4)"
+                          className="p-1.5 rounded-lg bg-teal-950/70 hover:bg-teal-900 border border-teal-800/60 text-teal-400 hover:text-teal-300 transition"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -580,7 +612,15 @@ export default function PurchaseOrdersPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
+            <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
+              <button
+                onClick={() => handlePrintPo(selectedOrder.id, selectedOrder.orderNumber)}
+                disabled={printingId === selectedOrder.id}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-xl text-sm flex items-center space-x-2 shadow-lg shadow-teal-600/30 transition disabled:opacity-50"
+              >
+                <Printer className="w-4 h-4" />
+                <span>{printingId === selectedOrder.id ? "Rendering PO..." : "Print Purchase Order (A4)"}</span>
+              </button>
               <button
                 onClick={() => setIsDetailsOpen(false)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm"

@@ -22,7 +22,22 @@ public record PharmaBatchDto(
     bool IsExpired,
     bool IsNearExpiry,
     int DaysToExpiry,
-    bool IsQuarantined
+    bool IsQuarantined,
+    decimal PackRatio = 1m,
+    string PrimaryUnit = "STRIP",
+    string SecondaryUnit = "TAB",
+    decimal UnitTabletPrice = 0m
+);
+
+public record PharmaDashboardSummaryDto(
+    int ExpiringCount30Days,
+    int ExpiringCount60Days,
+    int ExpiringCount90Days,
+    decimal ExpiringStockValue,
+    int ScheduleH1DispensedToday,
+    int QuarantinedBatchesCount,
+    int ActiveBatchesCount,
+    int RegisteredDoctorsCount
 );
 
 public record SavePharmaBatchRequest(
@@ -187,24 +202,29 @@ public record DoctorPrescriberDto(
     string? Email,
     decimal IncentivePercent,
     string? AssignedMrName,
-    bool IsActive
+    bool IsActive,
+    decimal CommissionPercent = 0,
+    decimal TotalPrescriptionsValue = 0,
+    decimal TotalCommissionPaid = 0,
+    decimal BalanceCommission = 0
 );
 
 public record SaveDoctorPrescriberRequest(
     Guid? Id,
-    string Code,
+    string? Code,
     string Name,
-    string Qualification,
-    string Specialization,
-    string RegistrationNumber,
-    string ClinicHospitalName,
-    string Address,
-    string City,
-    string Mobile,
+    string? Qualification,
+    string? Specialization,
+    string? RegistrationNumber,
+    string? ClinicHospitalName,
+    string? Address,
+    string? City,
+    string? Mobile,
     string? Email,
-    decimal IncentivePercent,
+    decimal? IncentivePercent,
     string? AssignedMrName,
-    bool IsActive
+    bool IsActive = true,
+    decimal? CommissionPercent = null
 );
 
 // --- Patient Repeat Prescription Lookup DTO ---

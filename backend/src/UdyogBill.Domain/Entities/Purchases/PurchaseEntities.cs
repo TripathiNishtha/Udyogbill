@@ -56,8 +56,8 @@ public class PurchaseOrder : BaseTenantAuditableEntity
     public DateTime? ExpectedDeliveryDate { get; set; }
 
     public TaxSupplyType TaxSupplyType { get; set; } = TaxSupplyType.IntraState;
-    public string SupplierStateCode { get; set; } = "27";
-    public string PlaceOfSupply { get; set; } = "Maharashtra";
+    public string SupplierStateCode { get; set; } = string.Empty;
+    public string PlaceOfSupply { get; set; } = string.Empty;
 
     // Amounts
     public decimal SubTotal { get; set; }
@@ -210,8 +210,8 @@ public class PurchaseBill : BaseTenantAuditableEntity
     public string SupplierName { get; set; } = string.Empty;
     public string? SupplierGSTIN { get; set; }
     public string? SupplierAddress { get; set; }
-    public string SupplierStateCode { get; set; } = "27";
-    public string PlaceOfSupply { get; set; } = "Maharashtra";
+    public string SupplierStateCode { get; set; } = string.Empty;
+    public string PlaceOfSupply { get; set; } = string.Empty;
 
     public DateTime BillDate { get; set; }
     public DateTime? DueDate { get; set; }
@@ -260,6 +260,10 @@ public class PurchaseBillItem : BaseTenantAuditableEntity
     public Guid? BatchId { get; set; }
     public ItemBatch? Batch { get; set; }
     public string? BatchNumber { get; set; }
+
+    // Garment / Product Variant
+    public Guid? VariantId { get; set; }
+    public ItemVariant? Variant { get; set; }
 
     public decimal Quantity { get; set; }
     public Guid UomId { get; set; }
@@ -330,6 +334,8 @@ public class PurchaseReturnItem : BaseTenantAuditableEntity
     public string ItemSku { get; set; } = string.Empty;
     public Guid? BatchId { get; set; }
     public string? BatchNumber { get; set; }
+    public Guid? VariantId { get; set; }
+    public ItemVariant? Variant { get; set; }
     public decimal ReturnQuantity { get; set; } = 0m;
     public decimal UnitPrice { get; set; } = 0m;
     public decimal GstRate { get; set; } = 0m;

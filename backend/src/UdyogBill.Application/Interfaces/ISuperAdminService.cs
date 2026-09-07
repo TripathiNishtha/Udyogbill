@@ -23,9 +23,14 @@ public interface ISuperAdminService
     Task<Result> DetachFeatureFromIndustryAsync(Guid industryId, Guid featureId, CancellationToken cancellationToken = default);
 
     // Plan & Entitlement Management
+    Task<Result<IReadOnlyList<PlanDto>>> GetPlansAsync(CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreatePlanAsync(CreatePlanRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> UpdatePlanAsync(Guid planId, UpdatePlanRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> DeletePlanAsync(Guid planId, string? ipAddress = null, CancellationToken cancellationToken = default);
+
+    // Dynamic Commercial Pricing Configuration
+    Task<Result<PlatformCommercialConfigDto>> GetCommercialConfigAsync(CancellationToken cancellationToken = default);
+    Task<Result> UpdateCommercialConfigAsync(UpdateCommercialConfigRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
 
     // Platform Telemetry & Audit Logs
     Task<Result<PlatformStatsDto>> GetPlatformStatsAsync(CancellationToken cancellationToken = default);

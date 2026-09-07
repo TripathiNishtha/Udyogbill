@@ -16,9 +16,13 @@ import { Printer,
   Scale,
   Building2,
   FileCheck,
+  Pill,
+  Shield,
+  Receipt,
+  ClipboardList,
+  Truck,
   ShieldCheck,
-  HelpCircle,
-  Pill,, Shield, Receipt, ClipboardList, Truck } from "lucide-react";
+} from "lucide-react";
 import {
   printTemplateService,
   PrintTemplate,
@@ -39,7 +43,7 @@ interface CustomInvoiceConfig {
 }
 
 export default function InvoiceSettingsPage() {
-  const [activeTab, setActiveTab] = useState<"gallery" | "header-footer" | "terms" | "preview">("gallery");
+  const [activeTab, setActiveTab] = useState<"gallery" | "header-footer" | "terms" | "preview" | "numbering">("gallery");
 
   // State
   const [templates, setTemplates] = useState<PrintTemplate[]>([]);
@@ -151,55 +155,56 @@ export default function InvoiceSettingsPage() {
     }
   };
 
+  const [galleryCategory, setGalleryCategory] = useState<"all" | "b2b" | "d2c" | "cash">("all");
+
   const getDocTypeBadge = (tpl: PrintTemplate) => {
     const code = tpl.templateCode?.toUpperCase() || "";
-    const name = tpl.templateName?.toLowerCase() || "";
-    if (code.includes("TALLY") || code.includes("CORPORATE") || name.includes("corporate") || name.includes("tally")) {
-      return (
-        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900 text-amber-400 border border-slate-700">
-          <span>🏛️ Classic Corporate B2B</span>
-        </span>
-      );
+    if (code.includes("B2B_TALLY")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900 text-amber-400 border border-slate-700">🏛️ Tally Prime B2B</span>;
     }
-    if (code.includes("MARG") || code.includes("WHOLESALE") || name.includes("wholesale") || name.includes("marg")) {
-      return (
-        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">
-          <span>💊 Pharma & FMCG Wholesale</span>
-        </span>
-      );
+    if (code.includes("B2B_MARG")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">💊 Marg Pharma B2B</span>;
     }
-    if (code.includes("MYBILLBOOK") || code.includes("VYAPAR") || code.includes("RETAIL") || name.includes("retail") || name.includes("mybillbook")) {
-      return (
-        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">
-          <span>📱 Modern Retail & POS</span>
-        </span>
-      );
+    if (code.includes("B2B_ZOHO")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30">📊 Zoho Modern B2B</span>;
     }
-    if (code.includes("CBO") || code.includes("PCD") || code.includes("INSTITUTIONAL") || name.includes("institutional") || name.includes("cbo")) {
-      return (
-        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-          <span>🏢 PCD & Institutional B2B</span>
-        </span>
-      );
+    if (code.includes("B2B_VYAPAR")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">⚡ Vyapar Clean B2B</span>;
     }
-    if (code.includes("PHARMA") || name.includes("pharma")) {
-      return (
-        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30">
-          <Pill className="w-3 h-3 text-teal-600" />
-          <span>Chemist & Pharma B2B</span>
-        </span>
-      );
+    if (code.includes("UDYOGBILL_SIGNATURE") || code.includes("SIGNATURE_B2B") || code.includes("B2B_UDYOG")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30">🏆 UdyogBill Signature B2B</span>;
     }
-    switch (tpl.documentType) {
-      case 1:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">A4 Tax Invoice</span>;
-      case 2:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">3" Thermal POS</span>;
-      case 7:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">Barcode Tag</span>;
-      default:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-300">Document</span>;
+    if (code.includes("D2C_MARG")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">🛍️ Marg Retail D2C</span>;
     }
+    if (code.includes("D2C_MYBILLBOOK")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">📱 MyBillBook Modern D2C</span>;
+    }
+    if (code.includes("D2C_VYAPAR")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">🛒 Vyapar Minimal D2C</span>;
+    }
+    if (code.includes("D2C_ZOHO")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30">🌿 Zoho Compact D2C</span>;
+    }
+    if (code.includes("CASH_MARG")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">🧾 Marg Counter Cash</span>;
+    }
+    if (code.includes("CASH_VYAPAR")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">⚡ Vyapar Quick Bill</span>;
+    }
+    if (code.includes("CASH_ZOHO")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30">📑 Zoho Clean Receipt</span>;
+    }
+    if (code.includes("CASH_MYBILLBOOK")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">💜 MyBillBook Bold Cash</span>;
+    }
+    if (code.includes("CASH_UDYOG")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30">🚀 Udyog Express Cash</span>;
+    }
+    if (code.includes("THERMAL")) {
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">🖨️ 3" Thermal Slip</span>;
+    }
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-300">Document</span>;
   };
 
   return (
@@ -328,107 +333,197 @@ export default function InvoiceSettingsPage() {
             <span className="font-mono text-[11px] text-slate-500 shrink-0">{templates.length} templates available</span>
           </div>
 
+          {/* Category Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2 pb-2">
+            <button
+              onClick={() => setGalleryCategory("all")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                galleryCategory === "all"
+                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+              }`}
+            >
+              All Formats ({templates.length})
+            </button>
+            <button
+              onClick={() => setGalleryCategory("b2b")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                galleryCategory === "b2b"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/30"
+              }`}
+            >
+              🏛️ B2B Invoices (5 Formats)
+            </button>
+            <button
+              onClick={() => setGalleryCategory("d2c")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                galleryCategory === "d2c"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/30"
+              }`}
+            >
+              🛒 D2C Retail (4 Formats)
+            </button>
+            <button
+              onClick={() => setGalleryCategory("cash")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                galleryCategory === "cash"
+                  ? "bg-teal-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-teal-950/30"
+              }`}
+            >
+              🧾 Cash Memo / POS (5 Formats)
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-            {templates.map((tpl) => (
-              <div
-                key={tpl.id}
-                className={`p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all space-y-3.5 relative ${
-                  tpl.isDefault
-                    ? "border-emerald-500 shadow-md ring-2 ring-emerald-500/20"
-                    : "border-slate-200 dark:border-slate-800 hover:border-indigo-500 shadow-xs"
-                }`}
-              >
-                {/* Top Badge Row */}
-                <div className="flex items-center justify-between">
-                  {getDocTypeBadge(tpl)}
-                  <div className="flex items-center space-x-1.5">
-                    {tpl.isDefault && (
-                      <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-black ${
-                        tpl.documentType === 2
-                          ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-300 dark:border-teal-800"
-                          : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-800"
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${tpl.documentType === 2 ? "bg-teal-500" : "bg-indigo-500"}`}></span>
-                        <span>{tpl.documentType === 2 ? "Default Cash Memo" : "Default Tax Invoice"}</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
+            {templates
+              .filter((tpl) => {
+                const code = tpl.templateCode?.toUpperCase() || "";
+                if (galleryCategory === "b2b") return code.includes("B2B_") || tpl.documentType === 1;
+                if (galleryCategory === "d2c") return code.includes("D2C_") || tpl.documentType === 8;
+                if (galleryCategory === "cash") return code.includes("CASH_") || tpl.documentType === 2;
+                return true;
+              })
+              .map((tpl) => {
+                const isA5 = tpl.pageSize === 10 || tpl.pageSize === 9 || tpl.pageSize === 3;
+                return (
+                  <div
+                    key={tpl.id}
+                    className={`p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all space-y-3.5 relative ${
+                      tpl.isDefault
+                        ? "border-emerald-500 shadow-md ring-2 ring-emerald-500/20"
+                        : "border-slate-200 dark:border-slate-800 hover:border-indigo-500 shadow-xs"
+                    }`}
+                  >
+                    {/* Top Badge Row */}
+                    <div className="flex items-center justify-between">
+                      {getDocTypeBadge(tpl)}
+                      <div className="flex items-center space-x-1.5">
+                        {tpl.isDefault && (
+                          <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            tpl.documentType === 2
+                              ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-300 dark:border-teal-800"
+                              : tpl.documentType === 8
+                              ? "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-300 dark:border-purple-800"
+                              : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-800"
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Active Default</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Title & Code */}
-                <div>
-                  <h3 className="font-black text-slate-950 dark:text-white text-base tracking-tight">{tpl.templateName}</h3>
-                  <div className="font-mono text-[11px] text-slate-500 mt-0.5">{tpl.templateCode}</div>
-                </div>
+                    {/* Title & Code */}
+                    <div>
+                      <h3 className="font-black text-slate-950 dark:text-white text-base tracking-tight">{tpl.templateName}</h3>
+                      <div className="font-mono text-[11px] text-slate-500 mt-0.5">{tpl.templateCode}</div>
+                    </div>
 
-                {/* Attributes Pill Box */}
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                    <span className="font-semibold">Primary Color:</span>
-                    <div className="flex items-center space-x-1.5 font-mono text-slate-950 dark:text-white font-bold">
-                      <span className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700 shadow-xs" style={{ backgroundColor: tpl.primaryColorHex }} />
-                      <span>{tpl.primaryColorHex}</span>
+                    {/* Attributes & Page Size Selector Box */}
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold">Print Page Size:</span>
+                        <div className="flex items-center space-x-1 bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await printTemplateService.updateTemplate(tpl.id, { pageSize: 1 });
+                              loadData();
+                            }}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                              !isA5 ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-xs" : "text-slate-500 hover:text-slate-900"
+                            }`}
+                          >
+                            Full A4 (210×297)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await printTemplateService.updateTemplate(tpl.id, { pageSize: 10 });
+                              loadData();
+                            }}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                              isA5 ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-xs" : "text-slate-500 hover:text-slate-900"
+                            }`}
+                          >
+                            Full A5 (148×210)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold">Header Title:</span>
+                        <span className="font-bold text-slate-950 dark:text-white">{tpl.headerTitle}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold">Dynamic UPI QR:</span>
+                        <span className={tpl.showUpiQr ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-500"}>
+                          {tpl.showUpiQr ? "Active" : "Disabled"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Default Set Actions */}
+                    <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        onClick={() => handleSetDefault(tpl, 1)}
+                        className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                          tpl.isDefault && tpl.documentType === 1
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600"
+                        }`}
+                        title="Set as Default for B2B Tax Invoices"
+                      >
+                        {tpl.isDefault && tpl.documentType === 1 ? "✓ Active B2B" : "Set B2B"}
+                      </button>
+                      <button
+                        onClick={() => handleSetDefault(tpl, 8)}
+                        className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                          tpl.isDefault && tpl.documentType === 8
+                            ? "bg-purple-600 text-white shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-purple-50 hover:text-purple-600"
+                        }`}
+                        title="Set as Default for D2C Retail Invoices"
+                      >
+                        {tpl.isDefault && tpl.documentType === 8 ? "✓ Active D2C" : "Set D2C"}
+                      </button>
+                      <button
+                        onClick={() => handleSetDefault(tpl, 2)}
+                        className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
+                          tpl.isDefault && tpl.documentType === 2
+                            ? "bg-teal-600 text-white shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-teal-50 hover:text-teal-600"
+                        }`}
+                        title="Set as Default for Cash Memos"
+                      >
+                        {tpl.isDefault && tpl.documentType === 2 ? "✓ Active Cash" : "Set Cash"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center space-x-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setSelectedTemplate(tpl);
+                          parseCustomConfig(tpl);
+                          setActiveTab("header-footer");
+                        }}
+                        className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      >
+                        Customize
+                      </button>
+                      <button
+                        onClick={() => handleGeneratePreview(tpl.id)}
+                        className="px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                      >
+                        Preview
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                    <span className="font-semibold">Header Title:</span>
-                    <span className="font-bold text-slate-950 dark:text-white">{tpl.headerTitle}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                    <span className="font-semibold">Dynamic UPI QR:</span>
-                    <span className={tpl.showUpiQr ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-500"}>
-                      {tpl.showUpiQr ? (tpl.upiId || "Active") : "Disabled"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bottom Actions */}
-                {/* Dual Activation Options */}
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <button
-                    onClick={() => handleSetDefault(tpl, 1)}
-                    className={`py-1.5 px-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${
-                      tpl.isDefault && tpl.documentType === 1
-                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-400"
-                    }`}
-                    title="Use this layout for all B2B Tax Invoices"
-                  >
-                    {tpl.isDefault && tpl.documentType === 1 ? "✓ Active Tax Invoice" : "Active as Tax Invoice"}
-                  </button>
-                  <button
-                    onClick={() => handleSetDefault(tpl, 2)}
-                    className={`py-1.5 px-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${
-                      tpl.isDefault && tpl.documentType === 2
-                        ? "bg-teal-600 text-white shadow-md shadow-teal-600/30"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-teal-950/30 dark:hover:text-teal-400"
-                    }`}
-                    title="Use this layout for all Retail / B2C Cash Memos"
-                  >
-                    {tpl.isDefault && tpl.documentType === 2 ? "✓ Active Cash Memo" : "Active as Cash Memo"}
-                  </button>
-                </div>
-
-                <div className="flex items-center space-x-2 pt-1">
-                  <button
-                    onClick={() => {
-                      setSelectedTemplate(tpl);
-                      parseCustomConfig(tpl);
-                      setActiveTab("header-footer");
-                    }}
-                    className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl transition-all cursor-pointer"
-                  >
-                    Customize
-                  </button>
-                  <button
-                    onClick={() => handleGeneratePreview(tpl.id)}
-                    className="px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
-                  >
-                    Preview
-                  </button>
-                </div>
-              </div>
-            ))}
+                );
+              })}
           </div>
         </div>
       )}

@@ -17,6 +17,7 @@ import {
   FileText
 } from "lucide-react";
 import { importService, BulkProductImportRow, BulkProductImportResult } from "@/services/import-services";
+import { downloadMasterMigrationTemplate } from "@/lib/master-migration-template";
 
 export default function BulkProductImportPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -200,14 +201,22 @@ export default function BulkProductImportPage() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => downloadMasterMigrationTemplate({ includeSampleData: true })}
+            className="inline-flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950 cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-white" />
+            <span>Download Master Excel Template (.xlsx)</span>
+          </button>
           <button
             type="button"
             onClick={handleDownloadTemplate}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-all shadow-md"
+            className="inline-flex items-center space-x-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
           >
             <Download className="w-4 h-4 text-emerald-400" />
-            <span>Download Sample CSV Template</span>
+            <span>Simple CSV Template</span>
           </button>
         </div>
       </div>

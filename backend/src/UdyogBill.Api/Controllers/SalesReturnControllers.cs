@@ -46,7 +46,8 @@ public class TenantSalesReturnsController : BaseApiController
     }
 
     [HttpPost]
-    [RequirePermission(Permissions.SalesReturn)]
+    [Idempotent]
+    [RequirePermission(Permissions.SalesReturn, Permissions.SalesCreate)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateSalesReturn([FromBody] CreateSalesReturnRequest request, CancellationToken cancellationToken = default)
     {

@@ -223,50 +223,50 @@ export default function TenantUnitsPage() {
             >
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-base font-bold text-white">Create Unit of Measure</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Create Unit of Measure</h3>
             <form onSubmit={handleCreateUnit} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Unit Code *</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Unit Code *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. BOX, STRIP, KG, PCS"
                   value={unitForm.code}
                   onChange={(e) => setUnitForm({ ...unitForm, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Full Name *</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Box / Carton"
                   value={unitForm.name}
                   onChange={(e) => setUnitForm({ ...unitForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Symbol</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Symbol</label>
                   <input
                     type="text"
                     placeholder="e.g. bx"
                     value={unitForm.symbol}
                     onChange={(e) => setUnitForm({ ...unitForm, symbol: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Decimal Places</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Decimal Places</label>
                   <input
                     type="number"
                     min="0"
                     max="4"
                     value={unitForm.decimalPlaces}
                     onChange={(e) => setUnitForm({ ...unitForm, decimalPlaces: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
                   />
                 </div>
               </div>
@@ -301,14 +301,14 @@ export default function TenantUnitsPage() {
             >
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-base font-bold text-white">Create Multi-Unit Conversion</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Create Multi-Unit Conversion</h3>
             <form onSubmit={handleCreateConversion} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">From Unit (1 Primary)</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">From Unit (1 Primary)</label>
                 <select
                   value={convForm.fromUomId}
                   onChange={(e) => setConvForm({ ...convForm, fromUomId: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
                 >
                   {units.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -318,11 +318,11 @@ export default function TenantUnitsPage() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">To Unit (Secondary Sub-unit)</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">To Unit (Secondary Sub-unit)</label>
                 <select
                   value={convForm.toUomId}
                   onChange={(e) => setConvForm({ ...convForm, toUomId: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
                 >
                   {units.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -332,7 +332,7 @@ export default function TenantUnitsPage() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Conversion Factor (Multiplier)</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Conversion Factor (Multiplier)</label>
                 <input
                   type="number"
                   step="0.0001"
@@ -341,21 +341,21 @@ export default function TenantUnitsPage() {
                   placeholder="e.g. 10 (1 Box = 10 Strips)"
                   value={convForm.conversionFactor}
                   onChange={(e) => setConvForm({ ...convForm, conversionFactor: parseFloat(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                 />
               </div>
               <div className="flex items-center justify-end space-x-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsConvModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg text-xs text-slate-400"
+                  className="px-3 py-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
                 >
                   {submitting ? "Saving..." : "Save Multiplier"}
                 </button>

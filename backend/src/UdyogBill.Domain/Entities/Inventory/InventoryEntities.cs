@@ -197,6 +197,9 @@ public class ItemWarehouseStock : BaseTenantAuditableEntity
     public Guid? BatchId { get; set; }
     public ItemBatch? Batch { get; set; }
 
+    public Guid? VariantId { get; set; }
+    public ItemVariant? Variant { get; set; }
+
     public decimal CurrentQuantity { get; set; }
     public decimal ReservedQuantity { get; set; } // Quantity locked for active sales/orders
     public decimal AvailableQuantity => CurrentQuantity - ReservedQuantity;
@@ -213,6 +216,9 @@ public class StockMovement : BaseTenantAuditableEntity
 
     public Guid? BatchId { get; set; }
     public ItemBatch? Batch { get; set; }
+
+    public Guid? VariantId { get; set; }
+    public ItemVariant? Variant { get; set; }
 
     public StockMovementType MovementType { get; set; }
     public decimal Quantity { get; set; } // Positive for inward, negative for outward

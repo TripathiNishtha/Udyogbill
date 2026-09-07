@@ -1370,6 +1370,34 @@ public class P0ReportService : IP0ReportService
                 break;
             }
 
+            case "company-stock-sales":
+            {
+                var rep = await GetCompanyStockSalesReportAsync(request, cancellationToken);
+                var compTitle = string.IsNullOrWhiteSpace(rep.FilterCompanyName) ? "All_Companies" : rep.FilterCompanyName.Replace(" ", "_");
+                fileName = $"Company_Stock_Sales_Statement_{compTitle}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                sb.AppendLine("Product,SKU,Company,Packing,MRP,Purchase Price,Sale Price,Purchase Unit,Sale Unit,Stock In (Period),Current Stock,Stock Value,Sold Qty (Period),Sale Value (Period)");
+                foreach (var s in rep.Items)
+                {
+                    sb.AppendLine(string.Join(",",
+                        EscapeCsv(s.ItemName),
+                        EscapeCsv(s.ItemSku),
+                        EscapeCsv(s.CompanyName),
+                        EscapeCsv(s.Packing),
+                        s.Mrp,
+                        s.PurchasePrice,
+                        s.SalePrice,
+                        EscapeCsv(s.PurchaseUnit),
+                        EscapeCsv(s.SaleUnit),
+                        s.StockInQuantity,
+                        s.CurrentStock,
+                        s.CurrentStockValue,
+                        s.SoldQuantity,
+                        s.SaleValue
+                    ));
+                }
+                break;
+            }
+
             default:
                 throw new ArgumentException($"Unsupported export report type: {reportType}");
         }
@@ -1388,9 +1416,201 @@ public class P0ReportService : IP0ReportService
         return value;
     }
 
+    private static string ExtractPacking(string? attributesJson)
+    {
+        if (string.IsNullOrWhiteSpace(attributesJson)) return "-";
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(attributesJson);
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                var name = prop.Name.ToLowerInvariant();
+                if (name == "packing" || name == "pack" || name == "packsize" || name == "packaging")
+                {
+                    var val = prop.Value.GetString();
+                    if (!string.IsNullOrWhiteSpace(val)) return val;
+                }
+            }
+        }
+        catch { }
+        return "-";
+    }
+
     #endregion
 
-    #region 11. Saved Presets
+    #region 11. Company / Brand Stock & Sales Statement
+
+    public async Task<CompanyStockSalesReportDto> GetCompanyStockSalesReportAsync(
+        P0ReportFilterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        // 1. Determine Date Range (Defaults to current month if null)
+        var fromUtc = request.FromDate.HasValue
+            ? DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc)
+            : new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var toUtc = request.ToDate.HasValue
+            ? DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc)
+            : DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+
+        // 2. Query Items (filtered by BrandId if specified)
+        var itemsQuery = _context.Items
+            .Include(i => i.Brand)
+            .Include(i => i.PrimaryUom)
+            .Include(i => i.SecondaryUom)
+            .Where(i => i.TenantId == tenantId && !i.IsDeleted && i.IsActive);
+
+        if (request.BrandId.HasValue && request.BrandId.Value != Guid.Empty)
+        {
+            itemsQuery = itemsQuery.Where(i => i.BrandId == request.BrandId.Value);
+        }
+
+        if (request.CategoryId.HasValue && request.CategoryId.Value != Guid.Empty)
+        {
+            itemsQuery = itemsQuery.Where(i => i.CategoryId == request.CategoryId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var term = request.SearchTerm.Trim().ToLower();
+            itemsQuery = itemsQuery.Where(i =>
+                i.Name.ToLower().Contains(term) ||
+                i.Sku.ToLower().Contains(term) ||
+                (i.Barcode != null && i.Barcode.ToLower().Contains(term)));
+        }
+
+        var items = await itemsQuery.AsNoTracking().ToListAsync(cancellationToken);
+        var itemIds = items.Select(i => i.Id).ToList();
+
+        // 3. Current Stock per Item
+        var stockQuery = _context.ItemWarehouseStocks
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted && itemIds.Contains(s.ItemId));
+
+        if (request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty)
+        {
+            stockQuery = stockQuery.Where(s => s.WarehouseId == request.WarehouseId.Value);
+        }
+
+        var stockData = await stockQuery
+            .GroupBy(s => s.ItemId)
+            .Select(g => new { ItemId = g.Key, CurrentStock = g.Sum(s => s.CurrentQuantity) })
+            .ToDictionaryAsync(x => x.ItemId, x => x.CurrentStock, cancellationToken);
+
+        // 4. Stock In (Purchases in date range)
+        var purchaseQuery = _context.PurchaseBillItems
+            .Where(pbi => pbi.TenantId == tenantId &&
+                          !pbi.IsDeleted &&
+                          !pbi.PurchaseBill.IsDeleted &&
+                          !pbi.PurchaseBill.IsCancelled &&
+                          pbi.PurchaseBill.BillDate >= fromUtc &&
+                          pbi.PurchaseBill.BillDate <= toUtc &&
+                          itemIds.Contains(pbi.ItemId));
+
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+        {
+            purchaseQuery = purchaseQuery.Where(pbi => pbi.PurchaseBill.BranchId == request.BranchId.Value);
+        }
+        if (request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty)
+        {
+            purchaseQuery = purchaseQuery.Where(pbi => pbi.PurchaseBill.WarehouseId == request.WarehouseId.Value);
+        }
+
+        var purchaseData = await purchaseQuery
+            .GroupBy(pbi => pbi.ItemId)
+            .Select(g => new { ItemId = g.Key, StockInQty = g.Sum(p => p.Quantity) })
+            .ToDictionaryAsync(x => x.ItemId, x => x.StockInQty, cancellationToken);
+
+        // 5. Sold Quantity and Sale Value in date range
+        var salesQuery = _context.SalesInvoiceItems
+            .Where(sii => sii.TenantId == tenantId &&
+                          !sii.IsDeleted &&
+                          !sii.Invoice.IsDeleted &&
+                          !sii.Invoice.IsCancelled &&
+                          sii.Invoice.InvoiceDate >= fromUtc &&
+                          sii.Invoice.InvoiceDate <= toUtc &&
+                          itemIds.Contains(sii.ItemId));
+
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+        {
+            salesQuery = salesQuery.Where(sii => sii.Invoice.BranchId == request.BranchId.Value);
+        }
+        if (request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty)
+        {
+            salesQuery = salesQuery.Where(sii => sii.Invoice.WarehouseId == request.WarehouseId.Value);
+        }
+
+        var salesData = await salesQuery
+            .GroupBy(sii => sii.ItemId)
+            .Select(g => new
+            {
+                ItemId = g.Key,
+                SoldQty = g.Sum(s => s.Quantity),
+                SaleValue = g.Sum(s => s.TotalAmount)
+            })
+            .ToDictionaryAsync(x => x.ItemId, cancellationToken);
+
+        // 6. Map to DTOs
+        string? filterCompanyName = null;
+        if (request.BrandId.HasValue && request.BrandId.Value != Guid.Empty)
+        {
+            var brand = await _context.Brands.FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == request.BrandId.Value, cancellationToken);
+            filterCompanyName = brand?.Name;
+        }
+
+        var rows = items.Select(itm =>
+        {
+            var currentStock = stockData.TryGetValue(itm.Id, out var cs) ? cs : 0m;
+            var stockIn = purchaseData.TryGetValue(itm.Id, out var si) ? si : 0m;
+            var soldQty = salesData.TryGetValue(itm.Id, out var sd) ? sd.SoldQty : 0m;
+            var saleVal = salesData.TryGetValue(itm.Id, out var sv) ? sv.SaleValue : 0m;
+            var stockVal = currentStock * itm.PurchasePrice;
+            var packing = ExtractPacking(itm.AttributesJson);
+
+            return new CompanyStockSalesItemDto(
+                itm.Id,
+                itm.Sku,
+                itm.Name,
+                itm.BrandId,
+                itm.Brand?.Name ?? "General / Unbranded",
+                packing,
+                itm.MRP,
+                itm.PurchasePrice,
+                itm.SellingPrice,
+                itm.PrimaryUom?.Code ?? itm.PrimaryUom?.Name ?? "Unit",
+                itm.SecondaryUom?.Code ?? itm.SecondaryUom?.Name ?? itm.PrimaryUom?.Code ?? "Unit",
+                stockIn,
+                currentStock,
+                stockVal,
+                soldQty,
+                saleVal
+            );
+        }).OrderBy(r => r.CompanyName).ThenBy(r => r.ItemName).ToList();
+
+        var grandStockInQty = rows.Sum(r => r.StockInQuantity);
+        var grandCurrentStock = rows.Sum(r => r.CurrentStock);
+        var grandStockValue = rows.Sum(r => r.CurrentStockValue);
+        var grandSoldQty = rows.Sum(r => r.SoldQuantity);
+        var grandSaleValue = rows.Sum(r => r.SaleValue);
+
+        return new CompanyStockSalesReportDto(
+            rows,
+            grandStockInQty,
+            grandCurrentStock,
+            grandStockValue,
+            grandSoldQty,
+            grandSaleValue,
+            rows.Count,
+            fromUtc,
+            toUtc,
+            filterCompanyName
+        );
+    }
+
+    #endregion
+
+    #region 12. Saved Presets
 
     public async Task<IReadOnlyList<SavedReportPreset>> GetSavedPresetsAsync(
         string? reportCode = null,

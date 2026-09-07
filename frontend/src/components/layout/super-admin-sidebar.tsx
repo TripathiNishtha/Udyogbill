@@ -15,7 +15,11 @@ import {
   Mail,
   Megaphone,
   FileText,
-  Tag
+  Tag,
+  PhoneCall,
+  TrendingUp,
+  Globe,
+  Gift,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-provider";
 
@@ -60,6 +64,11 @@ export function SuperAdminSidebar() {
       icon: Tag,
     },
     {
+      label: "Referrals & Affiliates",
+      href: "/admin/referrals",
+      icon: Gift,
+    },
+    {
       label: "Payment Gateway",
       href: "/admin/gateways",
       icon: Server,
@@ -73,6 +82,26 @@ export function SuperAdminSidebar() {
       label: "Broadcast Mailer",
       href: "/admin/broadcast",
       icon: Megaphone,
+    },
+    {
+      label: "Growth Command Center",
+      href: "/admin/growth",
+      icon: TrendingUp,
+    },
+    {
+      label: "Organic Leads CRM",
+      href: "/admin/growth/leads",
+      icon: PhoneCall,
+    },
+    {
+      label: "AI SEO & Keyword Studio",
+      href: "/admin/growth/ai-studio",
+      icon: Sparkles,
+    },
+    {
+      label: "SEO Pages & Matrix",
+      href: "/admin/growth/seo",
+      icon: Globe,
     },
     {
       label: "Audit & Security Logs",

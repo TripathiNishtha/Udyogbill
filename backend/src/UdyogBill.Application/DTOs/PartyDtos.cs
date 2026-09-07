@@ -184,11 +184,20 @@ public record PartyStatementDto(
     IReadOnlyList<PartyLedgerEntryDto> Entries
 );
 
+public enum PartyPaymentDirection
+{
+    Automatic = 0,
+    CustomerReceipt = 1,
+    VendorPayment = 2
+}
+
 public record RecordPartyPaymentRequest(
     Guid PartyId,
     DateTime TransactionDate,
     decimal Amount,
     string PaymentMode, // "Cash", "BankTransfer", "UPI", "Cheque"
     string? ReferenceNumber = null,
-    string? Notes = null
+    string? Notes = null,
+    PartyPaymentDirection Direction = PartyPaymentDirection.Automatic
 );
+

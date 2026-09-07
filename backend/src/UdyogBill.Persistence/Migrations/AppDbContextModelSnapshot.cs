@@ -805,6 +805,105 @@ namespace UdyogBill.Persistence.Migrations
                     b.ToTable("ExpenseVouchers");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.Lead", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BusinessName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("BusinessType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ContactedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConversionStage")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ConvertedPaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IndustryCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LandingPage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("PaidAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ReferrerUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SearchKeyword")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("TrialStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UtmCampaign")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UtmMedium")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UtmSource")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Leads");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Catalog.Feature", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1170,6 +1269,70 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("FeatureId");
 
                     b.ToTable("sub_features", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Common.IdempotentRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HttpMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RequestPath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResponseBody")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("StatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("IdempotentRequests");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Identity.RefreshToken", b =>
@@ -1602,8 +1765,8 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("CessRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<decimal?>("ConversionRatio")
                         .HasPrecision(18, 4)
@@ -1685,8 +1848,8 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<decimal>("TaxRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -2008,6 +2171,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uuid");
 
@@ -2017,11 +2183,13 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.HasIndex("ItemId");
 
+                    b.HasIndex("VariantId");
+
                     b.HasIndex("WarehouseId");
 
                     b.HasIndex("TenantId", "WarehouseId", "CurrentQuantity");
 
-                    b.HasIndex("TenantId", "ItemId", "WarehouseId", "BatchId")
+                    b.HasIndex("TenantId", "ItemId", "VariantId", "WarehouseId", "BatchId")
                         .IsUnique();
 
                     b.ToTable("item_warehouse_stocks", (string)null);
@@ -2100,6 +2268,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uuid");
 
@@ -2108,6 +2279,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("BatchId");
 
                     b.HasIndex("ItemId");
+
+                    b.HasIndex("VariantId");
 
                     b.HasIndex("WarehouseId");
 
@@ -4020,6 +4193,2124 @@ namespace UdyogBill.Persistence.Migrations
                     b.ToTable("ScheduleH1RegisterEntries");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaBeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("EstimatedDistanceKm")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RouteDescription")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ScheduledDayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatchId");
+
+                    b.ToTable("SfaBeats");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaChemist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("AssignedMrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BeatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContactPerson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DrugLicenseNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GSTIN")
+                        .HasColumnType("text");
+
+                    b.Property<double>("GeofenceRadiusMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Pincode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PotentialCategory")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PreferredStockistPartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PreferredVisitDay")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ShopName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("State")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedMrUserId");
+
+                    b.HasIndex("BeatId");
+
+                    b.HasIndex("PatchId");
+
+                    b.HasIndex("PreferredStockistPartyId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.ToTable("SfaChemists");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDailyCallReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AccompaniedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ActualGpsDistanceKm")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("AttendanceStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DayEndTimeUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DayStartTimeUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DcrDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DcrNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("EndLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("EndLongitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVarianceFlagged")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ManagerRemarks")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PlannedDistanceKm")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RouteOrArea")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double?>("StartLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("StartLongitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TotalChemistsVisited")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalDoctorsVisited")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalPobBookedAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TotalStockistsVisited")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("TourPlanItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WorkType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccompaniedByUserId");
+
+                    b.HasIndex("MrUserId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.HasIndex("TourPlanItemId");
+
+                    b.ToTable("SfaDailyCallReports");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDcrChemistVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChemistId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DailyCallReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Feedback")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsGpsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<decimal>("PobOrderAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("PobOrderBooked")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("VisitTimeUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChemistId");
+
+                    b.HasIndex("DailyCallReportId");
+
+                    b.ToTable("SfaDcrChemistVisits");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDcrDoctorVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DailyCallReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DoctorFeedback")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GiftsGivenJson")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsGpsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime?>("NextVisitDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProductsDetailedJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SamplesGivenJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("VisitTimeUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DailyCallReportId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.ToTable("SfaDcrDoctorVisits");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDcrStockistVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChequeOrUpiRef")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DailyCallReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OutstandingReviewRemarks")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PaymentCollectedAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("StockistPartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("VisitTimeUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DailyCallReportId");
+
+                    b.HasIndex("StockistPartyId");
+
+                    b.ToTable("SfaDcrStockistVisits");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDivision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SfaDivisions");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDoctor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("AssignedMrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BeatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Classification")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClinicHospitalName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("EstimatedMonthlyPotential")
+                        .HasColumnType("numeric");
+
+                    b.Property<double>("GeofenceRadiusMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Pincode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreferredVisitDay")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreferredVisitTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Priority")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Qualification")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RegistrationNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Specialty")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("State")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SubSpecialty")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VisitFrequencyPerMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("WeddingAnniversary")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedMrUserId");
+
+                    b.HasIndex("BeatId");
+
+                    b.HasIndex("DivisionId");
+
+                    b.HasIndex("PatchId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.ToTable("SfaDoctors");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDoctorAllocationHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FromMrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ToMrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("FromMrUserId");
+
+                    b.HasIndex("ToMrUserId");
+
+                    b.ToTable("SfaDoctorAllocationHistories");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaEmployeeProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppVersion")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DailyAllowanceRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DesignationRole")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DesignationTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmergencyContact")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Gender")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HeadquarterCity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("JoiningDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Mobile")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("MonthlyExpenseLimit")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MonthlyTargetAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("PatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReportingAbmUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReportingRsmUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReportingToUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReportingZsmUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DivisionId");
+
+                    b.HasIndex("PatchId");
+
+                    b.HasIndex("ReportingAbmUserId");
+
+                    b.HasIndex("ReportingRsmUserId");
+
+                    b.HasIndex("ReportingToUserId");
+
+                    b.HasIndex("ReportingZsmUserId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SfaEmployeeProfiles");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaExpenseClaim", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AccountsVerifiedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AccountsVerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ApprovedAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClaimNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DisbursedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PaymentMode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PaymentReferenceNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalClaimAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MrUserId");
+
+                    b.ToTable("SfaExpenseClaims");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaExpenseClaimItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DailyAllowanceAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ExpenseClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpenseDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExpenseType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FromLocation")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("KmsTravelled")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReceiptAttachmentUrl")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ToLocation")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TravelAllowanceAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WorkType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpenseClaimId");
+
+                    b.ToTable("SfaExpenseClaimItems");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaExpensePolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ExHqDailyAllowance")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("HotelAllowancePerNight")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("HqDailyAllowance")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MaxMonthlyExpenseLimit")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("OutstationDailyAllowance")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("PolicyName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("RatePerKmFourWheeler")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("RatePerKmTwoWheeler")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SfaExpensePolicies");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaMrTarget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AchievedChemistCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AchievedDoctorCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("AchievedSalesAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TargetChemistCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetDoctorCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TargetSalesAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MrUserId");
+
+                    b.ToTable("SfaMrTargets");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AreaTerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HeadquarterCity")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AreaTerritoryId");
+
+                    b.HasIndex("DivisionId");
+
+                    b.ToTable("SfaPatches");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPobOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClientOfflineId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ConvertedSalesInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CustomerPartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExpectedDeliveryDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("GrandTotal")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StockistFulfillmentStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StockistRemarks")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("TargetStockistPartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConvertedSalesInvoiceId");
+
+                    b.HasIndex("CustomerPartyId");
+
+                    b.HasIndex("MrUserId");
+
+                    b.HasIndex("TargetStockistPartyId");
+
+                    b.ToTable("SfaPobOrders");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPobOrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AppliedSchemeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliedSchemeName")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("FreeQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PobOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TaxRatePercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("PobOrderId");
+
+                    b.ToTable("SfaPobOrderItems");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSalesAttribution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AttributedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AttributionMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("InvoiceTotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ManagerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalesInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StockistPartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TaxableAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerUserId");
+
+                    b.HasIndex("MrUserId");
+
+                    b.HasIndex("SalesInvoiceId");
+
+                    b.HasIndex("StockistPartyId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.ToTable("SfaSalesAttributions");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSampleChallan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcknowledgedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChallanNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DispatchedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MrUserId");
+
+                    b.ToTable("SfaSampleChallans");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSampleChallanItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BatchNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExpiryMonthYear")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("SampleChallanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("SampleChallanId");
+
+                    b.ToTable("SfaSampleChallanItems");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSampleStock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BatchNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExpiryMonthYear")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("QuantityAllocated")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("QuantityDistributed")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("MrUserId");
+
+                    b.ToTable("SfaSampleStocks");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSchemeMaster", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("MinimumOrderQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("MinimumOrderValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("SchemeCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SchemeName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SchemeType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ValidFromUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ValidToUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DivisionId");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("SfaSchemeMasters");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSchemeSlab", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("FlatDiscountAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("FreeItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("FreeQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("MaxQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MinQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("SchemeMasterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FreeItemId");
+
+                    b.HasIndex("SchemeMasterId");
+
+                    b.ToTable("SfaSchemeSlabs");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaStockistAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AllocationType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("StockistPartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MrUserId");
+
+                    b.HasIndex("StockistPartyId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.ToTable("SfaStockistAllocations");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTerritory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CoveredPincodes")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ParentTerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("State")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentTerritoryId");
+
+                    b.ToTable("SfaTerritories");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTourPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ManagerRemarks")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("MrUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MrUserId");
+
+                    b.ToTable("SfaTourPlans");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTourPlanItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("BeatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("PatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PlanDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PlannedChemistCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlannedDoctorCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlannedStockistCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RouteOrBeatName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetDoctorIdsJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TourPlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BeatId");
+
+                    b.HasIndex("PatchId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.HasIndex("TourPlanId");
+
+                    b.ToTable("SfaTourPlanItems");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaUserHierarchy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AbmUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Designation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HeadquartersTown")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ReportsToUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RsmUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerritoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ZsmUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AbmUserId");
+
+                    b.HasIndex("ReportsToUserId");
+
+                    b.HasIndex("RsmUserId");
+
+                    b.HasIndex("TerritoryId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ZsmUserId");
+
+                    b.ToTable("SfaUserHierarchies");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Printing.PrintTemplate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4686,6 +6977,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BatchId");
@@ -4695,6 +6989,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("PurchaseBillId");
 
                     b.HasIndex("UomId");
+
+                    b.HasIndex("VariantId");
 
                     b.ToTable("purchase_bill_items", (string)null);
                 });
@@ -5131,6 +7427,9 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.HasIndex("PartyId");
 
+                    b.HasIndex("TenantId", "DebitNoteNumber")
+                        .IsUnique();
+
                     b.HasIndex("TenantId", "ReturnDate", "PartyId");
 
                     b.ToTable("PurchaseReturns");
@@ -5198,11 +7497,16 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ItemId");
 
                     b.HasIndex("PurchaseReturnId");
+
+                    b.HasIndex("VariantId");
 
                     b.ToTable("PurchaseReturnItems");
                 });
@@ -6030,6 +8334,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BatchId");
@@ -6039,6 +8346,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("ItemId");
 
                     b.HasIndex("UomId");
+
+                    b.HasIndex("VariantId");
 
                     b.HasIndex("TenantId", "BatchId");
 
@@ -6197,6 +8506,9 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.HasIndex("PartyId");
 
+                    b.HasIndex("TenantId", "CreditNoteNumber")
+                        .IsUnique();
+
                     b.HasIndex("TenantId", "ReturnDate", "PartyId");
 
                     b.ToTable("SalesReturns");
@@ -6264,11 +8576,16 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ItemId");
 
                     b.HasIndex("SalesReturnId");
+
+                    b.HasIndex("VariantId");
 
                     b.ToTable("SalesReturnItems");
                 });
@@ -6647,6 +8964,89 @@ namespace UdyogBill.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("plan_entitlements", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.PlatformCommercialConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AiProAnnualPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("AiProMonthlyScanLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("CoreAnnualPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("CoreBiennialPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("FiveUserPackAnnualPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("GstRatePercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("IncludedUsers")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastUpdatedByEmail")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ManagerSeatAnnualPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ManagerSeatMonthlyPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MrSeatAnnualPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MrSeatMonthlyPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PharmaSfaAnnualBasePrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("PharmaSfaMonthlyBasePrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("SingleUserAnnualPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlatformCommercialConfigs");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.PlatformCompanyProfile", b =>
@@ -7215,6 +9615,10 @@ namespace UdyogBill.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ActiveIndustryModule")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("AddressLine1")
                         .HasColumnType("text");
 
@@ -7225,6 +9629,12 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<int>("AiScansLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AiScansUsed")
+                        .HasColumnType("integer");
 
                     b.Property<string>("BankAccountNumber")
                         .HasColumnType("text");
@@ -7292,17 +9702,42 @@ namespace UdyogBill.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTimeOffset>("IndustryActivatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("IndustryId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("IndustryModuleStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IndustryTypeCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsAiAddonActive")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsPharmaSfaActive")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LogoUrl")
                         .HasColumnType("text");
+
+                    b.Property<int>("MaxAllowedManagerUsers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxAllowedMrUsers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxAllowedUsers")
+                        .HasColumnType("integer");
 
                     b.Property<string>("PAN")
                         .HasMaxLength(50)
@@ -7983,6 +10418,11 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.ItemVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("UdyogBill.Domain.Entities.Tenants.TenantWarehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
@@ -7992,6 +10432,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Batch");
 
                     b.Navigation("Item");
+
+                    b.Navigation("Variant");
 
                     b.Navigation("Warehouse");
                 });
@@ -8009,6 +10451,11 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.ItemVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("UdyogBill.Domain.Entities.Tenants.TenantWarehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
@@ -8018,6 +10465,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Batch");
 
                     b.Navigation("Item");
+
+                    b.Navigation("Variant");
 
                     b.Navigation("Warehouse");
                 });
@@ -8197,6 +10646,590 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Salt");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaBeat", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaPatch", "Patch")
+                        .WithMany("Beats")
+                        .HasForeignKey("PatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patch");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaChemist", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "AssignedMrUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedMrUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaBeat", "Beat")
+                        .WithMany("Chemists")
+                        .HasForeignKey("BeatId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaPatch", "Patch")
+                        .WithMany("Chemists")
+                        .HasForeignKey("PatchId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "PreferredStockistParty")
+                        .WithMany()
+                        .HasForeignKey("PreferredStockistPartyId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany("Chemists")
+                        .HasForeignKey("TerritoryId");
+
+                    b.Navigation("AssignedMrUser");
+
+                    b.Navigation("Beat");
+
+                    b.Navigation("Patch");
+
+                    b.Navigation("PreferredStockistParty");
+
+                    b.Navigation("Territory");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDailyCallReport", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "AccompaniedByUser")
+                        .WithMany()
+                        .HasForeignKey("AccompaniedByUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany()
+                        .HasForeignKey("TerritoryId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTourPlanItem", "TourPlanItem")
+                        .WithMany()
+                        .HasForeignKey("TourPlanItemId");
+
+                    b.Navigation("AccompaniedByUser");
+
+                    b.Navigation("MrUser");
+
+                    b.Navigation("Territory");
+
+                    b.Navigation("TourPlanItem");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDcrChemistVisit", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaChemist", "Chemist")
+                        .WithMany()
+                        .HasForeignKey("ChemistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDailyCallReport", "DailyCallReport")
+                        .WithMany("ChemistVisits")
+                        .HasForeignKey("DailyCallReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chemist");
+
+                    b.Navigation("DailyCallReport");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDcrDoctorVisit", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDailyCallReport", "DailyCallReport")
+                        .WithMany("DoctorVisits")
+                        .HasForeignKey("DailyCallReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DailyCallReport");
+
+                    b.Navigation("Doctor");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDcrStockistVisit", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDailyCallReport", "DailyCallReport")
+                        .WithMany("StockistVisits")
+                        .HasForeignKey("DailyCallReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "StockistParty")
+                        .WithMany()
+                        .HasForeignKey("StockistPartyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DailyCallReport");
+
+                    b.Navigation("StockistParty");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDoctor", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "AssignedMrUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedMrUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaBeat", "Beat")
+                        .WithMany("Doctors")
+                        .HasForeignKey("BeatId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDivision", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaPatch", "Patch")
+                        .WithMany("Doctors")
+                        .HasForeignKey("PatchId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany("Doctors")
+                        .HasForeignKey("TerritoryId");
+
+                    b.Navigation("AssignedMrUser");
+
+                    b.Navigation("Beat");
+
+                    b.Navigation("Division");
+
+                    b.Navigation("Patch");
+
+                    b.Navigation("Territory");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDoctorAllocationHistory", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDoctor", "Doctor")
+                        .WithMany("AllocationHistories")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "FromMrUser")
+                        .WithMany()
+                        .HasForeignKey("FromMrUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ToMrUser")
+                        .WithMany()
+                        .HasForeignKey("ToMrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("FromMrUser");
+
+                    b.Navigation("ToMrUser");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaEmployeeProfile", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDivision", "Division")
+                        .WithMany("Employees")
+                        .HasForeignKey("DivisionId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaPatch", "Patch")
+                        .WithMany()
+                        .HasForeignKey("PatchId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ReportingAbmUser")
+                        .WithMany()
+                        .HasForeignKey("ReportingAbmUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ReportingRsmUser")
+                        .WithMany()
+                        .HasForeignKey("ReportingRsmUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ReportingToUser")
+                        .WithMany()
+                        .HasForeignKey("ReportingToUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ReportingZsmUser")
+                        .WithMany()
+                        .HasForeignKey("ReportingZsmUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany()
+                        .HasForeignKey("TerritoryId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Division");
+
+                    b.Navigation("Patch");
+
+                    b.Navigation("ReportingAbmUser");
+
+                    b.Navigation("ReportingRsmUser");
+
+                    b.Navigation("ReportingToUser");
+
+                    b.Navigation("ReportingZsmUser");
+
+                    b.Navigation("Territory");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaExpenseClaim", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MrUser");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaExpenseClaimItem", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaExpenseClaim", "ExpenseClaim")
+                        .WithMany("Items")
+                        .HasForeignKey("ExpenseClaimId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExpenseClaim");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaMrTarget", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MrUser");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPatch", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "AreaTerritory")
+                        .WithMany("Patches")
+                        .HasForeignKey("AreaTerritoryId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDivision", "Division")
+                        .WithMany("Patches")
+                        .HasForeignKey("DivisionId");
+
+                    b.Navigation("AreaTerritory");
+
+                    b.Navigation("Division");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPobOrder", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Sales.SalesInvoice", "ConvertedSalesInvoice")
+                        .WithMany()
+                        .HasForeignKey("ConvertedSalesInvoiceId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "CustomerParty")
+                        .WithMany()
+                        .HasForeignKey("CustomerPartyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "TargetStockistParty")
+                        .WithMany()
+                        .HasForeignKey("TargetStockistPartyId");
+
+                    b.Navigation("ConvertedSalesInvoice");
+
+                    b.Navigation("CustomerParty");
+
+                    b.Navigation("MrUser");
+
+                    b.Navigation("TargetStockistParty");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPobOrderItem", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaPobOrder", "PobOrder")
+                        .WithMany("Items")
+                        .HasForeignKey("PobOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("PobOrder");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSalesAttribution", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ManagerUser")
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Sales.SalesInvoice", "SalesInvoice")
+                        .WithMany()
+                        .HasForeignKey("SalesInvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "StockistParty")
+                        .WithMany()
+                        .HasForeignKey("StockistPartyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany()
+                        .HasForeignKey("TerritoryId");
+
+                    b.Navigation("ManagerUser");
+
+                    b.Navigation("MrUser");
+
+                    b.Navigation("SalesInvoice");
+
+                    b.Navigation("StockistParty");
+
+                    b.Navigation("Territory");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSampleChallan", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MrUser");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSampleChallanItem", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaSampleChallan", "SampleChallan")
+                        .WithMany("Items")
+                        .HasForeignKey("SampleChallanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("SampleChallan");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSampleStock", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("MrUser");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSchemeMaster", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaDivision", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId");
+
+                    b.Navigation("Division");
+
+                    b.Navigation("Item");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSchemeSlab", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "FreeItem")
+                        .WithMany()
+                        .HasForeignKey("FreeItemId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaSchemeMaster", "SchemeMaster")
+                        .WithMany("Slabs")
+                        .HasForeignKey("SchemeMasterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FreeItem");
+
+                    b.Navigation("SchemeMaster");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaStockistAllocation", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "StockistParty")
+                        .WithMany()
+                        .HasForeignKey("StockistPartyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany()
+                        .HasForeignKey("TerritoryId");
+
+                    b.Navigation("MrUser");
+
+                    b.Navigation("StockistParty");
+
+                    b.Navigation("Territory");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTerritory", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "ParentTerritory")
+                        .WithMany("SubTerritories")
+                        .HasForeignKey("ParentTerritoryId");
+
+                    b.Navigation("ParentTerritory");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTourPlan", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "MrUser")
+                        .WithMany()
+                        .HasForeignKey("MrUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MrUser");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTourPlanItem", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaBeat", "Beat")
+                        .WithMany()
+                        .HasForeignKey("BeatId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaPatch", "Patch")
+                        .WithMany()
+                        .HasForeignKey("PatchId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany()
+                        .HasForeignKey("TerritoryId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTourPlan", "TourPlan")
+                        .WithMany("Items")
+                        .HasForeignKey("TourPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Beat");
+
+                    b.Navigation("Patch");
+
+                    b.Navigation("Territory");
+
+                    b.Navigation("TourPlan");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaUserHierarchy", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "AbmUser")
+                        .WithMany()
+                        .HasForeignKey("AbmUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ReportsToUser")
+                        .WithMany()
+                        .HasForeignKey("ReportsToUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "RsmUser")
+                        .WithMany()
+                        .HasForeignKey("RsmUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("UdyogBill.Domain.Entities.Pharma.SfaTerritory", "Territory")
+                        .WithMany()
+                        .HasForeignKey("TerritoryId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "ZsmUser")
+                        .WithMany()
+                        .HasForeignKey("ZsmUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AbmUser");
+
+                    b.Navigation("ReportsToUser");
+
+                    b.Navigation("RsmUser");
+
+                    b.Navigation("Territory");
+
+                    b.Navigation("User");
+
+                    b.Navigation("ZsmUser");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Purchases.GoodsReceiptNote", b =>
                 {
                     b.HasOne("UdyogBill.Domain.Entities.Tenants.TenantBranch", "Branch")
@@ -8336,6 +11369,11 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.ItemVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Batch");
 
                     b.Navigation("Item");
@@ -8343,6 +11381,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("PurchaseBill");
 
                     b.Navigation("Uom");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Purchases.PurchaseBillPayment", b =>
@@ -8441,9 +11481,15 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.ItemVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId");
+
                     b.Navigation("Item");
 
                     b.Navigation("PurchaseReturn");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.Quotation", b =>
@@ -8549,6 +11595,11 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.ItemVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Batch");
 
                     b.Navigation("Invoice");
@@ -8556,6 +11607,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Item");
 
                     b.Navigation("Uom");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.SalesInvoicePayment", b =>
@@ -8600,9 +11653,15 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.ItemVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId");
+
                     b.Navigation("Item");
 
                     b.Navigation("SalesReturn");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.CouponRedemption", b =>
@@ -8845,6 +11904,79 @@ namespace UdyogBill.Persistence.Migrations
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.ExpiryReturnClaim", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaBeat", b =>
+                {
+                    b.Navigation("Chemists");
+
+                    b.Navigation("Doctors");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDailyCallReport", b =>
+                {
+                    b.Navigation("ChemistVisits");
+
+                    b.Navigation("DoctorVisits");
+
+                    b.Navigation("StockistVisits");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDivision", b =>
+                {
+                    b.Navigation("Employees");
+
+                    b.Navigation("Patches");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaDoctor", b =>
+                {
+                    b.Navigation("AllocationHistories");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaExpenseClaim", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPatch", b =>
+                {
+                    b.Navigation("Beats");
+
+                    b.Navigation("Chemists");
+
+                    b.Navigation("Doctors");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaPobOrder", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSampleChallan", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaSchemeMaster", b =>
+                {
+                    b.Navigation("Slabs");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTerritory", b =>
+                {
+                    b.Navigation("Chemists");
+
+                    b.Navigation("Doctors");
+
+                    b.Navigation("Patches");
+
+                    b.Navigation("SubTerritories");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Pharma.SfaTourPlan", b =>
                 {
                     b.Navigation("Items");
                 });

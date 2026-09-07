@@ -73,9 +73,9 @@ public class SalesInvoice : BaseTenantAuditableEntity
     public string? CustomerPAN { get; set; }
     public string? BillingAddress { get; set; }
     public string? ShippingAddress { get; set; }
-    public string BillingStateCode { get; set; } = "27"; // Default State
-    public string ShippingStateCode { get; set; } = "27";
-    public string PlaceOfSupply { get; set; } = "Maharashtra";
+    public string BillingStateCode { get; set; } = string.Empty;
+    public string ShippingStateCode { get; set; } = string.Empty;
+    public string PlaceOfSupply { get; set; } = string.Empty;
 
     // Dates
     public DateTime InvoiceDate { get; set; }
@@ -160,6 +160,10 @@ public class SalesInvoiceItem : BaseTenantAuditableEntity
     public string? BatchNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }
 
+    // Garment / Product Variant
+    public Guid? VariantId { get; set; }
+    public ItemVariant? Variant { get; set; }
+
     // Quantity & UOM
     public decimal Quantity { get; set; } = 1m;
     public Guid UomId { get; set; }
@@ -237,6 +241,8 @@ public class SalesReturnItem : BaseTenantAuditableEntity
     public string ItemSku { get; set; } = string.Empty;
     public Guid? BatchId { get; set; }
     public string? BatchNumber { get; set; }
+    public Guid? VariantId { get; set; }
+    public ItemVariant? Variant { get; set; }
     public decimal ReturnQuantity { get; set; } = 0m;
     public decimal UnitPrice { get; set; } = 0m;
     public decimal GstRate { get; set; } = 0m;

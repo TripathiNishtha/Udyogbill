@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace UdyogBill.Application.DTOs;
@@ -442,6 +442,42 @@ public record TruePnLReportDto(
     // Net Profit
     decimal NetProfitAmount,
     decimal NetProfitMarginPercent
+);
+
+#endregion
+
+#region 11. Company / Brand Stock & Sales Statement DTOs
+
+public record CompanyStockSalesItemDto(
+    Guid ItemId,
+    string ItemSku,
+    string ItemName,
+    Guid? BrandId,
+    string CompanyName,
+    string Packing,
+    decimal Mrp,
+    decimal PurchasePrice,
+    decimal SalePrice,
+    string PurchaseUnit,
+    string SaleUnit,
+    decimal StockInQuantity,
+    decimal CurrentStock,
+    decimal CurrentStockValue,
+    decimal SoldQuantity,
+    decimal SaleValue
+);
+
+public record CompanyStockSalesReportDto(
+    IReadOnlyList<CompanyStockSalesItemDto> Items,
+    decimal GrandStockInQty,
+    decimal GrandCurrentStock,
+    decimal GrandStockValue,
+    decimal GrandSoldQty,
+    decimal GrandSaleValue,
+    int TotalItemsCount,
+    DateTime FromDate,
+    DateTime ToDate,
+    string? FilterCompanyName
 );
 
 #endregion

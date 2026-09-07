@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
+using UdyogBill.Shared.Constants;
+using SharedClaims = UdyogBill.Shared.Constants.Claims;
 
 namespace UdyogBill.Api.Filters;
 
@@ -40,6 +42,15 @@ public class RequireActiveSubscriptionFilter : IAsyncActionFilter
     {
         // SuperAdmins always bypass
         if (_tenantContext.IsSuperAdmin)
+        {
+            await next();
+            return;
+        }
+
+        // SuperAdmins & Impersonating Admins bypass
+        if (_tenantContext.IsSuperAdmin ||
+            context.HttpContext.User.IsInRole(Roles.SuperAdmin) ||
+            context.HttpContext.User.HasClaim(c => c.Type == "is_impersonating" || (c.Type == SharedClaims.IsSuperAdmin && c.Value == "true")))
         {
             await next();
             return;
@@ -129,8 +140,10 @@ public class RequireAddonFilter : IAsyncActionFilter
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        // SuperAdmins bypass
-        if (_tenantContext.IsSuperAdmin)
+        // SuperAdmins & Impersonating Admins bypass
+        if (_tenantContext.IsSuperAdmin ||
+            context.HttpContext.User.IsInRole(Roles.SuperAdmin) ||
+            context.HttpContext.User.HasClaim(c => c.Type == "is_impersonating" || (c.Type == SharedClaims.IsSuperAdmin && c.Value == "true")))
         {
             await next();
             return;
@@ -143,7 +156,26 @@ public class RequireAddonFilter : IAsyncActionFilter
             return;
         }
 
-        // Check if tenant has active addon enrolled in database
+        string moduleKey = _addonCode.Replace("ADDON_", "");
+
+        // 1. Primary Industry Entitlement: If tenant's registered industry or active module matches this feature
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .Include(t => t.Industry)
+            .FirstOrDefaultAsync(t => t.Id == tenantId);
+
+        if (tenant != null)
+        {
+            if (string.Equals(tenant.Industry?.Code, moduleKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(tenant.IndustryTypeCode, moduleKey, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(tenant.ActiveIndustryModule, moduleKey, StringComparison.OrdinalIgnoreCase))
+            {
+                await next();
+                return;
+            }
+        }
+
+        // 2. Add-on Store Entitlement: Check if tenant has active addon enrolled in database
         var hasActiveAddon = await _context.TenantSubscriptionAddOns
             .IgnoreQueryFilters()
             .Include(sa => sa.AddOn)
@@ -153,12 +185,12 @@ public class RequireAddonFilter : IAsyncActionFilter
 
         if (!hasActiveAddon)
         {
-            // Check ConfigurationJson override
+            // 3. ConfigurationJson override
             var config = await _context.TenantIndustryConfigs
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId);
 
-            string key = _addonCode.Replace("ADDON_", "").ToLower();
+            string key = moduleKey.ToLower();
             bool hasOverride = false;
             if (config != null && !string.IsNullOrWhiteSpace(config.ConfigurationJson))
             {

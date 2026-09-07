@@ -190,26 +190,46 @@ public class ReportService : IReportService
         var toUtc = DateTime.SpecifyKind(effectiveTo.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
         var salesQuery = _context.SalesInvoices
+            .Include(s => s.Items)
             .Where(s => s.TenantId == tenantId && !s.IsDeleted && s.Status != InvoiceStatus.Cancelled && s.InvoiceDate >= fromUtc && s.InvoiceDate <= toUtc);
 
         var purchaseQuery = _context.PurchaseBills
             .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.Status != PurchaseBillStatus.Cancelled && p.BillDate >= fromUtc && p.BillDate <= toUtc);
 
+        var returnsQuery = _context.SalesReturns
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+        var purchaseReturnsQuery = _context.PurchaseReturns
+            .Where(pr => pr.TenantId == tenantId && !pr.IsDeleted && !pr.IsCancelled && pr.ReturnDate >= fromUtc && pr.ReturnDate <= toUtc);
+
         if (branchId.HasValue)
         {
             salesQuery = salesQuery.Where(s => s.BranchId == branchId.Value);
             purchaseQuery = purchaseQuery.Where(p => p.BranchId == branchId.Value);
+            returnsQuery = returnsQuery.Where(r => r.BranchId == branchId.Value);
+            purchaseReturnsQuery = purchaseReturnsQuery.Where(pr => pr.BranchId == branchId.Value);
         }
 
         var sales = await salesQuery.ToListAsync(cancellationToken);
         var purchases = await purchaseQuery.ToListAsync(cancellationToken);
+        var salesReturns = await returnsQuery.ToListAsync(cancellationToken);
+        var purchaseReturns = await purchaseReturnsQuery.ToListAsync(cancellationToken);
+
+        decimal totalSalesReturns = salesReturns.Sum(r => r.SubTotal);
+        decimal totalPurchaseReturns = purchaseReturns.Sum(pr => pr.SubTotal);
 
         decimal grossSales = sales.Sum(s => s.SubTotal);
         decimal totalDiscount = sales.Sum(s => s.ItemDiscountTotal + s.InvoiceDiscountAmount);
-        decimal netSales = sales.Sum(s => s.TaxableAmount);
-        decimal totalPurchases = purchases.Sum(p => p.TaxableAmount);
+        decimal netSales = Math.Max(0m, sales.Sum(s => s.TaxableAmount) - totalSalesReturns);
+        decimal totalPurchases = Math.Max(0m, purchases.Sum(p => p.TaxableAmount) - totalPurchaseReturns);
 
-        decimal grossProfit = netSales - totalPurchases;
+        // BUG-009: AS-2 Compliant COGS Calculation (NetSales - COGS)
+        decimal cogs = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * i.PurchasePrice);
+        if (cogs == 0m && purchases.Count > 0)
+        {
+            cogs = totalPurchases;
+        }
+
+        decimal grossProfit = netSales - cogs;
         decimal grossMarginPercent = netSales > 0 ? Math.Round((grossProfit / netSales) * 100m, 2) : 0m;
         decimal operatingExpenses = 0m;
         decimal netProfit = grossProfit - operatingExpenses;
@@ -359,6 +379,21 @@ public class ReportService : IReportService
             });
         }
 
+        var returnsQuery = _context.SalesReturns
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+        if (branchId.HasValue)
+        {
+            returnsQuery = returnsQuery.Where(r => r.BranchId == branchId.Value);
+        }
+        var salesReturns = await returnsQuery.ToListAsync(cancellationToken);
+
+        var totalCreditNotesCount = salesReturns.Count;
+        var totalCreditNotesTaxable = salesReturns.Sum(r => r.SubTotal);
+        var totalCreditNotesTax = salesReturns.Sum(r => r.TaxAmount);
+
+        var netOutwardTaxable = Math.Max(0m, invoices.Sum(i => i.TaxableAmount) - totalCreditNotesTaxable);
+        var netOutwardTax = Math.Max(0m, invoices.Sum(i => i.CgstAmount + i.SgstAmount + i.IgstAmount + i.CessAmount) - totalCreditNotesTax);
+
         var report = new Gstr1ReportDto
         {
             TenantName = tenant?.BusinessName ?? "Business Tenant",
@@ -371,8 +406,11 @@ public class ReportService : IReportService
             TotalB2CInvoices = b2cInvoices.Count,
             TotalB2CTaxable = b2cInvoices.Sum(i => i.TaxableAmount),
             TotalB2CTax = b2cInvoices.Sum(i => i.CgstAmount + i.SgstAmount + i.IgstAmount + i.CessAmount),
-            TotalOutwardTaxable = invoices.Sum(i => i.TaxableAmount),
-            TotalOutwardTax = invoices.Sum(i => i.CgstAmount + i.SgstAmount + i.IgstAmount + i.CessAmount),
+            TotalCreditNotes = totalCreditNotesCount,
+            TotalCreditNotesTaxable = totalCreditNotesTaxable,
+            TotalCreditNotesTax = totalCreditNotesTax,
+            TotalOutwardTaxable = netOutwardTaxable,
+            TotalOutwardTax = netOutwardTax,
             RateWiseSummary = rateWise,
             HsnSummary = hsnSummary
         };
@@ -402,30 +440,141 @@ public class ReportService : IReportService
         var purchaseQuery = _context.PurchaseBills
             .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.Status != PurchaseBillStatus.Cancelled && p.BillDate >= fromUtc && p.BillDate <= toUtc);
 
+        var returnsQuery = _context.SalesReturns
+            .Include(r => r.OriginalSalesInvoice)
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+
+        var purchaseReturnsQuery = _context.PurchaseReturns
+            .Include(pr => pr.OriginalPurchaseBill)
+            .Where(pr => pr.TenantId == tenantId && !pr.IsDeleted && !pr.IsCancelled && pr.ReturnDate >= fromUtc && pr.ReturnDate <= toUtc);
+
         if (branchId.HasValue)
         {
             salesQuery = salesQuery.Where(s => s.BranchId == branchId.Value);
             purchaseQuery = purchaseQuery.Where(p => p.BranchId == branchId.Value);
+            returnsQuery = returnsQuery.Where(r => r.BranchId == branchId.Value);
+            purchaseReturnsQuery = purchaseReturnsQuery.Where(pr => pr.BranchId == branchId.Value);
         }
 
         var sales = await salesQuery.ToListAsync(cancellationToken);
         var purchases = await purchaseQuery.ToListAsync(cancellationToken);
+        var salesReturns = await returnsQuery.ToListAsync(cancellationToken);
+        var purchaseReturns = await purchaseReturnsQuery.ToListAsync(cancellationToken);
 
-        decimal outTaxable = sales.Sum(s => s.TaxableAmount);
-        decimal outIgst = sales.Sum(s => s.IgstAmount);
-        decimal outCgst = sales.Sum(s => s.CgstAmount);
-        decimal outSgst = sales.Sum(s => s.SgstAmount);
+        // Net Outward Supplies (Gross sales minus credit notes)
+        decimal grossOutTaxable = sales.Sum(s => s.TaxableAmount);
+        decimal grossOutIgst = sales.Sum(s => s.IgstAmount);
+        decimal grossOutCgst = sales.Sum(s => s.CgstAmount);
+        decimal grossOutSgst = sales.Sum(s => s.SgstAmount);
+
+        decimal crnTaxable = salesReturns.Sum(r => r.SubTotal);
+        decimal crnIgst = 0m, crnCgst = 0m, crnSgst = 0m;
+        foreach (var r in salesReturns)
+        {
+            bool isInterState = r.OriginalSalesInvoice != null && r.OriginalSalesInvoice.TaxSupplyType == TaxSupplyType.InterState;
+            if (isInterState)
+            {
+                crnIgst += r.TaxAmount;
+            }
+            else
+            {
+                var half = Math.Round(r.TaxAmount / 2m, 2);
+                crnCgst += half;
+                crnSgst += (r.TaxAmount - half);
+            }
+        }
+
+        decimal outTaxable = Math.Max(0m, grossOutTaxable - crnTaxable);
+        decimal outIgst = Math.Max(0m, grossOutIgst - crnIgst);
+        decimal outCgst = Math.Max(0m, grossOutCgst - crnCgst);
+        decimal outSgst = Math.Max(0m, grossOutSgst - crnSgst);
         decimal totalOutTax = outIgst + outCgst + outSgst;
 
-        decimal inTaxable = purchases.Sum(p => p.TaxableAmount);
-        decimal inIgst = purchases.Sum(p => p.IgstAmount);
-        decimal inCgst = purchases.Sum(p => p.CgstAmount);
-        decimal inSgst = purchases.Sum(p => p.SgstAmount);
+        // Net Inward Supplies (Gross purchases minus debit notes)
+        decimal grossInTaxable = purchases.Sum(p => p.TaxableAmount);
+        decimal grossInIgst = purchases.Sum(p => p.IgstAmount);
+        decimal grossInCgst = purchases.Sum(p => p.CgstAmount);
+        decimal grossInSgst = purchases.Sum(p => p.SgstAmount);
+
+        decimal drnTaxable = purchaseReturns.Sum(pr => pr.SubTotal);
+        decimal drnIgst = 0m, drnCgst = 0m, drnSgst = 0m;
+        foreach (var pr in purchaseReturns)
+        {
+            bool isInterState = pr.OriginalPurchaseBill != null && pr.OriginalPurchaseBill.TaxSupplyType == TaxSupplyType.InterState;
+            if (isInterState)
+            {
+                drnIgst += pr.TaxAmount;
+            }
+            else
+            {
+                var half = Math.Round(pr.TaxAmount / 2m, 2);
+                drnCgst += half;
+                drnSgst += (pr.TaxAmount - half);
+            }
+        }
+
+        decimal inTaxable = Math.Max(0m, grossInTaxable - drnTaxable);
+        decimal inIgst = Math.Max(0m, grossInIgst - drnIgst);
+        decimal inCgst = Math.Max(0m, grossInCgst - drnCgst);
+        decimal inSgst = Math.Max(0m, grossInSgst - drnSgst);
         decimal totalInItc = inIgst + inCgst + inSgst;
 
-        decimal netIgst = Math.Max(0, outIgst - inIgst);
-        decimal netCgst = Math.Max(0, outCgst - inCgst);
-        decimal netSgst = Math.Max(0, outSgst - inSgst);
+        // Rule 88A Statutory Set-off Waterfall:
+        // 1. Fully exhaust Input IGST against Output IGST, then Output CGST and Output SGST
+        decimal remInIgst = inIgst;
+        decimal remOutIgst = outIgst;
+
+        decimal igstSetOffAgainstIgst = Math.Min(remInIgst, remOutIgst);
+        remInIgst -= igstSetOffAgainstIgst;
+        remOutIgst -= igstSetOffAgainstIgst;
+
+        decimal remOutCgst = outCgst;
+        decimal remOutSgst = outSgst;
+
+        if (remInIgst > 0)
+        {
+            decimal igstSetOffAgainstCgst = Math.Min(remInIgst, remOutCgst);
+            remInIgst -= igstSetOffAgainstCgst;
+            remOutCgst -= igstSetOffAgainstCgst;
+        }
+
+        if (remInIgst > 0)
+        {
+            decimal igstSetOffAgainstSgst = Math.Min(remInIgst, remOutSgst);
+            remInIgst -= igstSetOffAgainstSgst;
+            remOutSgst -= igstSetOffAgainstSgst;
+        }
+
+        // 2. Utilize Input CGST against remaining Output CGST, then Output IGST
+        decimal remInCgst = inCgst;
+        decimal cgstSetOffAgainstCgst = Math.Min(remInCgst, remOutCgst);
+        remInCgst -= cgstSetOffAgainstCgst;
+        remOutCgst -= cgstSetOffAgainstCgst;
+
+        if (remInCgst > 0 && remOutIgst > 0)
+        {
+            decimal cgstSetOffAgainstIgst = Math.Min(remInCgst, remOutIgst);
+            remInCgst -= cgstSetOffAgainstIgst;
+            remOutIgst -= cgstSetOffAgainstIgst;
+        }
+
+        // 3. Utilize Input SGST against remaining Output SGST, then Output IGST
+        decimal remInSgst = inSgst;
+        decimal sgstSetOffAgainstSgst = Math.Min(remInSgst, remOutSgst);
+        remInSgst -= sgstSetOffAgainstSgst;
+        remOutSgst -= sgstSetOffAgainstSgst;
+
+        if (remInSgst > 0 && remOutIgst > 0)
+        {
+            decimal sgstSetOffAgainstIgst = Math.Min(remInSgst, remOutIgst);
+            remInSgst -= sgstSetOffAgainstIgst;
+            remOutIgst -= sgstSetOffAgainstIgst;
+        }
+
+        decimal netIgst = remOutIgst;
+        decimal netCgst = remOutCgst;
+        decimal netSgst = remOutSgst;
+        decimal totalNetPayable = netIgst + netCgst + netSgst;
 
         var report = new Gstr3bReportDto
         {
@@ -446,7 +595,7 @@ public class ReportService : IReportService
             NetIgstPayable = netIgst,
             NetCgstPayable = netCgst,
             NetSgstPayable = netSgst,
-            TotalNetGstPayable = netIgst + netCgst + netSgst
+            TotalNetGstPayable = totalNetPayable
         };
 
         return Result<Gstr3bReportDto>.Success(report);
@@ -467,34 +616,60 @@ public class ReportService : IReportService
         var toUtc = DateTime.SpecifyKind(effectiveTo.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
         var salesQuery = _context.SalesInvoices
+            .Include(s => s.Items)
             .Where(s => s.TenantId == tenantId && !s.IsDeleted && s.Status != InvoiceStatus.Cancelled && s.InvoiceDate >= fromUtc && s.InvoiceDate <= toUtc);
 
         var purchaseQuery = _context.PurchaseBills
             .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.Status != PurchaseBillStatus.Cancelled && p.BillDate >= fromUtc && p.BillDate <= toUtc);
 
+        var salesReturnQuery = _context.SalesReturns
+            .Include(r => r.Items)
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+
+        var purchaseReturnQuery = _context.PurchaseReturns
+            .Include(r => r.Items)
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+
         if (branchId.HasValue)
         {
             salesQuery = salesQuery.Where(s => s.BranchId == branchId.Value);
             purchaseQuery = purchaseQuery.Where(p => p.BranchId == branchId.Value);
+            salesReturnQuery = salesReturnQuery.Where(r => r.BranchId == branchId.Value);
+            purchaseReturnQuery = purchaseReturnQuery.Where(r => r.BranchId == branchId.Value);
         }
 
         var sales = await salesQuery.ToListAsync(cancellationToken);
         var purchases = await purchaseQuery.ToListAsync(cancellationToken);
+        var salesReturns = await salesReturnQuery.ToListAsync(cancellationToken);
+        var purchaseReturns = await purchaseReturnQuery.ToListAsync(cancellationToken);
 
-        decimal totalSales = sales.Sum(s => s.TotalAmount);
+        decimal grossSales = sales.Sum(s => s.TotalAmount);
+        decimal salesReturnAmount = salesReturns.Sum(r => r.TotalAmount);
+        decimal totalSales = grossSales - salesReturnAmount;
+
         decimal totalCollected = sales.Sum(s => s.PaidAmount);
-        decimal totalReceivables = sales.Sum(s => s.BalanceAmount);
+        decimal totalReceivables = Math.Max(0m, sales.Sum(s => s.BalanceAmount) - salesReturnAmount);
 
-        decimal totalPurchases = purchases.Sum(p => p.TotalAmount);
-        decimal totalPayables = purchases.Sum(p => p.BalanceAmount);
+        decimal grossPurchases = purchases.Sum(p => p.TotalAmount);
+        decimal purchaseReturnAmount = purchaseReturns.Sum(r => r.TotalAmount);
+        decimal totalPurchases = grossPurchases - purchaseReturnAmount;
 
-        decimal outputGst = sales.Sum(s => s.CgstAmount + s.SgstAmount + s.IgstAmount + s.CessAmount);
-        decimal inputGstItc = purchases.Sum(p => p.CgstAmount + p.SgstAmount + p.IgstAmount + p.CessAmount);
+        decimal totalPayables = Math.Max(0m, purchases.Sum(p => p.BalanceAmount) - purchaseReturnAmount);
+
+        decimal outputGst = sales.Sum(s => s.CgstAmount + s.SgstAmount + s.IgstAmount + s.CessAmount) - salesReturns.Sum(r => r.TaxAmount);
+        decimal inputGstItc = purchases.Sum(p => p.CgstAmount + p.SgstAmount + p.IgstAmount + p.CessAmount) - purchaseReturns.Sum(r => r.Items.Sum(i => i.TotalAmount - (i.ReturnQuantity * i.UnitPrice)));
         decimal netGst = Math.Max(0, outputGst - inputGstItc);
 
-        decimal netSales = sales.Sum(s => s.TaxableAmount);
-        decimal netPurchases = purchases.Sum(p => p.TaxableAmount);
-        decimal grossProfit = netSales - netPurchases;
+        decimal netSales = sales.Sum(s => s.TaxableAmount) - salesReturns.Sum(r => r.SubTotal);
+        decimal netPurchases = purchases.Sum(p => p.TaxableAmount) - purchaseReturns.Sum(r => r.Items.Sum(i => i.ReturnQuantity * i.UnitPrice));
+
+        // AS-2 Compliant COGS Calculation (NetSales - COGS)
+        decimal cogs = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * i.PurchasePrice);
+        if (cogs == 0m && purchases.Count > 0)
+        {
+            cogs = netPurchases;
+        }
+        decimal grossProfit = netSales - cogs;
         decimal netProfit = grossProfit;
 
         var summary = new SummaryReportDto
@@ -508,8 +683,8 @@ public class ReportService : IReportService
             TotalPurchases = totalPurchases,
             TotalPurchaseBillsCount = purchases.Count,
             TotalPayables = totalPayables,
-            OutputGst = outputGst,
-            InputGstItc = inputGstItc,
+            OutputGst = Math.Max(0m, outputGst),
+            InputGstItc = Math.Max(0m, inputGstItc),
             NetGstPayable = netGst,
             GrossProfit = grossProfit,
             NetProfit = netProfit

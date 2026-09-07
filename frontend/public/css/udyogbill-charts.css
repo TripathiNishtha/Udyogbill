@@ -1,0 +1,56 @@
+/* UdyogBill — dashboard chart skin (Highcharts) */
+
+body.ub-app .ub-chart-frame {
+    min-height: 360px;
+    padding: 12px 10px 8px;
+    border: 1px solid rgba(245, 130, 32, 0.18) !important;
+    border-radius: 18px !important;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(245, 130, 32, 0.10), transparent 34%),
+        radial-gradient(circle at 0% 100%, rgba(39, 174, 96, 0.08), transparent 30%),
+        linear-gradient(180deg, #ffffff 0%, #fffaf5 55%, #fff7ed 100%) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+body.ub-app .ub-chart-frame > div,
+body.ub-app .ub-chart-frame .highcharts-container {
+    min-height: 320px;
+}
+
+body.ub-app .ub-highchart .highcharts-background {
+    fill: transparent !important;
+}
+
+body.ub-app .ub-highchart .highcharts-grid-line {
+    stroke: rgba(148, 163, 184, 0.14) !important;
+}
+
+body.ub-app .ub-highchart .highcharts-axis-line,
+body.ub-app .ub-highchart .highcharts-tick {
+    stroke: rgba(245, 130, 32, 0.2) !important;
+}
+
+body.ub-app .ub-highchart .highcharts-legend-item text {
+    font-family: Outfit, Manrope, sans-serif !important;
+    font-weight: 600 !important;
+}
+
+body.ub-app .ub-highchart .highcharts-tooltip-box {
+    fill: rgba(15, 23, 42, 0.94) !important;
+    stroke: rgba(245, 130, 32, 0.35) !important;
+}
+
+body.ub-app .ub-chart-card .ub-card-tag {
+    letter-spacing: 0.08em;
+}
+
+body.ub-app .ub-chart-card h3 {
+    font-family: Outfit, Manrope, sans-serif !important;
+}
+
+@media (max-width: 767px) {
+    body.ub-app .ub-chart-frame {
+        min-height: 300px;
+        padding: 8px 4px 4px;
+    }
+}

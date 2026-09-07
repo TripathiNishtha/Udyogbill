@@ -16,8 +16,10 @@ import {
   IndianRupee,
   Layers,
   Boxes,
-  ArrowUpRight
+  ArrowUpRight,
+  Sparkles
 } from "lucide-react";
+import { AiPurchaseScannerModal } from "@/components/purchase/ai-purchase-scanner-modal";
 import { purchaseService } from "@/services/purchase-services";
 import { inventoryService } from "@/services/inventory-services";
 import { partyService } from "@/services/party-services";
@@ -33,6 +35,19 @@ import {
   GrnList
 } from "@/types";
 import { useAddons } from "@/context/addon-context";
+import {
+  Button,
+  Input,
+  Badge,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableSkeleton,
+  EmptyState,
+} from "@/components/ui";
 
 export default function PurchaseBillsPage() {
   const [bills, setBills] = useState<PurchaseBillList[]>([]);
@@ -54,6 +69,7 @@ export default function PurchaseBillsPage() {
   // Drawer / Modal State
   const [selectedBill, setSelectedBill] = useState<PurchaseBillDetails | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isQuickSupplierOpen, setIsQuickSupplierOpen] = useState(false);
   const [isQuickProductOpen, setIsQuickProductOpen] = useState(false);
@@ -448,6 +464,144 @@ export default function PurchaseBillsPage() {
     }
   };
 
+  const handleApplyAiData = async (data: {
+    supplierName?: string;
+    supplierGstin?: string;
+    billNumber?: string;
+    billDate?: string;
+    items: Array<{
+      name: string;
+      hsn?: string;
+      qty: number;
+      price: number;
+      gstRate: number;
+      total: number;
+    }>;
+  }) => {
+    if (data.billNumber) setVendorInvNum(data.billNumber);
+    if (data.billDate) setBillDate(data.billDate);
+
+    // 1. Try to find matching supplier by GSTIN or Name
+    let matchedPartyId = "";
+    if (data.supplierGstin) {
+      const found = suppliers.find((s) => s.gstin?.toLowerCase() === data.supplierGstin?.toLowerCase());
+      if (found) matchedPartyId = found.id;
+    }
+    if (!matchedPartyId && data.supplierName) {
+      const found = suppliers.find((s) =>
+        s.legalName?.toLowerCase().includes(data.supplierName!.toLowerCase()) ||
+        s.tradeName?.toLowerCase().includes(data.supplierName!.toLowerCase())
+      );
+      if (found) matchedPartyId = found.id;
+    }
+
+    if (matchedPartyId) {
+      setSelectedPartyId(matchedPartyId);
+    } else if (data.supplierName) {
+      // Auto create supplier if not found
+      try {
+        const cleanName = data.supplierName.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+        const code = `SUP-${cleanName.substring(0, 4)}-${Math.floor(100 + Math.random() * 900)}`;
+        const newSupplierId = await partyService.createSupplier({
+          code,
+          legalName: data.supplierName,
+          tradeName: data.supplierName,
+          partyType: 2, // Supplier
+          supplierType: 4, // LocalVendor
+          gstin: data.supplierGstin || undefined,
+          mobile: "9876543210",
+          billingAddress: {
+            addressType: 1,
+            addressLine1: "Auto-imported via AI Bill Scanner",
+            city: "Delhi",
+            state: "Delhi",
+            stateCode: "07",
+            pincode: "110001"
+          },
+          pan: data.supplierGstin && data.supplierGstin.length >= 12 ? data.supplierGstin.substring(2, 12) : undefined
+        });
+        const suppRes = await partyService.getSuppliers({ pageNumber: 1, pageSize: 100 });
+        setSuppliers(suppRes.items);
+        setSelectedPartyId(newSupplierId);
+      } catch (err) {
+        console.error("Auto supplier create error:", err);
+      }
+    }
+
+    // 2. Map scanned items into billItems
+    let defaultUomId = "00000000-0000-0000-0000-000000000000";
+    let defaultUomCode = "PCS";
+    try {
+      const uoms = await inventoryService.getUnits();
+      if (uoms.length > 0) {
+        defaultUomId = uoms[0].id;
+        defaultUomCode = uoms[0].code || "PCS";
+      }
+    } catch {}
+
+    const mappedItems: typeof billItems = [];
+
+    for (const scanned of data.items) {
+      // Check existing item catalog
+      let existing = items.find((it) => it.name.toLowerCase() === scanned.name.toLowerCase());
+      let itemId = existing?.id;
+      let sku = existing?.sku;
+
+      if (!itemId) {
+        // Auto create missing item in catalog
+        try {
+          const cleanName = scanned.name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+          const prefix = cleanName.length >= 3 ? cleanName.substring(0, 3) : "PRD";
+          sku = `${prefix}-${Math.floor(100 + Math.random() * 900)}`;
+
+          itemId = await inventoryService.createItem({
+            sku,
+            name: scanned.name,
+            shortDescription: `${scanned.name} (Auto-imported via AI Bill Scan)`,
+            primaryUomId: defaultUomId,
+            hsnCode: scanned.hsn || "30049099",
+            taxRate: scanned.gstRate || 18,
+            purchasePrice: scanned.price || 50,
+            sellingPrice: Math.round((scanned.price || 50) * 1.3),
+            mrp: Math.round((scanned.price || 50) * 1.5),
+            minimumStockAlert: 5,
+            trackBatches: true
+          });
+        } catch (err) {
+          console.error("Auto item create error:", err);
+        }
+      }
+
+      const taxable = scanned.qty * scanned.price;
+      const taxAmt = taxable * (scanned.gstRate / 100);
+
+      mappedItems.push({
+        itemId: itemId || "00000000-0000-0000-0000-000000000000",
+        itemName: scanned.name,
+        sku: sku || "SKU-AUTO",
+        batchNumber: `BAT-${Math.floor(1000 + Math.random() * 9000)}`,
+        expiryDate: "12/28",
+        packing: "1x1",
+        hsnCode: scanned.hsn || "30049099",
+        quantity: scanned.qty,
+        freeQuantity: 0,
+        uomId: defaultUomId,
+        uomCode: defaultUomCode,
+        mrp: scanned.price * 1.4,
+        unitPrice: scanned.price,
+        discountType: "percent",
+        discountValue: 0,
+        discountAmount: 0,
+        taxableAmount: taxable,
+        taxRate: scanned.gstRate,
+        totalAmount: taxable + taxAmt
+      });
+    }
+
+    setBillItems(mappedItems);
+    setIsCreateOpen(true);
+  };
+
   const calculateTotals = () => {
     let itemsGross = 0;
     let itemsTaxable = 0;
@@ -579,11 +733,11 @@ export default function PurchaseBillsPage() {
   const getPaymentBadge = (status: number) => {
     switch (status) {
       case 1:
-        return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-950/80 text-rose-400 border border-rose-800">Unpaid</span>;
+        return <Badge variant="danger" dot>Unpaid</Badge>;
       case 2:
-        return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-800">Partial</span>;
+        return <Badge variant="warning" dot>Partial</Badge>;
       case 3:
-        return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800">Fully Paid</span>;
+        return <Badge variant="success" dot>Fully Paid</Badge>;
       default:
         return null;
     }
@@ -594,139 +748,156 @@ export default function PurchaseBillsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border shadow-xs">
         <div>
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-emerald-600/20 border border-emerald-500/30 rounded-xl text-emerald-400">
+            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400">
               <Receipt className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Vendor Invoices (Purchase Bills)</h1>
-              <p className="text-sm text-slate-400">Record supplier tax invoices, claim GST input credit, and disburse payments</p>
+              <h1 className="text-xl font-bold text-foreground tracking-tight">Vendor Invoices (Purchase Bills)</h1>
+              <p className="text-sm text-muted-foreground">Record supplier tax invoices, claim GST input credit, and disburse payments</p>
             </div>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-600/20 transition duration-150"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Record Vendor Bill</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <Button
+            variant="outline"
+            onClick={() => setIsAiScannerOpen(true)}
+            className="flex items-center space-x-2 border-primary/30 text-primary"
+          >
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+            <span>AI Scan Invoice</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400/20 text-amber-600 dark:text-amber-300 border border-amber-400/40">
+              PRO
+            </span>
+          </Button>
+
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Record Vendor Bill</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-        <input
+        <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
+        <Input
           type="text"
           placeholder="Search Bill #, vendor invoice #, supplier legal name, GSTIN..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && loadBills()}
-          className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+          className="pl-10"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-950/80 text-xs uppercase text-slate-400 font-semibold border-b border-slate-800 tracking-wider">
-              <tr>
-                <th className="py-3.5 px-4">Bill Number</th>
-                <th className="py-3.5 px-4">Bill Date</th>
-                <th className="py-3.5 px-4">Supplier</th>
-                <th className="py-3.5 px-4">Vendor Inv #</th>
-                <th className="py-3.5 px-4 text-right">Taxable</th>
-                <th className="py-3.5 px-4 text-right">Total Amount</th>
-                <th className="py-3.5 px-4 text-right">Balance Due</th>
-                <th className="py-3.5 px-4 text-center">Payment</th>
-                <th className="py-3.5 px-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Bill Number</TableHead>
+                <TableHead>Bill Date</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Vendor Inv #</TableHead>
+                <TableHead className="text-right">Taxable</TableHead>
+                <TableHead className="text-right">Total Amount</TableHead>
+                <TableHead className="text-right">Balance Due</TableHead>
+                <TableHead className="text-center">Payment</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
-                <tr>
-                  <td colSpan={9} className="text-center py-12 text-slate-400">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-2"></div>
-                    <div>Loading purchase bills...</div>
-                  </td>
-                </tr>
+                <TableSkeleton columns={9} rows={5} />
               ) : bills.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="text-center py-12 text-slate-400">
-                    No purchase bills recorded.
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={9} className="py-12">
+                    <EmptyState
+                      icon={Receipt}
+                      title="No purchase bills recorded"
+                      description="Record your first vendor invoice to track supplier payables and input tax credits."
+                      actionLabel="Record Vendor Bill"
+                      onAction={() => setIsCreateOpen(true)}
+                    />
+                  </TableCell>
+                </TableRow>
               ) : (
                 bills.map((bill) => (
-                  <tr key={bill.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-mono font-medium text-white">{bill.billNumber}</td>
-                    <td className="py-3.5 px-4">{new Date(bill.billDate).toLocaleDateString()}</td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-medium text-white">{bill.supplierName}</div>
-                      {bill.supplierGSTIN && <div className="text-xs text-slate-400 font-mono">{bill.supplierGSTIN}</div>}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-400">{bill.vendorInvoiceNumber || "N/A"}</td>
-                    <td className="py-3.5 px-4 text-right font-mono">₹{bill.taxableAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-white">₹{bill.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-                    <td className="py-3.5 px-4 text-right font-mono font-medium text-rose-400">
+                  <TableRow key={bill.id}>
+                    <TableCell className="font-mono font-bold text-foreground">{bill.billNumber}</TableCell>
+                    <TableCell className="text-muted-foreground">{new Date(bill.billDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="font-medium text-foreground">{bill.supplierName}</div>
+                      {bill.supplierGSTIN && <div className="text-xs text-muted-foreground font-mono">{bill.supplierGSTIN}</div>}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{bill.vendorInvoiceNumber || "—"}</TableCell>
+                    <TableCell className="text-right font-mono">₹{bill.taxableAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-foreground">₹{bill.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right font-mono font-medium text-rose-600 dark:text-rose-400">
                       ₹{bill.balanceAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">{getPaymentBadge(bill.paymentStatus)}</td>
-                    <td className="py-3.5 px-4 text-center">
+                    </TableCell>
+                    <TableCell className="text-center">{getPaymentBadge(bill.paymentStatus)}</TableCell>
+                    <TableCell className="text-center">
                       <div className="flex items-center justify-center space-x-2">
                         {bill.balanceAmount > 0 && (
-                          <button
+                          <Button
+                            size="sm"
+                            variant="secondary"
                             onClick={() => openPaymentModal(bill)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-800 text-xs font-semibold transition"
+                            className="text-xs font-semibold text-emerald-600 dark:text-emerald-400"
                           >
                             Pay
-                          </button>
+                          </Button>
                         )}
                         <Link
                           href={`/app/purchase/bills/${bill.id}`}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 transition"
+                          className="p-1.5 rounded-lg bg-surface-muted hover:bg-surface-muted/80 text-primary border border-border transition-colors"
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
       {/* Create Purchase Bill Fullscreen Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
-          <div className="w-full h-full bg-slate-900 overflow-y-auto p-6 sm:p-8 flex flex-col justify-between shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col">
+          <div className="w-full h-full bg-surface overflow-y-auto p-6 sm:p-8 flex flex-col justify-between shadow-2xl border border-border">
             <div>
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                <div className="flex items-center space-x-2 text-white font-bold text-lg">
-                  <Receipt className="w-5 h-5 text-emerald-400" />
+              <div className="flex items-center justify-between pb-4 border-b border-border">
+                <div className="flex items-center space-x-2 text-foreground font-bold text-lg">
+                  <Receipt className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   <span>Record Vendor Invoice (Purchase Bill)</span>
                 </div>
-                <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+                <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form className="mt-6 space-y-4">
                 {/* Link GRN Option */}
-                <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl">
-                  <label className="text-xs font-semibold text-emerald-300 uppercase tracking-wider block mb-1.5">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+                  <label className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block mb-1.5">
                     Link Verified GRN (Optional)
                   </label>
                   <select
                     value={selectedGrnId || ""}
                     onChange={(e) => handleGrnSelect(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="">-- Direct Bill (No GRN Reference) --</option>
                     {grns.map((g) => (
@@ -736,12 +907,12 @@ export default function PurchaseBillsPage() {
                     ))}
                   </select>
                   {selectedGrnId && (
-                    <div className="mt-2.5 p-2 bg-emerald-900/40 border border-emerald-500/40 rounded-lg flex items-center justify-between text-xs text-emerald-300 font-sans">
+                    <div className="mt-2.5 p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-lg flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 font-sans">
                       <div className="flex items-center space-x-1.5 font-bold">
-                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         <span>3-Way Match Verified: PO Rates = Inspected GRN Quantities = Vendor Bill</span>
                       </div>
-                      <span className="font-mono text-[11px] bg-emerald-950 px-2 py-0.5 rounded text-emerald-400 border border-emerald-800">
+                      <span className="font-mono text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                         Zero Rate/Qty Variance
                       </span>
                     </div>
@@ -750,11 +921,11 @@ export default function PurchaseBillsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Branch</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Branch</label>
                     <select
                       value={selectedBranchId}
                       onChange={(e) => handleBranchChange(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       {branches.map((b) => (
                         <option key={b.id} value={b.id}>
@@ -765,11 +936,11 @@ export default function PurchaseBillsPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Receiving Warehouse</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Receiving Warehouse</label>
                     <select
                       value={selectedWarehouseId}
                       onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       {warehouses.map((w) => (
                         <option key={w.id} value={w.id}>
@@ -781,13 +952,13 @@ export default function PurchaseBillsPage() {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Supplier (Creditor) *
                       </label>
                       <button
                         type="button"
                         onClick={() => setIsQuickSupplierOpen(true)}
-                        className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1"
+                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center space-x-1"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>+ Quick Add</span>
@@ -796,7 +967,7 @@ export default function PurchaseBillsPage() {
                     <select
                       value={selectedPartyId}
                       onChange={(e) => setSelectedPartyId(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="">-- Select Supplier --</option>
                       {suppliers.map((s) => (
@@ -810,33 +981,33 @@ export default function PurchaseBillsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Vendor Invoice #</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Vendor Invoice #</label>
                     <input
                       type="text"
                       placeholder="INV-SUP-99182"
                       value={vendorInvNum}
                       onChange={(e) => setVendorInvNum(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Invoice Date</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Invoice Date</label>
                     <input
                       type="date"
                       value={billDate}
                       onChange={(e) => setBillDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Payment Due Date</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Payment Due Date</label>
                     <input
                       type="date"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -845,10 +1016,10 @@ export default function PurchaseBillsPage() {
                 <div className="pt-4 border-t border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-bold text-white uppercase tracking-wider">
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">
                         Purchase Line Items
                       </label>
-                      <span className="text-[10px] text-slate-400 ml-2">
+                      <span className="text-[10px] text-muted-foreground ml-2">
                         {hasBatchTracking
                           ? "(Includes Batch, Expiry, Free Scheme, Packing, MRP, Disc %, GST)"
                           : "(Includes HSN, Qty, Unit, Purchase Rate, Disc %, GST)"}
@@ -859,7 +1030,7 @@ export default function PurchaseBillsPage() {
                         <button
                           type="button"
                           onClick={() => setIsQuickProductOpen(true)}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-sm"
+                          className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-xs"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>+ Quick Add Product</span>
@@ -871,7 +1042,7 @@ export default function PurchaseBillsPage() {
                               e.target.value = "";
                             }
                           }}
-                          className="px-3 py-1.5 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500"
+                          className="px-3 py-1.5 bg-surface border border-input text-foreground rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                           <option value="">+ Add Line From Catalog...</option>
                           {items.map((i) => (
@@ -885,13 +1056,13 @@ export default function PurchaseBillsPage() {
                   </div>
 
                   {billItems.length === 0 ? (
-                    <div className="p-6 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                    <div className="p-6 text-center text-muted-foreground text-xs border border-dashed border-border rounded-xl">
                       No items in this purchase bill. Select a GRN or add products manually.
                     </div>
                   ) : (
-                    <div className="border border-slate-800 rounded-xl overflow-x-auto">
+                    <div className="border border-border rounded-xl overflow-x-auto bg-surface">
                       <table className="w-full text-left text-xs min-w-[900px]">
-                        <thead className="bg-slate-900 text-slate-400 border-b border-slate-800 text-[11px]">
+                        <thead className="bg-table-header text-table-header-foreground border-b border-table-border text-[11px]">
                           <tr>
                             <th className="px-2.5 py-2 min-w-[180px]">Product / Item</th>
                             {hasBatchTracking && <th className="px-2 py-2 w-28">Batch / Lot</th>}
@@ -910,12 +1081,12 @@ export default function PurchaseBillsPage() {
                             <th className="px-2 py-2 w-8"></th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-850 bg-slate-950">
+                        <tbody className="divide-y divide-table-border bg-surface">
                           {billItems.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-slate-900/40">
+                            <tr key={idx} className="hover:bg-table-row-hover">
                               <td className="p-1.5">
-                                <div className="font-semibold text-white truncate">{item.itemName}</div>
-                                <div className="text-[10px] text-slate-500 font-mono">{item.sku}</div>
+                                <div className="font-semibold text-foreground truncate">{item.itemName}</div>
+                                <div className="text-[10px] text-muted-foreground font-mono">{item.sku}</div>
                               </td>
                               {hasBatchTracking && (
                                 <td className="p-1.5">
@@ -924,7 +1095,7 @@ export default function PurchaseBillsPage() {
                                     placeholder="Batch"
                                     value={item.batchNumber || ""}
                                     onChange={(e) => updateBillLineField(idx, "batchNumber", e.target.value)}
-                                    className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-indigo-300 font-mono"
+                                    className="w-full px-1.5 py-1 bg-surface border border-input rounded text-xs text-primary font-mono focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
                               )}
@@ -935,7 +1106,7 @@ export default function PurchaseBillsPage() {
                                     placeholder="MM/YY"
                                     value={item.expiryDate || ""}
                                     onChange={(e) => updateBillLineField(idx, "expiryDate", e.target.value)}
-                                    className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-slate-300 font-mono text-center"
+                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono text-center focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
                               )}
@@ -946,7 +1117,7 @@ export default function PurchaseBillsPage() {
                                     placeholder="10x10"
                                     value={item.packing || ""}
                                     onChange={(e) => updateBillLineField(idx, "packing", e.target.value)}
-                                    className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-slate-300 text-center"
+                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground text-center focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
                               )}
@@ -956,7 +1127,7 @@ export default function PurchaseBillsPage() {
                                   placeholder="HSN"
                                   value={item.hsnCode || ""}
                                   onChange={(e) => updateBillLineField(idx, "hsnCode", e.target.value)}
-                                  className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-slate-300 font-mono text-center"
+                                  className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono text-center focus:ring-2 focus:ring-primary"
                                 />
                               </td>
                               <td className="p-1.5">
@@ -965,7 +1136,7 @@ export default function PurchaseBillsPage() {
                                   min="1"
                                   value={item.quantity}
                                   onChange={(e) => updateBillLineField(idx, "quantity", parseFloat(e.target.value) || 0)}
-                                  className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-white font-mono text-center font-bold"
+                                  className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono text-center font-bold focus:ring-2 focus:ring-primary"
                                 />
                               </td>
                               {hasPharmaAddon && (
@@ -976,7 +1147,7 @@ export default function PurchaseBillsPage() {
                                     placeholder="0"
                                     value={item.freeQuantity || ""}
                                     onChange={(e) => updateBillLineField(idx, "freeQuantity", parseFloat(e.target.value) || 0)}
-                                    className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-emerald-400 font-mono text-center"
+                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-emerald-600 dark:text-emerald-400 font-mono text-center focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
                               )}
@@ -987,10 +1158,10 @@ export default function PurchaseBillsPage() {
                                   placeholder="0.00"
                                   value={item.mrp || ""}
                                   onChange={(e) => updateBillLineField(idx, "mrp", parseFloat(e.target.value) || 0)}
-                                  className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-slate-300 font-mono"
+                                  className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono focus:ring-2 focus:ring-primary"
                                 />
                               </td>
-                              <td className="p-1.5 text-center text-slate-400 text-[11px] font-semibold">
+                              <td className="p-1.5 text-center text-muted-foreground text-[11px] font-semibold">
                                 {item.uomCode}
                               </td>
                               <td className="p-1.5">
@@ -999,7 +1170,7 @@ export default function PurchaseBillsPage() {
                                   step="0.01"
                                   value={item.unitPrice}
                                   onChange={(e) => updateBillLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
-                                  className="w-full px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-white font-mono font-bold"
+                                  className="w-full px-1.5 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono font-bold focus:ring-2 focus:ring-primary"
                                 />
                               </td>
                               <td className="p-1.5">
@@ -1010,25 +1181,25 @@ export default function PurchaseBillsPage() {
                                     placeholder="0"
                                     value={item.discountValue || ""}
                                     onChange={(e) => updateBillLineField(idx, "discountValue", parseFloat(e.target.value) || 0)}
-                                    className="w-full px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-amber-400 font-mono"
+                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-amber-600 dark:text-amber-400 font-mono focus:ring-2 focus:ring-primary"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => updateBillLineField(idx, "discountType", item.discountType === "percent" ? "fixed" : "percent")}
-                                    className="px-1 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-slate-300 hover:text-white"
+                                    className="px-1 py-0.5 rounded bg-surface-muted text-[10px] font-bold text-foreground hover:bg-surface-muted/80 border border-border"
                                   >
                                     {item.discountType === "percent" ? "%" : "₹"}
                                   </button>
                                 </div>
                               </td>
-                              <td className="p-1.5 text-right font-mono font-semibold text-slate-300">
+                              <td className="p-1.5 text-right font-mono font-semibold text-foreground">
                                 ₹{item.taxableAmount.toFixed(2)}
                               </td>
                               <td className="p-1.5 text-center font-mono">
                                 <select
                                   value={item.taxRate}
                                   onChange={(e) => updateBillLineField(idx, "taxRate", parseFloat(e.target.value) || 0)}
-                                  className="px-1 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-slate-300"
+                                  className="px-1 py-1 bg-surface border border-input rounded text-xs text-foreground focus:ring-2 focus:ring-primary"
                                 >
                                   <option value="0">0%</option>
                                   <option value="5">5%</option>
@@ -1037,14 +1208,14 @@ export default function PurchaseBillsPage() {
                                   <option value="28">28%</option>
                                 </select>
                               </td>
-                              <td className="p-1.5 text-right font-mono font-bold text-emerald-400">
+                              <td className="p-1.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                                 ₹{item.totalAmount.toFixed(2)}
                               </td>
                               <td className="p-1.5 text-center">
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveItem(idx)}
-                                  className="p-1 rounded text-slate-500 hover:text-rose-400"
+                                  className="p-1 rounded text-muted-foreground hover:text-rose-500"
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
@@ -1058,10 +1229,10 @@ export default function PurchaseBillsPage() {
                 </div>
 
                 {/* Overall Bill Discount & Summary */}
-                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                <div className="p-4 bg-surface-muted rounded-xl border border-border grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
                         Bill-Level Cash / Special Discount
                       </label>
                       <div className="flex items-center space-x-2">
@@ -1071,20 +1242,20 @@ export default function PurchaseBillsPage() {
                           placeholder="0.00"
                           value={overallDiscountValue || ""}
                           onChange={(e) => setOverallDiscountValue(parseFloat(e.target.value) || 0)}
-                          className="w-40 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-amber-400 font-bold font-mono focus:outline-none"
+                          className="w-40 px-3 py-1.5 bg-surface border border-input rounded-xl text-sm text-amber-600 dark:text-amber-400 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                         />
-                        <div className="flex bg-slate-900 p-0.5 rounded-lg border border-slate-700">
+                        <div className="flex bg-surface p-0.5 rounded-lg border border-border">
                           <button
                             type="button"
                             onClick={() => setOverallDiscountType("fixed")}
-                            className={`px-2 py-1 rounded text-xs font-bold ${overallDiscountType === "fixed" ? "bg-amber-600 text-white" : "text-slate-400"}`}
+                            className={`px-2 py-1 rounded text-xs font-bold ${overallDiscountType === "fixed" ? "bg-amber-600 text-white" : "text-muted-foreground"}`}
                           >
                             ₹ Fixed
                           </button>
                           <button
                             type="button"
                             onClick={() => setOverallDiscountType("percent")}
-                            className={`px-2 py-1 rounded text-xs font-bold ${overallDiscountType === "percent" ? "bg-amber-600 text-white" : "text-slate-400"}`}
+                            className={`px-2 py-1 rounded text-xs font-bold ${overallDiscountType === "percent" ? "bg-amber-600 text-white" : "text-muted-foreground"}`}
                           >
                             % Percent
                           </button>
@@ -1093,7 +1264,7 @@ export default function PurchaseBillsPage() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
                         Immediate Payment Tendered (₹)
                       </label>
                       <div className="flex space-x-2">
@@ -1103,12 +1274,12 @@ export default function PurchaseBillsPage() {
                           max={totals.total}
                           value={paidAmount}
                           onChange={(e) => setPaidAmount(Number(e.target.value))}
-                          className="w-40 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-emerald-400 font-bold font-mono focus:outline-none"
+                          className="w-40 px-3 py-1.5 bg-surface border border-input rounded-xl text-sm text-emerald-600 dark:text-emerald-400 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <select
                           value={paymentMode}
                           onChange={(e) => setPaymentMode(Number(e.target.value))}
-                          className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none"
+                          className="px-3 py-1.5 bg-surface border border-input rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                           <option value="1">Cash</option>
                           <option value="2">UPI</option>
@@ -1119,27 +1290,27 @@ export default function PurchaseBillsPage() {
                     </div>
                   </div>
 
-                  <div className="text-right space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                    <div className="text-xs text-slate-400 flex justify-between">
+                  <div className="text-right space-y-1 bg-surface p-3 rounded-xl border border-border shadow-xs">
+                    <div className="text-xs text-muted-foreground flex justify-between">
                       <span>Items Subtotal:</span>
-                      <span className="font-mono text-slate-200">₹{totals.taxable.toFixed(2)}</span>
+                      <span className="font-mono text-foreground font-semibold">₹{totals.taxable.toFixed(2)}</span>
                     </div>
                     {totals.overallDiscount > 0 && (
-                      <div className="text-xs text-amber-400 flex justify-between">
+                      <div className="text-xs text-amber-600 dark:text-amber-400 flex justify-between">
                         <span>Overall Bill Discount:</span>
                         <span className="font-mono font-bold">-₹{totals.overallDiscount.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="text-xs text-slate-400 flex justify-between">
+                    <div className="text-xs text-muted-foreground flex justify-between">
                       <span>Net GST:</span>
-                      <span className="font-mono text-slate-200">₹{totals.tax.toFixed(2)}</span>
+                      <span className="font-mono text-foreground font-semibold">₹{totals.tax.toFixed(2)}</span>
                     </div>
-                    <div className="text-sm font-black text-white font-mono flex justify-between pt-1 border-t border-slate-800">
+                    <div className="text-sm font-black text-foreground font-mono flex justify-between pt-1 border-t border-border">
                       <span>Grand Total:</span>
-                      <span className="text-emerald-400 text-base">₹{totals.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 text-base">₹{totals.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                     </div>
                     {paidAmount > 0 && (
-                      <div className="text-xs text-rose-400 font-mono flex justify-between pt-0.5">
+                      <div className="text-xs text-rose-600 dark:text-rose-400 font-mono flex justify-between pt-0.5">
                         <span>Balance Due:</span>
                         <span>₹{(totals.total - Math.min(paidAmount, totals.total)).toFixed(2)}</span>
                       </div>
@@ -1149,11 +1320,11 @@ export default function PurchaseBillsPage() {
               </form>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex justify-end space-x-3">
+            <div className="pt-4 border-t border-border flex justify-end space-x-3">
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm"
+                className="px-4 py-2 bg-surface-muted hover:bg-surface-muted/80 text-foreground border border-border rounded-xl text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -1161,7 +1332,7 @@ export default function PurchaseBillsPage() {
                 type="button"
                 onClick={handleCreateBill}
                 disabled={submitting || billItems.length === 0}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-emerald-600/30 disabled:opacity-50"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold shadow-sm disabled:opacity-50 transition-colors"
               >
                 {submitting ? "Recording..." : "Confirm & Save Bill"}
               </button>
@@ -1172,44 +1343,44 @@ export default function PurchaseBillsPage() {
 
       {/* Disburse Payment Modal */}
       {isPaymentModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2 text-white font-bold">
-                <CreditCard className="w-5 h-5 text-emerald-400" />
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center space-x-2 text-foreground font-bold">
+                <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 <span>Disburse Vendor Payment</span>
               </div>
-              <button onClick={() => setIsPaymentModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsPaymentModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1 text-xs">
-              <div className="text-slate-400">Supplier: <span className="font-bold text-white">{disburseSupplierName}</span></div>
-              <div className="text-slate-400">Bill #: <span className="font-mono text-white">{disburseBillNumber}</span></div>
-              <div className="text-slate-400">Current Outstanding: <span className="font-mono font-bold text-rose-400">₹{disburseBalance.toFixed(2)}</span></div>
+            <div className="p-3 bg-surface-muted rounded-xl border border-border space-y-1 text-xs">
+              <div className="text-muted-foreground">Supplier: <span className="font-bold text-foreground">{disburseSupplierName}</span></div>
+              <div className="text-muted-foreground">Bill #: <span className="font-mono text-foreground">{disburseBillNumber}</span></div>
+              <div className="text-muted-foreground">Current Outstanding: <span className="font-mono font-bold text-rose-600 dark:text-rose-400">₹{disburseBalance.toFixed(2)}</span></div>
             </div>
 
             <form onSubmit={handleDisbursePayment} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Payment Amount (₹) *</label>
+                <label className="text-muted-foreground block mb-1 font-semibold">Payment Amount (₹) *</label>
                 <input
                   type="number"
                   min="1"
                   max={disburseBalance}
                   value={disburseAmount}
                   onChange={(e) => setDisburseAmount(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-emerald-400 font-bold font-mono text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-emerald-600 dark:text-emerald-400 font-bold font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Payment Mode</label>
+                <label className="text-muted-foreground block mb-1 font-semibold">Payment Mode</label>
                 <select
                   value={disburseMode}
                   onChange={(e) => setDisburseMode(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
+                  className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="1">Cash</option>
                   <option value="2">UPI</option>
@@ -1219,38 +1390,38 @@ export default function PurchaseBillsPage() {
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Transaction / UTR Reference</label>
+                <label className="text-muted-foreground block mb-1 font-semibold">Transaction / UTR Reference</label>
                 <input
                   type="text"
                   placeholder="UTR-2026-991823"
                   value={disburseRef}
                   onChange={(e) => setDisburseRef(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
+                  className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1 font-semibold">Disbursed From Bank Account</label>
+                <label className="text-muted-foreground block mb-1 font-semibold">Disbursed From Bank Account</label>
                 <input
                   type="text"
                   value={disburseBank}
                   onChange={(e) => setDisburseBank(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
+                  className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex justify-end space-x-2">
+              <div className="pt-3 border-t border-border flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
-                  className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl"
+                  className="px-3 py-1.5 bg-surface-muted hover:bg-surface-muted/80 text-foreground rounded-xl border border-border"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/30"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-sm"
                 >
                   {submitting ? "Processing..." : "Disburse Payment"}
                 </button>
@@ -1262,17 +1433,17 @@ export default function PurchaseBillsPage() {
 
       {/* ─── Inline Quick Add Supplier Modal ───────────────────────────────── */}
       {isQuickSupplierOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <Building2 className="w-5 h-5 text-emerald-400" />
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center space-x-2 text-foreground font-bold text-base">
+                <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 <span>+ Quick Add Supplier / Vendor Master</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsQuickSupplierOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1282,7 +1453,7 @@ export default function PurchaseBillsPage() {
               {/* Business Identity */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Supplier Legal Name *
                   </label>
                   <input
@@ -1291,12 +1462,12 @@ export default function PurchaseBillsPage() {
                     placeholder="e.g. Cipla Pharma Distributors Pvt Ltd"
                     value={suppLegalName}
                     onChange={(e) => setSuppLegalName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500 text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Trade Name / Brand Alias
                   </label>
                   <input
@@ -1304,20 +1475,20 @@ export default function PurchaseBillsPage() {
                     placeholder="e.g. Cipla Direct"
                     value={suppTradeName}
                     onChange={(e) => setSuppTradeName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500 text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Supplier Type
                   </label>
                   <select
                     value={suppType}
                     onChange={(e) => setSuppType(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   >
                     <option value="1">1: Manufacturer / Factory</option>
                     <option value="2">2: Stockist / Distributor</option>
@@ -1327,7 +1498,7 @@ export default function PurchaseBillsPage() {
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Mobile Number *
                   </label>
                   <input
@@ -1335,12 +1506,12 @@ export default function PurchaseBillsPage() {
                     placeholder="9876543210"
                     value={suppMobile}
                     onChange={(e) => setSuppMobile(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Email Address
                   </label>
                   <input
@@ -1348,21 +1519,21 @@ export default function PurchaseBillsPage() {
                     placeholder="billing@supplier.com"
                     value={suppEmail}
                     onChange={(e) => setSuppEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
               </div>
 
               {/* Taxation & Pharma Regulatory */}
-              <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/30 rounded-xl space-y-3">
-                <div className="text-emerald-400 font-bold flex items-center space-x-1.5">
+              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-3">
+                <div className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center space-x-1.5">
                   <CheckCircle className="w-4 h-4" />
                   <span>{hasPharmaAddon ? "GST & Pharma Drug License Regulatory Compliance" : "GSTIN & Tax Compliance"}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-slate-300 font-semibold block mb-1">
+                    <label className="text-muted-foreground font-semibold block mb-1">
                       GSTIN (15 Digits)
                     </label>
                     <input
@@ -1377,12 +1548,12 @@ export default function PurchaseBillsPage() {
                           setSuppPan(val.slice(2, 12));
                         }
                       }}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-emerald-400 font-mono focus:outline-none text-xs uppercase"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-emerald-600 dark:text-emerald-400 font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs uppercase"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-300 font-semibold block mb-1">
+                    <label className="text-muted-foreground font-semibold block mb-1">
                       PAN Number
                     </label>
                     <input
@@ -1391,7 +1562,7 @@ export default function PurchaseBillsPage() {
                       placeholder="AAAAA0000A"
                       value={suppPan}
                       onChange={(e) => setSuppPan(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none text-xs uppercase"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs uppercase"
                     />
                   </div>
                 </div>
@@ -1399,7 +1570,7 @@ export default function PurchaseBillsPage() {
                 {hasPharmaAddon && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-emerald-300 font-semibold block mb-1">
+                      <label className="text-emerald-700 dark:text-emerald-300 font-semibold block mb-1">
                         Drug License No. 1 (20B) *
                       </label>
                       <input
@@ -1407,12 +1578,12 @@ export default function PurchaseBillsPage() {
                         placeholder="DL-20B/12345/2026"
                         value={suppDl1}
                         onChange={(e) => setSuppDl1(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-950 border border-emerald-800/60 rounded-xl text-emerald-300 font-mono focus:outline-none text-xs"
+                        className="w-full px-3 py-2 bg-surface border border-emerald-500/40 rounded-xl text-emerald-700 dark:text-emerald-300 font-mono focus:outline-none text-xs"
                       />
                     </div>
 
                     <div>
-                      <label className="text-emerald-300 font-semibold block mb-1">
+                      <label className="text-emerald-700 dark:text-emerald-300 font-semibold block mb-1">
                         Drug License No. 2 (21B)
                       </label>
                       <input
@@ -1420,14 +1591,14 @@ export default function PurchaseBillsPage() {
                         placeholder="DL-21B/12345/2026"
                         value={suppDl2}
                         onChange={(e) => setSuppDl2(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-950 border border-emerald-800/60 rounded-xl text-emerald-300 font-mono focus:outline-none text-xs"
+                        className="w-full px-3 py-2 bg-surface border border-emerald-500/40 rounded-xl text-emerald-700 dark:text-emerald-300 font-mono focus:outline-none text-xs"
                       />
                     </div>
                   </div>
                 )}
 
                   <div>
-                    <label className="text-slate-300 font-semibold block mb-1">
+                    <label className="text-muted-foreground font-semibold block mb-1">
                       FSSAI Food License #
                     </label>
                     <input
@@ -1435,7 +1606,7 @@ export default function PurchaseBillsPage() {
                       placeholder="10019011000123"
                       value={suppFssai}
                       onChange={(e) => setSuppFssai(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none text-xs"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                   </div>
                 </div>
@@ -1443,7 +1614,7 @@ export default function PurchaseBillsPage() {
               {/* Address */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Premises / Street Address *
                   </label>
                   <input
@@ -1452,46 +1623,46 @@ export default function PurchaseBillsPage() {
                     placeholder="Shop #4, Medicine Complex, Bhagirath Palace"
                     value={suppAddress1}
                     onChange={(e) => setSuppAddress1(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="text-slate-300 font-semibold block mb-1">City</label>
+                    <label className="text-muted-foreground font-semibold block mb-1">City</label>
                     <input
                       type="text"
                       value={suppCity}
                       onChange={(e) => setSuppCity(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                      className="w-full px-2.5 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                   </div>
                   <div>
-                    <label className="text-slate-300 font-semibold block mb-1">State</label>
+                    <label className="text-muted-foreground font-semibold block mb-1">State</label>
                     <input
                       type="text"
                       value={suppState}
                       onChange={(e) => setSuppState(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                      className="w-full px-2.5 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                   </div>
                   <div>
-                    <label className="text-slate-300 font-semibold block mb-1">Pincode</label>
+                    <label className="text-muted-foreground font-semibold block mb-1">Pincode</label>
                     <input
                       type="text"
                       maxLength={6}
                       value={suppPincode}
                       onChange={(e) => setSuppPincode(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none text-xs"
+                      className="w-full px-2.5 py-2 bg-surface border border-input rounded-xl text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Opening Balance */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-surface-muted rounded-xl border border-border">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Opening Ledger Balance (₹)
                   </label>
                   <input
@@ -1500,18 +1671,18 @@ export default function PurchaseBillsPage() {
                     placeholder="0.00"
                     value={suppOpeningBal || ""}
                     onChange={(e) => setSuppOpeningBal(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-rose-400 font-bold font-mono focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-rose-600 dark:text-rose-400 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Balance Type
                   </label>
                   <select
                     value={suppOpeningType}
                     onChange={(e) => setSuppOpeningType(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   >
                     <option value="2">Credit (Payable to Supplier - Aapki Denedari)</option>
                     <option value="1">Debit (Advance Paid - Supplier par Udhar)</option>
@@ -1519,18 +1690,18 @@ export default function PurchaseBillsPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex justify-end space-x-2">
+              <div className="pt-3 border-t border-border flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsQuickSupplierOpen(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold"
+                  className="px-4 py-2 bg-surface-muted hover:bg-surface-muted/80 text-foreground border border-border rounded-xl text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingSupplier}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm"
                 >
                   {creatingSupplier ? "Saving Supplier..." : "Save & Select Supplier"}
                 </button>
@@ -1542,17 +1713,17 @@ export default function PurchaseBillsPage() {
 
       {/* ─── Inline Quick Add Product Modal ────────────────────────────────── */}
       {isQuickProductOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <Boxes className="w-5 h-5 text-indigo-400" />
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center space-x-2 text-foreground font-bold text-base">
+                <Boxes className="w-5 h-5 text-primary" />
                 <span>+ Quick Create New Master Product</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsQuickProductOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1560,7 +1731,7 @@ export default function PurchaseBillsPage() {
 
             <form onSubmit={handleCreateQuickProduct} className="space-y-4 text-xs">
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">
+                <label className="text-muted-foreground font-semibold block mb-1">
                   Product / Medicine Legal Name *
                 </label>
                 <input
@@ -1569,13 +1740,13 @@ export default function PurchaseBillsPage() {
                   placeholder="e.g. Azithromycin 500mg Tablet"
                   value={prodName}
                   onChange={(e) => setProdName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500 text-xs font-semibold"
+                  className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs font-semibold"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Custom SKU (Optional)
                   </label>
                   <input
@@ -1583,12 +1754,12 @@ export default function PurchaseBillsPage() {
                     placeholder="AZI-500"
                     value={prodSku}
                     onChange={(e) => setProdSku(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-indigo-300 font-mono focus:outline-none text-xs uppercase"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-primary font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Packing (e.g. 10x10)
                   </label>
                   <input
@@ -1596,12 +1767,12 @@ export default function PurchaseBillsPage() {
                     placeholder="10x10 / 100ml"
                     value={prodPacking}
                     onChange={(e) => setProdPacking(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     HSN / SAC Code
                   </label>
                   <input
@@ -1609,20 +1780,20 @@ export default function PurchaseBillsPage() {
                     placeholder="30049099"
                     value={prodHsn}
                     onChange={(e) => setProdHsn(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     GST Rate (%)
                   </label>
                   <select
                     value={prodTaxRate}
                     onChange={(e) => setProdTaxRate(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs font-mono"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-xs font-mono"
                   >
                     <option value="0">0% Excluded</option>
                     <option value="5">5% GST</option>
@@ -1633,7 +1804,7 @@ export default function PurchaseBillsPage() {
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     MRP (₹) *
                   </label>
                   <input
@@ -1644,12 +1815,12 @@ export default function PurchaseBillsPage() {
                     placeholder="120.00"
                     value={prodMrp || ""}
                     onChange={(e) => setProdMrp(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono font-bold focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground font-mono font-bold focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Purchase Rate (₹) *
                   </label>
                   <input
@@ -1660,12 +1831,12 @@ export default function PurchaseBillsPage() {
                     placeholder="75.00"
                     value={prodPurchasePrice || ""}
                     onChange={(e) => setProdPurchasePrice(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-amber-400 font-mono font-bold focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-amber-600 dark:text-amber-400 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">
+                  <label className="text-muted-foreground font-semibold block mb-1">
                     Sale Price (₹) *
                   </label>
                   <input
@@ -1676,16 +1847,16 @@ export default function PurchaseBillsPage() {
                     placeholder="100.00"
                     value={prodSellingPrice || ""}
                     onChange={(e) => setProdSellingPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-emerald-400 font-mono font-bold focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-emerald-600 dark:text-emerald-400 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                   />
                 </div>
               </div>
 
               {/* Batch & Expiry for Instant Bill Addition */}
               {hasBatchTracking && (
-                <div className="p-3 bg-indigo-950/20 border border-indigo-500/30 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-indigo-300 font-semibold block mb-1">
+                    <label className="text-primary font-semibold block mb-1">
                       Invoice Batch Number (Optional)
                     </label>
                     <input
@@ -1693,12 +1864,12 @@ export default function PurchaseBillsPage() {
                       placeholder="e.g. AZ-2026-09"
                       value={prodInitialBatch}
                       onChange={(e) => setProdInitialBatch(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-indigo-800/60 rounded-xl text-indigo-300 font-mono focus:outline-none text-xs"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-primary font-mono focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="text-indigo-300 font-semibold block mb-1">
+                    <label className="text-primary font-semibold block mb-1">
                       Expiry Date (MM/YY)
                     </label>
                     <input
@@ -1706,24 +1877,24 @@ export default function PurchaseBillsPage() {
                       placeholder="e.g. 10/28"
                       value={prodInitialExpiry}
                       onChange={(e) => setProdInitialExpiry(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-indigo-800/60 rounded-xl text-white font-mono text-center focus:outline-none text-xs"
+                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-foreground font-mono text-center focus:outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                   </div>
                 </div>
               )}
 
-              <div className="pt-3 border-t border-slate-800 flex justify-end space-x-2">
+              <div className="pt-3 border-t border-border flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsQuickProductOpen(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold"
+                  className="px-4 py-2 bg-surface-muted hover:bg-surface-muted/80 text-foreground border border-border rounded-xl text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingProduct}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30"
+                  className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-bold shadow-sm"
                 >
                   {creatingProduct ? "Creating SKU..." : "Save & Add to Purchase Bill"}
                 </button>
@@ -1732,6 +1903,13 @@ export default function PurchaseBillsPage() {
           </div>
         </div>
       )}
+
+      {/* AI Purchase Scanner Modal */}
+      <AiPurchaseScannerModal
+        isOpen={isAiScannerOpen}
+        onClose={() => setIsAiScannerOpen(false)}
+        onApplyParsedData={handleApplyAiData}
+      />
     </div>
   );
 }

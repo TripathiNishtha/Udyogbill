@@ -505,12 +505,13 @@ export default function PlatformCompanyProfilePage() {
               </div>
 
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1">Support Phone / Helpdesk</label>
+                <label className="block font-semibold uppercase text-slate-400 mb-1">Support Phone (10 Digits)</label>
                 <input
-                  type="text"
+                  type="tel"
+                  maxLength={10}
                   value={form.supportPhone}
-                  onChange={(e) => setForm({ ...form, supportPhone: e.target.value })}
-                  placeholder="+91 98765 43210"
+                  onChange={(e) => setForm({ ...form, supportPhone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  placeholder="9876543210"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>

@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<DatabaseSeeder>();
 
         // Application Services
+        services.AddSingleton<UdyogBill.Application.Services.Calculations.ICanonicalCalculationEngine, UdyogBill.Application.Services.Calculations.CanonicalCalculationEngine>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITenantService, TenantService>();
         services.AddScoped<IIndustryService, IndustryService>();
@@ -63,6 +64,10 @@ public static class DependencyInjection
         services.AddScoped<IOnboardingService, OnboardingService>();
         services.AddScoped<ICouponService, CouponService>();
         services.AddScoped<UdyogBill.Application.Services.Pharma.IPharmaService, PharmaService>();
+        services.AddScoped<IPharmaSfaService, PharmaSfaService>();
+        services.AddScoped<ITenantModuleAuthorizationService, TenantModuleAuthorizationService>();
+        services.AddScoped<ITenantAssistantService, TenantAssistantService>();
+        services.AddScoped<IReferralService, ReferralService>();
 
         return services;
     }

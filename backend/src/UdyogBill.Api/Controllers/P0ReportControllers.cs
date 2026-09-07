@@ -81,6 +81,16 @@ public class P0ReportController : BaseApiController
         return Ok(result);
     }
 
+    [HttpGet("inventory/company-stock-sales")]
+    [ProducesResponseType(typeof(CompanyStockSalesReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCompanyStockSales(
+        [FromQuery] P0ReportFilterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _reportService.GetCompanyStockSalesReportAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("receivables/debtor-ageing")]
     [ProducesResponseType(typeof(DebtorAgeingReportDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDebtorAgeingSchedule(

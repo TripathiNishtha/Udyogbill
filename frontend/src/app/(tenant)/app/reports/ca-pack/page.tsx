@@ -24,6 +24,7 @@ import {
 import { tenantAppService } from "@/services/tenant-app-services";
 import { TenantDetails } from "@/types";
 import { ReportExportToolbar } from "@/components/reports/report-export-toolbar";
+import { QuickReportJumpBar } from "@/components/reports/quick-report-jump-bar";
 
 export default function CaPackReportPage() {
   const [loading, setLoading] = useState(true);
@@ -168,6 +169,8 @@ export default function CaPackReportPage() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Top Quick Jump Bar */}
+      <QuickReportJumpBar currentReportTitle="CA Pack (GST & Tax Audit Register)" />
       {/* ─── HEADER ────────────────────────────────────────── */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
         <div className="space-y-1">
@@ -183,7 +186,7 @@ export default function CaPackReportPage() {
                 </span>
               </h1>
               <p className="text-xs text-slate-400">
-                {profile?.businessName || "UdyogBill Enterprise"} — Comprehensive GST &amp; Tax Audit Register for Chartered Accountants
+                {profile?.businessName || "UdyogBill"} — Comprehensive GST &amp; Tax Audit Register for Chartered Accountants
               </p>
             </div>
           </div>
@@ -346,7 +349,7 @@ export default function CaPackReportPage() {
             headers={exportHeaders}
             rows={exportRows}
             summaryData={summaryData}
-            businessName={profile?.businessName || "UdyogBill Enterprise"}
+            businessName={profile?.businessName || "UdyogBill"}
             dateRangeText={`${new Date(fromDate).toLocaleDateString("en-IN")} to ${new Date(toDate).toLocaleDateString("en-IN")}`}
           />
 

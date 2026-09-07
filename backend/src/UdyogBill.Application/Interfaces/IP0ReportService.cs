@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +22,8 @@ public interface IP0ReportService
     Task<CreditorAgeingReportDto> GetCreditorAgeingScheduleAsync(P0ReportFilterRequest request, CancellationToken cancellationToken = default);
     
     Task<TruePnLReportDto> GetTruePnLReportAsync(P0ReportFilterRequest request, CancellationToken cancellationToken = default);
+    
+    Task<CompanyStockSalesReportDto> GetCompanyStockSalesReportAsync(P0ReportFilterRequest request, CancellationToken cancellationToken = default);
 
     Task<(byte[] FileBytes, string FileName, string ContentType)> ExportReportCsvAsync(string reportType, P0ReportFilterRequest request, CancellationToken cancellationToken = default);
 

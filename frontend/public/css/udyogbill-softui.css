@@ -1,0 +1,746 @@
+:root{
+  /* UdyogBill – Logo palette (orange / gold / green / black) */
+  --ub-bg: #fff8f0;
+  --ub-surface: rgba(255,255,255,.92);
+  --ub-surface-solid: #ffffff;
+  --ub-border: rgba(245,130,32,.18);
+  --ub-text: #1a120b;
+  --ub-muted: rgba(26,18,11,.58);
+  --ub-sidebar: #0b0b0b;
+  --ub-sidebar-2: #171717;
+  --ub-primary: #f58220;
+  --ub-primary-700: #e06f12;
+  --ub-accent: #e8a317;
+  --ub-gold: #f1c40f;
+  --ub-success: #27ae60;
+  --ub-warning: #e8a317;
+  --ub-danger: #dc2626;
+  --ub-info: #2f9e44;
+  --ub-radius: 12px;
+  --ub-shadow: 0 12px 36px rgba(11,11,11,.12);
+  --ub-shadow-soft: 0 8px 22px rgba(245,130,32,.10);
+  --ub-ring: 0 0 0 1px rgba(245,130,32,.28);
+  --ub-sidebar-text: #ffffff;
+  --ub-sidebar-text-soft: #d6d3d1;
+  --ub-sidebar-panel: rgba(255,255,255,.06);
+}
+
+html, body{
+  font-family: "Manrope","Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Apple Color Emoji","Segoe UI Emoji";
+}
+
+body.ub-app{
+  background: var(--ub-bg) !important;
+  color: var(--ub-text);
+}
+
+/* ---- App shell ---- */
+body.ub-app .thetop{
+  min-height: 100vh;
+}
+
+body.ub-app .side-bar{
+  background: linear-gradient(180deg, #0b0b0b 0%, #171717 55%, #1c1917 100%) !important;
+  border-right: 1px solid rgba(245,130,32,.22) !important;
+  box-shadow: 6px 0 28px rgba(0,0,0,.28) !important;
+}
+
+/* Beat udyogbill-orange-light-theme (.side-bar > a, heading) which uses !important */
+body.ub-app .side-bar > a{
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: none !important;
+}
+
+body.ub-app .side-bar .side-bar-heading{
+  letter-spacing: .2px;
+  color: #ffffff !important;
+}
+
+/* Menu wrapper from AdminlteCustomPresenter */
+body.ub-app #side-bar{
+  border-right: none !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+
+/* Desktop autofit mode: JS applies scale so full menu is visible in one screen */
+body.ub-app #side-bar.ub-menu-autofit{
+  transform-origin: top left;
+  will-change: transform;
+}
+
+body.ub-app #side-bar a{
+  border-radius: 10px;
+}
+
+body.ub-app #side-bar a,
+body.ub-app #side-bar .drop_down{
+  color: var(--ub-sidebar-text) !important;
+  background: transparent !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  transition: background-color .16s ease, color .16s ease, transform .16s ease !important;
+}
+
+body.ub-app #side-bar .ub-sidebar-item{
+  color: var(--ub-sidebar-text) !important;
+  font-family: "Manrope","Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial !important;
+  font-size: .78rem !important;
+  font-weight: 700 !important;
+  min-height: 22px;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+  padding-left: 9px !important;
+  padding-right: 9px !important;
+  line-height: 1.15 !important;
+}
+
+body.ub-app #side-bar .ub-sidebar-item span,
+body.ub-app #side-bar .ub-sidebar-item i,
+body.ub-app #side-bar .ub-sidebar-item svg{
+  color: inherit !important;
+}
+
+/* Icon normalization for visual consistency */
+body.ub-app #side-bar .ub-sidebar-item > span.tw-inline-flex:first-child,
+body.ub-app #side-bar .drop_down > span.tw-inline-flex:first-child{
+  width: 14px !important;
+  min-width: 14px !important;
+  height: 14px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+body.ub-app #side-bar .ub-sidebar-item > span.tw-inline-flex:first-child svg,
+body.ub-app #side-bar .ub-sidebar-item > span.tw-inline-flex:first-child i{
+  width: 12px !important;
+  height: 12px !important;
+  font-size: 12px !important;
+}
+
+/* Menu icons: light on dark; dark on yellow active/hover (Tailwind primary would stay indigo otherwise) */
+body.ub-app #side-bar .ub-sidebar-item .tw-text-primary-500,
+body.ub-app #side-bar .drop_down .tw-text-primary-500{
+  color: var(--ub-sidebar-text-soft) !important;
+}
+
+body.ub-app #side-bar a:hover .tw-text-primary-500,
+body.ub-app #side-bar .drop_down:hover .tw-text-primary-500,
+body.ub-app #side-bar .ub-sidebar-active .tw-text-primary-500{
+  color: #ffffff !important;
+}
+
+body.ub-app #side-bar .tw-text-gray-400{
+  color: var(--ub-sidebar-text-soft) !important;
+  opacity: .95;
+}
+
+body.ub-app #side-bar .ub-sidebar-active .tw-text-gray-400,
+body.ub-app #side-bar a:hover .tw-text-gray-400,
+body.ub-app #side-bar .drop_down:hover .tw-text-gray-400{
+  color: #ffffff !important;
+}
+
+body.ub-app #side-bar a:hover,
+body.ub-app #side-bar .drop_down:hover{
+  transform: translateX(2px);
+}
+
+body.ub-app #side-bar > a.ub-sidebar-item:hover,
+body.ub-app #side-bar > div > a.drop_down:hover,
+body.ub-app #side-bar > a.drop_down:hover{
+  color: #ffffff !important;
+  background: rgba(255,255,255,.10) !important;
+}
+
+body.ub-app #side-bar a.tw-bg-gray-200,
+body.ub-app #side-bar .drop_down.tw-bg-gray-200,
+body.ub-app #side-bar .drop_down.tw-text-primary-700,
+body.ub-app #side-bar a.tw-text-primary-700,
+body.ub-app #side-bar a.ub-sidebar-item.ub-sidebar-active,
+body.ub-app #side-bar a.drop_down.ub-sidebar-active{
+  color: #ffffff !important;
+  background: linear-gradient(90deg, #f58220 0%, #e8a317 100%) !important;
+  box-shadow: inset 3px 0 0 #5de12a !important;
+}
+
+/* Open dropdown WRAPPER must NOT turn orange (was flooding whole Billing menu) */
+body.ub-app #side-bar > div.ub-sidebar-active,
+body.ub-app #side-bar > div.ub-menu-open,
+body.ub-app #side-bar div.ub-sidebar-active.ub-menu-open{
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
+/* Section labels + visual divider */
+body.ub-app #side-bar .ub-sidebar-section-title{
+  color: rgba(203,213,225,.88) !important;
+  font-size: 9px !important;
+  letter-spacing: .08em !important;
+  margin-top: 2px !important;
+  margin-bottom: 0 !important;
+  padding-top: 2px !important;
+  border-top: 1px solid rgba(255,255,255,.09) !important;
+}
+body.ub-app #side-bar .ub-sidebar-section-title:first-child{
+  border-top: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Submenu container: light background so dark text is visible */
+body.ub-app .side-bar #side-bar .chiled,
+body.ub-app aside.side-bar #side-bar .chiled{
+  padding-left: 0.75rem !important;
+  background: var(--ub-sidebar-panel) !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  border-radius: 8px !important;
+  margin-left: 4px !important;
+  margin-right: 4px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+body.ub-app .side-bar #side-bar .chiled .tw-bg-gray-200,
+body.ub-app aside.side-bar #side-bar .chiled .tw-bg-gray-200{
+  background: rgba(255,255,255,.18) !important;
+}
+
+/* Submenu links: dark-card + premium spacing */
+body.ub-app .side-bar #side-bar .chiled a,
+body.ub-app aside.side-bar #side-bar .chiled a,
+body.ub-app .side-bar #side-bar .chiled .tw-space-y-3\.5 a,
+body.ub-app aside.side-bar #side-bar .chiled .tw-space-y-3\.5 a{
+  color: #e2e8f0 !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  border-radius: 8px !important;
+}
+
+body.ub-app .side-bar #side-bar .chiled a:hover,
+body.ub-app aside.side-bar #side-bar .chiled a:hover{
+  color: #fff !important;
+  background: rgba(255,255,255,.08) !important;
+}
+
+body.ub-app .side-bar #side-bar .chiled a.tw-text-primary-700,
+body.ub-app .side-bar #side-bar .chiled .tw-text-primary-700,
+body.ub-app aside.side-bar #side-bar .chiled a.tw-text-primary-700,
+body.ub-app aside.side-bar #side-bar .chiled .tw-text-primary-700{
+  color: #ffffff !important;
+  background: rgba(245,130,32,.18) !important;
+  box-shadow: inset 3px 0 0 #f58220 !important;
+}
+
+/* Guaranteed submenu styling (uses .ub-submenu / .ub-submenu-link from presenter) */
+body.ub-app .side-bar .ub-submenu,
+body.ub-app aside.side-bar .ub-submenu{
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 12px !important;
+}
+body.ub-app .side-bar .ub-submenu-link,
+body.ub-app aside.side-bar .ub-submenu-link{
+  color: #d6d3d1 !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  background: transparent !important;
+}
+body.ub-app .side-bar .ub-submenu-link .tw-ml-2,
+body.ub-app aside.side-bar .ub-submenu-link .tw-ml-2{
+  margin-left: 8px !important;
+}
+body.ub-app .side-bar .ub-sidebar-child-active,
+body.ub-app aside.side-bar .ub-sidebar-child-active{
+  color: #ffffff !important;
+  background: rgba(255,255,255,.12) !important;
+  border-radius: 8px !important;
+  box-shadow: inset 3px 0 0 #f58220 !important;
+}
+body.ub-app .side-bar .ub-submenu-link:hover,
+body.ub-app aside.side-bar .ub-submenu-link:hover{
+  color: #fff !important;
+  background: rgba(255,255,255,.08) !important;
+}
+
+/* Less gap between submenu items */
+body.ub-app .side-bar .ub-submenu [class*="space-y"] > * + *,
+body.ub-app aside.side-bar .ub-submenu [class*="space-y"] > * + *{
+  margin-top: 0 !important;
+}
+
+/* Collapsed sidebar state: keep icons centered and lightweight */
+body.ub-app.sidebar-collapse #side-bar .ub-sidebar-item{
+  justify-content: center !important;
+  padding-left: .65rem !important;
+  padding-right: .65rem !important;
+}
+body.ub-app.sidebar-collapse #side-bar .ub-sidebar-item .tw-truncate{
+  display: none !important;
+}
+body.ub-app.sidebar-collapse #side-bar .ub-sidebar-item .tw-ml-auto{
+  display: none !important;
+}
+body.ub-app.sidebar-collapse #side-bar .ub-sidebar-section-title{
+  display: none !important;
+}
+body.ub-app.sidebar-collapse .side-bar .chiled{
+  display: none !important;
+}
+
+/* Bottom CTA polish */
+body.ub-app .ub-sidebar-manual{
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid rgba(255,255,255,.11) !important;
+}
+body.ub-app .ub-sidebar-manual:hover{
+  background: rgba(245,130,32,.22) !important;
+  border-color: rgba(245,130,32,.5) !important;
+  color: #ffffff !important;
+}
+
+/* Compact sidebar shell so most options are visible without scrolling */
+body.ub-app .side-bar > a{
+  min-height: 34px !important;
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+}
+body.ub-app .side-bar .side-bar-heading{
+  font-size: .92rem !important;
+}
+body.ub-app .ub-sidebar-subtitle{
+  display: block !important;
+  color: rgba(245,130,32,.92) !important;
+  font-size: 9px !important;
+  letter-spacing: .12em !important;
+}
+body.ub-app .ub-sidebar-manual-wrap{
+  display: none !important;
+}
+
+/* On short laptop heights, maximize visible menu area */
+@media (max-height: 860px){
+  body.ub-app #side-bar{
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+  }
+  body.ub-app #side-bar .ub-sidebar-item{
+    min-height: 34px !important;
+    font-size: .84rem !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  body.ub-app .ub-sidebar-subtitle{
+    display: none !important;
+  }
+  body.ub-app .ub-sidebar-manual-wrap{
+    display: none !important;
+  }
+}
+
+/* ---- Header ---- */
+body.ub-app .no-print[role="banner"],
+body.ub-app .no-print.tw-border-b{
+  backdrop-filter: blur(10px);
+}
+
+/* Header bar aligned with logo black + orange accent */
+body.ub-app .no-print.tw-border-b{
+  background: linear-gradient(90deg, #0b0b0b 0%, #171717 70%, #1c1917 100%) !important;
+  border-bottom: 2px solid #f58220 !important;
+  box-shadow: 0 4px 18px rgba(0,0,0,.32) !important;
+}
+
+body.ub-app .no-print.tw-border-b *{
+  color: #e2e8f0 !important;
+}
+
+/* White header dropdowns: dark text (override rule above) */
+body.ub-app .no-print.tw-border-b ul.tw-bg-white,
+body.ub-app .no-print.tw-border-b ul.tw-bg-white *,
+body.ub-app .no-print.tw-border-b .tw-dw-dropdown-content,
+body.ub-app .no-print.tw-border-b .tw-dw-dropdown-content *,
+body.ub-app .no-print.tw-border-b .tw-dw-menu,
+body.ub-app .no-print.tw-border-b .tw-dw-menu *,
+body.ub-app .no-print.tw-border-b details ul[role="menu"],
+body.ub-app .no-print.tw-border-b details ul[role="menu"] * {
+  color: #1e293b !important;
+}
+body.ub-app .no-print.tw-border-b ul.tw-bg-white a {
+  color: #334155 !important;
+}
+body.ub-app .no-print.tw-border-b ul.tw-bg-white .tw-text-gray-900 {
+  color: #0f172a !important;
+}
+body.ub-app .no-print.tw-border-b ul.tw-bg-white svg {
+  color: #475569 !important;
+}
+
+/* Top action chips/buttons */
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10{
+  background: rgba(255,255,255,.07) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10:hover{
+  background: #f58220 !important;
+  border-color: #e8a317 !important;
+  color: #ffffff !important;
+}
+
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10:hover *,
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10:hover svg{
+  color: #ffffff !important;
+}
+
+/* User menu summary chip stronger contrast */
+body.ub-app .no-print.tw-border-b details > summary.tw-ring-white\/10{
+  font-weight: 700 !important;
+}
+
+/* ---- Cards (glass) ---- */
+body.ub-app .tw-bg-white.tw-rounded-xl,
+body.ub-app .box,
+body.ub-app .small-box{
+  border-radius: var(--ub-radius) !important;
+}
+
+body.ub-app .tw-bg-white.tw-ring-1.tw-ring-gray-200{
+  background: var(--ub-surface) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--ub-shadow-soft) !important;
+  border: 1px solid var(--ub-border) !important;
+}
+
+/* ---- Buttons ---- */
+body.ub-app .btn-primary,
+body.ub-app .tw-bg-primary-600,
+body.ub-app .tw-bg-primary-700{
+  background: linear-gradient(135deg, #f58220 0%, #e8a317 100%) !important;
+  border-color: rgba(224,111,18,.45) !important;
+  color: #ffffff !important;
+}
+
+body.ub-app .btn-primary:hover,
+body.ub-app .tw-bg-primary-600:hover,
+body.ub-app .tw-bg-primary-700:hover{
+  background: linear-gradient(135deg, #e06f12 0%, #d4920f 100%) !important;
+}
+
+body.ub-app .btn-success{
+  background: #27ae60 !important;
+  border-color: #219150 !important;
+}
+
+body.ub-app .btn{
+  border-radius: 10px;
+}
+
+/* ---- Tables: less cramped ---- */
+body.ub-app table.table > thead > tr > th,
+body.ub-app table.table > tbody > tr > td{
+  padding: 12px 14px !important;
+}
+
+body.ub-app .dataTables_wrapper .dataTables_filter input,
+body.ub-app .dataTables_wrapper .dataTables_length select,
+body.ub-app .select2-container--default .select2-selection--single{
+  border-radius: 10px !important;
+  border: 1px solid var(--ub-border) !important;
+}
+
+/* ---- Modals ---- */
+body.ub-app .modal-content{
+  border-radius: calc(var(--ub-radius) + 2px) !important;
+  border: 1px solid var(--ub-border) !important;
+  box-shadow: var(--ub-shadow) !important;
+}
+
+/* ---- Scrollbar (WebKit) ---- */
+body.ub-app ::-webkit-scrollbar{
+  width: 10px;
+  height: 10px;
+}
+body.ub-app ::-webkit-scrollbar-thumb{
+  background: rgba(245,130,32,.35);
+  border-radius: 999px;
+}
+body.ub-app ::-webkit-scrollbar-thumb:hover{
+  background: rgba(245,130,32,.55);
+}
+body.ub-app ::-webkit-scrollbar-track{
+  background: rgba(11,11,11,.06);
+}
+
+/* ---- Print area guardrails (screen) ---- */
+body.ub-app #receipt_section{
+  background: transparent;
+}
+
+:root{
+  --ub2-bg: #fff8f0;
+  --ub2-card: rgba(255,255,255,.9);
+  --ub2-card-solid:#ffffff;
+  --ub2-border: rgba(245,130,32,.16);
+  --ub2-text:#1a120b;
+  --ub2-muted: rgba(26,18,11,.58);
+  --ub2-primary:#f58220;
+  --ub2-primary-2:#27ae60;
+  --ub2-gold:#e8a317;
+  --ub2-radius: 12px;
+  --ub2-shadow: 0 16px 40px rgba(11,11,11,.10);
+  --ub2-shadow-soft: 0 10px 24px rgba(245,130,32,.10);
+}
+
+/* Warm brand atmosphere (not AdminLTE blue/indigo) */
+body.ub-app{
+  background:
+    radial-gradient(1200px 640px at 8% -8%, rgba(245,130,32,.18), transparent 52%),
+    radial-gradient(900px 520px at 92% 0%, rgba(232,163,23,.14), transparent 48%),
+    radial-gradient(700px 420px at 50% 110%, rgba(39,174,96,.10), transparent 55%),
+    var(--ub2-bg) !important;
+}
+
+body.ub-app .side-bar{
+  width: 268px !important;
+  background: linear-gradient(185deg, #0b0b0b 0%, #141414 48%, #1a120b 100%) !important;
+  border-right: 1px solid rgba(245,130,32,.25) !important;
+  box-shadow: 8px 0 32px rgba(0,0,0,.22) !important;
+}
+
+body.ub-app .side-bar a.tw-h-15{
+  height: 64px !important;
+  background: linear-gradient(135deg, #f58220 0%, #e8a317 100%) !important;
+  border-right: none !important;
+  border-bottom: 1px solid rgba(0,0,0,.15) !important;
+}
+
+body.ub-app .side-bar .side-bar-heading{
+  font-weight: 800;
+  letter-spacing: .2px;
+  color: #ffffff !important;
+}
+
+body.ub-app #side-bar{
+  padding: 12px 10px !important;
+}
+
+body.ub-app #side-bar a,
+body.ub-app #side-bar .drop_down{
+  padding: 7px 10px !important;
+  border-radius: 10px !important;
+}
+
+body.ub-app #side-bar .chiled{
+  margin-top: 4px !important;
+  margin-bottom: 6px !important;
+}
+
+body.ub-app #side-bar .chiled .tw-absolute{
+  background: rgba(245,130,32,.35) !important;
+}
+
+/* Header: black bar + orange underline feel */
+body.ub-app .no-print.tw-border-b,
+body.ub-app .no-print[class*="tw-bg-gradient"]{
+  background: linear-gradient(90deg, #0b0b0b 0%, #171717 100%) !important;
+  border-bottom: 2px solid #f58220 !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 22px rgba(0,0,0,.28) !important;
+}
+
+body.ub-app .no-print.tw-border-b *{
+  text-shadow: none !important;
+}
+
+body.ub-app #scrollable-container{
+  padding: 20px 24px 32px 24px;
+}
+@media (min-width: 1280px){
+  body.ub-app #scrollable-container{
+    padding: 24px 32px 40px 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+body.ub-app .box,
+body.ub-app .small-box,
+body.ub-app .modal-content,
+body.ub-app .tw-bg-white.tw-rounded-xl{
+  border-radius: var(--ub2-radius) !important;
+}
+
+body.ub-app .box,
+body.ub-app .tw-bg-white.tw-ring-1.tw-ring-gray-200{
+  background: var(--ub2-card) !important;
+  border: 1px solid var(--ub2-border) !important;
+  box-shadow: var(--ub2-shadow-soft) !important;
+  backdrop-filter: blur(10px);
+}
+
+body.ub-app table.table{
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(245,130,32,.12) !important;
+}
+body.ub-app table.table thead th{
+  background: linear-gradient(180deg, rgba(245,130,32,.10) 0%, rgba(232,163,23,.06) 100%) !important;
+  border-bottom: 1px solid rgba(245,130,32,.22) !important;
+  font-weight: 700;
+  color: #9a4d0d !important;
+}
+body.ub-app table.table tbody td{
+  border-top: 1px solid rgba(26,18,11,.06) !important;
+}
+
+body.ub-app .form-control,
+body.ub-app input[type="text"],
+body.ub-app input[type="number"],
+body.ub-app select,
+body.ub-app textarea{
+  border-radius: 10px !important;
+  border: 1px solid rgba(26,18,11,.12) !important;
+  box-shadow: none !important;
+}
+body.ub-app .form-control:focus,
+body.ub-app input:focus,
+body.ub-app select:focus,
+body.ub-app textarea:focus{
+  border-color: rgba(245,130,32,.55) !important;
+  box-shadow: 0 0 0 4px rgba(245,130,32,.14) !important;
+  outline: none !important;
+}
+
+body.ub-app .btn,
+body.ub-app .tw-dw-btn{
+  border-radius: 10px !important;
+}
+body.ub-app .btn-primary{
+  background: linear-gradient(135deg, var(--ub2-primary) 0%, var(--ub2-gold) 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(245,130,32,.28) !important;
+}
+body.ub-app .btn-primary:hover{
+  filter: brightness(.97);
+}
+body.ub-app .btn-success{
+  background: var(--ub2-primary-2) !important;
+  border-color: #219150 !important;
+}
+
+body.ub-app:not(.pos_layout) .no-print button[class*="tw-bg-"],
+body.ub-app:not(.pos_layout) .no-print a[class*="tw-bg-"]:not(.tw-bg-white),
+body.ub-app .side-bar-collapse,
+body.ub-app .small-view-button{
+  background: rgba(255,255,255,.12) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+}
+body.ub-app:not(.pos_layout) .no-print button[class*="tw-bg-"]:hover,
+body.ub-app:not(.pos_layout) .no-print a[class*="tw-bg-"]:not(.tw-bg-white):hover,
+body.ub-app .side-bar-collapse:hover,
+body.ub-app .small-view-button:hover{
+  background: rgba(245,130,32,.9) !important;
+  border-color: #e8a317 !important;
+}
+
+body.ub-app .content-wrapper,
+body.ub-app .right-side{
+  background: transparent !important;
+}
+
+/* Override leftover indigo/blue gradients */
+body.ub-app [class*="tw-bg-gradient-to-r"][class*="tw-from-"],
+body.ub-app [class*="tw-bg-gradient"][class*="tw-from-"]{
+  background: linear-gradient(135deg, #f58220 0%, #e8a317 55%, #27ae60 130%) !important;
+}
+
+body.ub-app #dashboard_date_filter{
+  background: rgba(255,255,255,.96) !important;
+  color: #c45f0f !important;
+  border: 1px solid rgba(245,130,32,.35) !important;
+}
+body.ub-app #dashboard_date_filter:hover{
+  background: #fff !important;
+  color: #9a4d0d !important;
+}
+
+body.ub-app .tw-ring-1.tw-ring-gray-200{
+  border-color: rgba(245,130,32,.14) !important;
+  box-shadow: 0 4px 20px rgba(11,11,11,.05) !important;
+}
+body.ub-app .tw-ring-1.tw-ring-gray-200:hover{
+  box-shadow: 0 8px 28px rgba(245,130,32,.14) !important;
+  border-color: rgba(245,130,32,.28) !important;
+}
+
+body.ub-app .tw-ring-1 .tw-bg-sky-100{
+  background: rgba(245,130,32,.14) !important;
+}
+body.ub-app .tw-ring-1 .tw-text-sky-500{
+  color: #f58220 !important;
+}
+
+body.ub-app .tw-border-2.tw-flex.tw-items-center{
+  border-color: rgba(245,130,32,.22) !important;
+}
+
+body.ub-app .badge-primary,
+body.ub-app .label-primary{
+  background: var(--ub2-primary) !important;
+}
+body.ub-app .badge-success,
+body.ub-app .label-success{
+  background: var(--ub2-primary-2) !important;
+}
+
+/* ---- UdyogBill shell polish (less AdminLTE / UPOS feel) ---- */
+body.ub-app .side-bar{
+  border-right: 2px solid rgba(245,130,32,.35) !important;
+}
+body.ub-app #side-bar .ub-sidebar-item,
+body.ub-app #side-bar .drop_down{
+  margin: 2px 6px !important;
+  border-radius: 999px !important;
+}
+body.ub-app #side-bar a.tw-bg-gray-200,
+body.ub-app #side-bar .drop_down.tw-bg-gray-200,
+body.ub-app #side-bar a.ub-sidebar-item.ub-sidebar-active,
+body.ub-app #side-bar a.drop_down.ub-sidebar-active{
+  border-radius: 12px !important;
+  box-shadow: 0 6px 16px rgba(245,130,32,.35) !important;
+}
+body.ub-app .content-header h1{
+  font-family: "Manrope",sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -.02em !important;
+}
+body.ub-app .box{
+  border: 1px solid rgba(245,130,32,.14) !important;
+  box-shadow: 0 10px 28px rgba(26,18,11,.06) !important;
+  border-radius: 14px !important;
+}
+body.ub-app .box.box-primary{
+  border-top-color: #f58220 !important;
+}
+body.ub-app .box.box-success{
+  border-top-color: #27ae60 !important;
+}
+body.ub-app .nav-tabs-custom > .nav-tabs > li.active{
+  border-top-color: #f58220 !important;
+}
+body.ub-app .pagination > .active > a,
+body.ub-app .pagination > .active > span{
+  background-color: #f58220 !important;
+  border-color: #e06f12 !important;
+}

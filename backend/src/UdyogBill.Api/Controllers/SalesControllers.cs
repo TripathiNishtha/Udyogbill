@@ -56,6 +56,7 @@ public class TenantInvoicesController : BaseApiController
     }
 
     [HttpPost]
+    [Idempotent]
     [RequirePermission(Permissions.SalesCreate)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -63,6 +64,17 @@ public class TenantInvoicesController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _salesService.CreateInvoiceAsync(request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.SalesCreate)]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateInvoice(Guid id, [FromBody] CreateSalesInvoiceRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _salesService.UpdateInvoiceAsync(id, request, ipAddress, cancellationToken);
         return HandleResult(result);
     }
 
@@ -128,6 +140,7 @@ public class TenantPosController : BaseApiController
     }
 
     [HttpPost("bills")]
+    [Idempotent]
     [RequirePermission(Permissions.SalesCreate)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

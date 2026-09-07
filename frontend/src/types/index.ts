@@ -27,6 +27,7 @@ export interface User {
   industryCode?: string;
   roles: string[];
   permissions: string[];
+  phoneNumber?: string;
   logoUrl?: string;
 }
 
@@ -549,6 +550,11 @@ export interface SalesInvoiceList {
   paymentStatus: number; // 1: Unpaid, 2: PartiallyPaid, 3: FullyPaid
   primaryPaymentMode: number; // 1: Cash, 2: UPI, 3: Card, 4: BankTransfer, 5: Cheque, 6: CreditAccount, 7: Split
   isCancelled: boolean;
+  cancellationReason?: string;
+  hasCreditNote?: boolean;
+  creditNoteNumber?: string;
+  creditNoteAmount?: number;
+  creditNoteDate?: string;
   createdAtUtc: string;
 }
 
@@ -665,6 +671,11 @@ export interface SalesInvoiceDetails {
   isCancelled: boolean;
   cancellationReason?: string;
   cancelledAtUtc?: string;
+  hasCreditNote?: boolean;
+  creditNoteNumber?: string;
+  creditNoteAmount?: number;
+  creditNoteDate?: string;
+  creditNoteId?: string;
   createdAtUtc: string;
   items: SalesInvoiceItem[];
   payments: SalesInvoicePayment[];

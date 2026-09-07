@@ -1,0 +1,2073 @@
+/*
+ * UdyogBill Header + Dashboard
+ * Modern light SaaS masthead (Vyapar / myBillBook style)
+ */
+
+/* ========== DELTAPOS-STYLE SINGLE ROW HEADER ========== */
+body.ub-app header.ub-masthead.ub-masthead--deltapos {
+  position: sticky;
+  top: 0;
+  z-index: 1040;
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fff9f3 48%, #fff5eb 100%) !important;
+  background-image: linear-gradient(180deg, #ffffff 0%, #fff9f3 48%, #fff5eb 100%) !important;
+  border-bottom: 1px solid rgba(245, 130, 32, 0.22) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 4px 18px rgba(26, 18, 11, 0.08) !important;
+  overflow: visible !important;
+}
+
+body.ub-app header.ub-masthead.ub-masthead--deltapos::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #27ae60 0%, #f58220 52%, #e67e22 100%);
+  pointer-events: none;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-inner {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 10px 14px 9px;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-left,
+body.ub-app .ub-masthead--deltapos .ub-masthead-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-right {
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px !important;
+  border: 1px solid rgba(245, 130, 32, 0.2) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #475569 !important;
+  padding: 0 !important;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(26, 18, 11, 0.05);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-btn:hover {
+  background: #ffffff !important;
+  border-color: rgba(245, 130, 32, 0.38) !important;
+  color: #1a120b !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-pills::-webkit-scrollbar {
+  display: none;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none !important;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill--purchase {
+  color: #2563eb !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1.5px solid #2563eb !important;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.12);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill-icon--purchase {
+  color: #2563eb;
+  border: 1.5px solid #2563eb;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill--purchase:hover {
+  background: #eff6ff !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill--sale {
+  color: #dc2626 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1.5px solid #dc2626 !important;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.12);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill-icon--sale {
+  color: #dc2626;
+  border: 1.5px solid #dc2626;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill--sale:hover {
+  background: #fef2f2 !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill--pos {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border: 1.5px solid #15803d !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.28);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill-icon--pos {
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-pill--pos:hover {
+  background: #15803d !important;
+  border-color: #15803d !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 130, 32, 0.16);
+  background: rgba(255, 255, 255, 0.88);
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(26, 18, 11, 0.04);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-icon-btn:hover {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.35);
+  color: #1d4ed8;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-icon-btn--calc {
+  color: #64748b;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-icon-btn--calc:hover {
+  background: #ffffff;
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #334155;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9a3412 !important;
+  background: #fff7ed !important;
+  border: 1px solid rgba(245, 130, 32, 0.35) !important;
+  border-radius: 999px;
+  padding: 6px 11px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(245, 130, 32, 0.1);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-lang {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(245, 130, 32, 0.2) !important;
+  color: #334155 !important;
+  border-radius: 999px !important;
+  padding: 6px 10px !important;
+  font-weight: 600;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-lang:hover {
+  background: #ffffff !important;
+  border-color: rgba(245, 130, 32, 0.38) !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-user {
+  list-style: none;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(245, 130, 32, 0.18) !important;
+  border-radius: 999px !important;
+  padding: 4px 10px 4px 4px !important;
+  margin: 0 !important;
+  box-shadow: 0 1px 3px rgba(26, 18, 11, 0.05);
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-user:hover {
+  background: #ffffff !important;
+  border-color: rgba(245, 130, 32, 0.32) !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-user-text {
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  gap: 1px;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-user-text strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-user-text small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-mast-back-btn {
+  color: #475569 !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.ub-app .ub-masthead--deltapos #ub-quick-add-menu.ub-quick-add-menu,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu {
+  display: none !important;
+}
+
+body.ub-app .ub-masthead--deltapos #ub-quick-add-menu.ub-quick-add-menu.ub-quick-add-menu-open,
+body.ub-app .ub-masthead--deltapos #ub-quick-add-menu.ub-quick-add-menu.open,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu.ub-quick-add-menu-open,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu.open {
+  display: grid !important;
+  min-width: 380px;
+  width: min(420px, calc(100vw - 1.5rem));
+  padding: 6px;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 6px;
+  row-gap: 1px;
+  list-style: none;
+  margin: 0;
+}
+
+body.ub-app .ub-masthead--deltapos #ub-quick-add-menu.ub-quick-add-menu > li,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu > li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+body.ub-app .ub-masthead--deltapos #ub-quick-add-menu.ub-quick-add-menu a,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu a {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e293b !important;
+  text-decoration: none !important;
+  border-radius: 8px;
+  line-height: 1.2;
+}
+
+body.ub-app .ub-masthead--deltapos #ub-quick-add-menu.ub-quick-add-menu a::before,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu a::before {
+  display: none !important;
+  content: none !important;
+}
+
+body.ub-app .ub-quick-add-link-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body.ub-app .ub-quick-add-link-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+body.ub-app .ub-quick-add-link-text {
+  flex: 1;
+  min-width: 0;
+}
+
+body.ub-app .ub-quick-add-link--sale .ub-quick-add-link-icon { background: #fef2f2; color: #dc2626; }
+body.ub-app .ub-quick-add-link--purchase .ub-quick-add-link-icon { background: #eff6ff; color: #2563eb; }
+body.ub-app .ub-quick-add-link--payment-in .ub-quick-add-link-icon { background: #ecfdf5; color: #059669; }
+body.ub-app .ub-quick-add-link--payment-out .ub-quick-add-link-icon { background: #fff7ed; color: #ea580c; }
+body.ub-app .ub-quick-add-link--customer .ub-quick-add-link-icon { background: #eef2ff; color: #4f46e5; }
+body.ub-app .ub-quick-add-link--supplier .ub-quick-add-link-icon { background: #f5f3ff; color: #7c3aed; }
+body.ub-app .ub-quick-add-link--purchase-order .ub-quick-add-link-icon { background: #f0f9ff; color: #0284c7; }
+body.ub-app .ub-quick-add-link--purchase-return .ub-quick-add-link-icon { background: #fffbeb; color: #d97706; }
+body.ub-app .ub-quick-add-link--sell-return .ub-quick-add-link-icon { background: #fff1f2; color: #e11d48; }
+body.ub-app .ub-quick-add-link--product .ub-quick-add-link-icon { background: #f0fdfa; color: #0d9488; }
+body.ub-app .ub-quick-add-link--stock-transfer .ub-quick-add-link-icon { background: #ecfeff; color: #0891b2; }
+body.ub-app .ub-quick-add-link--expense .ub-quick-add-link-icon { background: #fef2f2; color: #b91c1c; }
+body.ub-app .ub-quick-add-link--quotation .ub-quick-add-link-icon { background: #faf5ff; color: #9333ea; }
+body.ub-app .ub-quick-add-link--ai-voice .ub-quick-add-link-icon { background: #f5f3ff; color: #8b5cf6; }
+body.ub-app .ub-quick-add-link--default .ub-quick-add-link-icon { background: #f8fafc; color: #475569; }
+
+body.ub-app .ub-masthead--deltapos #ub-quick-add-menu.ub-quick-add-menu a:hover,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu a:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+@media (max-width: 900px) {
+  body.ub-app .ub-masthead--deltapos .ub-masthead-date {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  body.ub-app .ub-masthead--deltapos .ub-mast-pill {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ========== MASTHEAD: 2-row layout (legacy) ========== */
+body.ub-app header.ub-masthead {
+  position: sticky;
+  top: 0;
+  z-index: 1040;
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28) !important;
+  background: transparent !important;
+  background-image: none !important;
+  overflow: visible !important;
+}
+
+body.ub-app .ub-masthead-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* Row 1 — identity + user (dark brand strip) */
+body.ub-app .ub-masthead-top {
+  background: linear-gradient(135deg, #1a120b 0%, #231912 52%, #172119 100%) !important;
+  border-bottom: 1px solid rgba(245, 130, 32, 0.28);
+  padding: 10px 0;
+}
+
+body.ub-app .ub-masthead-top .ub-masthead-inner {
+  justify-content: space-between;
+}
+
+body.ub-app .ub-masthead-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+body.ub-app .ub-mast-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #e7e5e4 !important;
+  padding: 0 !important;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+body.ub-app .ub-mast-btn:hover {
+  background: rgba(245, 130, 32, 0.18) !important;
+  border-color: rgba(251, 146, 60, 0.55) !important;
+  color: #fdba74 !important;
+}
+
+body.ub-app .ub-masthead-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+body.ub-app .ub-masthead-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f97316 !important;
+}
+
+body.ub-app .ub-masthead-title strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fafaf9 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(420px, 48vw);
+}
+
+body.ub-app .ub-masthead-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+body.ub-app .ub-mast-back-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #d6d3d1 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+body.ub-app .ub-mast-back-btn:hover {
+  color: #fdba74 !important;
+  background: rgba(245, 130, 32, 0.14) !important;
+  border-color: rgba(251, 146, 60, 0.45) !important;
+}
+
+body.ub-app .ub-masthead-date {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fdba74 !important;
+  background: rgba(245, 130, 32, 0.12);
+  border: 1px solid rgba(245, 130, 32, 0.35);
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+body.ub-app .ub-masthead-user {
+  list-style: none;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: #fff7ed !important;
+  color: #9a3412 !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid #fed7aa !important;
+  padding: 4px 12px 4px 4px !important;
+  margin: 0 !important;
+  transition: all 0.18s ease;
+}
+
+body.ub-app .ub-masthead-user:hover {
+  background: #ffedd5 !important;
+  border-color: #fdba74 !important;
+  color: #c2410c !important;
+}
+
+body.ub-app .ub-masthead-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Row 2 — quick tools strip (dark) */
+body.ub-app .ub-masthead-actions {
+  background: linear-gradient(180deg, #1f1812 0%, #17130f 100%) !important;
+  border-bottom: 1px solid rgba(245, 130, 32, 0.2);
+  padding: 8px 0;
+  overflow: visible !important;
+}
+
+body.ub-app .ub-masthead-actions .ub-masthead-inner {
+  gap: 12px;
+  overflow: visible !important;
+}
+
+body.ub-app .ub-masthead-actions-label {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a8a29e;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+body.ub-app .ub-masthead-actions-icon {
+  width: 14px;
+  height: 14px;
+  color: #f97316;
+}
+
+body.ub-app .ub-masthead-tools {
+  display: flex !important;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px !important;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: visible !important;
+  scrollbar-width: none;
+}
+
+body.ub-app .ub-masthead-tools::-webkit-scrollbar {
+  display: none;
+}
+
+body.ub-app .ub-masthead-tools details.tw-dw-dropdown,
+body.ub-app .ub-masthead-tools details {
+  position: relative;
+  z-index: 2;
+  overflow: visible !important;
+}
+
+body.ub-app .ub-masthead-tools details[open] {
+  z-index: 10060;
+}
+
+body.ub-app .ub-masthead-tools details:not([open]) > .tw-dw-dropdown-content,
+body.ub-app .ub-masthead-tools details:not([open]) > ul[role="menu"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.ub-app .ub-masthead-tools details[open] > .tw-dw-dropdown-content,
+body.ub-app .ub-masthead-tools details[open] > ul[role="menu"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  right: auto !important;
+  z-index: 10070 !important;
+  min-width: 220px;
+  max-height: min(75vh, 480px);
+  overflow-y: auto !important;
+  background: #ffffff !important;
+  color: #1a1f24 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Quick Add menu */
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu,
+#ub-quick-add-menu.ub-quick-add-menu {
+  position: fixed !important;
+  z-index: 2147483000 !important;
+  min-width: 220px;
+  width: 240px;
+  max-width: calc(100vw - 1.5rem);
+  max-height: min(75vh, 480px);
+  overflow-y: auto !important;
+  background: #ffffff !important;
+  color: #1a1f24 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14) !important;
+}
+
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu[hidden],
+#ub-quick-add-menu.ub-quick-add-menu[hidden] {
+  display: none !important;
+}
+
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu a,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu button,
+#ub-quick-add-menu.ub-quick-add-menu a,
+#ub-quick-add-menu.ub-quick-add-menu button {
+  background: transparent !important;
+  border: 0 !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+  width: 100%;
+  justify-content: flex-start !important;
+  text-align: left;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+}
+
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu a:hover,
+body.ub-app #ub-quick-add-menu.ub-quick-add-menu button:hover,
+#ub-quick-add-menu.ub-quick-add-menu a:hover,
+#ub-quick-add-menu.ub-quick-add-menu button:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body.ub-app #ub-quick-add-btn.ub-quick-add-open,
+body.ub-app #ub-quick-add-btn[aria-expanded="true"] {
+  background: #faf5ff !important;
+  border-color: #c4b5fd !important;
+}
+
+body.ub-app .ub-quick-add {
+  position: relative;
+  z-index: 20;
+  overflow: visible !important;
+}
+
+body.ub-app .ub-masthead-actions,
+body.ub-app .ub-masthead-tools,
+body.ub-app .ub-quick-add {
+  overflow: visible !important;
+}
+
+body.ub-app .ub-masthead-tools details > ul[role="menu"] a,
+body.ub-app .ub-masthead-tools details > ul[role="menu"] button,
+body.ub-app .ub-masthead-tools details > .tw-dw-dropdown-content a,
+body.ub-app .ub-masthead-tools details > .tw-dw-dropdown-content button {
+  background: transparent !important;
+  border: 0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  width: 100%;
+  justify-content: flex-start !important;
+}
+
+/* Pill tool buttons */
+body.ub-app .ub-mast-tool,
+body.ub-app .ub-masthead-tools .ub-mast-tool,
+body.ub-app .ub-masthead-tools summary.ub-mast-tool,
+body.ub-app .ub-masthead-tools a.ub-mast-tool,
+body.ub-app .ub-masthead-tools button.ub-mast-tool {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06) !important;
+  background-image: none !important;
+  color: #e7e5e4 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  padding: 5px 10px 5px 5px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+body.ub-app .ub-masthead-tools .ub-mast-tool:hover,
+body.ub-app .ub-masthead-tools summary.ub-mast-tool:hover,
+body.ub-app .ub-masthead-tools button.ub-mast-tool:hover,
+body.ub-app .ub-masthead-tools a.ub-mast-tool:hover {
+  background: rgba(245, 130, 32, 0.16) !important;
+  border-color: rgba(251, 146, 60, 0.45) !important;
+  color: #fafaf9 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+/* Colored icon badges */
+body.ub-app .ub-tool-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+body.ub-app .ub-tool-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+body.ub-app .ub-tool-icon--billing {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+body.ub-app .ub-tool-icon--reports {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+body.ub-app .ub-tool-icon--add {
+  background: #faf5ff;
+  color: #7c3aed;
+}
+
+body.ub-app .ub-tool-icon--neutral {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+body.ub-app .ub-tool-icon--assist {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+body.ub-app .ub-tool-icon--pos {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Fix: POS + Essentials clock icons invisible on light toolbar */
+body.ub-app .ub-masthead-tools a.ub-header-pos-btn.ub-mast-tool,
+body.ub-app .ub-masthead-tools a.ub-mast-tool--pos {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+body.ub-app .ub-masthead-tools a.ub-header-pos-btn .ub-tool-icon--pos,
+body.ub-app .ub-masthead-tools a.ub-mast-tool--pos .ub-tool-icon--pos {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+body.ub-app .ub-masthead-tools a.ub-header-pos-btn .ub-tool-icon--pos svg,
+body.ub-app .ub-masthead-tools a.ub-mast-tool--pos .ub-tool-icon--pos svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+body.ub-app .ub-masthead-tools .clock_in_btn,
+body.ub-app .ub-masthead-tools .clock_out_btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  padding: 5px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 999px !important;
+  color: #c4b5fd !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.ub-app .ub-masthead-tools .clock_in_btn svg,
+body.ub-app .ub-masthead-tools .clock_out_btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  color: #c4b5fd !important;
+  stroke: #c4b5fd !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .ub-masthead-tools .clock_in_btn:hover,
+body.ub-app .ub-masthead-tools .clock_out_btn:hover {
+  background: rgba(124, 58, 237, 0.2) !important;
+  border-color: rgba(196, 181, 253, 0.45) !important;
+  color: #e9d5ff !important;
+}
+
+body.ub-app .ub-masthead-tools .clock_in_btn.hide,
+body.ub-app .ub-masthead-tools .clock_out_btn.hide {
+  display: none !important;
+}
+
+/* Clock in/out on DeltaPOS light header */
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_in_btn,
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_out_btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(245, 130, 32, 0.2) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #2563eb !important;
+  box-shadow: 0 1px 2px rgba(26, 18, 11, 0.05) !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_in_btn svg,
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_out_btn svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #2563eb !important;
+  stroke: #2563eb !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_in_btn:hover,
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_out_btn:hover {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_in_btn.hide,
+body.ub-app .ub-masthead--deltapos .ub-masthead-tools .clock_out_btn.hide {
+  display: none !important;
+}
+
+body.ub-app .ub-tool-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+body.ub-app .ub-mast-tool--billing:hover .ub-tool-icon--billing {
+  background: #d1fae5;
+  color: #047857;
+}
+
+body.ub-app .ub-mast-tool--reports:hover .ub-tool-icon--reports {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+body.ub-app .ub-mast-tool--add:hover .ub-tool-icon--add {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+/* POS button — green accent */
+body.ub-app .ub-masthead-tools .ub-header-pos-btn,
+body.ub-app .ub-masthead-tools .ub-mast-tool--pos {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+  padding: 5px 12px 5px 5px !important;
+}
+
+body.ub-app .ub-masthead-tools .ub-header-pos-btn:hover,
+body.ub-app .ub-masthead-tools .ub-mast-tool--pos:hover {
+  background: linear-gradient(135deg, #047857, #065f46) !important;
+  border-color: #065f46 !important;
+  color: #ffffff !important;
+}
+
+/* Notifications + icons on dark top row */
+body.ub-app .ub-masthead-top .dropdown-toggle,
+body.ub-app .ub-masthead-top button:not(.ub-mast-btn):not(.ub-mast-back-btn),
+body.ub-app .ub-masthead-top a:not(.ub-mast-back-btn):not(.btn-danger) {
+  color: #e7e5e4 !important;
+}
+
+body.ub-app .ub-masthead-top svg {
+  color: inherit !important;
+}
+
+body.ub-app .ub-masthead-actions svg {
+  color: inherit !important;
+}
+
+@media (max-width: 768px) {
+  body.ub-app .ub-masthead-actions-label {
+    display: none;
+  }
+  body.ub-app .ub-masthead-date {
+    display: none;
+  }
+  body.ub-app .ub-masthead-title strong {
+    max-width: 42vw;
+    font-size: 13px;
+  }
+  body.ub-app .ub-mast-tool {
+    padding: 5px !important;
+    border-radius: 10px !important;
+  }
+}
+
+body.ub-app .ub-masthead summary {
+  list-style: none;
+}
+body.ub-app .ub-masthead summary::-webkit-details-marker {
+  display: none;
+}
+
+body.ub-app .ub-masthead-tools > *,
+body.ub-app .ub-masthead-tools .btn,
+body.ub-app .ub-masthead-tools button,
+body.ub-app .ub-masthead-tools a.btn {
+  flex-shrink: 0;
+}
+
+/* ========== DASHBOARD V2 ========== */
+body.dashboard-redesign.ub-app {
+  background:
+    linear-gradient(180deg, rgba(255,248,240,.78) 0%, rgba(247,244,239,.86) 45%, rgba(250,248,245,.92) 100%),
+    url('../img/dashboard-bg-light.jpg') center top / cover no-repeat fixed !important;
+}
+
+body.dashboard-redesign.ub-app::before {
+  content: none;
+}
+
+body.dashboard-redesign .ub-dash-v2 {
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 2px 16px 40px;
+  position: relative;
+  z-index: 1;
+}
+
+body.dashboard-redesign.ub-app #scrollable-container {
+  padding-top: 4px !important;
+}
+
+@media (min-width: 1280px) {
+  body.dashboard-redesign.ub-app #scrollable-container {
+    padding-top: 4px !important;
+  }
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dashboard-section {
+  margin-top: 0 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dashboard-section + .ub-dashboard-section {
+  margin-top: 22px !important;
+}
+
+/* Mini welcome bar — replaces big dark hero */
+body.dashboard-redesign .ub-command-hero {
+  display: none !important;
+}
+
+body.dashboard-redesign .ub-mini-bar {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px !important;
+  margin-bottom: 14px;
+  background: #ffffff !important;
+  border: 1px solid #ddd4c8 !important;
+  border-left: 4px solid #27ae60 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 14px rgba(26,18,11,.05);
+  min-height: 0 !important;
+}
+
+body.dashboard-redesign .ub-mini-bar.ub-mini-bar--filter-only {
+  justify-content: flex-end;
+  padding: 0 !important;
+  margin-bottom: 10px;
+  background: transparent !important;
+  border: 0 !important;
+  border-left: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body.dashboard-redesign .ub-mini-bar--filter-only .ub-mini-bar__right {
+  margin-left: auto;
+}
+
+body.dashboard-redesign .ub-mini-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+body.dashboard-redesign .ub-mini-bar__left h1 {
+  margin: 0 !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  color: #1a120b !important;
+  letter-spacing: -0.02em;
+  line-height: 1.2 !important;
+}
+
+body.dashboard-redesign .ub-mini-bar__date {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #166534 !important;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+body.dashboard-redesign .ub-mini-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.dashboard-redesign .ub-mini-bar__field {
+  min-width: 160px;
+}
+
+body.dashboard-redesign .ub-mini-bar__field .form-control,
+body.dashboard-redesign .ub-mini-bar__field .select2-container {
+  min-height: 34px !important;
+  font-size: 12px !important;
+}
+
+body.dashboard-redesign .ub-mini-bar__btn,
+body.dashboard-redesign #dashboard_date_filter.ub-mini-bar__btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #f58220 !important;
+  background: #fff7ed !important;
+  color: #9a3412 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+body.dashboard-redesign .ub-mini-bar__btn:hover {
+  background: #ffedd5 !important;
+}
+
+/* Section headings: editorial, not pill tags */
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading {
+  align-items: flex-start;
+  border-bottom: 2px solid #1a120b;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-tag {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  color: #27ae60 !important;
+  letter-spacing: 0.18em;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(1.4rem, 2vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #1a120b !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading p {
+  max-width: 340px;
+  text-align: right;
+  color: #78716c !important;
+  font-size: 13px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading--with-filter {
+  align-items: center;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading__filters {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading__filters .ub-mini-bar__field {
+  min-width: 180px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading__filters #ub_dash_period_subtitle {
+  margin: 0;
+  max-width: 280px;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* Metric cards: DeltaPOS-style gradient icons + themed values */
+body.dashboard-redesign .ub-dash-v2 .ub-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card {
+  position: relative;
+  background: #ffffff !important;
+  border: 1px solid #e8e4df !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 5px rgba(15, 23, 42, 0.04) !important;
+  padding: 8px 9px 8px 11px !important;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  overflow: hidden;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 10px 0 0 10px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Accounting palette: green = income/credit, red = due/expense/return, black = neutral totals */
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--blue::after,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--cyan::after { background: #1a120b; }
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--emerald::after,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--violet::after,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--indigo::after { background: #16a34a; }
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--amber::after,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--rose::after,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--gold::after,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--slate::after { background: #dc2626; }
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--blue .ub-metric-icon,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--cyan .ub-metric-icon {
+  background: linear-gradient(145deg, #475569, #1a120b) !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--emerald .ub-metric-icon,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--violet .ub-metric-icon,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--indigo .ub-metric-icon {
+  background: linear-gradient(145deg, #4ade80, #15803d) !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--amber .ub-metric-icon,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--rose .ub-metric-icon,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--gold .ub-metric-icon,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--slate .ub-metric-icon {
+  background: linear-gradient(145deg, #f87171, #b91c1c) !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50% !important;
+  border: 0 !important;
+  flex-shrink: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.1);
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #57534e !important;
+  margin: 0 0 2px !important;
+  line-height: 1.15;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-value {
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(1.15rem, 1.6vw, 1.38rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.05 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  word-break: break-word;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--blue .ub-metric-value,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--cyan .ub-metric-value { color: #1a120b !important; }
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--emerald .ub-metric-value,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--violet .ub-metric-value,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--indigo .ub-metric-value { color: #16a34a !important; }
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--amber .ub-metric-value,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--rose .ub-metric-value,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--gold .ub-metric-value,
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--slate .ub-metric-value { color: #dc2626 !important; }
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-note {
+  display: none !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-collect-note {
+  font-size: 10px !important;
+  margin-top: 2px !important;
+  line-height: 1.2;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card:hover {
+  transform: translateY(-1px);
+  border-color: #d6d3d1 !important;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Charts / tables: squared editorial panels */
+body.dashboard-redesign .ub-dash-v2 .ub-chart-card,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card,
+body.dashboard-redesign .ub-dash-v2 .ub-spotlight-card {
+  background: #ffffff !important;
+  border: 1px solid #ddd4c8 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  padding: 10px 12px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-analytics-grid {
+  gap: 10px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading--compact {
+  align-items: center;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading--compact .ub-section-heading__main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading--compact .ub-section-tag {
+  margin: 0;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-section-heading--compact h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.8vw, 1.45rem) !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-card-header--compact {
+  margin-bottom: 6px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-card-header--compact .ub-card-tag {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px !important;
+  line-height: 1.1;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-chart-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-chart-head-row h3 {
+  margin: 0 !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-chart-head-row .ub-chart-period-total {
+  margin: 0 !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  color: #1a120b !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-chart-head-note {
+  margin: 0 !important;
+  font-size: 11px !important;
+  color: #a8a29e !important;
+  line-height: 1.2;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-chart-frame {
+  min-height: 240px !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-chart-frame > div,
+body.dashboard-redesign .ub-dash-v2 .ub-chart-frame .highcharts-container {
+  min-height: 220px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dashboard-section + .ub-dashboard-section {
+  margin-top: 14px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-card-tag {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  color: #27ae60 !important;
+  letter-spacing: 0.14em;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-spotlight-card {
+  background: #1a120b !important;
+  border-color: #1a120b !important;
+  color: #f5f5f4 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-spotlight-card h3,
+body.dashboard-redesign .ub-dash-v2 .ub-spotlight-card p,
+body.dashboard-redesign .ub-dash-v2 .ub-spotlight-card li {
+  color: #e7e5e4 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-spotlight-card .ub-card-tag {
+  color: #f1c40f !important;
+}
+
+@media (max-width: 1100px) {
+  body.dashboard-redesign .ub-mini-bar {
+    align-items: stretch;
+  }
+  body.dashboard-redesign .ub-dash-v2 .ub-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body.dashboard-redesign .ub-dash-v2 .ub-section-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  body.dashboard-redesign .ub-dash-v2 .ub-section-heading p,
+  body.dashboard-redesign .ub-dash-v2 .ub-section-heading__filters #ub_dash_period_subtitle {
+    text-align: left;
+  }
+  body.dashboard-redesign .ub-dash-v2 .ub-section-heading__filters {
+    align-items: flex-start;
+    width: 100%;
+  }
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--link {
+  cursor: pointer;
+  position: relative;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-card--link:hover {
+  border-color: #1a120b !important;
+  box-shadow: 6px 6px 0 rgba(26, 18, 11, 0.08);
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-value--alert {
+  color: #dc2626 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-collect-note {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-metric-value-skeleton {
+  display: inline-block;
+  width: 88px;
+  max-width: 100%;
+  height: 1.35rem;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f5f5f4 25%, #e7e5e4 50%, #f5f5f4 75%);
+  background-size: 200% 100%;
+  animation: ubDashSkeleton 1.1s ease-in-out infinite;
+}
+
+@keyframes ubDashSkeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+body.dashboard-redesign .ub-dash-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+body.dashboard-redesign .ub-dash-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #ddd4c8;
+  background: #ffffff;
+  color: #1a120b !important;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none !important;
+  box-shadow: 0 1px 2px rgba(26, 18, 11, 0.04);
+}
+
+body.dashboard-redesign .ub-dash-quick-btn:hover {
+  border-color: #1a120b;
+  background: #fff7ed;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-table-count {
+  font-size: 0.85em;
+  font-weight: 700;
+  color: #78716c;
+  margin-left: 4px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-clickable-rows tr {
+  cursor: pointer;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-clickable-rows tr:hover td {
+  background: #fffbeb;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-chart-note {
+  max-width: 280px;
+  text-align: right;
+  color: #78716c !important;
+  font-size: 11px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-chart-period-total {
+  margin: 4px 0 0;
+  font-family: "Manrope", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a120b !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap.ub-dash-table-wrap--empty {
+  max-height: 200px;
+  overflow: hidden;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap.ub-dash-table-wrap--filled {
+  max-height: 75vh;
+  overflow: auto;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap .dataTables_wrapper .dt-buttons,
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap .dataTables_wrapper .buttons-colvis {
+  display: none !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap .table {
+  margin-bottom: 0;
+  border-color: #e7e5e4 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap .table thead th {
+  background: #fafaf9 !important;
+  color: #78716c !important;
+  border-color: #e7e5e4 !important;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap .table tbody td {
+  border-color: #f5f5f4 !important;
+  color: #1a120b;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-wrap .dataTables_empty {
+  padding: 1.5rem 1rem !important;
+  color: #78716c !important;
+  font-weight: 600;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-due-amount--alert {
+  color: #b45309 !important;
+  font-weight: 800;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-table-footer {
+  padding: 10px 14px 14px;
+  border-top: 1px solid #f5f5f4;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-view-all-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a120b !important;
+  text-decoration: underline !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-dash-view-all-link:hover {
+  color: #b45309 !important;
+}
+
+@media (max-width: 640px) {
+  body.dashboard-redesign .ub-dash-v2 .ub-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.dashboard-redesign .ub-mini-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  body.dashboard-redesign .ub-mini-bar__right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* Dashboard panels — compact + darker (dues, alerts, orders, shipments, collections) */
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table),
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table),
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table),
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table),
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) {
+  padding: 8px 10px !important;
+  background: linear-gradient(180deg, #fff8f0 0%, #fef3e2 100%) !important;
+  border: 1px solid #a16207 !important;
+  border-left: 4px solid #92400e !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-card-header,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-card-header,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-card-header,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-card-header,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .ub-card-header,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .ub-card-header,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .ub-card-header {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #1c1410 0%, #3b2a1a 55%, #4a3728 100%);
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-card-header h3,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-card-header h3,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-card-header h3,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-card-header h3,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .ub-card-header h3,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .ub-card-header h3,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .ub-card-header h3 {
+  color: #fff7ed !important;
+  font-size: 1.05rem !important;
+  margin-bottom: 2px !important;
+  line-height: 1.25;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-card-header p,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-card-header p,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-card-header p,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-card-header p,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .ub-card-header p,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .ub-card-header p,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .ub-card-header p {
+  color: #d6d3d1 !important;
+  font-size: 11px !important;
+  line-height: 1.35;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-card-tag,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-card-tag,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-card-tag,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-card-tag,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .ub-card-tag,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .ub-card-tag,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .ub-card-tag {
+  background: rgba(245, 130, 32, 0.18) !important;
+  border-color: rgba(251, 191, 36, 0.45) !important;
+  color: #fcd34d !important;
+  font-size: 10px;
+  padding: 2px 7px;
+  margin-bottom: 4px;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-dash-table-count,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-dash-table-count,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-dash-table-count,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-dash-table-count {
+  color: #fdba74 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-card-filter,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-card-filter,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-card-filter,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-card-filter,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .ub-card-filter,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .ub-card-filter {
+  width: min(100%, 200px);
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .select2-container--default .select2-selection--single,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .select2-container--default .select2-selection--single,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .select2-container--default .select2-selection--single,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .select2-container--default .select2-selection--single,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .select2-container--default .select2-selection--single,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .select2-container--default .select2-selection--single {
+  min-height: 34px !important;
+  border-color: #78716c !important;
+  border-radius: 6px !important;
+  background: #292524 !important;
+  box-shadow: none !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .select2-container--default .select2-selection--single .select2-selection__rendered,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .select2-container--default .select2-selection--single .select2-selection__rendered,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .select2-container--default .select2-selection--single .select2-selection__rendered,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .select2-container--default .select2-selection--single .select2-selection__rendered,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .select2-container--default .select2-selection--single .select2-selection__rendered,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .select2-container--default .select2-selection--single .select2-selection__rendered {
+  line-height: 32px !important;
+  color: #fafaf9 !important;
+  font-size: 12px;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .select2-container--default .select2-selection--single .select2-selection__arrow,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .select2-container--default .select2-selection--single .select2-selection__arrow,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .select2-container--default .select2-selection--single .select2-selection__arrow,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .select2-container--default .select2-selection--single .select2-selection__arrow,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .select2-container--default .select2-selection--single .select2-selection__arrow,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 32px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-table-wrap,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-table-wrap,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-table-wrap,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-table-wrap,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .ub-table-wrap,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .ub-table-wrap,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .ub-table-wrap {
+  border: 1px solid #d6d3d1 !important;
+  border-radius: 3px !important;
+  background: #ffffff !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-table-wrap.ub-dash-table-wrap--filled,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-table-wrap.ub-dash-table-wrap--filled,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-table-wrap.ub-dash-table-wrap--filled,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-table-wrap.ub-dash-table-wrap--filled,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .ub-table-wrap.ub-dash-table-wrap--filled,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .ub-table-wrap.ub-dash-table-wrap--filled,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .ub-table-wrap.ub-dash-table-wrap--filled {
+  max-height: 52vh;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .table thead th,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .table thead th,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .table thead th,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .table thead th,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .table thead th,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .table thead th,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .table thead th {
+  background: #44403c !important;
+  color: #fafaf9 !important;
+  border-color: #57534e !important;
+  font-size: 10px !important;
+  padding: 5px 7px !important;
+  letter-spacing: 0.04em;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .table tbody td,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .table tbody td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .table tbody td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .table tbody td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .table tbody td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .table tbody td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .table tbody td {
+  padding: 4px 7px !important;
+  font-size: 12px !important;
+  line-height: 1.3;
+  border-color: #e7e5e4 !important;
+  color: #1c1917 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .table tbody tr:nth-child(even) td,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .table tbody tr:nth-child(even) td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .table tbody tr:nth-child(even) td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .table tbody tr:nth-child(even) td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .table tbody tr:nth-child(even) td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .table tbody tr:nth-child(even) td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .table tbody tr:nth-child(even) td {
+  background: #fafaf9;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-dash-clickable-rows tr:hover td,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-dash-clickable-rows tr:hover td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .ub-dash-clickable-rows tr:hover td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .ub-dash-clickable-rows tr:hover td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) tbody tr:hover td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) tbody tr:hover td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) tbody tr:hover td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) tbody tr:hover td,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) tbody tr:hover td {
+  background: #fff7ed !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-dash-due-amount--alert,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .ub-dash-due-amount--alert {
+  color: #c2410c !important;
+  font-weight: 800;
+  font-size: 12.5px;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .dataTables_wrapper .dataTables_paginate,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .dataTables_wrapper .dataTables_paginate,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .dataTables_wrapper .dataTables_paginate,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .dataTables_wrapper .dataTables_paginate,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .dataTables_wrapper .dataTables_paginate,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .dataTables_wrapper .dataTables_paginate,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .dataTables_wrapper .dataTables_paginate {
+  padding: 6px 8px !important;
+  font-size: 11px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .dataTables_length,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .dataTables_filter,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .dataTables_length,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .dataTables_filter,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .dataTables_length,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .dataTables_filter {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .dataTables_filter input,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .dataTables_filter input,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .dataTables_filter input {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  border-color: #d6d3d1;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .table tfoot td {
+  background: #f5f5f4 !important;
+  padding: 5px 7px !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  border-color: #e7e5e4 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-dash-table-footer {
+  padding: 6px 10px 8px;
+  border-top: 1px solid #d6d3d1;
+  background: #fafaf9;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .ub-dash-view-all-link {
+  font-size: 12px;
+  color: #92400e !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .btn,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-sales-dues .tw-dw-btn,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .btn,
+body.dashboard-redesign .ub-dash-v2 #ub-dash-purchase-dues .tw-dw-btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_alert_table) .tw-dw-btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#stock_expiry_alert_table) .tw-dw-btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#sales_order_table) .tw-dw-btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#shipments_table) .tw-dw-btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .btn,
+body.dashboard-redesign .ub-dash-v2 .ub-table-card:has(#cash_flow_table) .tw-dw-btn {
+  padding: 3px 8px !important;
+  font-size: 11px !important;
+  min-height: 0 !important;
+}
+
+/* Marketing Leads — match dashboard stock alert panel */
+body.dashboard-redesign .ub-ml-leads-page.content {
+  padding-top: 8px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card {
+  padding: 8px 10px !important;
+  background: linear-gradient(180deg, #fff8f0 0%, #fef3e2 100%) !important;
+  border: 1px solid #a16207 !important;
+  border-left: 4px solid #92400e !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-card-header {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #1c1410 0%, #3b2a1a 55%, #4a3728 100%);
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-card-header h3 {
+  color: #fff7ed !important;
+  font-size: 1.05rem !important;
+  margin-bottom: 2px !important;
+  line-height: 1.25;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-card-header p {
+  color: #d6d3d1 !important;
+  font-size: 11px !important;
+  line-height: 1.35;
+  margin: 0;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-card-tag {
+  background: rgba(245, 130, 32, 0.18) !important;
+  border-color: rgba(251, 191, 36, 0.45) !important;
+  color: #fcd34d !important;
+  font-size: 10px;
+  padding: 2px 7px;
+  margin-bottom: 4px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-card-filter {
+  width: min(100%, 140px);
+  flex-shrink: 0;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-ml-export-btn {
+  width: 100%;
+  justify-content: center;
+  border-color: #fcd34d !important;
+  color: #fff7ed !important;
+  background: rgba(245, 130, 32, 0.22) !important;
+  font-size: 11px !important;
+  padding: 6px 10px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-ml-export-btn:hover {
+  background: rgba(245, 130, 32, 0.35) !important;
+  color: #fff !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-filters {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-filters .form-control {
+  min-height: 34px;
+  height: 34px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border-color: #d6d3d1;
+  background: #fff;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-table-wrap {
+  border: 1px solid #d6d3d1 !important;
+  border-radius: 3px !important;
+  background: #ffffff !important;
+  overflow-x: auto;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-table-wrap.ub-dash-table-wrap--filled {
+  max-height: 65vh;
+  overflow: auto;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .table thead th {
+  background: #44403c !important;
+  color: #fafaf9 !important;
+  border-color: #57534e !important;
+  font-size: 10px !important;
+  padding: 5px 7px !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .table tbody td {
+  padding: 4px 7px !important;
+  font-size: 12px !important;
+  line-height: 1.3;
+  border-color: #e7e5e4 !important;
+  color: #1c1917 !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .table tbody tr:nth-child(even) td {
+  background: #fafaf9;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card tbody tr:hover td {
+  background: #fff7ed !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .dataTables_wrapper .dataTables_info,
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .dataTables_wrapper .dataTables_paginate {
+  padding: 6px 8px !important;
+  font-size: 11px !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .dataTables_wrapper .dt-buttons,
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .dataTables_wrapper .buttons-colvis,
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .dataTables_wrapper .dataTables_length,
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .dataTables_wrapper .dataTables_filter {
+  display: none !important;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .dataTables_empty {
+  padding: 1.5rem 1rem !important;
+  color: #78716c !important;
+  font-weight: 600;
+}
+
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .btn,
+body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .tw-dw-btn {
+  padding: 3px 8px !important;
+  font-size: 11px !important;
+  min-height: 0 !important;
+}
+
+@media (max-width: 1199px) {
+  body.dashboard-redesign .ub-dash-v2 .ub-ml-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  body.dashboard-redesign .ub-dash-v2 .ub-ml-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-card-header--split {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.dashboard-redesign .ub-dash-v2 .ub-ml-leads-card .ub-card-filter {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  body.dashboard-redesign .ub-dash-v2 .ub-ml-filters {
+    grid-template-columns: 1fr;
+  }
+}

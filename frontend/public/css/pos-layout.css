@@ -1,0 +1,218 @@
+.content {
+    padding-bottom: 0 !important;
+}
+
+/* POS mobile header */
+@media (max-width: 991px) {
+    .pos-header > div.tw-rounded-xl {
+        padding: 12px !important;
+    }
+
+    .ub-pos-location-row {
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .ub-pos-location-row > p {
+        margin: 0;
+        flex-shrink: 0;
+        font-size: 13px;
+    }
+
+    .ub-pos-location-name {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 13px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pos-header .fas.hamburger {
+        flex-shrink: 0;
+        margin: 0 0 0 auto !important;
+        padding: 8px;
+        font-size: 18px;
+        color: #475569;
+        cursor: pointer;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open {
+        display: block !important;
+        width: 100% !important;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner > a,
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner > button {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        min-height: 62px !important;
+        height: auto !important;
+        padding: 8px 4px !important;
+        margin: 0 !important;
+        float: none !important;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner > :first-child {
+        grid-column: 1 / -1;
+        flex-direction: row !important;
+        min-height: 40px !important;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner strong {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        margin: 0 !important;
+        font-size: 9px !important;
+        font-weight: 600 !important;
+        line-height: 1.2 !important;
+        white-space: normal !important;
+        text-align: center;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner > :first-child strong {
+        flex-direction: row !important;
+        font-size: 12px !important;
+        gap: 8px !important;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner strong i {
+        font-size: 16px !important;
+        margin: 0 !important;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner strong .tw-inline,
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner strong span {
+        display: block !important;
+    }
+
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner > :first-child strong .tw-inline,
+    #pos_header_more_options.ub-pos-menu-open .ub-pos-actions-inner > :first-child strong span {
+        display: inline !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .ub-pos-actions-inner {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        width: 100%;
+    }
+}
+
+/* UdyogBill brand accents on POS (design only) */
+body.ub-app.pos_layout .pos-header,
+body.ub-app .pos-header {
+  border-bottom: 2px solid rgba(245,130,32,.35);
+}
+body.ub-app .pos-header .btn-primary,
+body.ub-app .pos_form .btn-primary {
+  background: linear-gradient(135deg, #f58220 0%, #e8a317 100%) !important;
+  border-color: #e06f12 !important;
+}
+body.ub-app .pos_form .btn-success,
+body.ub-app #pos-save,
+body.ub-app .pos-express-btn {
+  background: #27ae60 !important;
+  border-color: #219150 !important;
+}
+
+/* POS footer action buttons — always visible (not ghost/transparent) */
+body.ub-app.pos_layout .pos-form-actions {
+  background: #ffffff !important;
+  border-top: 1px solid #e7e5e4;
+  box-shadow: 0 -8px 24px rgba(26, 18, 11, 0.08);
+}
+
+body.ub-app.pos_layout .pos-form-actions button {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions button#pos-finalize,
+body.ub-app.pos_layout .pos-form-actions button[id="pos-finalize"] {
+  background: #001f3e !important;
+  border: 1px solid #00152b !important;
+  color: #ffffff !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions button#pos-finalize:hover {
+  background: #003366 !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions button.pos-express-finalize[data-pay_method="cash"] {
+  background: #28b77b !important;
+  border: 1px solid #219a67 !important;
+  color: #ffffff !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions button.pos-express-finalize[data-pay_method="cash"]:hover {
+  background: #22a06d !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions button#pos-cancel,
+body.ub-app.pos_layout .pos-form-actions button#pos-delete {
+  background: #dc2626 !important;
+  border: 1px solid #b91c1c !important;
+  color: #ffffff !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions button#pos-cancel:hover,
+body.ub-app.pos_layout .pos-form-actions button#pos-delete:hover {
+  background: #b91c1c !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions #pos-draft,
+body.ub-app.pos_layout .pos-form-actions #pos-quotation,
+body.ub-app.pos_layout .pos-form-actions .pos-express-finalize[data-pay_method="suspend"],
+body.ub-app.pos_layout .pos-form-actions .pos-express-finalize[data-pay_method="credit_sale"],
+body.ub-app.pos_layout .pos-form-actions .pos-express-finalize[data-pay_method="card"] {
+  background: transparent !important;
+  border: 0 !important;
+  color: #44403c !important;
+  min-width: 72px;
+  padding: 6px 8px !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions #pos-draft:hover,
+body.ub-app.pos_layout .pos-form-actions #pos-quotation:hover,
+body.ub-app.pos_layout .pos-form-actions .pos-express-finalize[data-pay_method="suspend"]:hover,
+body.ub-app.pos_layout .pos-form-actions .pos-express-finalize[data-pay_method="credit_sale"]:hover,
+body.ub-app.pos_layout .pos-form-actions .pos-express-finalize[data-pay_method="card"]:hover {
+  background: #fff7ed !important;
+  border-radius: 10px !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions #recent-transactions {
+  background: #646ee4 !important;
+  border: 1px solid #5259c7 !important;
+  color: #ffffff !important;
+}
+
+body.ub-app.pos_layout .pos-form-actions #recent-transactions:hover {
+  background: #414aac !important;
+}

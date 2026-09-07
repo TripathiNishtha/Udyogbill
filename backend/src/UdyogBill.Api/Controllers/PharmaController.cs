@@ -40,6 +40,13 @@ public class PharmaController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpGet("dashboard-metrics")]
+    public async Task<ActionResult<PharmaDashboardSummaryDto>> GetDashboardMetrics(CancellationToken cancellationToken = default)
+    {
+        var result = await _pharmaService.GetPharmaDashboardMetricsAsync(cancellationToken);
+        return HandleResult(result);
+    }
+
     #endregion
 
     #region Salt & Substitutes

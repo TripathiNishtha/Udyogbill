@@ -1,0 +1,433 @@
+body {
+    background-color: #2a2420 !important;
+    color: #f5f5f4;
+}
+
+html,
+.container-fluid,
+.right-col,
+.eq-height-row {
+    background: #2a2420 !important;
+    min-height: 100%;
+}
+
+.container-fluid {
+    background:
+        radial-gradient(900px 520px at 0% -8%, rgba(245, 130, 32, 0.16), transparent 55%),
+        radial-gradient(700px 460px at 100% 0%, rgba(39, 174, 96, 0.12), transparent 52%),
+        linear-gradient(180deg, #3a322c 0%, #2a2420 48%, #23201c 100%) !important;
+}
+
+.tw-pt-20 {
+    padding-top: 7rem !important;
+}
+
+@media (max-width: 750px) {
+    .tw-pt-20 {
+        padding-top: 5rem !important;
+    }
+}
+
+/* Auth top bar */
+header.tw-absolute.tw-gap-4,
+nav.tw-absolute.tw-gap-4 {
+    gap: 12px;
+}
+
+nav.tw-absolute .tw-border-white {
+    border-color: rgba(245, 130, 32, 0.55) !important;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+nav.tw-absolute a.tw-text-white,
+header.tw-absolute a.tw-text-white {
+    color: #e7e5e4 !important;
+}
+
+nav.tw-absolute a.tw-text-white:hover,
+header.tw-absolute a.tw-text-white:hover {
+    color: #fdba74 !important;
+}
+
+@media (min-width: 1024px) {
+    .lg\:tw-w-16 {
+        width: 11rem;
+    }
+}
+
+.tw-w-12 {
+    width: 7rem;
+}
+
+.wizard > .content {
+    background-color: #1f1812 !important;
+}
+
+.login-box .btn-primary,
+.login-box .tw-bg-primary-600,
+body .btn-primary {
+    background: linear-gradient(135deg, #f58220 0%, #e8a317 100%) !important;
+    border-color: #e06f12 !important;
+    color: #fff !important;
+}
+
+/* ========== Login page layout ========== */
+.ub-login-page {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 8px 16px 40px;
+}
+
+.ub-login-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(24px, 5vw, 64px);
+    min-height: calc(100vh - 150px);
+    margin: 0;
+}
+
+.ub-login-row::before,
+.ub-login-row::after {
+    display: none;
+}
+
+.ub-login-hero,
+.ub-login-form-col {
+    float: none !important;
+    width: 100%;
+    max-width: 480px;
+    margin-left: 0 !important;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.ub-login-hero {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1 1 420px;
+}
+
+.ub-login-hero-inner {
+    width: 100%;
+    max-width: 440px;
+    padding: 20px 8px;
+}
+
+.ub-login-hero-logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    margin-bottom: 16px;
+}
+
+.ub-login-hero-tag {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #4ade80;
+    margin: 0 0 12px;
+}
+
+.ub-login-hero-title {
+    font-size: clamp(1.45rem, 2.6vw, 2rem);
+    font-weight: 800;
+    line-height: 1.28;
+    color: #fafaf9;
+    margin: 0 0 22px;
+    letter-spacing: -0.02em;
+}
+
+.ub-login-trust-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.ub-login-trust-list li {
+    position: relative;
+    padding-left: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #d6d3d1;
+    line-height: 1.5;
+}
+
+.ub-login-trust-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f58220, #27ae60);
+    box-shadow: 0 0 0 3px rgba(245, 130, 32, 0.15);
+}
+
+.ub-login-form-col {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1 1 420px;
+}
+
+.ub-login-card {
+    width: 100%;
+    max-width: 420px;
+    background: linear-gradient(180deg, #342c26 0%, #2a2420 100%);
+    border: 1px solid rgba(245, 130, 32, 0.22);
+    border-top: 4px solid #f58220;
+    border-radius: 18px;
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: 30px 30px 26px;
+}
+
+.ub-login-card-head {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.ub-login-card-head h1 {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #fafaf9;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+}
+
+.ub-login-card-head p {
+    font-size: 14px;
+    font-weight: 500;
+    color: #a8a29e;
+    margin: 0;
+}
+
+.ub-login-form .form-group {
+    margin-bottom: 18px;
+}
+
+.ub-login-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e7e5e4;
+    margin-bottom: 7px;
+}
+
+.ub-login-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+}
+
+.ub-login-label-row .ub-login-label {
+    margin-bottom: 0;
+}
+
+.ub-login-input {
+    width: 100%;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fafaf9;
+    background: rgba(0, 0, 0, 0.28);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.ub-login-input::placeholder {
+    color: #78716c;
+}
+
+.ub-login-input:focus {
+    border-color: rgba(245, 130, 32, 0.65);
+    background: rgba(0, 0, 0, 0.38);
+    box-shadow: 0 0 0 3px rgba(245, 130, 32, 0.18);
+}
+
+.ub-login-input:-webkit-autofill,
+.ub-login-input:-webkit-autofill:hover,
+.ub-login-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #fafaf9;
+    box-shadow: 0 0 0 1000px #1f1812 inset !important;
+    border: 1px solid rgba(245, 130, 32, 0.45);
+    transition: background-color 9999s ease-out 0s;
+}
+
+.ub-login-password-wrap {
+    position: relative;
+}
+
+.ub-login-password-wrap .ub-login-input {
+    padding-right: 44px;
+}
+
+.ub-login-eye-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #a8a29e;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+}
+
+.ub-login-eye-btn:hover {
+    color: #fdba74;
+}
+
+.ub-login-eye-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.ub-login-remember {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #d6d3d1;
+}
+
+.ub-login-remember input {
+    width: 16px;
+    height: 16px;
+    accent-color: #f58220;
+}
+
+.ub-login-submit {
+    width: 100%;
+    height: 48px;
+    border: 0;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    background: linear-gradient(135deg, #f58220 0%, #27ae60 100%);
+    box-shadow: 0 10px 24px rgba(245, 130, 32, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ub-login-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(245, 130, 32, 0.36);
+}
+
+.ub-login-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fdba74;
+    text-decoration: none;
+}
+
+.ub-login-link:hover {
+    color: #f97316;
+    text-decoration: underline;
+}
+
+.ub-login-link--strong {
+    font-size: 14px;
+}
+
+.ub-login-register {
+    margin: 20px 0 0;
+    text-align: center;
+    font-size: 13px;
+    color: #a8a29e;
+}
+
+.ub-login-error {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #fca5a5;
+}
+
+.ub-login-recaptcha {
+    margin-bottom: 16px;
+}
+
+@media (max-width: 991px) {
+    /* Keep logo visible above login card on mobile */
+    body:has(.ub-login-page) .right-col.tw-pt-20 {
+        padding-top: 5.75rem !important;
+    }
+
+    body:has(.ub-login-page) header.tw-absolute {
+        z-index: 5;
+        top: 0 !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) translateY(-28px);
+        justify-content: center;
+        width: auto;
+    }
+
+    body:has(.ub-login-page) header.tw-absolute a > div {
+        margin-bottom: 0 !important;
+    }
+
+    body:has(.ub-login-page) .ub-login-page {
+        position: relative;
+        z-index: 1;
+    }
+
+    .ub-login-row {
+        min-height: auto;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        padding-top: 8px;
+    }
+
+    .ub-login-hero {
+        display: none;
+    }
+
+    .ub-login-form-col {
+        width: 100%;
+        max-width: 440px;
+        justify-content: center;
+    }
+
+    .ub-login-card {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .ub-login-page {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .ub-login-card {
+        padding: 24px 18px 22px;
+        border-radius: 16px;
+    }
+}

@@ -354,15 +354,16 @@ export default function TenantBranchesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Contact Phone</label>
+                  <label className="text-xs font-semibold text-slate-300">Contact Phone (10 Digits)</label>
                   <input
-                    type="text"
-                    placeholder="e.g. +91 9876543210"
+                    type="tel"
+                    maxLength={10}
+                    placeholder="9876543210"
                     value={branchForm.phone || ""}
                     onChange={(e) =>
-                      setBranchForm({ ...branchForm, phone: e.target.value })
+                      setBranchForm({ ...branchForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>

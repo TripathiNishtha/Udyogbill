@@ -62,69 +62,60 @@ export default function GstReturnsPage() {
   };
 
   const exportHeaders = activeTab === "gstr1"
-    ? ["Invoice #", "Date", "Customer / Party", "GSTIN", "Place of Supply", "Taxable Value", "CGST", "SGST", "IGST", "CESS", "Total Tax", "Invoice Value"]
-    : ["Supply Category", "Taxable Value", "IGST", "CGST", "SGST / UTGST", "CESS"];
+    ? ["HSN Code", "Description", "UOM", "Total Qty", "Taxable Value (₹)", "Rate %", "CGST (₹)", "SGST (₹)", "IGST (₹)", "Total Tax (₹)"]
+    : ["Supply Category", "Taxable Value", "IGST", "CGST", "SGST / UTGST", "Total Tax"];
 
   const exportRows = activeTab === "gstr1"
-    ? [
-        ...(gstr1?.b2bInvoices || []).map((inv) => [
-          inv.invoiceNumber,
-          new Date(inv.invoiceDate).toLocaleDateString("en-IN"),
-          inv.customerName,
-          inv.customerGstin,
-          inv.placeOfSupply,
-          inv.taxableAmount.toFixed(2),
-          inv.cgstAmount.toFixed(2),
-          inv.sgstAmount.toFixed(2),
-          inv.igstAmount.toFixed(2),
-          inv.cessAmount.toFixed(2),
-          (inv.cgstAmount + inv.sgstAmount + inv.igstAmount).toFixed(2),
-          inv.totalInvoiceValue.toFixed(2),
-        ]),
-        ...(gstr1?.b2cInvoices || []).map((inv) => [
-          inv.invoiceNumber,
-          new Date(inv.invoiceDate).toLocaleDateString("en-IN"),
-          "B2C Customer",
-          "Unregistered",
-          inv.placeOfSupply,
-          inv.taxableAmount.toFixed(2),
-          inv.cgstAmount.toFixed(2),
-          inv.sgstAmount.toFixed(2),
-          inv.igstAmount.toFixed(2),
-          inv.cessAmount.toFixed(2),
-          (inv.cgstAmount + inv.sgstAmount + inv.igstAmount).toFixed(2),
-          inv.totalInvoiceValue.toFixed(2),
-        ]),
-      ]
+    ? (gstr1?.hsnSummary || []).map((h) => [
+        h.hsnCode,
+        h.description,
+        h.uom,
+        h.totalQuantity.toString(),
+        h.taxableValue.toFixed(2),
+        `${h.taxRate}%`,
+        h.cgstAmount.toFixed(2),
+        h.sgstAmount.toFixed(2),
+        h.igstAmount.toFixed(2),
+        h.totalTax.toFixed(2),
+      ])
     : [
         [
-          "Outward Taxable Supplies (Other than zero/nil)",
-          (gstr3b?.outwardTaxableSupplies?.taxableValue || 0).toFixed(2),
-          (gstr3b?.outwardTaxableSupplies?.igst || 0).toFixed(2),
-          (gstr3b?.outwardTaxableSupplies?.cgst || 0).toFixed(2),
-          (gstr3b?.outwardTaxableSupplies?.sgst || 0).toFixed(2),
-          (gstr3b?.outwardTaxableSupplies?.cess || 0).toFixed(2),
+          "3.1 Outward Taxable Supplies",
+          (gstr3b?.outwardTaxableValue || 0).toFixed(2),
+          (gstr3b?.outwardIgst || 0).toFixed(2),
+          (gstr3b?.outwardCgst || 0).toFixed(2),
+          (gstr3b?.outwardSgst || 0).toFixed(2),
+          (gstr3b?.totalOutputTaxLiability || 0).toFixed(2),
         ],
         [
-          "Eligible ITC (Input Tax Credit) All Other",
+          "4. Eligible ITC (Input Tax Credit)",
+          (gstr3b?.inwardTaxableValue || 0).toFixed(2),
+          (gstr3b?.inwardIgst || 0).toFixed(2),
+          (gstr3b?.inwardCgst || 0).toFixed(2),
+          (gstr3b?.inwardSgst || 0).toFixed(2),
+          (gstr3b?.totalEligibleItc || 0).toFixed(2),
+        ],
+        [
+          "6.1 Net Tax Payable",
           "—",
-          (gstr3b?.eligibleItc?.igst || 0).toFixed(2),
-          (gstr3b?.eligibleItc?.cgst || 0).toFixed(2),
-          (gstr3b?.eligibleItc?.sgst || 0).toFixed(2),
-          (gstr3b?.eligibleItc?.cess || 0).toFixed(2),
+          (gstr3b?.netIgstPayable || 0).toFixed(2),
+          (gstr3b?.netCgstPayable || 0).toFixed(2),
+          (gstr3b?.netSgstPayable || 0).toFixed(2),
+          (gstr3b?.totalNetGstPayable || 0).toFixed(2),
         ],
       ];
 
-  const summaryExportData = activeTab === "gstr1"
+  const summaryExportData: Record<string, string | number> = activeTab === "gstr1"
     ? {
-        "Total Taxable Value": `₹ ${(gstr1?.totalTaxableValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-        "Total Output Tax": `₹ ${(gstr1?.totalTaxValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-        "B2B Records": (gstr1?.b2bInvoices || []).length,
-        "B2C Records": (gstr1?.b2cInvoices || []).length,
+        "Total Outward Taxable": `₹ ${(gstr1?.totalOutwardTaxable || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        "Total Outward Tax": `₹ ${(gstr1?.totalOutwardTax || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        "B2B Invoices Count": (gstr1?.totalB2BInvoices || 0),
+        "B2C Invoices Count": (gstr1?.totalB2CInvoices || 0),
       }
     : {
-        "Outward Taxable": `₹ ${(gstr3b?.outwardTaxableSupplies?.taxableValue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-        "Total Eligible ITC": `₹ ${(gstr3b?.eligibleItc?.totalItc || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        "Outward Tax Liability": `₹ ${(gstr3b?.totalOutputTaxLiability || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        "Eligible ITC": `₹ ${(gstr3b?.totalEligibleItc || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        "Net GST Payable": `₹ ${(gstr3b?.totalNetGstPayable || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
       };
 
   return (
@@ -169,15 +160,28 @@ export default function GstReturnsPage() {
           </button>
         </div>
 
-        {/* Universal Export Toolbar right in the middle */}
-        <ReportExportToolbar
-          title={`GST Returns & Filing (${activeTab.toUpperCase()})`}
-          fileName={`GST_${activeTab.toUpperCase()}_Return`}
-          headers={exportHeaders}
-          rows={exportRows}
-          summaryData={summaryExportData}
-          dateRangeText={`${new Date(fromDate).toLocaleDateString("en-IN")} to ${new Date(toDate).toLocaleDateString("en-IN")}`}
-        />
+        {/* Universal Export Toolbar & GSTR-1 JSON */}
+        <div className="flex items-center space-x-2">
+          {activeTab === "gstr1" && gstr1 && (
+            <button
+              onClick={() => reportService.downloadGstr1Json(gstr1)}
+              title="Download official GSTN JSON file to directly upload to Govt GST Portal (gst.gov.in) or share with your CA"
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-600/20"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download GSTR-1 JSON (For CA)</span>
+            </button>
+          )}
+
+          <ReportExportToolbar
+            title={`GST Returns & Filing (${activeTab.toUpperCase()})`}
+            fileName={`GST_${activeTab.toUpperCase()}_Return`}
+            headers={exportHeaders}
+            rows={exportRows}
+            summaryData={summaryExportData}
+            dateRangeText={`${new Date(fromDate).toLocaleDateString("en-IN")} to ${new Date(toDate).toLocaleDateString("en-IN")}`}
+          />
+        </div>
 
         {/* Date Filter */}
         <div className="flex items-center space-x-2 pr-2">

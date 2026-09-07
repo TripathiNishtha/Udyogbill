@@ -7,17 +7,25 @@ import {
   FlaskConical,
   FileCheck,
   Zap,
-  RotateCcw
+  RotateCcw,
+  Users,
+  ShoppingCart,
+  BarChart3,
+  UserCheck,
+  MapPin,
+  Calendar,
+  Gift,
+  Briefcase
 } from "lucide-react";
 import { AddonManifest } from "../addon-registry";
 
 export const pharmaAddonManifest: AddonManifest = {
   id: "pharma",
-  name: "Pharma & Healthcare Suite",
+  name: "Pharma Chemist & Retail Suite",
   titleHindi: "दवा और मेडिकल स्टोर पैक",
-  description: "Generic Salt Substitutes, Multi-Batch FEFO routing, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims, and Doctor directory.",
+  description: "Generic Salt Substitutes, Multi-Batch FEFO routing, Schedule H1 registers, Strip/Loose packaging, and Expiry dumping claims.",
   icon: Pill,
-  badgeText: "Pharma",
+  badgeText: "Pharma Core",
   category: "Healthcare",
   featureKeys: [
     "enableBatchTracking",
@@ -34,7 +42,6 @@ export const pharmaAddonManifest: AddonManifest = {
       { label: "Salt & Substitutes Finder", href: "/app/pharma/substitutes", icon: FlaskConical },
       { label: "Schedule H1 Register", href: "/app/pharma/h1-register", icon: FileCheck },
       { label: "Expiry Claims & Return", href: "/app/pharma/expiry-claims", icon: RotateCcw },
-      { label: "Doctors & MR Directory", href: "/app/pharma/prescribers", icon: Award },
     ],
   },
   highlights: [

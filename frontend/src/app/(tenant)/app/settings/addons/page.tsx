@@ -4,607 +4,575 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Sparkles,
-  Tag,
+  Users,
   CheckCircle2,
   AlertCircle,
   ArrowRight,
   ShieldCheck,
   Zap,
   CreditCard,
-  Lock,
-  Receipt,
+  Building2,
   FileText,
-  X,
-  ExternalLink,
-  Check
+  Clock,
+  Layers,
+  Check,
+  Activity,
+  UserCheck,
+  MapPin,
+  Lock,
+  RefreshCw
 } from "lucide-react";
-import { ALL_ADDONS, AddonManifest } from "@/addons/addon-registry";
-import { useAddons } from "@/context/addon-context";
 import { tenantAppService } from "@/services/tenant-app-services";
-import { platformCouponService, ValidateCouponResponse } from "@/services/coupon-service";
+import { superAdminService, PlatformCommercialConfig } from "@/services/super-admin-services";
+import { useAddons } from "@/context/addon-context";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
-export default function IndustryAddonsPage() {
-  const { isAddonActive, toggleAddon, loading, activeAddons, refreshConfig } = useAddons();
+export default function PlanAndAddonsPage() {
+  const { refreshConfig } = useAddons();
+  const [activePackData, setActivePackData] = useState<any | null>(null);
+  const [commercialConfig, setCommercialConfig] = useState<PlatformCommercialConfig | null>(null);
   const [subStatus, setSubStatus] = useState<any | null>(null);
-  const [loadingPricing, setLoadingPricing] = useState(true);
+  const [sfaQuota, setSfaQuota] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activatingAi, setActivatingAi] = useState(false);
+  const [activatingSfa, setActivatingSfa] = useState(false);
+  const [deactivatingSfa, setDeactivatingSfa] = useState(false);
+  const [actionMsg, setActionMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const [purchasingId, setPurchasingId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  // Pre-payment Order Breakdown Modal
-  const [pendingCheckoutAddon, setPendingCheckoutAddon] = useState<AddonManifest | null>(null);
-  const [checkoutCycle, setCheckoutCycle] = useState<"Monthly" | "Annual">("Monthly");
-
-  // Success Modal with Invoice Link
-  const [completedInvoice, setCompletedInvoice] = useState<any | null>(null);
-
-  // Coupon State for Checkout
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<ValidateCouponResponse | null>(null);
-  const [couponError, setCouponError] = useState<string | null>(null);
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
-
-  const handleApplyCoupon = async (orderAmount: number) => {
-    if (!couponCode.trim()) return;
-    setValidatingCoupon(true);
-    setCouponError(null);
+  const loadData = async () => {
     try {
-      const res = await platformCouponService.validateCoupon(couponCode.trim(), "ADDON", orderAmount);
-      if (res.isValid) {
-        setAppliedCoupon(res);
-      } else {
-        setCouponError(res.message || "Invalid coupon code");
-      }
-    } catch (err: any) {
-      setCouponError(err.message || "Failed to validate coupon");
+      setLoading(true);
+      const [packRes, subRes, commRes, quotaRes] = await Promise.all([
+        tenantAppService.getActiveIndustryPack().catch(() => null),
+        tenantAppService.getSubscriptionStatus().catch(() => null),
+        superAdminService.getCommercialConfig().catch(() => null),
+        tenantAppService.getPharmaSfaQuota().catch(() => null)
+      ]);
+      setActivePackData(packRes);
+      setSubStatus(subRes);
+      setCommercialConfig(commRes);
+      setSfaQuota(quotaRes);
+    } catch (err) {
+      console.error("Failed to load plan and addons data", err);
     } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
-
-  const loadSubscriptionInfo = async () => {
-    try {
-      setLoadingPricing(true);
-      const data = await tenantAppService.getSubscriptionStatus();
-      setSubStatus(data);
-    } catch (err: any) {
-      console.warn("Could not load subscription pricing", err);
-    } finally {
-      setLoadingPricing(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadSubscriptionInfo();
+    loadData();
   }, []);
 
-  const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (typeof window !== "undefined" && window.Razorpay) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const getAddonCatalogPrice = (addonId: string, cycle: "Monthly" | "Annual" = "Monthly"): number => {
-    const code = `ADDON_${addonId.toUpperCase()}`;
-    const item = subStatus?.addons?.find((a: any) => a.code === code);
-    const mPrice = Number(item?.price) || (addonId === "manufacturing" ? 599 : addonId === "garments" || addonId === "fmcg" ? 399 : 499);
-    if (cycle === "Annual") {
-      return item?.annualPrice ? Number(item.annualPrice) : Math.round(mPrice * 10);
-    }
-    return mPrice;
-  };
-
-  const handleBuyAddon = async (addon: AddonManifest, cycle: "Monthly" | "Annual" = "Monthly") => {
-    setPurchasingId(addon.id);
-    setErrorMsg(null);
-    setSuccessMsg(null);
-
+  const handleActivateAi = async () => {
     try {
-      const addonCode = `ADDON_${addon.id.toUpperCase()}`;
-      const orderRes = await tenantAppService.createSubscriptionOrder({
-        addonCode,
-        billingCycle: cycle,
+      setActivatingAi(true);
+      const res = await tenantAppService.activateAiAddon();
+      setActionMsg({
+        type: "success",
+        text: res?.message || "AI Pro Add-on activated successfully! 500 scans/month quota unlocked."
       });
-
-      const isRzpReady = await loadRazorpayScript();
-
-      if (isRzpReady && window.Razorpay && orderRes.keyId.startsWith("rzp_")) {
-        const options = {
-          key: orderRes.keyId,
-          amount: orderRes.amountInPaisa,
-          currency: orderRes.currency || "INR",
-          name: "UdyogBill Enterprise",
-          description: orderRes.description,
-          order_id: orderRes.orderId,
-          prefill: {
-            email: orderRes.customerEmail,
-            contact: orderRes.customerPhone,
-          },
-          theme: {
-            color: "#4f46e5",
-          },
-          handler: async (response: any) => {
-            try {
-              const confirmRes = await tenantAppService.confirmSubscriptionPayment({
-                razorpayOrderId: response.razorpay_order_id || orderRes.orderId,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature || "simulated_signature",
-                addonCode,
-                billingCycle: cycle,
-              });
-
-              setCompletedInvoice(confirmRes);
-              await refreshConfig();
-              await loadSubscriptionInfo();
-              setSuccessMsg(`"${addon.name}" सफलतापूर्वक सक्रिय हो गया है! इनवॉइस जनरेट हो गई है।`);
-            } catch (confirmErr: any) {
-              setErrorMsg(confirmErr.message || "Payment verification failed.");
-            } finally {
-              setPurchasingId(null);
-            }
-          },
-          modal: {
-            ondismiss: () => {
-              setPurchasingId(null);
-            },
-          },
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else {
-        // Safe Sandbox Fallback Mode (Test simulation if offline or test mode)
-        const confirmRes = await tenantAppService.confirmSubscriptionPayment({
-          razorpayOrderId: orderRes.orderId,
-          razorpayPaymentId: `pay_sim_${Date.now()}`,
-          razorpaySignature: "simulated_test_sig",
-          addonCode,
-          billingCycle: "Monthly",
-        });
-
-        setCompletedInvoice(confirmRes);
-        await refreshConfig();
-        await loadSubscriptionInfo();
-        setSuccessMsg(`"${addon.name}" Test Activation Successful! Invoiced generated.`);
-        setPurchasingId(null);
-      }
+      setTimeout(() => setActionMsg(null), 5000);
+      await loadData();
     } catch (err: any) {
-      setErrorMsg(err.message || "Order checkout initiation failed.");
-      setPurchasingId(null);
+      setActionMsg({
+        type: "error",
+        text: err?.response?.data?.message || err?.message || "Failed to activate AI Pro Add-on."
+      });
+    } finally {
+      setActivatingAi(false);
     }
   };
+
+  const handleActivateSfa = async () => {
+    try {
+      setActivatingSfa(true);
+      const res = await tenantAppService.activatePharmaSfa();
+      if (res?.isSuccess) {
+        setActionMsg({
+          type: "success",
+          text: "Pharma SFA & Field Force Add-on activated! 15 MR Seats & 5 Manager Seats unlocked."
+        });
+        await refreshConfig();
+        await loadData();
+      } else {
+        setActionMsg({
+          type: "error",
+          text: res?.message || "Failed to activate Pharma SFA Add-on."
+        });
+      }
+      setTimeout(() => setActionMsg(null), 5000);
+    } catch (err: any) {
+      setActionMsg({
+        type: "error",
+        text: err?.response?.data?.message || err?.message || "Failed to activate Pharma SFA Add-on."
+      });
+    } finally {
+      setActivatingSfa(false);
+    }
+  };
+
+  const handleDeactivateSfa = async () => {
+    if (!confirm("Are you sure you want to deactivate Pharma SFA? Field force features and menu will be hidden.")) return;
+    try {
+      setDeactivatingSfa(true);
+      const res = await tenantAppService.deactivatePharmaSfa();
+      if (res?.isSuccess) {
+        setActionMsg({
+          type: "success",
+          text: "Pharma SFA Add-on has been deactivated."
+        });
+        await refreshConfig();
+        await loadData();
+      } else {
+        setActionMsg({
+          type: "error",
+          text: res?.message || "Failed to deactivate Pharma SFA Add-on."
+        });
+      }
+      setTimeout(() => setActionMsg(null), 5000);
+    } catch (err: any) {
+      setActionMsg({
+        type: "error",
+        text: err?.response?.data?.message || err?.message || "Failed to deactivate Pharma SFA Add-on."
+      });
+    } finally {
+      setDeactivatingSfa(false);
+    }
+  };
+
+  const gstRate = commercialConfig?.gstRatePercent || 18;
+  const singleUserPrice = commercialConfig?.singleUserAnnualPrice || 799;
+  const fiveUserPrice = commercialConfig?.fiveUserPackAnnualPrice || 2999;
+  const aiPrice = commercialConfig?.aiProAnnualPrice || 1499;
+
+  const descriptor = activePackData?.descriptor || {
+    displayName: "General Trading & Retail",
+    code: activePackData?.industryTypeCode || "OTHER",
+    description: "Standard retail & wholesale trading with multi-rate GST and stock ledger"
+  };
+
+  const maxAllowedUsers = activePackData?.maxAllowedUsers || 2;
+  const currentActiveUsers = activePackData?.currentActiveUsers || 1;
+  const isAiActive = activePackData?.isAiAddonActive || false;
+  const scansLimit = activePackData?.aiScansLimit || 500;
+  const scansUsed = activePackData?.aiScansUsed || 0;
+  const scansRemaining = activePackData?.scansRemaining ?? (scansLimit - scansUsed);
+
+  const isPharmaTenant =
+    (activePackData?.industryTypeCode || "").toUpperCase() === "PHARMA" ||
+    (activePackData?.activeIndustryModule || "").toUpperCase() === "PHARMA";
+  const isSfaActive = !!activePackData?.isPharmaSfaActive;
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-xl shadow-indigo-950/20">
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Zero Separate Module Fees • All Industries Included
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
+            <Layers className="w-6 h-6 text-emerald-400" />
+            <span>My Plan & Capacity Add-ons</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            Your core subscription includes 2 user seats and your entire Industry Pack. Expand staff capacity or unlock AI automation below.
+          </p>
+        </div>
+        <Link
+          href="/app/settings/billing"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all self-start sm:self-auto"
+        >
+          <CreditCard className="w-4 h-4 text-slate-400" />
+          <span>Billing History & Invoices</span>
+        </Link>
+      </div>
+
+      {actionMsg && (
+        <div
+          className={`p-4 rounded-xl text-sm flex items-center gap-2.5 ${
+            actionMsg.type === "success"
+              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-300"
+              : "bg-rose-500/10 border border-rose-500/20 text-rose-300"
+          }`}
+        >
+          {actionMsg.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          <span>{actionMsg.text}</span>
+        </div>
+      )}
+
+      {/* Primary Card: Active Core Subscription & Industry Pack */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-emerald-500/30 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Razorpay Instant Automated Activation</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Core Plan Active
+              </span>
+              <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Industry Pack: {descriptor.displayName}
+              </span>
+              <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
+                ₹0 Separate Module Fee (Included)
+              </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-              Industry Add-on Store & Online Billing
-            </h1>
-            <p className="text-sm text-slate-400 max-w-2xl">
-              ऑनलाइन Razorpay से किसी भी ऐड-ऑन का सब्सक्रिप्शन लें। पेमेंट होते ही ऐड-ऑन तुरंत लाइव हो जाएगा और टैक्स इनवॉइस अपने आप बन जाएगी।
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              UdyogBill Core Plan — {descriptor.displayName}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-3xl">
+              {descriptor.description}
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <Link
-              href="/app/settings/billing"
-              className="inline-flex items-center space-x-2 px-4 py-2.5 bg-slate-900/90 hover:bg-slate-850 text-white rounded-xl text-xs font-bold border border-slate-700 shadow-md transition-all"
-            >
-              <Receipt className="w-4 h-4 text-emerald-400" />
-              <span>View Invoices & Billing History</span>
-            </Link>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-t lg:border-t-0 lg:border-l border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0">
+            <div>
+              <div className="text-xs text-slate-400 font-medium">Staff User Capacity</div>
+              <div className="text-lg font-bold text-white flex items-center gap-2 mt-0.5">
+                <Users className="w-4 h-4 text-emerald-400" />
+                <span>{currentActiveUsers} / {maxAllowedUsers} Seats Used</span>
+              </div>
+              <div className="w-36 bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div
+                  className="bg-emerald-500 h-1.5 rounded-full"
+                  style={{ width: `${Math.min(100, (currentActiveUsers / maxAllowedUsers) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Highlights of Active Industry Pack */}
+        <div className="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-300">
+          <div className="flex items-center gap-2">
+            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Core GST Invoicing Engine</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>2 Included User Seats</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Full Inventory & Stock Ledger</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>GST Reports & E-Way Bill</span>
           </div>
         </div>
       </div>
 
-      {/* Alerts */}
-      {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-800 text-emerald-300 text-sm flex items-center justify-between shadow-lg">
-          <div className="flex items-center space-x-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span>{successMsg}</span>
-          </div>
-          {completedInvoice && (
-            <Link
-              href="/app/settings/billing"
-              className="text-xs text-white bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>View Invoice #{completedInvoice.invoiceNumber}</span>
-            </Link>
-          )}
+      {/* Available Paid Add-Ons (The ONLY 2 Official Add-ons) */}
+      <div>
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-white tracking-tight">Available Expansion Add-Ons</h3>
+          <p className="text-xs text-slate-400">
+            Expand staff access or unlock automated invoice scanning. Industry modules are never charged separately.
+          </p>
         </div>
-      )}
 
-      {errorMsg && (
-        <div className="p-4 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-sm flex items-center space-x-3 shadow-lg">
-          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {/* Add-ons Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {ALL_ADDONS.map((addon) => {
-          const isActive = isAddonActive(addon.id);
-          const price = getAddonCatalogPrice(addon.id);
-          const isBusy = purchasingId === addon.id;
-          const Icon = addon.icon;
-          const addonCode = `ADDON_${addon.id.toUpperCase()}`;
-          const enrolledInfo = subStatus?.addons?.find((a: any) => a.code === addonCode);
-
-          return (
-            <div
-              key={addon.id}
-              className={`rounded-2xl border transition-all duration-200 flex flex-col justify-between overflow-hidden shadow-lg ${
-                isActive
-                  ? "bg-slate-900/90 border-indigo-500/30 hover:border-indigo-500/50 shadow-indigo-950/20"
-                  : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
-              }`}
-            >
-              {/* Card Body */}
-              <div className="p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center border shadow-inner ${
-                        isActive
-                          ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/30"
-                          : "bg-slate-900 text-slate-500 border-slate-800"
-                      }`}
-                    >
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-white text-base">{addon.name}</h3>
-                      {addon.titleHindi && (
-                        <p className="text-xs text-indigo-400/90 font-medium">{addon.titleHindi}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Price Tag */}
-                  <div className="text-right">
-                    <div className="text-base font-extrabold text-emerald-400">₹{price}</div>
-                    <div className="text-[10px] text-slate-400">/ month (excl. GST)</div>
-                    <div className="text-[9px] text-amber-400 font-medium mt-0.5">
-                      + 18% GST (₹{(price * 0.18).toFixed(2)})
-                    </div>
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Add-on 1: Staff User Add-ons */}
+          <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-700 transition-all">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                  <Users className="w-5 h-5" />
                 </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  Capacity Expansion
+                </span>
+              </div>
 
-                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                  {addon.description}
+              <div>
+                <h4 className="text-base font-bold text-white">Staff User Add-On Packs</h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  Add more cashiers, billers, and staff members to your UdyogBill account with role-based access control.
                 </p>
-
-                {/* Highlights */}
-                <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-                    Included Capabilities
-                  </span>
-                  <ul className="space-y-1">
-                    {addon.highlights.slice(0, 3).map((item, idx) => (
-                      <li key={idx} className="text-xs text-slate-300 flex items-center space-x-2">
-                        <CheckCircle2
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            isActive ? "text-indigo-400" : "text-slate-600"
-                          }`}
-                        />
-                        <span className="truncate">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
 
-              {/* Action Button Section */}
-              <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-800/60 flex items-center justify-between">
-                {isActive ? (
-                  <>
-                    <div className="space-y-0.5">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-xs font-bold text-emerald-400">Active &amp; Enrolled</span>
-                      </div>
-                      {enrolledInfo?.enrolledExpiresAtUtc ? (
-                        <p className="text-[10px] text-slate-400 font-mono">
-                          Valid till {new Date(enrolledInfo.enrolledExpiresAtUtc).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          {enrolledInfo.remainingDays > 0 && ` (${enrolledInfo.remainingDays}d left)`}
-                        </p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 font-mono">Active Subscription</p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      {addon.sidebarNavGroup?.items[0] && (
-                        <Link
-                          href={addon.sidebarNavGroup.items[0].href}
-                          className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"
-                        >
-                          <span>Open</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-xs text-slate-400 font-medium">
-                      Not Enrolled
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => setPendingCheckoutAddon(addon)}
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>{isBusy ? "Opening..." : `Pay ₹${(price * 1.18).toFixed(0)} & Activate`}</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Pre-payment Checkout Order Breakdown Modal */}
-      {pendingCheckoutAddon && (() => {
-        const basePrice = getAddonCatalogPrice(pendingCheckoutAddon.id, checkoutCycle);
-        const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-        const taxableBase = Math.max(0, basePrice - discountAmount);
-        const gstAmount = Number((taxableBase * 0.18).toFixed(2));
-        const totalAmount = Number((taxableBase + gstAmount).toFixed(2));
-        const isBusy = purchasingId === pendingCheckoutAddon.id;
-        const Icon = pendingCheckoutAddon.icon;
-
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
-              <button
-                onClick={() => {
-                  setPendingCheckoutAddon(null);
-                  setAppliedCoupon(null);
-                  setCouponCode("");
-                  setCouponError(null);
-                }}
-                className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
-                  <Icon className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">{pendingCheckoutAddon.name}</h3>
-                  <p className="text-xs text-slate-400">Choose Cycle &amp; Tax Invoice Summary</p>
-                </div>
-              </div>
-
-              {/* Billing Cycle Switcher Tabs */}
-              <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => { setCheckoutCycle("Monthly"); setAppliedCoupon(null); }}
-                  className={"flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer " + (checkoutCycle === "Monthly" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "text-slate-400 hover:text-white")}
-                >
-                  Monthly (30 Days)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setCheckoutCycle("Annual"); setAppliedCoupon(null); }}
-                  className={"flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer " + (checkoutCycle === "Annual" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "text-slate-400 hover:text-white")}
-                >
-                  <span>Yearly (365 Days)</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-black">SAVE 17%</span>
-                </button>
-              </div>
-
-              {/* 🏷️ Coupon Code Input Box */}
-              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-amber-400" />
-                    Have a Promo / Coupon Code?
-                  </span>
-                  {appliedCoupon && (
-                    <button
-                      type="button"
-                      onClick={() => { setAppliedCoupon(null); setCouponCode(""); setCouponError(null); }}
-                      className="text-[10px] text-rose-400 hover:underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                {!appliedCoupon ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. WELCOME50, FLAT500"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold tracking-wider placeholder-slate-500 focus:outline-none focus:border-amber-500"
-                    />
-                    <button
-                      type="button"
-                      disabled={validatingCoupon || !couponCode.trim()}
-                      onClick={() => handleApplyCoupon(basePrice)}
-                      className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {validatingCoupon ? "..." : "Apply"}
-                    </button>
+              <div className="space-y-2.5 pt-2">
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold text-white">+1 Single Extra User</div>
+                    <div className="text-[11px] text-slate-400">₹{singleUserPrice}/year + {gstRate}% GST</div>
                   </div>
-                ) : (
-                  <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-300">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <div>
-                        <span className="font-mono font-bold">{appliedCoupon.couponCode}</span>
-                        <span className="text-[11px] text-emerald-400/90 ml-2">✓ ₹{appliedCoupon.discountAmount} discount applied</span>
-                      </div>
-                    </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-sky-400">₹{(singleUserPrice * (1 + gstRate / 100)).toFixed(0)}</span>
+                    <span className="text-[10px] text-slate-500 block">incl. GST/yr</span>
                   </div>
-                )}
-                {couponError && <p className="text-[11px] text-rose-400">{couponError}</p>}
-              </div>
+                </div>
 
-              {/* Price & GST Breakdown Card */}
-              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2 text-xs">
-                <div className="flex justify-between items-center text-slate-300">
-                  <span>Selected Duration:</span>
-                  <span className="font-semibold text-white">
-                    {checkoutCycle === "Annual" ? "1 Year (365 Days Validity)" : "1 Month (30 Days Validity)"}
+                <div className="p-3 rounded-xl bg-slate-900 border border-sky-500/30 flex items-center justify-between relative overflow-hidden">
+                  <span className="absolute top-0 right-0 px-2 py-0.2 text-[9px] font-bold bg-sky-500 text-white rounded-bl">
+                    SAVE ₹{((singleUserPrice * 5) - fiveUserPrice).toFixed(0)}
                   </span>
-                </div>
-
-                <div className="flex justify-between items-center text-slate-300">
-                  <span>Base Catalog Price:</span>
-                  <span className="font-mono font-bold text-white">₹{basePrice.toFixed(2)}</span>
-                </div>
-
-                {appliedCoupon && (
-                  <div className="flex justify-between items-center text-emerald-400">
-                    <span>Coupon Discount:</span>
-                    <span className="font-mono font-bold">- ₹{discountAmount.toFixed(2)}</span>
+                  <div>
+                    <div className="text-xs font-semibold text-white">+5 Users Pack (Bulk Value)</div>
+                    <div className="text-[11px] text-slate-400">₹{fiveUserPrice}/year + {gstRate}% GST</div>
                   </div>
-                )}
-
-                <div className="flex justify-between items-center text-amber-400">
-                  <span>Applicable GST (18%):</span>
-                  <span className="font-mono font-bold">+ ₹{gstAmount.toFixed(2)}</span>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
-                  <span className="font-bold text-white text-sm">Total Payable Amount:</span>
-                  <span className="font-mono font-black text-emerald-400 text-lg">₹{totalAmount.toFixed(2)}</span>
+                  <div className="text-right pt-2">
+                    <span className="text-sm font-bold text-sky-400">₹{(fiveUserPrice * (1 + gstRate / 100)).toFixed(0)}</span>
+                    <span className="text-[10px] text-slate-500 block">incl. GST/yr</span>
+                  </div>
                 </div>
               </div>
-
-              <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80 text-[10px] text-slate-400 space-y-0.5">
-                <p>✓ <strong>Instant Activation:</strong> Payment confirm hote hi add-on activate ho jayega.</p>
-                <p>✓ <strong>Official GST Invoice:</strong> 18% GST (SAC 998313) Tax Receipt mail ho jayegi.</p>
-              </div>
-
-              <div className="flex items-center space-x-3 pt-1">
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => {
-                    setPendingCheckoutAddon(null);
-                    setAppliedCoupon(null);
-                    setCouponCode("");
-                    setCouponError(null);
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={async () => {
-                    const addonToBuy = pendingCheckoutAddon;
-                    const cycleToBuy = checkoutCycle;
-                    setPendingCheckoutAddon(null);
-                    setAppliedCoupon(null);
-                    setCouponCode("");
-                    if (addonToBuy) {
-                      await handlePurchaseAddon(addonToBuy, cycleToBuy);
-                    }
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                >
-                  {isBusy ? "Processing..." : ("Pay ₹" + totalAmount.toFixed(2) + " via UPI/Card")}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Invoice Celebration Modal */}
-      {completedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 text-center shadow-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
-              <Check className="w-8 h-8" />
             </div>
 
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white">Payment Confirmed & Add-on Activated!</h3>
-              <p className="text-xs text-slate-400">
-                आपका ऐड-ऑन तुरंत एक्टिवेट कर दिया गया है और साइडबार में दिखना शुरू हो गया है।
-              </p>
-            </div>
-
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-left space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Invoice Number:</span>
-                <span className="font-mono font-bold text-white">{completedInvoice.invoiceNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Item Description:</span>
-                <span className="text-slate-200 font-medium">{completedInvoice.itemDescription}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Total Paid (incl. 18% GST):</span>
-                <span className="font-bold text-emerald-400">₹{completedInvoice.totalAmount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Payment ID:</span>
-                <span className="font-mono text-slate-300">{completedInvoice.gatewayPaymentId}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setCompletedInvoice(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
-              >
-                Close
-              </button>
+            <div className="pt-2 border-t border-slate-800/80">
               <Link
-                href="/app/settings/billing"
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20"
+                href="/app/staff"
+                className="w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all"
               >
-                <Receipt className="w-3.5 h-3.5" />
-                <span>View Full Invoice & Print</span>
+                <span>Manage Users & Capacity</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>
+
+          {/* Add-on 2: AI Pro Purchase Bill Scanner */}
+          <div className={`p-6 rounded-2xl bg-slate-950/60 border flex flex-col justify-between space-y-5 transition-all ${
+            isAiActive ? "border-purple-500/50 shadow-lg shadow-purple-500/10" : "border-slate-800 hover:border-slate-700"
+          }`}>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                {isAiActive ? (
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Active & Enrolled
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    AI Automation
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>AI Pro Purchase Bill Scanner</span>
+                  <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">PRO</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  Snap purchase bill photos or upload PDF invoices. AI OCR automatically extracts items, batches, HSN codes, rates, and GST in 5 seconds.
+                </p>
+              </div>
+
+              {isAiActive ? (
+                <div className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-500/20 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Monthly Scan Quota:</span>
+                    <span className="font-bold text-purple-300">{scansRemaining} / {scansLimit} remaining</span>
+                  </div>
+                  <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-purple-500 h-1.5 rounded-full"
+                      style={{ width: `${Math.max(5, (scansRemaining / scansLimit) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-slate-500 text-right">Quota resets monthly</div>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold text-white">500 Invoices / Month Quota</div>
+                    <div className="text-[11px] text-slate-400">₹{aiPrice}/year + {gstRate}% GST</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-purple-400">₹{(aiPrice * (1 + gstRate / 100)).toFixed(0)}</span>
+                    <span className="text-[10px] text-slate-500 block">incl. GST/yr</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[11px] text-slate-400 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Mobile camera photo snap + PDF upload</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Auto-matches vendors and stock items</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/80">
+              {isAiActive ? (
+                <Link
+                  href="/app/purchase/bills"
+                  className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Open AI Invoice Scanner</span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleActivateAi}
+                  disabled={activatingAi}
+                  className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-purple-600/25"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>{activatingAi ? "Activating AI Add-on..." : `Activate AI Pro (₹${aiPrice}/yr)`}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Add-on 3: Pharma SFA & Field Force Suite (Exclusive Pharma Add-on) */}
+          <div
+            className={`p-6 rounded-2xl bg-slate-950/60 border flex flex-col justify-between space-y-5 transition-all ${
+              isSfaActive
+                ? "border-teal-500/50 shadow-lg shadow-teal-500/10"
+                : isPharmaTenant
+                ? "border-teal-500/30 hover:border-teal-500/50"
+                : "border-slate-800/60 opacity-60"
+            }`}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+                  <Activity className="w-5 h-5" />
+                </div>
+                {isSfaActive ? (
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Active & Subscribed
+                  </span>
+                ) : isPharmaTenant ? (
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/20">
+                    Pharma Add-on (Optional)
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Pharma Only
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>Pharma SFA & Field Force</span>
+                  <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">ADD-ON</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  For Pharma companies, PCD franchises, & C&F agencies. MR field force, calling beats, doctor directory, stockist allocation, trade schemes, tour plans, and DCR.
+                </p>
+              </div>
+
+              {isSfaActive ? (
+                <div className="p-3.5 rounded-xl bg-teal-950/30 border border-teal-500/20 space-y-2.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-teal-400" />
+                      MR Seats Quota:
+                    </span>
+                    <span className="font-bold text-teal-300">
+                      {sfaQuota?.currentActiveMrUsers ?? 0} / {sfaQuota?.maxAllowedMrUsers ?? 15} Seats
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-teal-500 h-1.5 rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(5, ((sfaQuota?.currentActiveMrUsers ?? 0) / (sfaQuota?.maxAllowedMrUsers ?? 15)) * 100))}%`
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-xs pt-1 border-t border-teal-900/50">
+                    <span className="text-slate-300 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-teal-400" />
+                      Manager Seats:
+                    </span>
+                    <span className="font-bold text-teal-300">
+                      {sfaQuota?.currentActiveManagerUsers ?? 0} / {sfaQuota?.maxAllowedManagerUsers ?? 5} Seats
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs font-semibold text-white">15 MR + 5 Manager Seats</div>
+                    <span className="text-xs font-bold text-teal-400">Included in Add-on</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Dedicated field-force roster, doctors & chemists directory, MTP, and POB orders.
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[11px] text-slate-400 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span>HQ, Division & Calling Beats hierarchy</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span>Doctors, Prescribers & Chemist Stockists</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span>Commercial Trade Schemes, Slabs & Free Goods</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span>MTP Tour Plans & POB Orders to Invoice</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/80 space-y-2">
+              {isSfaActive ? (
+                <>
+                  <Link
+                    href="/app/pharma/field-force"
+                    className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Activity className="w-3.5 h-3.5" />
+                    <span>Open Field Force & MR Roster</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleDeactivateSfa}
+                    disabled={deactivatingSfa}
+                    className="w-full py-1.5 px-3 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-[11px] font-medium transition-all cursor-pointer text-center"
+                  >
+                    {deactivatingSfa ? "Deactivating..." : "Deactivate SFA Add-On"}
+                  </button>
+                </>
+              ) : isPharmaTenant ? (
+                <button
+                  type="button"
+                  onClick={handleActivateSfa}
+                  disabled={activatingSfa}
+                  className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-teal-600/25"
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>{activatingSfa ? "Activating SFA Add-on..." : "Subscribe to Pharma SFA Add-on"}</span>
+                </button>
+              ) : (
+                <div className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-xs font-medium flex items-center justify-center gap-2">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Requires Pharma Core Plan</span>
+                </div>
+              )}
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+
+      {/* Commercial Policy Guarantee Note */}
+      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+        <div className="text-xs text-slate-400 leading-relaxed">
+          <strong className="text-slate-300">UdyogBill Transparent Commercial Policy: </strong>
+          Industry packs (Pharma, FMCG, Electronics, Garments, Hardware, Service Sector, Retail) are <span className="text-emerald-400 font-semibold">100% included in your core plan</span> and are never charged as separate monthly add-ons. You only pay for additional staff capacity or optional AI document scanning.
+        </div>
+      </div>
     </div>
   );
 }

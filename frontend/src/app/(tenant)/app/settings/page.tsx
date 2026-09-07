@@ -22,7 +22,10 @@ import {
   Server,
   AlertCircle,
   Check,
-  RefreshCw
+  RefreshCw,
+  Bot,
+  Users,
+  Shield
 } from "lucide-react";
 import {
   tenantAppService,
@@ -42,6 +45,27 @@ export default function TenantSettingsPage() {
   const [testEmailAddress, setTestEmailAddress] = useState("");
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ success?: boolean; message?: string } | null>(null);
+
+  // UdyogMitra Staff Access State
+  const [staffAiAccess, setStaffAiAccess] = useState(true);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("udyogbill_staff_ai_access");
+      if (stored !== null) {
+        setStaffAiAccess(stored === "true");
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleStaffAiAccess = (val: boolean) => {
+    setStaffAiAccess(val);
+    try {
+      localStorage.setItem("udyogbill_staff_ai_access", String(val));
+      setSuccessMsg("UdyogMitra Assistant permissions updated.");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch {}
+  };
 
   const [profileForm, setProfileForm] = useState<UpdateBusinessProfileInput>({
     businessName: "",
@@ -239,28 +263,26 @@ export default function TenantSettingsPage() {
       )}
 
       {/* Appearance & Color Theme Studio */}
-      <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-6 shadow-sm">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-850">
+      <div className="p-6 rounded-2xl bg-surface border border-border/40 space-y-6 shadow-xs">
+        <div className="flex items-center justify-between pb-4 border-b border-border/40">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight flex items-center space-x-2">
-              <Palette className="w-5 h-5 text-pink-400" />
+            <h2 className="text-base font-bold text-foreground tracking-tight flex items-center space-x-2">
+              <Palette className="w-5 h-5 text-primary" />
               <span>Appearance & Workspace Theme</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Customize your workspace UI theme for day/night billing and fast readability.
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Choose your workspace theme for daytime billing or comfortable nighttime accounting.
             </p>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-pink-500/10 text-pink-400 border border-pink-500/20 capitalize">
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 capitalize">
             {theme} Active
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
           {[
-            { id: "dark" as ThemeType, title: "Midnight Dark", subtitle: "High-contrast dark mode", icon: Moon, bg: "bg-slate-950 border-slate-800 text-slate-100" },
-            { id: "light" as ThemeType, title: "Daylight Bright", subtitle: "Clean white day billing", icon: Sun, bg: "bg-slate-100 border-slate-300 text-slate-900" },
-            { id: "navy" as ThemeType, title: "Royal Navy Blue", subtitle: "Deep corporate theme", icon: Sparkles, bg: "bg-blue-950 border-blue-800 text-blue-100" },
-            { id: "emerald" as ThemeType, title: "Emerald Green", subtitle: "Pharma & FMCG retail", icon: Palette, bg: "bg-emerald-950 border-emerald-800 text-emerald-100" },
+            { id: "light" as ThemeType, title: "Light Theme", subtitle: "Crisp daylight billing canvas", icon: Sun, bg: "bg-slate-100 border-slate-300 text-slate-900" },
+            { id: "dark" as ThemeType, title: "Dark Theme", subtitle: "Comfortable midnight slate", icon: Moon, bg: "bg-slate-900 border-slate-800 text-slate-100" },
           ].map((item) => {
             const isSelected = theme === item.id;
             const Icon = item.icon;
@@ -270,8 +292,8 @@ export default function TenantSettingsPage() {
                 onClick={() => setTheme(item.id)}
                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${
                   isSelected
-                    ? "border-indigo-500 bg-indigo-950/30 shadow-lg shadow-indigo-500/10"
-                    : "border-slate-800 bg-slate-900/40 hover:border-slate-700"
+                    ? "border-primary bg-primary/10 shadow-xs"
+                    : "border-border/40 bg-surface hover:border-border"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -279,18 +301,63 @@ export default function TenantSettingsPage() {
                     <Icon className="w-4 h-4" />
                   </div>
                   {isSelected && (
-                    <span className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs">
+                    <span className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
                       ✓
                     </span>
                   )}
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white">{item.title}</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">{item.subtitle}</div>
+                  <div className="text-sm font-bold text-foreground">{item.title}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{item.subtitle}</div>
                 </div>
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* UdyogMitra AI Assistant & Team Permissions */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 space-y-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-indigo-800/30">
+          <div>
+            <div className="flex items-center space-x-2">
+              <Bot className="w-5 h-5 text-indigo-400" />
+              <h2 className="text-base font-bold text-white tracking-tight">
+                UdyogMitra AI Copilot &amp; Staff Access
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+                Included Free
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
+              Zero-error intelligent assistant that helps with billing guidance, fast navigation, and live payment &amp; stock figures in Hindi/Hinglish.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <Users className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold text-white">Staff / Non-Admin Access</span>
+            </div>
+            <p className="text-[11px] text-slate-400 max-w-xl">
+              Enable or disable UdyogMitra assistant for non-admin team members (billing clerks, cashiers, salesmen). When enabled, staff can ask software navigation questions while their financial access remains strictly guarded by their role.
+            </p>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={staffAiAccess}
+              onChange={(e) => handleToggleStaffAiAccess(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <span className="ml-3 text-xs font-semibold text-slate-300">
+              {staffAiAccess ? "Allowed for Staff" : "Disabled for Staff"}
+            </span>
+          </label>
         </div>
       </div>
 

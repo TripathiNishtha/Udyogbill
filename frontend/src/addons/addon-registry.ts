@@ -1,10 +1,12 @@
 import { LucideIcon } from "lucide-react";
 import { UpdateTenantIndustryConfigInput } from "@/services/tenant-app-services";
 import { pharmaAddonManifest } from "./pharma/manifest";
+import { pharmaSfaAddonManifest } from "./pharma-sfa/manifest";
 import { garmentsAddonManifest } from "./garments/manifest";
 import { manufacturingAddonManifest } from "./manufacturing/manifest";
 import { fmcgAddonManifest } from "./fmcg/manifest";
 import { accountingAddonManifest } from "./accounting/manifest";
+import { whatsappAddonManifest } from "./whatsapp/manifest";
 
 export interface NavItem {
   label: string;
@@ -20,7 +22,7 @@ export interface NavGroup {
 }
 
 export interface AddonManifest {
-  id: "pharma" | "garments" | "manufacturing" | "fmcg" | "accounting" | string;
+  id: "pharma" | "pharma-sfa" | "garments" | "manufacturing" | "fmcg" | "accounting" | "whatsapp" | string;
   name: string;
   titleHindi?: string;
   description: string;
@@ -34,6 +36,8 @@ export interface AddonManifest {
 
 export const ALL_ADDONS: AddonManifest[] = [
   pharmaAddonManifest,
+  pharmaSfaAddonManifest,
+  whatsappAddonManifest,
   garmentsAddonManifest,
   manufacturingAddonManifest,
   fmcgAddonManifest,
@@ -63,6 +67,11 @@ export function isAddonActiveInConfig(
     }
   } catch {
     // Ignore JSON parsing issues
+  }
+
+  // Accounting is a core platform capability enabled by default for all subscribed tenants unless explicitly turned off
+  if (addon.id === "accounting") {
+    return true;
   }
 
   // If addon has specific boolean feature flags, check if any of them is enabled

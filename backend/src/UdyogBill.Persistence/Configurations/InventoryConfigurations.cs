@@ -84,8 +84,8 @@ public class ItemConfiguration : IEntityTypeConfiguration<Item>
         builder.Property(i => i.Barcode).HasMaxLength(100);
         builder.Property(i => i.HSNCode).HasMaxLength(20);
 
-        builder.Property(i => i.TaxRate).HasPrecision(5, 2);
-        builder.Property(i => i.CessRate).HasPrecision(5, 2);
+        builder.Property(i => i.TaxRate).HasPrecision(18, 4);
+        builder.Property(i => i.CessRate).HasPrecision(18, 4);
         builder.Property(i => i.PurchasePrice).HasPrecision(18, 4);
         builder.Property(i => i.SellingPrice).HasPrecision(18, 4);
         builder.Property(i => i.MRP).HasPrecision(18, 4);
@@ -206,11 +206,16 @@ public class ItemWarehouseStockConfiguration : IEntityTypeConfiguration<ItemWare
         builder.Property(s => s.ReservedQuantity).HasPrecision(18, 4);
         builder.Property(s => s.ReorderLevel).HasPrecision(18, 4);
 
-        builder.HasIndex(s => new { s.TenantId, s.ItemId, s.WarehouseId, s.BatchId }).IsUnique();
+        builder.HasIndex(s => new { s.TenantId, s.ItemId, s.VariantId, s.WarehouseId, s.BatchId }).IsUnique();
 
         builder.HasOne(s => s.Item)
             .WithMany(i => i.WarehouseStocks)
             .HasForeignKey(s => s.ItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(s => s.Variant)
+            .WithMany()
+            .HasForeignKey(s => s.VariantId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(s => s.Warehouse)
@@ -246,6 +251,11 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
             .WithMany()
             .HasForeignKey(sm => sm.ItemId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(sm => sm.Variant)
+            .WithMany()
+            .HasForeignKey(sm => sm.VariantId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(sm => sm.Warehouse)
             .WithMany()

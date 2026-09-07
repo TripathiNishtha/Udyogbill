@@ -1,0 +1,1269 @@
+/**
+ * UdyogBill — New Invoice (/sells/create)
+ * Scoped: .ub-new-invoice-page / .ub-new-invoice-header only
+ * Palette: dashboard brown/orange (matches Sales Payment Due card)
+ */
+
+/* ── Page shell ── */
+section.content.no-print:has(.ub-new-invoice-page) {
+    background: #faf6f0 !important;
+    padding: 0.25rem 10px 0.75rem !important;
+}
+
+.ub-new-invoice-page {
+    --inv-bg: #faf6f0;
+    --inv-primary: #f58220;
+    --inv-primary-dark: #3e362d;
+    --inv-brown-header: linear-gradient(135deg, #1c1410 0%, #3b2a1a 55%, #4a3728 100%);
+    --inv-secondary: #c45f0f;
+    --inv-success: #059669;
+    --inv-required: #dc2626;
+    --inv-required-bg: #fef2f2;
+    --inv-required-border: #fca5a5;
+    --inv-optional: #78716c;
+    --inv-optional-bg: #fafaf9;
+    --inv-surface: #ffffff;
+    --inv-navy: #1c1917;
+    --inv-radius: 12px;
+    --inv-radius-sm: 6px;
+    --inv-shadow: 0 8px 24px rgba(62, 54, 45, 0.10);
+    --inv-shadow-sm: 0 3px 10px rgba(245, 130, 32, 0.10);
+    --inv-transition: 0.2s ease;
+    font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+    padding-bottom: 0.75rem;
+    animation: ubInvIn 0.4s ease;
+}
+
+@keyframes ubInvIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Page header strip ── */
+.ub-new-invoice-header {
+    background: var(--inv-brown-header);
+    margin: -0.25rem -10px 0.65rem;
+    padding: 0.65rem 0.9rem 0.6rem;
+    border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 0 0 var(--inv-radius-sm) var(--inv-radius-sm);
+    box-shadow: 0 4px 16px rgba(28, 20, 16, 0.22);
+}
+
+.ub-new-invoice-header__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #fff7ed !important;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.ub-new-invoice-header__subtitle {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    color: #d6d3d1;
+    font-weight: 500;
+}
+
+/* ── Dashboard-style cards ── */
+.ub-new-invoice-page .ub-table-card {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    padding: 12px 14px 14px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #d6d3d1;
+    border-radius: var(--inv-radius);
+    box-shadow: var(--inv-shadow);
+}
+
+.ub-new-invoice-page .ub-inv-location-card {
+    margin-bottom: 0.65rem;
+}
+
+.ub-new-invoice-page .ub-inv-section {
+    margin-bottom: 0;
+}
+
+/* ── Card headers (dark brown — like Sales Payment Due) ── */
+.ub-new-invoice-page .ub-card-header {
+    margin: -2px -2px 10px;
+    padding: 10px 12px;
+    border-radius: var(--inv-radius-sm);
+    background: var(--inv-brown-header);
+}
+
+.ub-new-invoice-page .ub-card-header--split {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ub-new-invoice-page .ub-card-header h3 {
+    margin: 0 0 2px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff7ed !important;
+    line-height: 1.25;
+}
+
+.ub-new-invoice-page .ub-card-header p {
+    margin: 0;
+    font-size: 11px;
+    color: #d6d3d1 !important;
+    line-height: 1.35;
+}
+
+.ub-new-invoice-page .ub-card-tag {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(245, 130, 32, 0.18);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    color: #fcd34d;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.ub-new-invoice-page .ub-section-badge {
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+.ub-new-invoice-page .ub-section-badge--required {
+    background: rgba(220, 38, 38, 0.15);
+    color: #fecaca;
+    border: 1px solid rgba(252, 165, 165, 0.45);
+}
+
+.ub-new-invoice-page .ub-optional-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fcd34d;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    vertical-align: middle;
+}
+
+/* ── Card body ── */
+.ub-new-invoice-page .ub-inv-card-body {
+    padding: 0;
+}
+
+.ub-new-invoice-page .ub-inv-card-body--products {
+    padding-top: 2px;
+}
+
+/* ── Inner widgets — flatten nested card chrome ── */
+.ub-new-invoice-page .ub-inv-card,
+.ub-new-invoice-page .box-solid,
+.ub-new-invoice-page .box {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+}
+
+.ub-new-invoice-page .ub-inv-card > .tw-p-2,
+.ub-new-invoice-page .box-solid > .tw-p-2 {
+    padding: 0 !important;
+}
+
+.ub-new-invoice-page .box-header {
+    display: none;
+}
+
+.ub-new-invoice-page .tw-flow-root .tw-py-2 {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.ub-new-invoice-page .tw-flow-root .sm\:tw-px-5 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* ── Optional collapsible ── */
+.ub-new-invoice-page .ub-inv-section--optional {
+    border: 0;
+    padding: 0;
+    background: transparent;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible {
+    margin-bottom: 0.45rem;
+    border-radius: var(--inv-radius-sm);
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(28, 20, 16, 0.06);
+    transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible:last-child {
+    margin-bottom: 0;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 36px;
+    cursor: pointer;
+    list-style: none;
+    padding: 0.5rem 0.75rem;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #1c1917;
+    background: #fff8f0;
+    border-bottom: 1px solid transparent;
+    transition: background 0.18s ease, border-color 0.18s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible > summary::-webkit-details-marker {
+    display: none;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible > summary::before {
+    content: "▸";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    margin-right: 0.15rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--inv-primary);
+    background: rgba(245, 130, 32, 0.12);
+    border-radius: 4px;
+    transition: transform 0.18s ease;
+}
+
+.ub-new-invoice-page .ub-inv-summary-label {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.ub-new-invoice-page .ub-inv-summary-label::after {
+    content: " — click to expand";
+    font-weight: 500;
+    font-size: 0.7rem;
+    color: #78716c;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible[open] .ub-inv-summary-label::after {
+    content: "";
+}
+
+.ub-new-invoice-page .ub-inv-collapsible > summary .ub-optional-badge {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible--shipping > summary {
+    background: #fff8f0;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible--transport > summary {
+    background: #fffbeb;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible > summary:hover {
+    background: #ffedd5;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.ub-new-invoice-page .ub-inv-collapsible[open] {
+    border-color: rgba(245, 130, 32, 0.45);
+    box-shadow: 0 4px 14px rgba(245, 130, 32, 0.10);
+}
+
+.ub-new-invoice-page .ub-inv-collapsible[open] > summary {
+    border-bottom-color: #e7e5e4;
+    background: #fff7ed;
+}
+
+.ub-new-invoice-page .ub-inv-collapsible-body {
+    padding: 0.5rem 0.5rem 0.25rem;
+    background: #fff;
+    border-top: 1px solid #f5f5f4;
+}
+
+.ub-new-invoice-page .ub-invoice-section-title {
+    display: none;
+}
+
+/* ── Compact grid & form spacing ── */
+.ub-new-invoice-page .box-body {
+    padding: 4px 2px !important;
+}
+
+.ub-new-invoice-page .form-group {
+    margin-bottom: 8px !important;
+}
+
+.ub-new-invoice-page .row {
+    margin-left: -6px;
+    margin-right: -6px;
+}
+
+.ub-new-invoice-page .row > [class*="col-"] {
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+/* ── Location row ── */
+.ub-new-invoice-page .ub-inv-location-row {
+    margin-bottom: 0;
+}
+
+.ub-new-invoice-page .ub-inv-location-row .form-group {
+    background: #fff;
+    border-radius: var(--inv-radius-sm);
+    padding: 0.4rem 0.55rem;
+    border: 1px solid #d6d3d1;
+    box-shadow: none;
+    margin-bottom: 0 !important;
+}
+
+/* ── Required fields ── */
+.ub-new-invoice-page .ub-field-required label,
+.ub-new-invoice-page .form-group:has([required]) label,
+.ub-new-invoice-page .form-group:has(select[required]) label {
+    font-weight: 700 !important;
+    color: #991b1b !important;
+    font-size: 0.8125rem;
+}
+
+.ub-new-invoice-page .ub-field-required label::after,
+.ub-new-invoice-page .form-group:has([required]) label::after,
+.ub-new-invoice-page .form-group:has(select[required]) label::after {
+    content: "Required";
+    display: inline-block;
+    margin-left: 0.45rem;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: var(--inv-required);
+    border-radius: 999px;
+    vertical-align: middle;
+}
+
+.ub-new-invoice-page .ub-field-required .form-control,
+.ub-new-invoice-page .form-group:has([required]) .form-control,
+.ub-new-invoice-page .ub-field-required .select2-container--default .select2-selection--single,
+.ub-new-invoice-page .form-group:has([required]) .select2-container--default .select2-selection--single {
+    border: 2px solid var(--inv-required-border) !important;
+    background: var(--inv-required-bg) !important;
+    border-radius: var(--inv-radius-sm) !important;
+    min-height: 32px;
+    transition: border-color var(--inv-transition), box-shadow var(--inv-transition);
+}
+
+.ub-new-invoice-page .ub-field-required .select2-container--default .select2-selection--single,
+.ub-new-invoice-page .form-group:has([required]) .select2-container--default .select2-selection--single {
+    min-height: 32px;
+    height: 32px;
+}
+
+.ub-new-invoice-page .ub-field-required .form-control:focus,
+.ub-new-invoice-page .form-group:has([required]) .form-control:focus {
+    border-color: var(--inv-required) !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+    outline: none;
+}
+
+.ub-new-invoice-page .ub-field-required .select2-container--default.select2-container--open .select2-selection--single,
+.ub-new-invoice-page .form-group:has([required]) .select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--inv-required) !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+
+/* ── Standard inputs ── */
+.ub-new-invoice-page label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #44403c;
+    margin-bottom: 0.2rem;
+}
+
+.ub-new-invoice-page .form-control {
+    border-radius: var(--inv-radius-sm);
+    border-color: #d6d3d1;
+    min-height: 32px;
+    height: 32px;
+    padding: 4px 8px;
+    font-size: 0.8125rem;
+    transition: border-color var(--inv-transition), box-shadow var(--inv-transition);
+    background: #fff;
+}
+
+.ub-new-invoice-page textarea.form-control {
+    height: auto;
+    min-height: 52px;
+}
+
+.ub-new-invoice-page .form-control:focus {
+    border-color: var(--inv-primary);
+    box-shadow: 0 0 0 3px rgba(245, 130, 32, 0.18);
+}
+
+.ub-new-invoice-page .input-group-addon {
+    background: #fff8f0;
+    border-color: #d6d3d1;
+    color: var(--inv-primary);
+}
+
+.ub-new-invoice-page .select2-container--default .select2-selection--single {
+    border-radius: var(--inv-radius-sm);
+    min-height: 32px;
+    height: 32px;
+    border-color: #d6d3d1;
+    background: #fff;
+}
+
+.ub-new-invoice-page .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 30px !important;
+    font-size: 0.8125rem;
+    padding-left: 8px;
+    color: #1c1917;
+}
+
+.ub-new-invoice-page .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+}
+
+.ub-new-invoice-page hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e7e5e4, transparent);
+    margin: 0.5rem 0;
+}
+
+/* ── Product table (dashboard dark thead) ── */
+.ub-new-invoice-page .table-responsive {
+    border-radius: var(--inv-radius-sm);
+    border: 1px solid #d6d3d1;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    background: #fff;
+}
+
+.ub-new-invoice-page .table-responsive + .table-responsive {
+    border: none;
+    background: transparent;
+}
+
+.ub-new-invoice-page #pos_table {
+    border-radius: 0;
+    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 0;
+}
+
+.ub-new-invoice-page #pos_table thead th {
+    background: #44403c !important;
+    color: #fafaf9 !important;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-color: #57534e !important;
+    padding: 5px 7px !important;
+    position: static;
+    z-index: 1;
+}
+
+.ub-new-invoice-page #pos_table tbody td {
+    border-color: #e7e5e4 !important;
+    vertical-align: middle;
+    font-size: 12px;
+    color: #1c1917;
+    padding: 4px 7px !important;
+}
+
+.ub-new-invoice-page #pos_table tbody tr:nth-child(even) td {
+    background: #fafaf9;
+}
+
+.ub-new-invoice-page #pos_table tbody tr:hover td {
+    background: #fff7ed !important;
+}
+
+.ub-new-invoice-page .table-responsive + .table-responsive table {
+    background: linear-gradient(90deg, #fff8f0, #fff);
+    border: 1px solid #e7e5e4;
+    border-radius: var(--inv-radius-sm);
+}
+
+.ub-new-invoice-page .price_total,
+.ub-new-invoice-page .total_quantity {
+    color: var(--inv-success);
+    font-weight: 800;
+    font-size: 1.05rem;
+}
+
+/* ── Product search — highlighted banner ── */
+.ub-new-invoice-page .ub-inv-product-search-banner {
+    margin: 0.75rem 0 0.35rem;
+    padding: 12px 14px 14px;
+    border-radius: 12px;
+    border: 2px solid #f58220;
+    border-left: 5px solid #3e362d;
+    background:
+        linear-gradient(135deg, #fff8f0 0%, #ffffff 45%, #fff7ed 100%);
+    box-shadow:
+        0 0 0 4px rgba(245, 130, 32, 0.12),
+        0 10px 28px rgba(62, 54, 45, 0.14);
+    position: relative;
+    overflow: hidden;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(245, 130, 32, 0.18) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner__icon {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3e362d 0%, #5c4a3a 100%);
+    color: #fcd34d;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px rgba(62, 54, 45, 0.25);
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner__tag {
+    display: inline-block;
+    width: fit-content;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(245, 130, 32, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    color: #c45f0f;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner__title {
+    display: block;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1c1917;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner__hint {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #78716c;
+    line-height: 1.3;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-banner__field {
+    position: relative;
+    z-index: 1;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-form {
+    margin-bottom: 0 !important;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-input {
+    border: 2px solid #f58220 !important;
+    border-radius: 999px !important;
+    overflow: hidden;
+    background: #fff !important;
+    box-shadow:
+        0 4px 16px rgba(245, 130, 32, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.ub-new-invoice-page .ub-inv-product-search-input:focus-within {
+    border-color: #c45f0f !important;
+    box-shadow:
+        0 0 0 5px rgba(245, 130, 32, 0.22),
+        0 8px 24px rgba(245, 130, 32, 0.28);
+    transform: translateY(-1px);
+}
+
+.ub-new-invoice-page #search_product {
+    min-height: 44px;
+    height: 44px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1c1917;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent;
+    padding-left: 4px;
+}
+
+.ub-new-invoice-page #search_product::placeholder {
+    color: #a8a29e;
+    font-weight: 500;
+}
+
+.ub-new-invoice-page #search_product:disabled {
+    background: #fafaf9;
+    cursor: not-allowed;
+}
+
+.ub-new-invoice-page .ub-inv-search-config-btn,
+.ub-new-invoice-page .ub-inv-search-add-btn {
+    min-height: 44px !important;
+    height: 44px !important;
+    width: 44px;
+    padding: 0 !important;
+    border: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.ub-new-invoice-page .ub-inv-search-config-btn {
+    background: #fff8f0 !important;
+    color: #c45f0f !important;
+    border-right: 1px solid #fed7aa !important;
+    font-size: 1rem;
+}
+
+.ub-new-invoice-page .ub-inv-search-add-btn {
+    background: linear-gradient(135deg, #f58220, #e86b00) !important;
+    color: #fff !important;
+    border-left: 1px solid #ea580c !important;
+}
+
+.ub-new-invoice-page .ub-inv-search-add-btn .fa-plus-circle {
+    color: #fff !important;
+}
+
+.ub-new-invoice-page .ub-inv-search-config-btn:hover {
+    background: #ffedd5 !important;
+}
+
+.ub-new-invoice-page .ub-inv-search-add-btn:hover {
+    background: linear-gradient(135deg, #ea580c, #c2410c) !important;
+}
+
+/* Legacy selector fallback */
+.ub-new-invoice-page .col-sm-10.col-sm-offset-1 > .form-group > .input-group {
+    border: 1px solid #d6d3d1;
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: var(--inv-shadow-sm);
+    background: #fff;
+    transition: border-color var(--inv-transition), box-shadow var(--inv-transition);
+}
+
+.ub-new-invoice-page .col-sm-10.col-sm-offset-1 > .form-group > .input-group:focus-within {
+    border-color: var(--inv-primary);
+    box-shadow: 0 0 0 3px rgba(245, 130, 32, 0.15);
+}
+
+.ub-new-invoice-page .col-sm-10.col-sm-offset-1 .input-group-btn .btn {
+    min-height: 34px;
+    height: 34px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border: none;
+    background: #fff8f0 !important;
+    color: var(--inv-primary) !important;
+}
+
+.ub-new-invoice-page .pos_add_quick_product .fa-plus-circle {
+    color: var(--inv-primary) !important;
+}
+
+/* ── Totals ── */
+.ub-new-invoice-page #total_discount,
+.ub-new-invoice-page #order_tax,
+.ub-new-invoice-page #total_payable,
+.ub-new-invoice-page .balance_due {
+    color: var(--inv-success);
+    font-weight: 800;
+}
+
+.ub-new-invoice-page .ub-inv-total-payable {
+    background: linear-gradient(135deg, #fff8f0 0%, #fff 100%);
+    border: 1px solid rgba(245, 130, 32, 0.35);
+    border-left: 4px solid var(--inv-primary);
+    border-radius: var(--inv-radius-sm);
+    padding: 1rem 1.15rem;
+    text-align: right;
+    font-size: 1.1rem;
+    box-shadow: var(--inv-shadow-sm);
+}
+
+.ub-new-invoice-page #total_payable {
+    font-size: 1.45rem;
+    color: var(--inv-success);
+}
+
+.ub-new-invoice-page .well.bg-light-gray {
+    background: #fafaf9 !important;
+    border: 1px dashed #d6d3d1 !important;
+    border-radius: var(--inv-radius-sm) !important;
+}
+
+/* ── Payment ── */
+.ub-new-invoice-page .payment_row .well {
+    background: #fafaf9 !important;
+    border-radius: var(--inv-radius-sm);
+    border: 1px solid #e7e5e4 !important;
+}
+
+/* ── Action bar ── */
+.ub-new-invoice-page .ub-inv-action-bar {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-top: 0.65rem;
+    padding: 0.75rem 0.9rem !important;
+    background: #fff !important;
+    border: 1px solid #d6d3d1 !important;
+    border-radius: var(--inv-radius) !important;
+    box-shadow: var(--inv-shadow) !important;
+}
+
+.ub-new-invoice-page .ub-inv-action-bar__total {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.ub-new-invoice-page .ub-inv-action-bar__label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #78716c;
+}
+
+.ub-new-invoice-page .ub-inv-action-bar__amount {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--inv-success);
+    line-height: 1.1;
+}
+
+.ub-new-invoice-page .ub-inv-action-bar__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.ub-new-invoice-page .ub-inv-btn-save {
+    background: linear-gradient(135deg, #f58220, #c45f0f) !important;
+    border: none !important;
+    border-radius: var(--inv-radius-sm) !important;
+    min-width: 110px;
+    min-height: 36px;
+    padding: 6px 14px !important;
+    font-size: 0.875rem !important;
+    box-shadow: 0 4px 14px rgba(245, 130, 32, 0.28);
+    transition: transform var(--inv-transition), box-shadow var(--inv-transition);
+}
+
+.ub-new-invoice-page .ub-inv-btn-print {
+    border-radius: var(--inv-radius-sm) !important;
+    min-width: 130px;
+    min-height: 36px;
+    padding: 6px 14px !important;
+    font-size: 0.875rem !important;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.2);
+    transition: transform var(--inv-transition);
+}
+
+.ub-new-invoice-page .ub-inv-btn-save:hover,
+.ub-new-invoice-page .ub-inv-btn-print:hover {
+    transform: translateY(-2px);
+}
+
+/* ── Address snippets ── */
+.ub-new-invoice-page #billing_address_div,
+.ub-new-invoice-page #shipping_address_div {
+    background: #fff8f0;
+    border-radius: var(--inv-radius-sm);
+    padding: 0.4rem 0.55rem;
+    font-size: 0.8rem;
+    border: 1px solid #e7e5e4;
+}
+
+.ub-new-invoice-page .help-block {
+    font-size: 0.75rem;
+    color: #78716c;
+}
+
+/* ── Export section ── */
+.ub-new-invoice-page .ub-inv-section--export {
+    margin-bottom: 0.75rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 991px) {
+    .ub-new-invoice-page #pos_table thead th {
+        position: static;
+    }
+
+    .ub-new-invoice-header {
+        margin-left: -10px;
+        margin-right: -10px;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .ub-new-invoice-page .ub-card-header--split {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 767px) {
+    .ub-new-invoice-header__title {
+        font-size: 1.1rem;
+    }
+
+    .ub-new-invoice-page .ub-inv-action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ub-new-invoice-page .ub-inv-action-bar__buttons {
+        flex-direction: column;
+    }
+
+    .ub-new-invoice-page .ub-inv-btn-save,
+    .ub-new-invoice-page .ub-inv-btn-print {
+        width: 100%;
+    }
+
+    .ub-new-invoice-page .col-sm-10.col-sm-offset-1 {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .ub-new-invoice-page .ub-inv-product-search-banner {
+        padding: 10px 10px 12px;
+    }
+
+    .ub-new-invoice-page .ub-inv-product-search-banner__title {
+        font-size: 0.92rem;
+    }
+
+    .ub-new-invoice-page #search_product {
+        font-size: 0.88rem;
+        min-height: 40px;
+        height: 40px;
+    }
+
+    .ub-new-invoice-page .ub-inv-search-config-btn,
+    .ub-new-invoice-page .ub-inv-search-add-btn {
+        min-height: 40px !important;
+        height: 40px !important;
+        width: 40px;
+    }
+
+    .ub-new-invoice-page .ub-table-card {
+        padding: 10px 10px 12px;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   Product row — professional line-item layout (invoice only)
+   ══════════════════════════════════════════════════════════ */
+
+.ub-new-invoice-page #pos_table .product_row td {
+    vertical-align: top;
+    padding: 10px 8px !important;
+    white-space: normal;
+}
+
+.ub-new-invoice-page #pos_table .product_row:hover td {
+    background: #fffbf5 !important;
+}
+
+/* ── Product column ── */
+.ub-new-invoice-page .ub-pos-product-cell {
+    min-width: 240px;
+    max-width: 320px;
+}
+
+.ub-new-invoice-page .ub-pos-product-cell__main {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ub-new-invoice-page .ub-pos-product-cell__thumb {
+    flex-shrink: 0;
+}
+
+.ub-new-invoice-page .ub-pos-product-thumb {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e7e5e4;
+    background: #fafaf9;
+    display: block;
+}
+
+.ub-new-invoice-page .ub-pos-product-cell__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.ub-new-invoice-page .ub-pos-product-cell__name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.ub-new-invoice-page .ub-pos-product-title {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #1c1917;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.ub-new-invoice-page .ub-pos-product-brand {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #78716c;
+}
+
+.ub-new-invoice-page .ub-pos-product-sku {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #a8a29e;
+    letter-spacing: 0.02em;
+}
+
+.ub-new-invoice-page .ub-pos-product-name-link {
+    display: block;
+}
+
+.ub-new-invoice-page .ub-pos-stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #047857;
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ub-new-invoice-page .ub-pos-product-cell__extras {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e7e5e4;
+}
+
+.ub-new-invoice-page .ub-pos-lot-select,
+.ub-new-invoice-page .ub-pos-line-note {
+    width: 100%;
+    max-width: 100%;
+    min-height: 30px;
+    height: auto;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    border-color: #d6d3d1;
+}
+
+.ub-new-invoice-page .ub-pos-line-note::placeholder {
+    color: #a8a29e;
+    font-size: 0.72rem;
+}
+
+/* ── Quantity column ── */
+.ub-new-invoice-page .ub-pos-field-cell--qty {
+    min-width: 120px;
+}
+
+.ub-new-invoice-page .ub-pos-qty-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.ub-new-invoice-page .ub-pos-qty-input {
+    min-width: 118px;
+    border: 1px solid #d6d3d1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(28, 20, 16, 0.06);
+}
+
+.ub-new-invoice-page .ub-pos-qty-input .ub-pos-qty-field {
+    width: 52px !important;
+    min-width: 52px;
+    max-width: 64px;
+    text-align: center;
+    font-weight: 700;
+    border: none !important;
+    box-shadow: none !important;
+    height: 32px;
+    padding: 0 4px;
+    background: #fff;
+}
+
+.ub-new-invoice-page .ub-pos-qty-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none !important;
+    background: #fafaf9 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ub-new-invoice-page .ub-pos-qty-btn--minus {
+    border-right: 1px solid #e7e5e4 !important;
+}
+
+.ub-new-invoice-page .ub-pos-qty-btn--plus {
+    border-left: 1px solid #e7e5e4 !important;
+}
+
+.ub-new-invoice-page .ub-pos-unit-label {
+    text-align: center;
+}
+
+.ub-new-invoice-page .ub-pos-unit-text {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #c2410c;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ub-new-invoice-page .ub-pos-unit-select {
+    min-width: 72px;
+    max-width: 100px;
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    text-align: center;
+}
+
+.ub-new-invoice-page .ub-pos-second-unit {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #e7e5e4;
+}
+
+.ub-new-invoice-page .ub-pos-second-unit__label {
+    display: block;
+    font-size: 0.68rem;
+    color: #78716c;
+    margin-bottom: 3px;
+    white-space: normal;
+}
+
+.ub-new-invoice-page .ub-pos-second-unit__input {
+    height: 28px;
+    min-height: 28px;
+    font-size: 0.75rem;
+}
+
+/* ── Free qty, price, discount, tax, subtotal ── */
+.ub-new-invoice-page .ub-pos-field-cell {
+    min-width: 88px;
+}
+
+.ub-new-invoice-page .ub-pos-free-qty,
+.ub-new-invoice-page .ub-pos-price-input,
+.ub-new-invoice-page .ub-pos-inc-tax-input,
+.ub-new-invoice-page .ub-pos-discount-amount,
+.ub-new-invoice-page .ub-pos-discount-type,
+.ub-new-invoice-page .ub-pos-warranty-select,
+.ub-new-invoice-page .ub-pos-field-cell--tax .tax_id {
+    width: 100% !important;
+    min-width: 80px;
+    max-width: 110px;
+    height: 32px;
+    min-height: 32px;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border-color: #d6d3d1;
+}
+
+.ub-new-invoice-page .ub-pos-price-stack,
+.ub-new-invoice-page .ub-pos-discount-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+}
+
+.ub-new-invoice-page .ub-pos-discount-type {
+    max-width: 110px;
+    height: 28px;
+    min-height: 28px;
+    font-size: 0.72rem;
+}
+
+.ub-new-invoice-page .ub-pos-prev-hint {
+    display: block;
+    margin-top: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #fafaf9;
+    border: 1px solid #f5f5f4;
+    color: #78716c !important;
+    font-size: 0.65rem !important;
+    line-height: 1.3;
+    white-space: normal;
+    max-width: 120px;
+}
+
+.ub-new-invoice-page .ub-pos-field-cell--subtotal {
+    min-width: 96px;
+}
+
+.ub-new-invoice-page .ub-pos-subtotal-text {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #047857 !important;
+    font-size: 0.85rem !important;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.ub-new-invoice-page .ub-pos-subtotal-input {
+    text-align: right;
+    font-weight: 700;
+}
+
+/* ── Remove button ── */
+.ub-new-invoice-page .ub-pos-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #dc2626 !important;
+    font-size: 0.85rem;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ub-new-invoice-page .ub-pos-remove-btn:hover {
+    background: #fee2e2;
+    transform: scale(1.05);
+}
+
+/* ── Summary row below table ── */
+.ub-new-invoice-page .table-responsive + .table-responsive table tr td {
+    padding: 8px 12px !important;
+    background: linear-gradient(90deg, #fff8f0, #fff) !important;
+    border: none !important;
+}
+
+.ub-new-invoice-page .table-responsive + .table-responsive table {
+    border: 1px solid #e7e5e4 !important;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+@media (max-width: 991px) {
+    .ub-new-invoice-page .ub-pos-product-cell {
+        min-width: 200px;
+        max-width: 280px;
+    }
+
+    .ub-new-invoice-page #pos_table .product_row td {
+        padding: 8px 6px !important;
+    }
+}

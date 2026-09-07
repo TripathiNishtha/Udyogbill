@@ -558,12 +558,13 @@ export default function LogisticsHubPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 block mb-1">Mobile / Phone</label>
+                  <label className="text-slate-300 block mb-1">Mobile / Phone (10 Digits)</label>
                   <input
-                    type="text"
-                    placeholder="e.g. +919820011223"
+                    type="tel"
+                    maxLength={10}
+                    placeholder="9820011223"
                     value={trpMobile}
-                    onChange={(e) => setTrpMobile(e.target.value)}
+                    onChange={(e) => setTrpMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono"
                   />
                 </div>

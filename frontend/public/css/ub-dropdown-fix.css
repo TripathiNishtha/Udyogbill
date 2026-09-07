@@ -1,0 +1,155 @@
+/* UdyogBill — table action menu typography + floating menu fix */
+
+.ub-action-menu .ub-action-menu-btn,
+.ub-action-menu-dropdown,
+.ub-dropdown-menu-floating.ub-action-menu-dropdown {
+    font-family: "Outfit", "Plus Jakarta Sans", "Manrope", sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Quick Menu button */
+body.ub-app .ub-action-menu .ub-action-menu-btn {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    gap: 6px;
+}
+
+body.ub-app .ub-action-menu .ub-action-menu-btn i {
+    font-size: 11px;
+    opacity: 0.92;
+}
+
+/* Dropdown panel */
+body.ub-app .ub-action-menu-dropdown,
+body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown {
+    min-width: 220px;
+    padding: 6px 0 !important;
+    border: 1px solid rgba(245, 130, 32, 0.22) !important;
+    border-radius: 12px !important;
+    background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%) !important;
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14) !important;
+}
+
+/* Menu items */
+body.ub-app .ub-action-menu-dropdown > li > a,
+body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown > li > a {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    letter-spacing: 0.01em;
+    color: #1e293b !important;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+body.ub-app .ub-action-menu-dropdown > li > a:hover,
+body.ub-app .ub-action-menu-dropdown > li > a:focus,
+body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown > li > a:hover,
+body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown > li > a:focus {
+    background: rgba(245, 130, 32, 0.1) !important;
+    color: #9a3412 !important;
+}
+
+/* Icons */
+body.ub-app .ub-action-menu-dropdown > li > a i,
+body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown > li > a i {
+    width: 18px;
+    min-width: 18px;
+    text-align: center;
+    font-size: 13px;
+    color: #f58220;
+    opacity: 0.95;
+}
+
+body.ub-app .ub-action-menu-dropdown > li > a:hover i,
+body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown > li > a:hover i {
+    color: #ea580c;
+}
+
+body.ub-app .ub-action-menu-dropdown > li.divider,
+body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown > li.divider {
+    margin: 6px 10px;
+    background: rgba(245, 130, 32, 0.18);
+}
+
+/* Floating table action menus — not clipped by scroll containers */
+.ub-dropdown-menu-floating {
+    display: block !important;
+    z-index: 2147482000 !important;
+}
+
+.ub-dropdown-menu-floating.ub-action-menu-dropdown {
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16) !important;
+}
+
+@media (max-width: 767px) {
+    body.ub-app .ub-action-menu-dropdown > li > a,
+    body.ub-app .ub-dropdown-menu-floating.ub-action-menu-dropdown > li > a {
+        font-size: 12.5px !important;
+        padding: 8px 12px !important;
+    }
+}
+
+/* =====================================================================
+   Select2 — global fix (clipped / unclickable dropdowns after UI redesign)
+   ===================================================================== */
+
+body.ub-app section.content .box,
+body.ub-app section.content .box-primary,
+body.ub-app section.content .tw-bg-white.tw-rounded-xl,
+body.ub-app .modal-content .box {
+    overflow: visible !important;
+}
+
+body.ub-app section.content .box .table-responsive,
+body.ub-app section.content .tw-bg-white .table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+body.ub-app .select2-container {
+    position: relative;
+    width: 100% !important;
+    max-width: 100%;
+}
+
+body.ub-app .select2-container--open {
+    z-index: 2147482000 !important;
+}
+
+body.ub-app .select2-dropdown {
+    z-index: 2147482001 !important;
+}
+
+body.ub-app .select2-container .select2-selection {
+    pointer-events: auto !important;
+    cursor: pointer;
+}
+
+body.ub-app .form-group.col-sm-12,
+body.ub-app #product_form_part {
+    clear: both;
+}
+
+body.ub-app .ub-product-type-field {
+    position: relative;
+    z-index: 12;
+}
+
+body.ub-app .ub-product-type-field .select2-container {
+    position: relative;
+    z-index: 13;
+}
+
+body.ub-app #product_form_part {
+    position: relative;
+    z-index: 1;
+    margin-top: 4px;
+}

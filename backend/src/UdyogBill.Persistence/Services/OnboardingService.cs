@@ -214,7 +214,7 @@ public class OnboardingService : IOnboardingService
             HasInvoices: hasInvoices,
             InvoiceCount: invoiceCount,
             HasUpiQr: hasUpiQr,
-            UpiId: tenant?.UpiId ?? $"{tenant?.PrimaryPhone ?? "9876543210"}@upi",
+            UpiId: tenant?.UpiId ?? (!string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? $"{tenant.PrimaryPhone}@upi" : null),
             CompletionPercentage: score,
             IsCompleted: isCompleted
         ));

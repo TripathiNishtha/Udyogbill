@@ -2,10 +2,10 @@ import { apiClient } from "@/lib/api-client";
 
 export interface PrintTemplate {
   id: string;
-  documentType: number; // 1: TaxInvoice, 2: POSReceipt, 3: Quotation, 4: DeliveryChallan, 5: PurchaseOrder, 6: PaymentReceipt, 7: BarcodeLabel
+  documentType: number; // 1: TaxInvoice (B2B), 2: POSReceipt (Cash Memo), 3: Quotation, 4: DeliveryChallan, 5: PurchaseOrder, 6: PaymentReceipt, 7: BarcodeLabel, 8: D2CInvoice (Retail), 9: CreditNote
   templateName: string;
   templateCode: string;
-  pageSize: number; // 1: A4 Portrait, 2: A4 Landscape, 3: A5, 4: Thermal 80mm, 5: Thermal 58mm, 6: Barcode 50x25mm
+  pageSize: number; // 1: A4 Portrait, 2: A4 Landscape, 3: A5 Landscape, 4: Thermal 80mm, 5: Thermal 58mm, 6: Barcode 50x25mm, 9: A5 Portrait, 10: A5
   isDefault: boolean;
   primaryColorHex: string;
   secondaryColorHex: string;
@@ -77,7 +77,7 @@ export const printTemplateService = {
     return response.data;
   },
 
-  async renderPreview(input: { templateId?: string; invoiceId?: string; documentType?: number }): Promise<RenderPrintPreviewResult> {
+  async renderPreview(input: { templateId?: string; invoiceId?: string; documentId?: string; documentType?: number }): Promise<RenderPrintPreviewResult> {
     const response = await apiClient.post<RenderPrintPreviewResult>("/tenant/print-templates/preview", input);
     return response.data;
   },

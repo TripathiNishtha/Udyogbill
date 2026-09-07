@@ -59,3 +59,52 @@ public class PagedResult<T>
         return new PagedResult<T>(items, pageNumber, pageSize, totalCount);
     }
 }
+
+public class ApiErrorResponse
+{
+    public bool Success { get; set; } = false;
+    public string ErrorCode { get; set; } = "UNKNOWN_ERROR";
+    public string Message { get; set; } = string.Empty;
+    public string UserMessage { get; set; } = string.Empty;
+    public string CorrelationId { get; set; } = string.Empty;
+    public string TransactionStatus { get; set; } = "NOT_COMMITTED";
+    public bool Retryable { get; set; } = false;
+    public IDictionary<string, string[]>? FieldErrors { get; set; }
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+}
+
+public static class IndianCurrencyInWordsConverter
+{
+    private static readonly string[] Units = { "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen" };
+    private static readonly string[] Tens = { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+
+    public static string ToWords(decimal number)
+    {
+        if (number == 0) return "Rupees Zero Only";
+
+        var wholePart = (long)Math.Floor(Math.Abs(number));
+        var decimalPart = (int)Math.Round((Math.Abs(number) - wholePart) * 100);
+
+        var result = "Indian Rupees " + ConvertWholePart(wholePart).Trim();
+
+        if (decimalPart > 0)
+        {
+            result += " and " + ConvertWholePart(decimalPart).Trim() + " Paise";
+        }
+
+        return result + " Only";
+    }
+
+    private static string ConvertWholePart(long n)
+    {
+        if (n == 0) return "";
+        if (n < 20) return Units[n] + " ";
+        if (n < 100) return Tens[n / 10] + " " + Units[n % 10] + " ";
+        if (n < 1000) return Units[n / 100] + " Hundred " + ConvertWholePart(n % 100);
+        if (n < 100000) return ConvertWholePart(n / 1000) + "Thousand " + ConvertWholePart(n % 1000);
+        if (n < 10000000) return ConvertWholePart(n / 100000) + "Lakh " + ConvertWholePart(n % 100000);
+        return ConvertWholePart(n / 10000000) + "Crore " + ConvertWholePart(n % 10000000);
+    }
+}
+
+

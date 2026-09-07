@@ -37,7 +37,7 @@ export function ReportExportToolbar({
   headers,
   rows,
   summaryData,
-  businessName = "UdyogBill Enterprise",
+  businessName = "UdyogBill",
   dateRangeText,
   onCustomPrint,
   className = ""
@@ -178,7 +178,7 @@ export function ReportExportToolbar({
           <tbody>${tableRows}</tbody>
         </table>
         <div style="margin-top:24px;border-top:1px solid #cbd5e1;padding-top:8px;font-size:10px;color:#64748b;display:flex;justify-content:space-between">
-          <span>UdyogBill Cloud ERP — System Generated Audit Report</span>
+          <span>UdyogBill — System Generated Audit Report</span>
           <span>Page 1 of 1</span>
         </div>
       </div>
@@ -201,7 +201,7 @@ export function ReportExportToolbar({
     }
 
     summaryText += `Total Records: ${rows.length}\n`;
-    summaryText += `_Report generated via UdyogBill Cloud Platform_\n`;
+    summaryText += `_Report generated via UdyogBill_\n`;
     summaryText += `🌐 View online: ${window.location.href}`;
 
     const encoded = encodeURIComponent(summaryText);
@@ -254,10 +254,10 @@ export function ReportExportToolbar({
         <button
           type="button"
           onClick={handlePrintPdf}
-          className="flex items-center gap-1.5 px-3 py-2 bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold transition shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-300 dark:border-rose-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           title="Download / Print PDF"
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-4 h-4 text-rose-600 dark:text-rose-400" />
           <span>PDF</span>
         </button>
 
@@ -265,10 +265,10 @@ export function ReportExportToolbar({
         <button
           type="button"
           onClick={handleExportExcel}
-          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold transition shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           title="Download Excel Spreadsheet (.xlsx / .xls)"
         >
-          <FileSpreadsheet className="w-4 h-4" />
+          <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>Excel</span>
         </button>
 
@@ -276,10 +276,10 @@ export function ReportExportToolbar({
         <button
           type="button"
           onClick={handleExportCsv}
-          className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 dark:text-indigo-300 dark:border-indigo-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           title="Download Comma-Separated Values (.csv)"
         >
-          <Download className="w-4 h-4" />
+          <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           <span>CSV</span>
         </button>
 
@@ -287,10 +287,10 @@ export function ReportExportToolbar({
         <button
           type="button"
           onClick={() => setEmailModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-xl text-xs font-semibold transition shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           title="Send Report via Email"
         >
-          <Mail className="w-4 h-4" />
+          <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span>Send to Mail</span>
         </button>
 
@@ -298,10 +298,10 @@ export function ReportExportToolbar({
         <button
           type="button"
           onClick={() => setWhatsappModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 rounded-xl text-xs font-semibold transition shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           title="Share Report on WhatsApp"
         >
-          <MessageCircle className="w-4 h-4 text-emerald-400" />
+          <MessageCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>WhatsApp</span>
         </button>
       </div>
@@ -462,7 +462,7 @@ export function ReportExportToolbar({
                           .map(([k, v]) => `• *${k}:* ${v}`)
                           .join("\n") + "\n───────────────────\n"
                       : ""
-                  }Total Records: ${rows.length}\n_Generated via UdyogBill Cloud ERP_`}
+                  }Total Records: ${rows.length}\n_Generated via UdyogBill_`}
                 </div>
               </div>
 

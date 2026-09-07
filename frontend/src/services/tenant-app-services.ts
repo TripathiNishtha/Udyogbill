@@ -310,4 +310,29 @@ export const tenantAppService = {
     const response = await apiClient.get<any>(`/tenant/subscription/invoices/${id}`);
     return response.data?.data ?? response.data;
   },
+
+  async getActiveIndustryPack(): Promise<any> {
+    const response = await apiClient.get<any>("/tenant/industry/active-pack");
+    return response.data?.data ?? response.data;
+  },
+
+  async activateAiAddon(): Promise<any> {
+    const response = await apiClient.post<any>("/tenant/ai/activate", {});
+    return response.data?.data ?? response.data;
+  },
+
+  async activatePharmaSfa(): Promise<any> {
+    const response = await apiClient.post<any>("/tenant/sfa/activate", {});
+    return response.data;
+  },
+
+  async deactivatePharmaSfa(): Promise<any> {
+    const response = await apiClient.post<any>("/tenant/sfa/deactivate", {});
+    return response.data;
+  },
+
+  async getPharmaSfaQuota(): Promise<any> {
+    const response = await apiClient.get<any>("/tenant/sfa/quota");
+    return response.data?.data ?? response.data;
+  },
 };

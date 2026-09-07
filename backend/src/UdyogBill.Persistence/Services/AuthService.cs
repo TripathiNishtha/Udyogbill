@@ -3,6 +3,7 @@ using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Auditing;
 using UdyogBill.Domain.Entities.Identity;
+using UdyogBill.Domain.Entities.Inventory;
 using UdyogBill.Domain.Entities.Subscriptions;
 using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Enums;
@@ -19,23 +20,64 @@ public class AuthService : IAuthService
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IAuditService _auditService;
     private readonly IPlatformEmailService _emailService;
+    private readonly IReferralService _referralService;
 
     public AuthService(
         AppDbContext context,
         IPasswordHasher passwordHasher,
         IJwtTokenGenerator jwtTokenGenerator,
         IAuditService auditService,
-        IPlatformEmailService emailService)
+        IPlatformEmailService emailService,
+        IReferralService referralService)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
         _auditService = auditService;
         _emailService = emailService;
+        _referralService = referralService;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
     {
+        try
+        {
+            await _context.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IsAiAddonActive"" boolean NOT NULL DEFAULT FALSE;
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansLimit"" integer NOT NULL DEFAULT 500;
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansUsed"" integer NOT NULL DEFAULT 0;
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryTypeCode"" text NOT NULL DEFAULT 'OTHER';
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""ActiveIndustryModule"" text NOT NULL DEFAULT 'OTHER';
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryModuleStatus"" integer NOT NULL DEFAULT 1;
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryActivatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW();
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""MaxAllowedUsers"" integer NOT NULL DEFAULT 2;
+
+                CREATE TABLE IF NOT EXISTS ""PlatformCommercialConfigs"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CoreAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 3999,
+                    ""CoreBiennialPrice"" numeric(18, 2) NOT NULL DEFAULT 6999,
+                    ""IncludedUsers"" integer NOT NULL DEFAULT 2,
+                    ""SingleUserAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 799,
+                    ""FiveUserPackAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 2999,
+                    ""AiProAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 1499,
+                    ""AiProMonthlyScanLimit"" integer NOT NULL DEFAULT 500,
+                    ""GstRatePercent"" numeric(5, 2) NOT NULL DEFAULT 18.0,
+                    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+                    ""LastUpdatedByEmail"" text NULL,
+                    ""Notes"" text NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""UpdatedAtUtc"" timestamp with time zone NULL,
+                    ""CreatedBy"" text NULL,
+                    ""UpdatedBy"" text NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE
+                );
+
+                ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedAtUtc"" timestamp with time zone NULL;
+                ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid NULL;
+            ", cancellationToken);
+        }
+        catch { }
+
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
         // 1. Fetch user (ignoring tenant filter since login occurs prior to tenant context establishment)
@@ -246,13 +288,21 @@ public class AuthService : IAuthService
         var tenantCount = await _context.Tenants.IgnoreQueryFilters().CountAsync(cancellationToken) + 1001;
         var tenantCode = $"TNT-{industry.Code}-{tenantCount}";
 
-        // 1. Create Tenant
+        // 1. Create Tenant with Modular Industry Pack Auto-Activation
+        var normalizedIndustry = IndustryTypeCodes.Normalize(industry.Code);
+        var industryDescriptor = IndustryModuleRegistry.GetDescriptor(normalizedIndustry);
+
         var tenant = new Tenant
         {
             Code = tenantCode,
             BusinessName = request.BusinessName.Trim(),
             TradeName = string.IsNullOrWhiteSpace(request.TradeName) ? request.BusinessName.Trim() : request.TradeName.Trim(),
             IndustryId = industry.Id,
+            IndustryTypeCode = normalizedIndustry,
+            ActiveIndustryModule = normalizedIndustry,
+            IndustryModuleStatus = IndustryModuleStatus.Active,
+            IndustryActivatedAtUtc = DateTimeOffset.UtcNow,
+            MaxAllowedUsers = 2,
             Status = TenantStatus.Trial,
             AdminEmail = normalizedEmail,
             PrimaryPhone = request.PrimaryPhone.Trim(),
@@ -261,6 +311,9 @@ public class AuthService : IAuthService
             FSSAINumber = request.FSSAINumber?.Trim(),
             SmtpPort = 587,
             SmtpEnableSsl = true,
+            IsAiAddonActive = false,
+            AiScansLimit = 500,
+            AiScansUsed = 0,
             IsActive = true
         };
 
@@ -329,20 +382,20 @@ public class AuthService : IAuthService
 
         _context.TenantWarehouses.Add(mainWarehouse);
 
-        // 5. Create Tenant Industry Configuration (All vertical add-on features default to false until add-on is purchased)
+        // 5. Create Tenant Industry Configuration with Canonical Industry Defaults
         var industryConfig = new TenantIndustryConfig
         {
             TenantId = tenant.Id,
             IndustryId = industry.Id,
-            EnableBatchTracking = false,
-            EnableExpiryTracking = false,
-            EnableSerialTracking = false,
-            EnableMultiUnitConversion = false,
-            EnableSizeColorMatrix = false,
-            EnableRecipeBOM = false,
-            EnableScheduleH1DrugTracking = false,
-            EnableEWayBill = true,
-            EnableEInvoicing = false,
+            EnableBatchTracking = industryDescriptor.EnableBatchTracking,
+            EnableExpiryTracking = industryDescriptor.EnableExpiryTracking,
+            EnableSerialTracking = industryDescriptor.EnableSerialTracking,
+            EnableMultiUnitConversion = industryDescriptor.EnableMultiUnitConversion,
+            EnableSizeColorMatrix = industryDescriptor.EnableSizeColorMatrix,
+            EnableRecipeBOM = industryDescriptor.EnableRecipeBOM,
+            EnableScheduleH1DrugTracking = industryDescriptor.EnableScheduleH1DrugTracking,
+            EnableEWayBill = industryDescriptor.EnableEWayBill,
+            EnableEInvoicing = industryDescriptor.EnableEInvoicing,
             ConfigurationJson = "{}"
         };
 
@@ -363,7 +416,35 @@ public class AuthService : IAuthService
 
         _context.TenantSubscriptions.Add(subscription);
 
+        // 7. Seed Industry-Specific Default Units of Measure (UOM)
+        var defaultUoms = IndustryStandardUoms.GetForIndustry(normalizedIndustry);
+        foreach (var uomDef in defaultUoms)
+        {
+            _context.UnitsOfMeasure.Add(new UnitOfMeasure
+            {
+                TenantId = tenant.Id,
+                Code = uomDef.Code,
+                Name = uomDef.Name,
+                Symbol = uomDef.Symbol,
+                DecimalPlaces = uomDef.DecimalPlaces,
+                IsActive = true
+            });
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Record referral connection if referral code was used
+        if (!string.IsNullOrWhiteSpace(request.ReferralCode))
+        {
+            try
+            {
+                await _referralService.RecordTenantRegistrationReferralAsync(tenant.Id, request.ReferralCode, cancellationToken);
+            }
+            catch
+            {
+                // Non-blocking for registration flow
+            }
+        }
 
         _ = _emailService.SendWelcomeEmailAsync(
             normalizedEmail,

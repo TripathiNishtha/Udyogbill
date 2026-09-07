@@ -6,6 +6,8 @@ import { ALL_ADDONS, AddonManifest, NavGroup, isAddonActiveInConfig, getAddonByI
 
 interface AddonContextType {
   industryConfig: UpdateTenantIndustryConfigInput | null;
+  activePack: any | null;
+  industryCode: string;
   loading: boolean;
   activeAddons: AddonManifest[];
   activeNavGroups: NavGroup[];
@@ -19,12 +21,21 @@ const AddonContext = createContext<AddonContextType | undefined>(undefined);
 
 export function AddonProvider({ children }: { children: React.ReactNode }) {
   const [industryConfig, setIndustryConfig] = useState<UpdateTenantIndustryConfigInput | null>(null);
+  const [activePack, setActivePack] = useState<any | null>(null);
+  const [industryCode, setIndustryCode] = useState<string>("OTHER");
+  const [enrolledAddonIds, setEnrolledAddonIds] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const loadConfig = useCallback(async () => {
     try {
-      const data = await tenantAppService.getIndustryConfig();
-      if (data) {
+      const [configData, subData, packData] = await Promise.allSettled([
+        tenantAppService.getIndustryConfig(),
+        tenantAppService.getSubscriptionStatus(),
+        tenantAppService.getActiveIndustryPack(),
+      ]);
+
+      if (configData.status === "fulfilled" && configData.value) {
+        const data = configData.value;
         setIndustryConfig({
           enableBatchTracking: !!data.enableBatchTracking,
           enableExpiryTracking: !!data.enableExpiryTracking,
@@ -38,8 +49,21 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
           configurationJson: data.configurationJson || "{}",
         });
       }
+
+      if (packData.status === "fulfilled" && packData.value) {
+        setActivePack(packData.value);
+        const resolvedCode = (packData.value.activeIndustryModule || packData.value.industryTypeCode || "OTHER").toUpperCase();
+        setIndustryCode(resolvedCode);
+      }
+
+      if (subData.status === "fulfilled" && subData.value?.addons) {
+        const activeCodes = subData.value.addons
+          .filter((a: any) => a.isEnrolled && (!a.enrolledExpiresAtUtc || new Date(a.enrolledExpiresAtUtc).getTime() > Date.now()))
+          .map((a: any) => a.code.replace("ADDON_", "").toLowerCase());
+        setEnrolledAddonIds(activeCodes);
+      }
     } catch (err) {
-      console.warn("Could not fetch tenant industry config, using defaults", err);
+      console.warn("Could not fetch tenant industry config or subscription, using defaults", err);
     } finally {
       setLoading(false);
     }
@@ -51,11 +75,17 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
 
   const isAddonActive = useCallback(
     (addonId: string): boolean => {
+      const cleanId = addonId.toLowerCase();
+      if (cleanId === "pharma-sfa") {
+        return !!activePack?.isPharmaSfaActive;
+      }
+      if (industryCode && industryCode.toLowerCase() === cleanId) return true;
+      if (industryCode === "SERVICE_SECTOR" && (cleanId === "service" || cleanId === "service_sector")) return true;
       const addon = getAddonById(addonId);
-      if (!addon) return false;
-      return isAddonActiveInConfig(addon, industryConfig);
+      if (!addon) return enrolledAddonIds.includes(cleanId);
+      return isAddonActiveInConfig(addon, industryConfig) || enrolledAddonIds.includes(cleanId);
     },
-    [industryConfig]
+    [industryConfig, enrolledAddonIds, industryCode, activePack]
   );
 
   const isFeatureActive = useCallback(
@@ -67,8 +97,14 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
   );
 
   const activeAddons = useMemo(() => {
-    return ALL_ADDONS.filter((addon) => isAddonActiveInConfig(addon, industryConfig));
-  }, [industryConfig]);
+    return ALL_ADDONS.filter((addon) => {
+      if (addon.id === "pharma-sfa") {
+        return !!activePack?.isPharmaSfaActive;
+      }
+      if (industryCode && industryCode.toLowerCase() === addon.id.toLowerCase()) return true;
+      return isAddonActiveInConfig(addon, industryConfig) || enrolledAddonIds.includes(addon.id.toLowerCase());
+    });
+  }, [industryConfig, enrolledAddonIds, industryCode, activePack]);
 
   const activeNavGroups = useMemo(() => {
     return activeAddons
@@ -131,6 +167,8 @@ export function AddonProvider({ children }: { children: React.ReactNode }) {
     <AddonContext.Provider
       value={{
         industryConfig,
+        activePack,
+        industryCode,
         loading,
         activeAddons,
         activeNavGroups,

@@ -17,6 +17,7 @@ export interface DoctorPrescriber {
   totalPrescriptionsValue: number;
   totalCommissionPaid: number;
   balanceCommission: number;
+  isActive?: boolean;
 }
 
 export interface MedicalRepresentative {
@@ -54,6 +55,21 @@ export interface PharmaBatch {
   isNearExpiry: boolean;
   daysToExpiry: number;
   isQuarantined: boolean;
+  packRatio?: number;
+  primaryUnit?: string;
+  secondaryUnit?: string;
+  unitTabletPrice?: number;
+}
+
+export interface PharmaDashboardSummary {
+  expiringCount30Days: number;
+  expiringCount60Days: number;
+  expiringCount90Days: number;
+  expiringStockValue: number;
+  scheduleH1DispensedToday: number;
+  quarantinedBatchesCount: number;
+  activeBatchesCount: number;
+  registeredDoctorsCount: number;
 }
 
 export interface SaltMaster {
@@ -422,15 +438,49 @@ class PharmaDeepService {
     return res.data?.data ?? res.data;
   }
 
-  // --- 5. Doctors Master ---
+  // --- 5. Doctors & MRs Master ---
   public async getDoctors(search?: string): Promise<DoctorPrescriber[]> {
     const res = await apiClient.get<any>("/pharma/doctors", { params: { search } });
+    const raw = res.data?.data ?? res.data;
+    const list = Array.isArray(raw) ? raw : (raw?.items ?? []);
+    return list.map((d: any) => ({
+      ...d,
+      commissionPercent: d.commissionPercent ?? d.incentivePercent ?? 0,
+      totalPrescriptionsValue: d.totalPrescriptionsValue ?? 0,
+      totalCommissionPaid: d.totalCommissionPaid ?? 0,
+      balanceCommission: d.balanceCommission ?? 0,
+    }));
+  }
+
+  public async createDoctor(doc: Omit<DoctorPrescriber, "id" | "code" | "totalPrescriptionsValue" | "totalCommissionPaid" | "balanceCommission"> & { code?: string }): Promise<DoctorPrescriber> {
+    const payload = {
+      ...doc,
+      code: doc.code || `DOC-${Math.floor(100 + Math.random() * 900)}`,
+      commissionPercent: doc.commissionPercent ?? 0,
+      incentivePercent: doc.commissionPercent ?? 0,
+      isActive: true,
+      address: doc.address || "Main Road",
+      city: doc.city || "Delhi",
+    };
+    const res = await apiClient.post<any>("/pharma/doctors", payload);
+    const data = res.data?.data ?? res.data;
+    return {
+      ...data,
+      commissionPercent: data?.commissionPercent ?? data?.incentivePercent ?? 0,
+      totalPrescriptionsValue: data?.totalPrescriptionsValue ?? 0,
+      totalCommissionPaid: data?.totalCommissionPaid ?? 0,
+      balanceCommission: data?.balanceCommission ?? 0,
+    };
+  }
+
+  public async getMedicalReps(search?: string): Promise<MedicalRepresentative[]> {
+    const res = await apiClient.get<any>("/pharma/medical-reps", { params: { search } }).catch(() => ({ data: [] }));
     const data = res.data?.data ?? res.data;
     return Array.isArray(data) ? data : [];
   }
 
-  public async createDoctor(doc: Omit<DoctorPrescriber, "id" | "code" | "totalPrescriptionsValue" | "totalCommissionPaid" | "balanceCommission">): Promise<DoctorPrescriber> {
-    const res = await apiClient.post<any>("/pharma/doctors", doc);
+  public async createMedicalRep(mr: Omit<MedicalRepresentative, "id" | "empCode" | "monthlyAchievement" | "achievementPercent" | "linkedDoctorsCount">): Promise<MedicalRepresentative> {
+    const res = await apiClient.post<any>("/pharma/medical-reps", mr);
     return res.data?.data ?? res.data;
   }
 
@@ -466,11 +516,36 @@ class PharmaDeepService {
     return result;
   }
 
-  // --- 7. Medical Reps ---
-  public async getMedicalReps(search?: string): Promise<any[]> {
-    const res = await apiClient.get<any>("/pharma/medical-reps", { params: { search } });
-    const data = res.data?.data ?? res.data;
-    return Array.isArray(data) ? data : [];
+  // --- 8. Executive Dashboard Metrics ---
+  public async getDashboardMetrics(): Promise<PharmaDashboardSummary> {
+    try {
+      const res = await apiClient.get<any>("/pharma/dashboard-metrics");
+      const data = res.data?.data ?? res.data;
+      if (data) {
+        return {
+          expiringCount30Days: data.expiringCount30Days ?? 0,
+          expiringCount60Days: data.expiringCount60Days ?? 0,
+          expiringCount90Days: data.expiringCount90Days ?? 0,
+          expiringStockValue: data.expiringStockValue ?? 0,
+          scheduleH1DispensedToday: data.scheduleH1DispensedToday ?? 0,
+          quarantinedBatchesCount: data.quarantinedBatchesCount ?? 0,
+          activeBatchesCount: data.activeBatchesCount ?? 0,
+          registeredDoctorsCount: data.registeredDoctorsCount ?? 0,
+        };
+      }
+    } catch {
+      // Fallback defaults
+    }
+    return {
+      expiringCount30Days: 0,
+      expiringCount60Days: 0,
+      expiringCount90Days: 0,
+      expiringStockValue: 0,
+      scheduleH1DispensedToday: 0,
+      quarantinedBatchesCount: 0,
+      activeBatchesCount: 0,
+      registeredDoctorsCount: 0,
+    };
   }
 }
 

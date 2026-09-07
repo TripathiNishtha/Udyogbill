@@ -1,0 +1,433 @@
+/*
+ * UdyogBill Full Redesign — loaded LAST
+ * Distinct shell: dark charcoal sidebar, warm workspace, orange/gold/green brand.
+ * Goal: look nothing like stock Ultimate POS / AdminLTE.
+ */
+
+body.ub-app {
+  --ub-shell-radius: 16px;
+  --ub-shell-gap: 14px;
+  font-family: "Manrope", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* ---- Workspace atmosphere ---- */
+body.ub-app:not(.pos_layout) {
+  background:
+    radial-gradient(1100px 520px at 0% -5%, rgba(245, 130, 32, 0.18), transparent 55%),
+    radial-gradient(900px 480px at 100% 0%, rgba(232, 163, 23, 0.12), transparent 50%),
+    radial-gradient(700px 400px at 70% 100%, rgba(39, 174, 96, 0.08), transparent 50%),
+    #fff6eb !important;
+}
+
+body.ub-app main.tw-bg-gray-100 {
+  background: transparent !important;
+}
+
+body.ub-app #scrollable-container {
+  padding: 18px 20px 36px !important;
+}
+
+@media (min-width: 1280px) {
+  body.ub-app #scrollable-container {
+    padding: 22px 28px 44px !important;
+    /* width controlled by udyogbill-layout-fix.css */
+  }
+}
+
+/* ---- Sidebar: brand rail ---- */
+body.ub-app aside.side-bar {
+  width: 272px !important;
+  background:
+    linear-gradient(180deg, #070707 0%, #121212 42%, #1a120b 100%) !important;
+  border-right: 0 !important;
+  box-shadow:
+    inset -1px 0 0 rgba(245, 130, 32, 0.35),
+    12px 0 40px rgba(0, 0, 0, 0.28) !important;
+}
+
+body.ub-app aside.side-bar > a {
+  min-height: 64px !important;
+  padding: 12px 16px !important;
+  background:
+    linear-gradient(135deg, rgba(245, 130, 32, 0.22) 0%, transparent 55%),
+    #0b0b0b !important;
+  border-bottom: 1px solid rgba(245, 130, 32, 0.28) !important;
+}
+
+body.ub-app .side-bar-heading {
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: #fff !important;
+}
+
+body.ub-app .ub-sidebar-subtitle {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #f58220 !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+}
+
+body.ub-app .ub-sidebar-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  margin-right: 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f58220, #e8a317);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 6px 14px rgba(245, 130, 32, 0.4);
+}
+
+body.ub-app #side-bar {
+  padding: 10px 8px 18px !important;
+}
+
+body.ub-app #side-bar .ub-sidebar-item,
+body.ub-app #side-bar .drop_down {
+  margin: 3px 4px !important;
+  padding: 9px 12px !important;
+  min-height: 38px !important;
+  border-radius: 12px !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+
+body.ub-app #side-bar a.ub-sidebar-item.ub-sidebar-active,
+body.ub-app #side-bar a.drop_down.ub-sidebar-active,
+body.ub-app #side-bar a.tw-bg-gray-200,
+body.ub-app #side-bar a.drop_down.tw-bg-gray-200 {
+  background: linear-gradient(105deg, #f58220 0%, #e8a317 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px rgba(245, 130, 32, 0.38) !important;
+  border-radius: 12px !important;
+}
+
+/* Never paint the whole open menu group orange */
+body.ub-app #side-bar > div.ub-sidebar-active,
+body.ub-app #side-bar > div.ub-menu-open,
+body.ub-app #side-bar div.ub-sidebar-active.ub-menu-open {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
+body.ub-app #side-bar > a.ub-sidebar-item:hover,
+body.ub-app #side-bar > div > a.drop_down:hover {
+  background: rgba(255, 255, 255, 0.10) !important;
+  transform: translateX(2px);
+}
+
+body.ub-app .ub-submenu,
+body.ub-app #side-bar .chiled.ub-submenu {
+  margin: 4px 6px 10px !important;
+  padding: 8px 6px !important;
+  border-radius: 14px !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+
+body.ub-app .ub-submenu-link,
+body.ub-app #side-bar .ub-submenu-link {
+  border-radius: 9px !important;
+  padding: 8px 10px !important;
+  color: #d6d3d1 !important;
+  background: transparent !important;
+}
+
+body.ub-app .ub-submenu-link:hover,
+body.ub-app #side-bar .ub-submenu-link:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  transform: none !important;
+}
+
+body.ub-app .ub-sidebar-child-active,
+body.ub-app #side-bar .ub-sidebar-child-active,
+body.ub-app #side-bar a.ub-submenu-link.ub-sidebar-child-active {
+  background: rgba(245, 130, 32, 0.18) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 0 #f58220 !important;
+  border-radius: 9px !important;
+}
+
+/* ---- Header ---- */
+body.ub-app .ub-app-header,
+body.ub-app .no-print.tw-border-b {
+  background: linear-gradient(90deg, #070707 0%, #141414 60%, #1a120b 100%) !important;
+  border-bottom: 3px solid #f58220 !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3) !important;
+  min-height: 58px;
+}
+
+body.ub-app .ub-header-shell {
+  max-width: 1580px;
+  margin: 0 auto;
+}
+
+body.ub-app .ub-app-header .tw-ring-white\/10,
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10 {
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+body.ub-app .ub-app-header .tw-ring-white\/10:hover,
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10:hover {
+  background: #f58220 !important;
+  border-color: #e8a317 !important;
+}
+
+/* ---- Page chrome: boxes / tables / forms ---- */
+body.ub-app .box,
+body.ub-app .info-box,
+body.ub-app .small-box,
+body.ub-app .panel,
+body.ub-app .modal-content {
+  border-radius: var(--ub-shell-radius) !important;
+  border: 1px solid rgba(245, 130, 32, 0.14) !important;
+  box-shadow: 0 12px 32px rgba(26, 18, 11, 0.07) !important;
+  overflow: hidden;
+}
+
+body.ub-app .box-header {
+  background: linear-gradient(180deg, #fffaf4 0%, #ffffff 100%) !important;
+  border-bottom: 1px solid rgba(245, 130, 32, 0.12) !important;
+  padding: 14px 18px !important;
+}
+
+body.ub-app .box-title {
+  font-family: "Manrope", sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: #1a120b !important;
+}
+
+body.ub-app .box.box-primary {
+  border-top: 3px solid #f58220 !important;
+}
+
+body.ub-app .box.box-success {
+  border-top: 3px solid #27ae60 !important;
+}
+
+body.ub-app .box.box-warning {
+  border-top: 3px solid #e8a317 !important;
+}
+
+body.ub-app .box.box-danger {
+  border-top: 3px solid #dc2626 !important;
+}
+
+body.ub-app .box.box-info {
+  border-top: 3px solid #2f9e44 !important;
+}
+
+body.ub-app table.table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  border: 1px solid rgba(245, 130, 32, 0.12) !important;
+  background: #fff !important;
+}
+
+body.ub-app table.table > thead > tr > th {
+  background: linear-gradient(180deg, #fff4e6, #ffecd4) !important;
+  color: #8a4510 !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid rgba(245, 130, 32, 0.22) !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body.ub-app table.table > tbody > tr:hover > td {
+  background: rgba(245, 130, 32, 0.05) !important;
+}
+
+body.ub-app .form-control,
+body.ub-app .select2-container--default .select2-selection--single {
+  border-radius: 10px !important;
+  border-color: rgba(245, 130, 32, 0.22) !important;
+  min-height: 38px;
+}
+
+body.ub-app .form-control:focus {
+  border-color: #f58220 !important;
+  box-shadow: 0 0 0 3px rgba(245, 130, 32, 0.18) !important;
+}
+
+body.ub-app .btn-primary,
+body.ub-app .btn-info {
+  background: linear-gradient(135deg, #f58220 0%, #e8a317 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 18px rgba(245, 130, 32, 0.28) !important;
+}
+
+body.ub-app .btn-success {
+  background: #27ae60 !important;
+  border-color: #219150 !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
+
+body.ub-app .btn-default,
+body.ub-app .btn-secondary {
+  border-radius: 10px !important;
+  border-color: rgba(245, 130, 32, 0.25) !important;
+}
+
+body.ub-app .content-header h1 {
+  font-family: "Manrope", sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: #1a120b !important;
+}
+
+body.ub-app .nav-tabs-custom > .nav-tabs > li.active {
+  border-top-color: #f58220 !important;
+}
+
+body.ub-app .nav-tabs-custom > .nav-tabs > li.active > a {
+  color: #c45f0f !important;
+  font-weight: 700 !important;
+}
+
+body.ub-app .pagination > .active > a,
+body.ub-app .pagination > .active > span,
+body.ub-app .paginate_button.current {
+  background: #f58220 !important;
+  border-color: #e06f12 !important;
+  color: #fff !important;
+}
+
+body.ub-app .label-primary,
+body.ub-app .badge-primary,
+body.ub-app .bg-light-blue {
+  background-color: #f58220 !important;
+}
+
+body.ub-app .label-success,
+body.ub-app .badge-success,
+body.ub-app .bg-green {
+  background-color: #27ae60 !important;
+}
+
+/* Hide classic AdminLTE skin leftovers */
+body.ub-app.skin-blue .wrapper,
+body.ub-app.skin-blue-light .wrapper,
+body.ub-app.skin-black .wrapper,
+body.ub-app.skin-purple .wrapper {
+  background: transparent !important;
+}
+
+/* Footer */
+body.ub-app .ub-app-footer {
+  padding: 8px 20px 18px;
+  color: rgba(26, 18, 11, 0.55);
+  font-size: 12px;
+}
+
+body.ub-app .ub-app-footer strong {
+  color: #f58220;
+  font-weight: 800;
+}
+
+/* Soft entrance */
+@keyframes ubFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body.ub-app #scrollable-container > .row,
+body.ub-app #scrollable-container > .box,
+body.ub-app .ub-dashboard-shell > .ub-hero-card,
+body.ub-app .ub-dashboard-shell > .ub-dashboard-section {
+  animation: ubFadeUp 0.35s ease both;
+}
+
+body.ub-app .ub-dashboard-shell > .ub-dashboard-section:nth-child(2) { animation-delay: 0.05s; }
+body.ub-app .ub-dashboard-shell > .ub-dashboard-section:nth-child(3) { animation-delay: 0.1s; }
+body.ub-app .ub-dashboard-shell > .ub-dashboard-section:nth-child(4) { animation-delay: 0.15s; }
+
+/* =========================================================
+   SUBMENU FIX — no orange flood on open Billing group
+   Accent = charcoal + green (logo green), not orange wash
+   ========================================================= */
+body.ub-app #side-bar .ub-menu-group,
+body.ub-app #side-bar .ub-menu-group.ub-menu-open,
+body.ub-app #side-bar div.ub-menu-open,
+body.ub-app #side-bar > div {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+body.ub-app #side-bar a.drop_down.ub-menu-open,
+body.ub-app #side-bar a.ub-sidebar-item.ub-menu-open {
+  background: rgba(39, 174, 96, 0.22) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: inset 3px 0 0 #27ae60 !important;
+  border-radius: 12px !important;
+}
+
+body.ub-app #side-bar .ub-submenu,
+body.ub-app #side-bar .chiled,
+body.ub-app #side-bar .chiled.ub-submenu {
+  background: #141414 !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 14px !important;
+  margin: 6px 4px 10px !important;
+  padding: 8px 6px !important;
+  box-shadow: inset 0 0 0 1px rgba(39, 174, 96, 0.12) !important;
+}
+
+body.ub-app #side-bar .ub-submenu-link,
+body.ub-app #side-bar .chiled a,
+body.ub-app #side-bar .ub-submenu a {
+  background: transparent !important;
+  background-image: none !important;
+  color: #d6d3d1 !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+}
+
+body.ub-app #side-bar .ub-submenu-link:hover,
+body.ub-app #side-bar .chiled a:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+
+body.ub-app #side-bar .ub-sidebar-child-active,
+body.ub-app #side-bar a.ub-submenu-link.ub-sidebar-child-active,
+body.ub-app #side-bar .chiled a.ub-sidebar-child-active,
+body.ub-app #side-bar .chiled a.tw-text-primary-700 {
+  background: rgba(39, 174, 96, 0.22) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: inset 3px 0 0 #27ae60 !important;
+}
+
+/* Kill any leftover orange gradients inside open menus */
+body.ub-app #side-bar .ub-menu-open .ub-submenu,
+body.ub-app #side-bar .ub-menu-open .chiled,
+body.ub-app #side-bar .ub-menu-group.ub-menu-open {
+  background-image: none !important;
+}

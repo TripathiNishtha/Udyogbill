@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Auditing;
@@ -19,17 +20,40 @@ public class QuotationService : IQuotationService
     private readonly ICurrentUserContext _currentUserContext;
     private readonly IAuditService _auditService;
     private readonly ISalesService _salesService;
+    private readonly Microsoft.Extensions.Logging.ILogger<QuotationService>? _logger;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, SemaphoreSlim> _tenantQuotationSemaphores = new();
 
     public QuotationService(
         AppDbContext context,
         ICurrentUserContext currentUserContext,
         IAuditService auditService,
-        ISalesService salesService)
+        ISalesService salesService,
+        Microsoft.Extensions.Logging.ILogger<QuotationService>? logger = null)
     {
         _context = context;
         _currentUserContext = currentUserContext;
         _auditService = auditService;
         _salesService = salesService;
+        _logger = logger;
+    }
+
+    private async Task AcquireSequenceLockAsync(Guid tenantId, string prefix, string fy, CancellationToken cancellationToken)
+    {
+        if (_context.Database.IsRelational())
+        {
+            try
+            {
+                if (_context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    var lockKey = $"doc_seq_{tenantId}_{prefix}_{fy}";
+                    await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}))", new object[] { lockKey }, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Could not acquire DB advisory lock for quotation prefix {Prefix}: {Message}", prefix, ex.Message);
+            }
+        }
     }
 
     private Guid RequireTenantId()
@@ -246,17 +270,28 @@ public class QuotationService : IQuotationService
             .Where(u => u.TenantId == tenantId && uomIds.Contains(u.Id) && !u.IsDeleted)
             .ToDictionaryAsync(u => u.Id, cancellationToken);
 
-        // Generate Quotation Number
-        var qNumber = await GenerateQuotationNumberAsync(tenantId, request.QuotationDate, cancellationToken);
-
-        var qDate = DateTime.SpecifyKind(request.QuotationDate, DateTimeKind.Utc);
-        var validUntil = request.ValidUntilDate.HasValue
-            ? DateTime.SpecifyKind(request.ValidUntilDate.Value, DateTimeKind.Utc)
-            : (DateTime?)null;
-
-        var quotation = new Quotation
+        var semaphore = _tenantQuotationSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+        string qNumber;
+        Quotation quotation;
+        try
         {
-            TenantId = tenantId,
+            int fyStart = request.QuotationDate.Month >= 4 ? request.QuotationDate.Year : request.QuotationDate.Year - 1;
+            string fyCode = $"{fyStart % 100:D2}{(fyStart + 1) % 100:D2}";
+            await AcquireSequenceLockAsync(tenantId, "QT", fyCode, cancellationToken);
+
+            // Generate Quotation Number
+            qNumber = await GenerateQuotationNumberAsync(tenantId, request.QuotationDate, cancellationToken);
+
+            var qDate = DateTime.SpecifyKind(request.QuotationDate, DateTimeKind.Utc);
+            var validUntil = request.ValidUntilDate.HasValue
+                ? DateTime.SpecifyKind(request.ValidUntilDate.Value, DateTimeKind.Utc)
+                : (DateTime?)null;
+
+            quotation = new Quotation
+            {
+                TenantId = tenantId,
             QuotationNumber = qNumber,
             Status = QuotationStatus.Draft,
             BranchId = branch.Id,
@@ -378,7 +413,20 @@ public class QuotationService : IQuotationService
         quotation.TotalAmount = roundedTotal;
 
         _context.Quotations.Add(quotation);
-        await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            if (tx != null) await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            if (tx != null) await tx.RollbackAsync(cancellationToken);
+            _logger?.LogError(ex, "Failed to create quotation: {Message}", ex.Message);
+            throw;
+        }
+        finally
+        {
+            if (tx != null) await tx.DisposeAsync();
+            semaphore.Release();
+        }
 
         await _auditService.LogAsync(new AuditLog
         {
@@ -401,105 +449,120 @@ public class QuotationService : IQuotationService
     {
         var tenantId = RequireTenantId();
 
-        var quotation = await _context.Quotations
-            .Include(q => q.Items)
-            .FirstOrDefaultAsync(q => q.TenantId == tenantId && q.Id == quotationId && !q.IsDeleted, cancellationToken);
-
-        if (quotation == null)
+        var semaphore = _tenantQuotationSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        try
         {
-            return Result<Guid>.Failure("Quotation not found.", "NOT_FOUND");
-        }
+            var quotation = await _context.Quotations
+                .Include(q => q.Items)
+                .FirstOrDefaultAsync(q => q.TenantId == tenantId && q.Id == quotationId && !q.IsDeleted, cancellationToken);
 
-        if (quotation.Status == QuotationStatus.ConvertedToInvoice)
-        {
-            return Result<Guid>.Failure($"Quotation is already converted to Invoice.", "ALREADY_CONVERTED");
-        }
-
-        if (quotation.IsCancelled || quotation.Status == QuotationStatus.Cancelled)
-        {
-            return Result<Guid>.Failure("Cannot convert a cancelled quotation.", "CANCELLED_QUOTATION");
-        }
-
-        // Build CreateSalesInvoiceRequest
-        var invoiceItems = quotation.Items.Select(i => new CreateSalesInvoiceItemRequest
-        {
-            ItemId = i.ItemId,
-            Quantity = i.Quantity,
-            UomId = i.UomId,
-            UnitPrice = i.UnitPrice,
-            DiscountPercent = i.DiscountPercent,
-            AttributesJson = i.AttributesJson
-        }).ToList();
-
-        var warehouseId = request.WarehouseId;
-        if (warehouseId == Guid.Empty)
-        {
-            var defaultWh = await _context.TenantWarehouses
-                .FirstOrDefaultAsync(w => w.TenantId == tenantId && w.BranchId == quotation.BranchId && w.IsDefault && !w.IsDeleted, cancellationToken)
-                ?? await _context.TenantWarehouses
-                .FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, cancellationToken);
-            if (defaultWh != null)
+            if (quotation == null)
             {
-                warehouseId = defaultWh.Id;
+                return Result<Guid>.Failure("Quotation not found.", "NOT_FOUND");
             }
+
+            if (quotation.Status == QuotationStatus.ConvertedToInvoice)
+            {
+                return Result<Guid>.Failure($"Quotation is already converted to Invoice.", "ALREADY_CONVERTED");
+            }
+
+            if (quotation.IsCancelled || quotation.Status == QuotationStatus.Cancelled)
+            {
+                return Result<Guid>.Failure("Cannot convert a cancelled quotation.", "CANCELLED_QUOTATION");
+            }
+
+            // Build CreateSalesInvoiceRequest
+            var invoiceItems = quotation.Items.Select(i => new CreateSalesInvoiceItemRequest
+            {
+                ItemId = i.ItemId,
+                Quantity = i.Quantity,
+                UomId = i.UomId,
+                UnitPrice = i.UnitPrice,
+                DiscountPercent = i.DiscountPercent,
+                AttributesJson = i.AttributesJson
+            }).ToList();
+
+            var warehouseId = request.WarehouseId;
+            if (warehouseId == Guid.Empty)
+            {
+                var defaultWh = await _context.TenantWarehouses
+                    .FirstOrDefaultAsync(w => w.TenantId == tenantId && w.BranchId == quotation.BranchId && w.IsDefault && !w.IsDeleted, cancellationToken)
+                    ?? await _context.TenantWarehouses
+                    .FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, cancellationToken);
+                if (defaultWh != null)
+                {
+                    warehouseId = defaultWh.Id;
+                }
+            }
+
+            var invoiceReq = new CreateSalesInvoiceRequest
+            {
+                InvoiceType = InvoiceType.TaxInvoice,
+                BranchId = quotation.BranchId,
+                WarehouseId = warehouseId,
+                PartyId = quotation.PartyId,
+                CustomerName = quotation.CustomerName,
+                CustomerPhone = quotation.CustomerPhone,
+                CustomerEmail = quotation.CustomerEmail,
+                CustomerGSTIN = quotation.CustomerGSTIN,
+                BillingAddress = quotation.BillingAddress,
+                ShippingAddress = quotation.ShippingAddress,
+                BillingStateCode = quotation.BillingStateCode,
+                ShippingStateCode = quotation.ShippingStateCode,
+                PlaceOfSupply = quotation.PlaceOfSupply,
+                InvoiceDate = request.InvoiceDate,
+                DueDate = request.DueDate,
+                InvoiceDiscountPercent = quotation.QuotationDiscountPercent,
+                PrimaryPaymentMode = (PaymentMode)request.PrimaryPaymentMode,
+                PaidAmount = request.PaidAmount,
+                PaymentReferenceNumber = request.PaymentReferenceNumber,
+                Notes = request.Notes ?? $"Generated from Quotation {quotation.QuotationNumber}",
+                TermsAndConditions = quotation.TermsAndConditions,
+                AttributesJson = "{}",
+                Items = invoiceItems
+            };
+
+            var previousStatus = quotation.Status;
+            // Transition and commit status immediately so concurrent requests across any instance are blocked
+            quotation.Status = QuotationStatus.ConvertedToInvoice;
+            quotation.ConvertedAtUtc = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var invoiceResult = await _salesService.CreateInvoiceAsync(invoiceReq, ipAddress, cancellationToken);
+            if (!invoiceResult.IsSuccess)
+            {
+                // Revert status on invoice creation failure
+                quotation.Status = previousStatus;
+                quotation.ConvertedAtUtc = null;
+                await _context.SaveChangesAsync(cancellationToken);
+                return Result<Guid>.Failure(invoiceResult.ErrorMessage ?? "Failed to convert quotation to invoice.", invoiceResult.ErrorCode);
+            }
+
+            var invoiceId = invoiceResult.Data;
+            quotation.ConvertedInvoiceId = invoiceId;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditService.LogAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                UserId = _currentUserContext.UserId,
+                UserEmail = _currentUserContext.Email,
+                Action = Domain.Enums.AuditActionType.Update,
+                ActionName = "ConvertQuotationToInvoice",
+                EntityName = "Quotation",
+                EntityId = quotation.Id.ToString(),
+                NewValuesJson = System.Text.Json.JsonSerializer.Serialize(new { quotation.QuotationNumber, ConvertedInvoiceId = invoiceId }),
+                IpAddress = ipAddress,
+                TimestampUtc = DateTime.UtcNow
+            }, cancellationToken);
+
+            return Result<Guid>.Success(invoiceId);
         }
-
-        var invoiceReq = new CreateSalesInvoiceRequest
+        finally
         {
-            InvoiceType = InvoiceType.TaxInvoice,
-            BranchId = quotation.BranchId,
-            WarehouseId = warehouseId,
-            PartyId = quotation.PartyId,
-            CustomerName = quotation.CustomerName,
-            CustomerPhone = quotation.CustomerPhone,
-            CustomerEmail = quotation.CustomerEmail,
-            CustomerGSTIN = quotation.CustomerGSTIN,
-            BillingAddress = quotation.BillingAddress,
-            ShippingAddress = quotation.ShippingAddress,
-            BillingStateCode = quotation.BillingStateCode,
-            ShippingStateCode = quotation.ShippingStateCode,
-            PlaceOfSupply = quotation.PlaceOfSupply,
-            InvoiceDate = request.InvoiceDate,
-            DueDate = request.DueDate,
-            InvoiceDiscountPercent = quotation.QuotationDiscountPercent,
-            PrimaryPaymentMode = (PaymentMode)request.PrimaryPaymentMode,
-            PaidAmount = request.PaidAmount,
-            PaymentReferenceNumber = request.PaymentReferenceNumber,
-            Notes = request.Notes ?? $"Generated from Quotation {quotation.QuotationNumber}",
-            TermsAndConditions = quotation.TermsAndConditions,
-            AttributesJson = "{}",
-            Items = invoiceItems
-        };
-
-        var invoiceResult = await _salesService.CreateInvoiceAsync(invoiceReq, ipAddress, cancellationToken);
-        if (!invoiceResult.IsSuccess)
-        {
-            return Result<Guid>.Failure(invoiceResult.ErrorMessage ?? "Failed to convert quotation to invoice.", invoiceResult.ErrorCode);
+            semaphore.Release();
         }
-
-        var invoiceId = invoiceResult.Data;
-
-        quotation.Status = QuotationStatus.ConvertedToInvoice;
-        quotation.ConvertedInvoiceId = invoiceId;
-        quotation.ConvertedAtUtc = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        await _auditService.LogAsync(new AuditLog
-        {
-            TenantId = tenantId,
-            UserId = _currentUserContext.UserId,
-            UserEmail = _currentUserContext.Email,
-            Action = Domain.Enums.AuditActionType.Update,
-            ActionName = "ConvertQuotationToInvoice",
-            EntityName = "Quotation",
-            EntityId = quotation.Id.ToString(),
-            NewValuesJson = System.Text.Json.JsonSerializer.Serialize(new { quotation.QuotationNumber, ConvertedInvoiceId = invoiceId }),
-            IpAddress = ipAddress,
-            TimestampUtc = DateTime.UtcNow
-        }, cancellationToken);
-
-        return Result<Guid>.Success(invoiceId);
     }
 
     public async Task<Result<bool>> CancelQuotationAsync(Guid id, string cancellationReason, string? ipAddress = null, CancellationToken cancellationToken = default)

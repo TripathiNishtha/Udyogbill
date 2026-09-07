@@ -8,6 +8,7 @@ public interface IPharmaService
     // Batch & FEFO Routing
     Task<Result<IReadOnlyList<PharmaBatchDto>>> GetItemBatchesAsync(Guid? itemId, bool includeExpired, CancellationToken cancellationToken = default);
     Task<Result<PharmaBatchDto>> SaveBatchAsync(SavePharmaBatchRequest request, CancellationToken cancellationToken = default);
+    Task<Result<PharmaDashboardSummaryDto>> GetPharmaDashboardMetricsAsync(CancellationToken cancellationToken = default);
 
     // Generic Salt Formulations & Substitute Finder
     Task<Result<IReadOnlyList<SaltMasterDto>>> GetSaltsAsync(string? search, CancellationToken cancellationToken = default);

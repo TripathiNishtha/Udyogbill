@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="t d">
+  <title id="t">GST Billing Illustration</title>
+  <desc id="d">Invoice dashboard cards and rupee symbols</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#dcfce7"/>
+    </linearGradient>
+    <linearGradient id="pri" x1="0" x2="1">
+      <stop offset="0" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <rect x="90" y="55" width="460" height="250" rx="18" fill="#fff" stroke="#e5e7eb"/>
+  <rect x="115" y="80" width="240" height="26" rx="8" fill="#f3f4f6"/>
+  <rect x="370" y="80" width="155" height="26" rx="8" fill="url(#pri)"/>
+  <rect x="115" y="122" width="410" height="16" rx="6" fill="#e5e7eb"/>
+  <rect x="115" y="148" width="410" height="16" rx="6" fill="#e5e7eb"/>
+  <rect x="115" y="174" width="410" height="16" rx="6" fill="#e5e7eb"/>
+  <rect x="115" y="214" width="120" height="68" rx="10" fill="#fff7ed" stroke="#fed7aa"/>
+  <rect x="260" y="214" width="120" height="68" rx="10" fill="#ecfeff" stroke="#bae6fd"/>
+  <rect x="405" y="214" width="120" height="68" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="153" y="255" font-size="34" font-family="Arial, sans-serif" fill="#ea580c">�</text>
+  <text x="298" y="255" font-size="34" font-family="Arial, sans-serif" fill="#0284c7">%</text>
+  <text x="440" y="255" font-size="34" font-family="Arial, sans-serif" fill="#15803d"></text>
+</svg>

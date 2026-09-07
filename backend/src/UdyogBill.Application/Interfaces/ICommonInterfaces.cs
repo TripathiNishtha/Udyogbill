@@ -61,6 +61,7 @@ public interface IAppDbContext
     IQueryable<PaymentGatewayConfig> PaymentGatewayConfigs { get; }
     IQueryable<SubscriptionInvoice> SubscriptionInvoices { get; }
     IQueryable<PlatformCompanyProfile> PlatformCompanyProfiles { get; }
+    IQueryable<PlatformCommercialConfig> PlatformCommercialConfigs { get; }
     IQueryable<PlatformEmailConfig> PlatformEmailConfigs { get; }
     IQueryable<PlatformPasswordResetOtp> PlatformPasswordResetOtps { get; }
     IQueryable<AuditLog> AuditLogs { get; }
@@ -148,6 +149,14 @@ public interface IAppDbContext
 
     // Reporting Engine Presets
     IQueryable<Domain.Entities.Reports.SavedReportPreset> SavedReportPresets { get; }
+
+    // CMS - Marketing Website
+    IQueryable<Domain.Entities.CMS.Lead> Leads { get; }
+
+    // Referrals & Affiliate Partner Program
+    IQueryable<Domain.Entities.Referrals.ReferralProgramConfig> ReferralProgramConfigs { get; }
+    IQueryable<Domain.Entities.Referrals.TenantReferralProfile> TenantReferralProfiles { get; }
+    IQueryable<Domain.Entities.Referrals.TenantReferralConversion> TenantReferralConversions { get; }
 
     void Add<TEntity>(TEntity entity) where TEntity : class;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

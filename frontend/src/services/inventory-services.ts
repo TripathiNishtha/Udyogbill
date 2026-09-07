@@ -9,8 +9,19 @@ import {
   WarehouseStock,
   StockMovement,
   LowStockItem,
-  PagedResponse
+  PagedResponse,
 } from "@/types";
+
+export type { Brand, Category, UnitOfMeasure };
+
+export interface OpeningBatchInput {
+  warehouseId?: string;
+  batchNumber?: string;
+  expiryDate?: string;
+  quantity: number;
+  purchaseRate?: number;
+  mrp?: number;
+}
 
 export interface CreateItemInput {
   sku: string;
@@ -43,6 +54,7 @@ export interface CreateItemInput {
   initialWarehouseId?: string;
   initialBatchNumber?: string;
   initialBatchExpiryDate?: string;
+  openingBatches?: OpeningBatchInput[];
 }
 
 export interface CreateBatchInput {

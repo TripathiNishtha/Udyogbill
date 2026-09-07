@@ -25,6 +25,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
   const [pincode, setPincode] = useState("");
   const [creditLimit, setCreditLimit] = useState(0);
   const [creditPeriodDays, setCreditPeriodDays] = useState(30);
+  const [customerType, setCustomerType] = useState<number>(1);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -55,7 +56,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
         legalName: legalName.trim(),
         tradeName: tradeName.trim() || undefined,
         partyType: 1, // Customer
-        customerType: gstin.trim() ? 1 : 2, // 1: B2B, 2: B2C
+        customerType: customerType || (gstin.trim() ? 1 : 2),
         primaryPhone: primaryPhone.trim(),
         mobile: primaryPhone.trim(),
         email: email.trim(),
@@ -87,7 +88,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
         email: email.trim(),
         gstin: gstin.trim().toUpperCase() || undefined,
         partyType: 1,
-        customerType: gstin.trim() ? 1 : 2,
+        customerType: customerType || (gstin.trim() ? 1 : 2),
         currentOutstandingBalance: 0,
         creditLimit: Number(creditLimit) || 0,
         creditPeriodDays: Number(creditPeriodDays) || 30,
@@ -155,6 +156,24 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
               />
             </div>
 
+            {/* Customer Type / Billing Category */}
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs font-semibold text-indigo-400">
+                Customer Type (Billing Category) *
+              </label>
+              <select
+                value={customerType}
+                onChange={(e) => setCustomerType(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-slate-950 border border-indigo-500/40 rounded-xl text-xs text-white font-medium focus:outline-none focus:border-indigo-500"
+              >
+                <option value={1}>B2B - Business to Business (Wholesale Rate / GST)</option>
+                <option value={2}>B2C - Business to Consumer (Retail MRP)</option>
+                <option value={8}>D2C - Direct to Consumer (Online / Delivery)</option>
+                <option value={4}>Wholesale - Stockist / Bulk Trade (PTS Rate)</option>
+                <option value={3}>Retail - Counter Walk-in (MRP)</option>
+              </select>
+            </div>
+
             {/* Trade Name */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-200">Trade / Shop Name</label>
@@ -171,14 +190,15 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-200 flex items-center space-x-1">
                 <Phone className="w-3 h-3 text-indigo-400" />
-                <span>Primary Mobile / Phone *</span>
+                <span>Primary Mobile (10 Digits) *</span>
               </label>
               <input
-                type="text"
+                type="tel"
                 required
-                placeholder="e.g. 9876543210"
+                maxLength={10}
+                placeholder="9876543210"
                 value={primaryPhone}
-                onChange={(e) => setPrimaryPhone(e.target.value)}
+                onChange={(e) => setPrimaryPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
               />
             </div>

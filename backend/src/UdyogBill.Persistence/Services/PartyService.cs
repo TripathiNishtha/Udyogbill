@@ -640,9 +640,35 @@ public class PartyService : IPartyService
             return Result<Guid>.Failure("Party not found.", "NOT_FOUND");
         }
 
-        // If Customer: Receipt reduces customer debt (+ balance -> decreases -> Credit)
-        // If Supplier: Payment reduces vendor payable (- balance -> increases towards 0 -> Debit)
-        var isCustomer = party.PartyType == PartyType.Customer || (party.PartyType == PartyType.Both && party.CurrentOutstandingBalance >= 0);
+        // Determine polarity: CustomerReceipt vs VendorPayment
+        bool isCustomer;
+        if (request.Direction == PartyPaymentDirection.CustomerReceipt)
+        {
+            isCustomer = true;
+        }
+        else if (request.Direction == PartyPaymentDirection.VendorPayment)
+        {
+            isCustomer = false;
+        }
+        else
+        {
+            // Default fallback based on PartyType
+            if (party.PartyType == PartyType.Customer)
+            {
+                isCustomer = true;
+            }
+            else if (party.PartyType == PartyType.Supplier)
+            {
+                isCustomer = false;
+            }
+            else
+            {
+                // For PartyType.Both, payment direction must be explicitly declared to avoid polarity inversion
+                return Result<Guid>.Failure(
+                    "For dual-role parties (Customer & Vendor), payment direction must be explicitly specified as CustomerReceipt or VendorPayment.",
+                    "DIRECTION_REQUIRED");
+            }
+        }
 
         var debitAmt = isCustomer ? 0m : request.Amount;
         var creditAmt = isCustomer ? request.Amount : 0m;

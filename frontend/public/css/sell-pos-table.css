@@ -1,0 +1,81 @@
+#pos_table .product_row td {
+    vertical-align: top;
+}
+#pos_table .product_row .form-control {
+    min-height: 32px;
+}
+#pos_table .product_row .input-group.input-number {
+    min-width: 130px;
+}
+#pos_table .product_row .pos-inline-control {
+    margin-top: 6px;
+}
+#pos_table .product_row .pos-stock-inline {
+    display: inline-block;
+    margin-top: 4px;
+}
+#pos_table .product_row .pos-note-control {
+    max-width: 240px;
+}
+#pos_table .product_row .pos-prev-inline {
+    display: block;
+    margin-top: 4px;
+}
+#pos_table .product_row td .help-block {
+    margin: 2px 0 0;
+}
+#pos_table {
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
+}
+#pos_table thead th,
+#pos_table tbody td {
+    white-space: nowrap;
+}
+#pos_table .tax_id,
+#pos_table .pos_unit_price_inc_tax,
+#pos_table .pos_line_total,
+#pos_table .row_discount_amount {
+    width: 100% !important;
+    min-width: 92px;
+}
+#pos_table .row_discount_type {
+    min-width: 74px;
+}
+#pos_table td .display_currency.pos_line_total_text {
+    white-space: nowrap;
+    display: inline-block;
+    min-width: 88px;
+}
+#pos_table td .select2-container {
+    min-width: 92px;
+}
+#pos_table td.text-center {
+    overflow: visible;
+}
+.sell-product-rows-wrap {
+    min-height: 0;
+}
+
+/* Base product cell layout (invoice page gets full styling in udyogbill-new-invoice.css) */
+.ub-pos-product-cell__main {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.ub-pos-product-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+.ub-pos-product-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.ub-pos-product-sku {
+    font-size: 0.72rem;
+    color: #64748b;
+}

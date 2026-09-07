@@ -99,7 +99,7 @@ export default function TenantBillingPage() {
           key: orderRes.keyId,
           amount: orderRes.amountInPaisa,
           currency: orderRes.currency || "INR",
-          name: "UdyogBill Enterprise",
+          name: "UdyogBill",
           description: orderRes.description,
           order_id: orderRes.orderId,
           prefill: {
@@ -517,7 +517,7 @@ export default function TenantBillingPage() {
                   <h2 className="text-base font-black text-slate-950 tracking-tight uppercase">
                     {activeInvoice.supplierLegalName || "UDYOG SOFTWARE TECHNOLOGIES PRIVATE LIMITED"}
                   </h2>
-                  <p className="text-indigo-600 font-bold text-xs">UdyogBill Cloud ERP Platform</p>
+                  <p className="text-indigo-600 font-bold text-xs">UdyogBill Platform</p>
                   <p className="text-slate-500 text-[11px] mt-0.5">
                     {activeInvoice.supplierAddress || "Tower B, Cyber City, Sector 62, Noida, Uttar Pradesh - 201309"}
                   </p>

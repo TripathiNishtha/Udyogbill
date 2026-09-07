@@ -21,6 +21,7 @@ import {
   PurchaseSummaryReport,
 } from "@/services/p0-reports.service";
 import { ReportExportToolbar } from "@/components/reports/report-export-toolbar";
+import { QuickReportJumpBar } from "@/components/reports/quick-report-jump-bar";
 
 const formatCurrency = (val?: number) => {
   if (val === undefined || val === null) return "₹0.00";
@@ -123,7 +124,7 @@ function PurchaseReportsContent() {
         it.hsnCode || "—",
         it.quantity ?? 0,
         it.uomCode || "—",
-        (it.rate ?? 0).toFixed(2),
+        (it.purchaseRate ?? 0).toFixed(2),
         (it.taxableAmount ?? 0).toFixed(2),
         `${it.gstRate ?? 0}%`,
         (it.cgstAmount ?? 0).toFixed(2),
@@ -136,13 +137,13 @@ function PurchaseReportsContent() {
         r.groupLabel || "—",
         r.billCount ?? 0,
         r.totalQuantityPurchased ?? 0,
-        (r.grossPurchases ?? 0).toFixed(2),
-        (r.taxablePurchases ?? 0).toFixed(2),
-        (r.totalTax ?? 0).toFixed(2),
-        (r.netPurchases ?? 0).toFixed(2)
+        (r.grossPurchase ?? 0).toFixed(2),
+        (r.taxablePurchase ?? 0).toFixed(2),
+        (r.taxAmount ?? 0).toFixed(2),
+        (r.netPurchase ?? 0).toFixed(2)
       ]);
 
-  const summaryExportData = activeTab === "detailed"
+  const summaryExportData: Record<string, string | number> = activeTab === "detailed"
     ? {
         "Total Bills": detailedData?.distinctBillsCount || 0,
         "Total Taxable": formatCurrency(detailedData?.totalTaxable),
@@ -150,21 +151,15 @@ function PurchaseReportsContent() {
         "Total Purchase Value": formatCurrency(detailedData?.totalNetAmount)
       }
     : {
-        "Total Bills": summaryData?.overallSummary?.totalBills || 0,
-        "Total Taxable": formatCurrency(summaryData?.overallSummary?.totalTaxablePurchases),
-        "Total Net Purchases": formatCurrency(summaryData?.overallSummary?.totalNetPurchases)
+        "Total Bills": summaryData?.grandBillCount || 0,
+        "Total Taxable": formatCurrency(summaryData?.grandTaxablePurchase),
+        "Total Net Purchases": formatCurrency(summaryData?.grandNetPurchase)
       };
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-xs text-slate-400">
-        <Link href="/app/reports" className="hover:text-white transition-colors">
-          Report Center
-        </Link>
-        <span>/</span>
-        <span className="text-slate-200">Procurement & Purchases</span>
-      </div>
+      {/* Top Quick Jump Bar */}
+      <QuickReportJumpBar currentReportTitle="Purchase Register & Audit" />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

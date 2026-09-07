@@ -282,7 +282,8 @@ export interface DebtorAgeingInvoiceRow {
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
-  totalInvoiceAmount: number;
+  totalInvoiceAmount?: number;
+  invoiceAmount?: number;
   paidAmount: number;
   outstandingAmount: number;
   daysOverdue: number;
@@ -309,6 +310,7 @@ export interface DebtorAgeingCustomerSummary {
 }
 
 export interface DebtorAgeingReport {
+  invoices?: DebtorAgeingInvoiceRow[];
   invoiceRows: DebtorAgeingInvoiceRow[];
   customerSummaries: DebtorAgeingCustomerSummary[];
   grandTotalReceivable: number;
@@ -328,12 +330,15 @@ export interface CreditorAgeingBillRow {
   partyId: string;
   supplierName: string;
   phone?: string;
-  purchaseBillId: string;
+  purchaseBillId?: string;
+  billId?: string;
   billNumber: string;
+  supplierBillNumber?: string;
   vendorInvoiceNumber?: string;
   billDate: string;
   dueDate: string;
-  totalBillAmount: number;
+  totalBillAmount?: number;
+  billAmount?: number;
   paidAmount: number;
   outstandingAmount: number;
   daysOverdue: number;
@@ -357,6 +362,7 @@ export interface CreditorAgeingSupplierSummary {
 }
 
 export interface CreditorAgeingReport {
+  bills?: CreditorAgeingBillRow[];
   billRows: CreditorAgeingBillRow[];
   supplierSummaries: CreditorAgeingSupplierSummary[];
   grandTotalPayable: number;
@@ -405,6 +411,38 @@ export interface TruePnLReport {
   // Net Profit
   netProfitAmount: number;
   netProfitMarginPercent: number;
+}
+
+export interface CompanyStockSalesItem {
+  itemId: string;
+  itemSku: string;
+  itemName: string;
+  brandId?: string;
+  companyName: string;
+  packing: string;
+  mrp: number;
+  purchasePrice: number;
+  salePrice: number;
+  purchaseUnit: string;
+  saleUnit: string;
+  stockInQuantity: number;
+  currentStock: number;
+  currentStockValue: number;
+  soldQuantity: number;
+  saleValue: number;
+}
+
+export interface CompanyStockSalesReport {
+  items: CompanyStockSalesItem[];
+  grandStockInQty: number;
+  grandCurrentStock: number;
+  grandStockValue: number;
+  grandSoldQty: number;
+  grandSaleValue: number;
+  totalItemsCount: number;
+  fromDate: string;
+  toDate: string;
+  filterCompanyName?: string;
 }
 
 export interface SavedReportPreset {
@@ -466,19 +504,39 @@ export const p0ReportService = {
 
   async getDebtorAgeing(filter: P0ReportFilter = {}): Promise<DebtorAgeingReport> {
     const q = buildQuery(filter);
-    const res = await apiClient.get<DebtorAgeingReport>(`/tenant/reports/p0/receivables/debtor-ageing?${q}`);
-    return res.data;
+    const res = await apiClient.get<any>(`/tenant/reports/p0/receivables/debtor-ageing?${q}`);
+    const data = res.data?.data || res.data || {};
+    const invoiceList: DebtorAgeingInvoiceRow[] = data.invoices || data.invoiceRows || [];
+    return {
+      ...data,
+      invoices: invoiceList,
+      invoiceRows: invoiceList,
+      customerSummaries: data.customerSummaries || [],
+    };
   },
 
   async getCreditorAgeing(filter: P0ReportFilter = {}): Promise<CreditorAgeingReport> {
     const q = buildQuery(filter);
-    const res = await apiClient.get<CreditorAgeingReport>(`/tenant/reports/p0/payables/creditor-ageing?${q}`);
-    return res.data;
+    const res = await apiClient.get<any>(`/tenant/reports/p0/payables/creditor-ageing?${q}`);
+    const data = res.data?.data || res.data || {};
+    const billList: CreditorAgeingBillRow[] = data.bills || data.billRows || [];
+    return {
+      ...data,
+      bills: billList,
+      billRows: billList,
+      supplierSummaries: data.supplierSummaries || [],
+    };
   },
 
   async getTruePnL(filter: P0ReportFilter = {}): Promise<TruePnLReport> {
     const q = buildQuery(filter);
     const res = await apiClient.get<TruePnLReport>(`/tenant/reports/p0/financial/true-pnl?${q}`);
+    return res.data;
+  },
+
+  async getCompanyStockSalesReport(filter: P0ReportFilter = {}): Promise<CompanyStockSalesReport> {
+    const q = buildQuery(filter);
+    const res = await apiClient.get<CompanyStockSalesReport>(`/tenant/reports/p0/inventory/company-stock-sales?${q}`);
     return res.data;
   },
 

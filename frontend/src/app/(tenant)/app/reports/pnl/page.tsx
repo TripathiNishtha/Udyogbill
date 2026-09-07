@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { p0ReportService, TruePnLReport } from "@/services/p0-reports.service";
 import { ReportExportToolbar } from "@/components/reports/report-export-toolbar";
+import { QuickReportJumpBar } from "@/components/reports/quick-report-jump-bar";
 
 export default function ProfitAndLossPage() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -81,14 +82,8 @@ export default function ProfitAndLossPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-xs text-slate-400">
-        <Link href="/app/reports" className="hover:text-white transition-colors">
-          Report Center
-        </Link>
-        <span>/</span>
-        <span className="text-slate-200">Income Statement & P&L</span>
-      </div>
+      {/* Top Quick Jump Bar */}
+      <QuickReportJumpBar currentReportTitle="True Profit & Loss (P&L)" />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

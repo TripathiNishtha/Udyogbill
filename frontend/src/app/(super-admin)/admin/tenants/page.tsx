@@ -22,12 +22,17 @@ import {
   ChevronDown,
   Store,
   LogIn,
-  ArrowRight
+  ArrowRight,
+  RefreshCw,
+  Zap,
+  Stethoscope
 } from "lucide-react";
 import { superAdminService } from "@/services/super-admin-services";
 import { platformCouponService } from "@/services/coupon-service";
+import { superAdminPharmaSfaService } from "@/services/pharma-sfa-services";
 import { Tenant, TenantDetails, Industry } from "@/types";
 import { authService, catalogService } from "@/services/api-services";
+import { apiClient } from "@/lib/api-client";
 
 export default function SuperAdminTenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -35,6 +40,7 @@ export default function SuperAdminTenantsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [quickLoggingIn, setQuickLoggingIn] = useState(false);
+  const [seedingSamples, setSeedingSamples] = useState(false);
   const [isTenantMode, setIsTenantMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -66,7 +72,7 @@ export default function SuperAdminTenantsPage() {
     plans: [],
     selectedPlanId: "",
     durationDays: 365,
-    selectedAddons: ["ADDON_PHARMA", "ADDON_WHATSAPP"],
+    selectedAddons: [],
     saving: false,
     notes: "",
   });
@@ -86,7 +92,76 @@ export default function SuperAdminTenantsPage() {
     saving: false,
   });
 
+  // 🩺 SuperAdmin Pharma SFA Modal State
+  const [sfaModal, setSfaModal] = useState<{
+    isOpen: boolean;
+    tenant: Tenant | null;
+    mrSeats: number;
+    managerSeats: number;
+    isAnnual: boolean;
+    saving: boolean;
+  }>({
+    isOpen: false,
+    tenant: null,
+    mrSeats: 15,
+    managerSeats: 5,
+    isAnnual: true,
+    saving: false,
+  });
+
   const [growthSuccessAlert, setGrowthSuccessAlert] = useState<string | null>(null);
+
+  const openSfaModal = (tenant: Tenant) => {
+    setOpenDropdownId(null);
+    setSfaModal({
+      isOpen: true,
+      tenant,
+      mrSeats: 15,
+      managerSeats: 5,
+      isAnnual: true,
+      saving: false,
+    });
+  };
+
+  const handleSfaGrantSubmit = async () => {
+    if (!sfaModal.tenant) return;
+    setSfaModal((prev) => ({ ...prev, saving: true }));
+    try {
+      await superAdminPharmaSfaService.activatePharmaAddon(
+        sfaModal.tenant.id,
+        sfaModal.isAnnual,
+        sfaModal.mrSeats,
+        sfaModal.managerSeats
+      );
+      setGrowthSuccessAlert("Successfully granted Pharma SFA Suite to " + sfaModal.tenant.businessName + "!");
+      setTimeout(() => setGrowthSuccessAlert(null), 4000);
+      setSfaModal((prev) => ({ ...prev, isOpen: false }));
+      loadTenants();
+    } catch (err: any) {
+      alert("Failed to grant Pharma SFA: " + (err?.message || "Unknown error"));
+    } finally {
+      setSfaModal((prev) => ({ ...prev, saving: false }));
+    }
+  };
+
+  const handleSfaDeactivateSubmit = async () => {
+    if (!sfaModal.tenant) return;
+    if (!confirm(`Are you sure you want to deactivate Pharma SFA for ${sfaModal.tenant.businessName}? MR and Manager logins will be revoked.`)) {
+      return;
+    }
+    setSfaModal((prev) => ({ ...prev, saving: true }));
+    try {
+      await superAdminPharmaSfaService.deactivatePharmaAddon(sfaModal.tenant.id);
+      setGrowthSuccessAlert("Successfully deactivated Pharma SFA for " + sfaModal.tenant.businessName + ".");
+      setTimeout(() => setGrowthSuccessAlert(null), 4000);
+      setSfaModal((prev) => ({ ...prev, isOpen: false }));
+      loadTenants();
+    } catch (err: any) {
+      alert("Failed to deactivate Pharma SFA: " + (err?.message || "Unknown error"));
+    } finally {
+      setSfaModal((prev) => ({ ...prev, saving: false }));
+    }
+  };
 
   const openSubModal = async (tenant: Tenant) => {
     setOpenDropdownId(null);
@@ -109,7 +184,7 @@ export default function SuperAdminTenantsPage() {
       plans: availablePlans,
       selectedPlanId: availablePlans[1]?.id || availablePlans[0]?.id || "",
       durationDays: 365,
-      selectedAddons: ["ADDON_PHARMA", "ADDON_WHATSAPP"],
+      selectedAddons: [],
       saving: false,
       notes: "Granted VIP access by Super Admin",
     });
@@ -129,8 +204,8 @@ export default function SuperAdminTenantsPage() {
       setTimeout(() => setGrowthSuccessAlert(null), 4000);
       setSubModal((prev) => ({ ...prev, isOpen: false }));
       loadTenants();
-    } catch (err) {
-      alert("Failed to assign package: " + (err.message || "Unknown error"));
+    } catch (err: any) {
+      alert("Failed to assign package: " + (err?.message || "Unknown error"));
     } finally {
       setSubModal((prev) => ({ ...prev, saving: false }));
     }
@@ -148,8 +223,8 @@ export default function SuperAdminTenantsPage() {
       setTimeout(() => setGrowthSuccessAlert(null), 4000);
       setTrialModal((prev) => ({ ...prev, isOpen: false }));
       loadTenants();
-    } catch (err) {
-      alert("Failed to extend trial: " + (err.message || "Unknown error"));
+    } catch (err: any) {
+      alert("Failed to extend trial: " + (err?.message || "Unknown error"));
     } finally {
       setTrialModal((prev) => ({ ...prev, saving: false }));
     }
@@ -270,6 +345,23 @@ export default function SuperAdminTenantsPage() {
     }
   };
 
+  const handleSeedSampleStores = async () => {
+    try {
+      setSeedingSamples(true);
+      await apiClient.post("/superadmin/tenants/seed-samples");
+      setSearchTerm("");
+      setIndustryFilter("ALL");
+      setStatusFilter("ALL");
+      await loadTenants();
+      setGrowthSuccessAlert("Successfully generated demo stores (Pharma, Garments, Kirana)!");
+      setTimeout(() => setGrowthSuccessAlert(null), 4000);
+    } catch (err: any) {
+      alert("Failed to generate demo stores: " + (err?.response?.data?.message || err?.message || "Error"));
+    } finally {
+      setSeedingSamples(false);
+    }
+  };
+
   const loadTenants = async () => {
     try {
       setLoading(true);
@@ -295,6 +387,18 @@ export default function SuperAdminTenantsPage() {
 
       const data = await superAdminService.getTenants(params);
       let itemsList: Tenant[] = Array.isArray(data) ? data : data?.items || [];
+
+      // Auto-heal: If database has zero tenants, auto-seed sample demo stores
+      if (itemsList.length === 0 && !searchTerm && industryFilter === "ALL" && statusFilter === "ALL") {
+        try {
+          await apiClient.post("/superadmin/tenants/seed-samples");
+          const freshData = await superAdminService.getTenants(params);
+          itemsList = Array.isArray(freshData) ? freshData : freshData?.items || [];
+        } catch (seedErr) {
+          console.warn("Auto demo stores seeding deferred", seedErr);
+        }
+      }
+
       if (statusFilter !== "ALL") {
         itemsList = itemsList.filter((t) => getStatusLabel(t.status) === statusFilter);
       }
@@ -433,6 +537,27 @@ export default function SuperAdminTenantsPage() {
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={loadTenants}
+            disabled={loading}
+            title="Refresh list"
+            className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-indigo-400" : ""}`} />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSeedSampleStores}
+            disabled={seedingSamples}
+            title="Seed demo stores across Pharma, Garments and Kirana"
+            className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-500 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer whitespace-nowrap shadow-sm disabled:opacity-50"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+            <span>{seedingSamples ? "Seeding..." : "⚡ Add Demo Stores"}</span>
+          </button>
         </div>
       </div>
 
@@ -585,6 +710,24 @@ export default function SuperAdminTenantsPage() {
 
                                 <button
                                   type="button"
+                                  onClick={() => openSfaModal(tenant)}
+                                  className="w-full text-left px-3.5 py-2.5 text-xs text-teal-300 hover:text-white hover:bg-teal-600/20 flex items-center space-x-3 transition-colors cursor-pointer group"
+                                >
+                                  <div className="w-7 h-7 rounded-lg bg-teal-500/15 group-hover:bg-teal-500/30 flex items-center justify-center text-teal-400">
+                                    <Stethoscope className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div>
+                                    <div className="font-bold flex items-center gap-1.5 text-teal-300 group-hover:text-teal-100">
+                                      Pharma SFA &amp; Field Force
+                                    </div>
+                                    <div className="text-[10px] text-teal-300/70">
+                                      MR &amp; Manager seats grant/revoke
+                                    </div>
+                                  </div>
+                                </button>
+
+                                <button
+                                  type="button"
                                   onClick={() => {
                                     setOpenDropdownId(null);
                                     setTrialModal({
@@ -688,8 +831,51 @@ export default function SuperAdminTenantsPage() {
                 </tr>
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
-                    No subscribers found matching the filters.
+                  <td colSpan={6} className="py-16 text-center">
+                    <div className="max-w-md mx-auto space-y-4 p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-slate-300">
+                      <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+                        <Building2 className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-base">
+                          {searchTerm || industryFilter !== "ALL" || statusFilter !== "ALL"
+                            ? "No subscribers match your active filters"
+                            : "No subscribers found"}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {searchTerm || industryFilter !== "ALL" || statusFilter !== "ALL"
+                            ? "Selected search term ya status filter ke anusar koi store nahi mila. Filters clear karke sabhi stores dekhein."
+                            : "Database me abhi koi subscriber nahi hai. Niche diye gaye button se 1-click me realistic demo stores (Pharma, Garments, Kirana) generate karein."}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-center gap-3">
+                        {searchTerm || industryFilter !== "ALL" || statusFilter !== "ALL" ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearchTerm("");
+                              setIndustryFilter("ALL");
+                              setStatusFilter("ALL");
+                            }}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Clear Filters & Show All</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleSeedSampleStores}
+                            disabled={seedingSamples}
+                            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+                            <span>{seedingSamples ? "Generating Demo Stores..." : "⚡ Generate Demo Stores (Pharma, Garments, Kirana)"}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -975,6 +1161,7 @@ export default function SuperAdminTenantsPage() {
                 <label className="block text-slate-300 font-semibold mb-1.5">Include Industry Add-ons (Multi-Select)</label>
                 <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
                   {[
+                    { code: "ADDON_PHARMA_SFA", name: "Pharma SFA & MR Field Force", icon: "🩺" },
                     { code: "ADDON_PHARMA", name: "Pharma Suite & Schedule H1", icon: "💊" },
                     { code: "ADDON_WHATSAPP", name: "WhatsApp Cloud Automation", icon: "💬" },
                     { code: "ADDON_EWAYBILL", name: "E-Way Bill & E-Invoice", icon: "🚚" },
@@ -1119,6 +1306,118 @@ export default function SuperAdminTenantsPage() {
                 >
                   {trialModal.saving ? "Extending..." : "⚡ Extend Trial Now"}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🩺 SuperAdmin Pharma SFA Modal */}
+      {sfaModal.isOpen && sfaModal.tenant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-600/20 border border-teal-500/30 text-teal-400 flex items-center justify-center">
+                  <Stethoscope className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Pharma SFA &amp; Field Force</h3>
+                  <p className="text-xs text-slate-400">
+                    {sfaModal.tenant.businessName} ({sfaModal.tenant.code})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSfaModal((prev) => ({ ...prev, isOpen: false }))}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="p-3 bg-teal-950/40 border border-teal-800/40 rounded-xl text-teal-300">
+                <div className="font-semibold mb-1">Super Admin Direct Grant / Deactivation</div>
+                <div className="text-[11px] text-teal-300/80 leading-relaxed">
+                  Grants unlimited doctor call recording, chemist order booking, GPS attendance, and sample stock allocation for this subscriber.
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Max MR Seats</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={sfaModal.mrSeats}
+                    onChange={(e) => setSfaModal((prev) => ({ ...prev, mrSeats: Math.max(1, parseInt(e.target.value) || 1) }))}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-teal-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Default: 15 reps</p>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Max Manager Seats</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={sfaModal.managerSeats}
+                    onChange={(e) => setSfaModal((prev) => ({ ...prev, managerSeats: Math.max(1, parseInt(e.target.value) || 1) }))}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-teal-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Default: 5 managers</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1.5">Billing Cycle / Validity</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSfaModal((prev) => ({ ...prev, isAnnual: false }))}
+                    className={"py-2.5 rounded-xl font-bold border transition-all cursor-pointer " + (!sfaModal.isAnnual ? "bg-teal-600 border-teal-500 text-white shadow-md shadow-teal-600/30" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white")}
+                  >
+                    Monthly (30 Days)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSfaModal((prev) => ({ ...prev, isAnnual: true }))}
+                    className={"py-2.5 rounded-xl font-bold border transition-all cursor-pointer " + (sfaModal.isAnnual ? "bg-teal-600 border-teal-500 text-white shadow-md shadow-teal-600/30" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white")}
+                  >
+                    Annual (365 Days)
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                <button
+                  type="button"
+                  disabled={sfaModal.saving}
+                  onClick={handleSfaDeactivateSubmit}
+                  className="px-3 py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 hover:text-white rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  Revoke SFA
+                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setSfaModal((prev) => ({ ...prev, isOpen: false }))}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sfaModal.saving}
+                    onClick={handleSfaGrantSubmit}
+                    className="px-5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    {sfaModal.saving ? "Granting..." : "⚡ Grant SFA Access"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

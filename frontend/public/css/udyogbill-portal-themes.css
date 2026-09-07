@@ -1,0 +1,427 @@
+/*
+ * Portal Theme Accents — udyogbill-portal-themes.css
+ *
+ * LOADED LAST — final authority on all visual styles.
+ * Sidebar + header: dark themed (per selected portal theme).
+ * Content area: forced light background + dark readable text.
+ */
+
+/* === Theme CSS variables (default = UdyogBill brand) === */
+body.ub-app {
+  --upt-sidebar-1: #0b0b0b;
+  --upt-sidebar-2: #171717;
+  --upt-header-1: #0b0b0b;
+  --upt-header-2: #171717;
+  --upt-sidebar-text: #f5f5f4;
+  --upt-sidebar-muted: #a8a29e;
+  --upt-active-bg: #f58220;
+  --upt-active-text: #ffffff;
+  --upt-btn-bg: #e8a317;
+  --upt-header-text: #f5f5f4;
+}
+
+/* ============================================
+   SECTION A: CONTENT AREA — LIGHT BG + DARK TEXT
+   Scoped to non-dashboard pages.
+   ============================================ */
+
+body.ub-app:not(.dashboard-redesign) {
+  background:
+    radial-gradient(900px 460px at 5% -10%, rgba(240,138,36,.12), transparent 50%),
+    radial-gradient(900px 460px at 95% -8%, rgba(246,166,79,.10), transparent 50%),
+    linear-gradient(180deg, #fffdf9 0%, #fffaf4 45%, #fff3e6 100%) !important;
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) main,
+body.ub-app:not(.dashboard-redesign) .thetop,
+body.ub-app:not(.dashboard-redesign) #scrollable-container,
+body.ub-app:not(.dashboard-redesign) .content-wrapper,
+body.ub-app:not(.dashboard-redesign) .right-side {
+  background: transparent !important;
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .content-header {
+  background: transparent !important;
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .content-header h1,
+body.ub-app:not(.dashboard-redesign) .content-header h2,
+body.ub-app:not(.dashboard-redesign) .content-header h3,
+body.ub-app:not(.dashboard-redesign) h1,
+body.ub-app:not(.dashboard-redesign) h2,
+body.ub-app:not(.dashboard-redesign) h3,
+body.ub-app:not(.dashboard-redesign) h4,
+body.ub-app:not(.dashboard-redesign) h5,
+body.ub-app:not(.dashboard-redesign) .box-title {
+  color: #0f172a !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .content-header small {
+  color: #475569 !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .breadcrumb,
+body.ub-app:not(.dashboard-redesign) .breadcrumb li,
+body.ub-app:not(.dashboard-redesign) .breadcrumb li a,
+body.ub-app:not(.dashboard-redesign) .breadcrumb > .active {
+  color: #64748b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .box,
+body.ub-app:not(.dashboard-redesign) .small-box,
+body.ub-app:not(.dashboard-redesign) .info-box,
+body.ub-app:not(.dashboard-redesign) .modal-content,
+body.ub-app:not(.dashboard-redesign) .panel,
+body.ub-app:not(.dashboard-redesign) .well,
+body.ub-app:not(.dashboard-redesign) .tw-bg-white {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .box-header {
+  color: #0f172a !important;
+}
+
+body.ub-app:not(.dashboard-redesign) p,
+body.ub-app:not(.dashboard-redesign) label,
+body.ub-app:not(.dashboard-redesign) .control-label,
+body.ub-app:not(.dashboard-redesign) li,
+body.ub-app:not(.dashboard-redesign) small,
+body.ub-app:not(.dashboard-redesign) .small {
+  color: #1e293b;
+}
+
+body.ub-app:not(.dashboard-redesign) .table td,
+body.ub-app:not(.dashboard-redesign) .table tbody td {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .table th,
+body.ub-app:not(.dashboard-redesign) .table thead th {
+  color: #334155 !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .text-muted,
+body.ub-app:not(.dashboard-redesign) .help-block {
+  color: #64748b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .form-control,
+body.ub-app:not(.dashboard-redesign) input[type="text"],
+body.ub-app:not(.dashboard-redesign) input[type="number"],
+body.ub-app:not(.dashboard-redesign) input[type="email"],
+body.ub-app:not(.dashboard-redesign) input[type="password"],
+body.ub-app:not(.dashboard-redesign) select,
+body.ub-app:not(.dashboard-redesign) textarea {
+  color: #1e293b !important;
+  background: #fff !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .select2-container--default .select2-selection--single .select2-selection__rendered {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .select2-container--default .select2-results__option {
+  color: #1e293b !important;
+  background: #fff !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background: #fff1e0 !important;
+  color: #1a120b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .dataTables_info,
+body.ub-app:not(.dashboard-redesign) .dataTables_length label,
+body.ub-app:not(.dashboard-redesign) .dataTables_filter label {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .pagination > li > a,
+body.ub-app:not(.dashboard-redesign) .pagination > li > span {
+  color: #334155 !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .alert {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .modal-title {
+  color: #0f172a !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .modal-body {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .dropdown-menu > li > a {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .checkbox label,
+body.ub-app:not(.dashboard-redesign) .radio label {
+  color: #1e293b !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .input-group-addon {
+  color: #334155 !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .nav-tabs > li > a {
+  color: #334155 !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .nav-tabs > li.active > a {
+  color: #0f172a !important;
+}
+
+body.ub-app:not(.dashboard-redesign) .footer,
+body.ub-app:not(.dashboard-redesign) .main-footer,
+body.ub-app:not(.dashboard-redesign) footer {
+  color: #64748b !important;
+}
+
+/* ============================================
+   SECTION B: SIDEBAR — DARK THEMED
+   ============================================ */
+
+body.ub-app .side-bar {
+  background: linear-gradient(180deg, var(--upt-sidebar-1) 0%, var(--upt-sidebar-2) 100%) !important;
+}
+
+body.ub-app .side-bar > a {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.ub-app #side-bar a,
+body.ub-app #side-bar .drop_down,
+body.ub-app #side-bar .ub-sidebar-item {
+  color: var(--upt-sidebar-text) !important;
+}
+
+/* Sidebar text clarity (avoid blur/soft rendering on scaled menus) */
+body.ub-app #side-bar {
+  overflow-y: auto !important;
+}
+
+body.ub-app #side-bar.ub-menu-autofit {
+  transform: none !important;
+  width: 100% !important;
+  will-change: auto !important;
+}
+
+body.ub-app #side-bar,
+body.ub-app #side-bar * {
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+body.ub-app #side-bar .ub-sidebar-item,
+body.ub-app #side-bar .drop_down {
+  font-family: "Segoe UI", "Inter", Arial, sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+body.ub-app #side-bar .tw-text-gray-400 {
+  color: var(--upt-sidebar-muted) !important;
+}
+
+body.ub-app #side-bar a:hover,
+body.ub-app #side-bar .drop_down:hover,
+body.ub-app #side-bar a.ub-sidebar-item.ub-sidebar-active,
+body.ub-app #side-bar a.drop_down.ub-sidebar-active,
+body.ub-app #side-bar a.tw-bg-gray-200,
+body.ub-app #side-bar .drop_down.tw-bg-gray-200,
+body.ub-app #side-bar .drop_down.tw-text-primary-700,
+body.ub-app #side-bar a.tw-text-primary-700 {
+  background: rgba(255,255,255,.10) !important;
+  color: var(--upt-active-text) !important;
+}
+
+body.ub-app #side-bar a.ub-sidebar-item.ub-sidebar-active,
+body.ub-app #side-bar a.drop_down.ub-sidebar-active {
+  background: var(--upt-active-bg) !important;
+  color: var(--upt-active-text) !important;
+  box-shadow: inset 3px 0 0 #5de12a !important;
+}
+
+body.ub-app #side-bar > div.ub-sidebar-active,
+body.ub-app #side-bar > div.ub-menu-open {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.ub-app #side-bar .ub-sidebar-child-active {
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 0 #f58220 !important;
+}
+
+body.ub-app #side-bar .ub-submenu-link:hover {
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+}
+
+/* ============================================
+   SECTION C: HEADER BAR — DARK THEMED
+   ============================================ */
+
+body.ub-app .no-print.tw-border-b {
+  background: linear-gradient(90deg, var(--upt-header-1) 0%, var(--upt-header-2) 100%) !important;
+  border-bottom: 2px solid #f58220 !important;
+  /* Above #scrollable-container (dashboard sets z-index on it); keeps user/menu dropdowns on top */
+  position: relative;
+  z-index: 1030;
+}
+
+body.ub-app .no-print.tw-border-b,
+body.ub-app .no-print.tw-border-b *,
+body.ub-app .no-print.tw-border-b a,
+body.ub-app .no-print.tw-border-b span,
+body.ub-app .no-print.tw-border-b i {
+  color: var(--upt-header-text) !important;
+}
+
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10 {
+  background: var(--upt-active-bg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10:hover {
+  background: var(--upt-btn-bg) !important;
+}
+
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10,
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10 span,
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10 i,
+body.ub-app .no-print.tw-border-b .tw-ring-white\/10 svg {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* White dropdown panels in header: dark text (overrides * rule above) */
+body.ub-app .no-print.tw-border-b ul.tw-bg-white,
+body.ub-app .no-print.tw-border-b ul.tw-bg-white *,
+body.ub-app .no-print.tw-border-b ul[class*="tw-bg-white"],
+body.ub-app .no-print.tw-border-b ul[class*="tw-bg-white"] *,
+body.ub-app .no-print.tw-border-b .tw-dw-dropdown-content,
+body.ub-app .no-print.tw-border-b .tw-dw-dropdown-content *,
+body.ub-app .no-print.tw-border-b .tw-dw-menu,
+body.ub-app .no-print.tw-border-b .tw-dw-menu *,
+body.ub-app .no-print.tw-border-b details ul[role="menu"],
+body.ub-app .no-print.tw-border-b details ul[role="menu"] * {
+  color: #1e293b !important;
+}
+
+body.ub-app .no-print.tw-border-b ul.tw-bg-white a,
+body.ub-app .no-print.tw-border-b ul.tw-bg-white button {
+  color: #334155 !important;
+}
+
+body.ub-app .no-print.tw-border-b ul.tw-bg-white .tw-text-gray-900,
+body.ub-app .no-print.tw-border-b ul.tw-bg-white .tw-font-medium {
+  color: #0f172a !important;
+}
+
+body.ub-app .no-print.tw-border-b ul.tw-bg-white svg {
+  color: #475569 !important;
+}
+
+body.ub-app .no-print.tw-border-b ul.tw-bg-white a:hover,
+body.ub-app .no-print.tw-border-b ul.tw-bg-white a:focus {
+  color: #0f172a !important;
+}
+
+/* ============================================
+   SECTION D: THEME ACCENT DEFINITIONS
+   ============================================ */
+
+/* 1) Midnight Navy */
+body.ub-app.ub-portal-theme-midnight {
+  --upt-sidebar-1: #0f172a;
+  --upt-sidebar-2: #1e3a5f;
+  --upt-header-1: #0f172a;
+  --upt-header-2: #1e3a5f;
+  --upt-sidebar-text: #cbd5e1;
+  --upt-sidebar-muted: #94a3b8;
+  --upt-active-bg: #1d4ed8;
+  --upt-active-text: #eff6ff;
+  --upt-btn-bg: #2563eb;
+  --upt-header-text: #e2e8f0;
+}
+
+/* 2) Sunset Orange — UdyogBill logo colors */
+body.ub-app.ub-portal-theme-sunset {
+  --upt-sidebar-1: #0b0b0b;
+  --upt-sidebar-2: #171717;
+  --upt-header-1: #0b0b0b;
+  --upt-header-2: #171717;
+  --upt-sidebar-text: #f5f5f4;
+  --upt-sidebar-muted: #a8a29e;
+  --upt-active-bg: #f58220;
+  --upt-active-text: #ffffff;
+  --upt-btn-bg: #e8a317;
+  --upt-header-text: #f5f5f4;
+}
+
+/* 3) Forest Green */
+body.ub-app.ub-portal-theme-forest {
+  --upt-sidebar-1: #052e16;
+  --upt-sidebar-2: #14532d;
+  --upt-header-1: #052e16;
+  --upt-header-2: #14532d;
+  --upt-sidebar-text: #d1fae5;
+  --upt-sidebar-muted: #86efac;
+  --upt-active-bg: #047857;
+  --upt-active-text: #ecfdf5;
+  --upt-btn-bg: #059669;
+  --upt-header-text: #d1fae5;
+}
+
+/* 4) Royal Purple */
+body.ub-app.ub-portal-theme-royal {
+  --upt-sidebar-1: #2e1065;
+  --upt-sidebar-2: #4c1d95;
+  --upt-header-1: #2e1065;
+  --upt-header-2: #4c1d95;
+  --upt-sidebar-text: #ddd6fe;
+  --upt-sidebar-muted: #a78bfa;
+  --upt-active-bg: #6d28d9;
+  --upt-active-text: #f5f3ff;
+  --upt-btn-bg: #7c3aed;
+  --upt-header-text: #ede9fe;
+}
+
+/* 5) Mono Slate */
+body.ub-app.ub-portal-theme-mono {
+  --upt-sidebar-1: #0f172a;
+  --upt-sidebar-2: #334155;
+  --upt-header-1: #0f172a;
+  --upt-header-2: #334155;
+  --upt-sidebar-text: #e2e8f0;
+  --upt-sidebar-muted: #94a3b8;
+  --upt-active-bg: #475569;
+  --upt-active-text: #f8fafc;
+  --upt-btn-bg: #64748b;
+  --upt-header-text: #e2e8f0;
+}
+
+/* 6) Candy Pop */
+body.ub-app.ub-portal-theme-candy {
+  --upt-sidebar-1: #500724;
+  --upt-sidebar-2: #831843;
+  --upt-header-1: #500724;
+  --upt-header-2: #831843;
+  --upt-sidebar-text: #fce7f3;
+  --upt-sidebar-muted: #f9a8d4;
+  --upt-active-bg: #be185d;
+  --upt-active-text: #fff1f2;
+  --upt-btn-bg: #db2777;
+  --upt-header-text: #fce7f3;
+}

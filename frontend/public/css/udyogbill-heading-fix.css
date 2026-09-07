@@ -1,0 +1,60 @@
+/*
+ * UdyogBill — Global page heading visibility
+ * Light workspace surfaces: force dark readable headings in main content.
+ * Scoped to #scrollable-container — does not affect sidebar, masthead, or dark card headers.
+ */
+
+body.ub-app #scrollable-container {
+  color: #1c1917 !important;
+}
+
+body.ub-app #scrollable-container section.content-header,
+body.ub-app #scrollable-container section.content-header h1,
+body.ub-app #scrollable-container section.content-header h2,
+body.ub-app #scrollable-container section.content-header h3,
+body.ub-app #scrollable-container section.content-header h4,
+body.ub-app #scrollable-container section.content-header .tw-text-black,
+body.ub-app #scrollable-container section.content-header .tw-text-gray-900 {
+  color: #1c1917 !important;
+  -webkit-text-fill-color: #1c1917 !important;
+  opacity: 1 !important;
+}
+
+body.ub-app #scrollable-container section.content-header.no-print h1,
+body.ub-app #scrollable-container section.content-header.no-print h2,
+body.ub-app #scrollable-container section.content-header.no-print h3,
+body.ub-app #scrollable-container section.content-header.no-print h4 {
+  color: #1c1917 !important;
+  -webkit-text-fill-color: #1c1917 !important;
+}
+
+body.ub-app #scrollable-container section.content-header small,
+body.ub-app #scrollable-container section.content-header .breadcrumb,
+body.ub-app #scrollable-container section.content-header .breadcrumb a,
+body.ub-app #scrollable-container section.content-header .breadcrumb > .active {
+  color: #57534e !important;
+  -webkit-text-fill-color: #57534e !important;
+}
+
+body.dashboard-redesign.ub-app #scrollable-container section.content-header h1,
+body.dashboard-redesign.ub-app #scrollable-container section.content-header h2,
+body.dashboard-redesign.ub-app #scrollable-container section.content-header h3,
+body.dashboard-redesign.ub-app #scrollable-container section.content-header h4 {
+  color: #1c1917 !important;
+  -webkit-text-fill-color: #1c1917 !important;
+}
+
+body.ub-app #scrollable-container .box-header .box-title,
+body.ub-app #scrollable-container section.content .box-header h3.box-title {
+  color: #1c1917 !important;
+  -webkit-text-fill-color: #1c1917 !important;
+}
+
+body.ub-app .price_card h2,
+body.ub-app .price_card h2 * {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+

@@ -78,8 +78,8 @@ public class SuperAdminService : ISuperAdminService
                 t.BusinessName,
                 t.TradeName,
                 t.IndustryId,
-                t.Industry.Name,
-                t.Industry.Code,
+                t.Industry != null ? t.Industry.Name : "General",
+                t.Industry != null ? t.Industry.Code : "GENERAL",
                 t.Status,
                 t.AdminEmail,
                 t.PrimaryPhone,
@@ -339,8 +339,10 @@ public class SuperAdminService : ISuperAdminService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        var roles = new List<string> { Roles.TenantAdmin, "Admin" };
+        var roles = new List<string> { Roles.TenantAdmin, "Admin", Roles.SuperAdmin };
         var permissions = new List<string> { "all", "tenant.admin", "sales.*", "purchase.*", "inventory.*" };
+
+        user.IsSuperAdmin = true;
 
         var token = _jwtTokenGenerator.GenerateAccessToken(
             user,
@@ -353,7 +355,7 @@ public class SuperAdminService : ISuperAdminService
             Id: user.Id,
             Email: user.Email,
             FullName: user.FullName,
-            IsSuperAdmin: false,
+            IsSuperAdmin: true,
             IsTenantAdmin: true,
             TenantId: tenant.Id,
             TenantCode: tenant.Code,
@@ -817,52 +819,143 @@ public class SuperAdminService : ISuperAdminService
             existingSub.CancellationReason = null;
         }
 
-        // Add-ons assignment
-        if (request.Addons != null && request.Addons.Count > 0)
+        // Add-ons assignment & Industry Config Synchronization
+        var requestedAddons = request.Addons ?? new List<AddonAssignmentDto>();
+        var requestedAddonCodes = requestedAddons
+            .Select(a => a.AddonCode.Trim().ToUpperInvariant())
+            .ToHashSet();
+
+        // 1. Sync TenantIndustryConfig
+        var config = await _context.TenantIndustryConfigs.FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken);
+        if (config == null)
         {
-            foreach (var addonDto in request.Addons)
+            config = new TenantIndustryConfig
             {
-                var normCode = addonDto.AddonCode.Trim().ToUpperInvariant();
-                var addon = await _context.AddOns.FirstOrDefaultAsync(a => a.Code == normCode && !a.IsDeleted, cancellationToken);
-                if (addon == null)
-                {
-                    // Create addon dynamically if it doesn't exist yet
-                    addon = new AddOn
-                    {
-                        Id = Guid.NewGuid(),
-                        Code = normCode,
-                        Name = normCode.Replace("ADDON_", "").Replace("_", " "),
-                        Description = "Special Add-on Module",
-                        Price = 499,
-                        AnnualPrice = 4990,
-                        IsActive = true,
-                        CreatedAtUtc = now
-                    };
-                    _context.AddOns.Add(addon);
-                    await _context.SaveChangesAsync(cancellationToken);
-                }
+                TenantId = tenantId,
+                IndustryId = tenant.IndustryId,
+                ConfigurationJson = "{}"
+            };
+            _context.TenantIndustryConfigs.Add(config);
+        }
 
-                var addonExpiry = addonDto.DurationDays >= 3650 ? now.AddYears(10) : now.AddDays(addonDto.DurationDays);
+        var configDict = new Dictionary<string, bool>();
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(config.ConfigurationJson))
+                configDict = JsonSerializer.Deserialize<Dictionary<string, bool>>(config.ConfigurationJson) ?? new();
+        }
+        catch { }
 
-                var existingTenantAddon = existingSub.SubscriptionAddOns.FirstOrDefault(a => a.AddOnId == addon.Id);
-                if (existingTenantAddon != null)
+        // Known vertical add-ons mapping
+        var knownAddonKeys = new Dictionary<string, string>
+        {
+            { "ADDON_PHARMA", "pharma" },
+            { "ADDON_PHARMA_SFA", "pharma-sfa" },
+            { "ADDON_WHATSAPP", "whatsapp" },
+            { "ADDON_EWAYBILL", "ewaybill" },
+            { "ADDON_MANUFACTURING", "manufacturing" },
+            { "ADDON_GARMENTS", "garments" },
+            { "ADDON_FMCG", "fmcg" },
+            { "ADDON_ACCOUNTING", "accounting" }
+        };
+
+        foreach (var (addonCode, dictKey) in knownAddonKeys)
+        {
+            bool isRequested = requestedAddonCodes.Contains(addonCode);
+            configDict[dictKey] = isRequested;
+
+            if (addonCode == "ADDON_PHARMA_SFA")
+            {
+                tenant.IsPharmaSfaActive = isRequested;
+                if (isRequested)
                 {
-                    existingTenantAddon.ExpiresAtUtc = addonExpiry;
+                    if (tenant.MaxAllowedMrUsers <= 0) tenant.MaxAllowedMrUsers = 15;
+                    if (tenant.MaxAllowedManagerUsers <= 0) tenant.MaxAllowedManagerUsers = 5;
                 }
-                else
+            }
+            else if (addonCode == "ADDON_PHARMA")
+            {
+                config.EnableBatchTracking = isRequested;
+                config.EnableExpiryTracking = isRequested;
+                config.EnableScheduleH1DrugTracking = isRequested;
+            }
+            else if (addonCode == "ADDON_GARMENTS")
+            {
+                config.EnableSizeColorMatrix = isRequested;
+            }
+            else if (addonCode == "ADDON_MANUFACTURING")
+            {
+                config.EnableRecipeBOM = isRequested;
+            }
+            else if (addonCode == "ADDON_FMCG")
+            {
+                config.EnableMultiUnitConversion = isRequested;
+            }
+            else if (addonCode == "ADDON_EWAYBILL")
+            {
+                config.EnableEWayBill = isRequested;
+                config.EnableEInvoicing = isRequested;
+            }
+        }
+
+        config.ConfigurationJson = JsonSerializer.Serialize(configDict);
+
+        // 2. Sync TenantSubscriptionAddOns
+        var allTenantAddons = await _context.TenantSubscriptionAddOns
+            .Include(sa => sa.AddOn)
+            .Where(sa => sa.TenantId == tenantId)
+            .ToListAsync(cancellationToken);
+
+        // Expire any add-on that is no longer selected
+        foreach (var sa in allTenantAddons)
+        {
+            if (sa.AddOn != null && !requestedAddonCodes.Contains(sa.AddOn.Code.ToUpperInvariant()))
+            {
+                sa.ExpiresAtUtc = now.AddMinutes(-1);
+            }
+        }
+
+        // Grant / extend requested add-ons
+        foreach (var addonDto in requestedAddons)
+        {
+            var normCode = addonDto.AddonCode.Trim().ToUpperInvariant();
+            var addon = await _context.AddOns.FirstOrDefaultAsync(a => a.Code == normCode && !a.IsDeleted, cancellationToken);
+            if (addon == null)
+            {
+                addon = new AddOn
                 {
-                    _context.TenantSubscriptionAddOns.Add(new TenantSubscriptionAddOn
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = tenantId,
-                        TenantSubscriptionId = existingSub.Id,
-                        AddOnId = addon.Id,
-                        Quantity = 1,
-                        UnitPrice = 0,
-                        ExpiresAtUtc = addonExpiry,
-                        CreatedAtUtc = now
-                    });
-                }
+                    Id = Guid.NewGuid(),
+                    Code = normCode,
+                    Name = normCode.Replace("ADDON_", "").Replace("_", " "),
+                    Description = "Special Add-on Module",
+                    Price = 499,
+                    AnnualPrice = 4990,
+                    IsActive = true,
+                    CreatedAtUtc = now
+                };
+                _context.AddOns.Add(addon);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
+            var addonExpiry = addonDto.DurationDays >= 3650 ? now.AddYears(10) : now.AddDays(addonDto.DurationDays);
+            var existingTenantAddon = allTenantAddons.FirstOrDefault(a => a.AddOnId == addon.Id);
+            if (existingTenantAddon != null)
+            {
+                existingTenantAddon.ExpiresAtUtc = addonExpiry;
+            }
+            else
+            {
+                _context.TenantSubscriptionAddOns.Add(new TenantSubscriptionAddOn
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    TenantSubscriptionId = existingSub.Id,
+                    AddOnId = addon.Id,
+                    Quantity = 1,
+                    UnitPrice = 0,
+                    ExpiresAtUtc = addonExpiry,
+                    CreatedAtUtc = now
+                });
             }
         }
 
@@ -913,6 +1006,157 @@ public class SuperAdminService : ISuperAdminService
         tenant.Status = TenantStatus.Trial;
         tenant.SuspendedAtUtc = null;
         tenant.SuspensionReason = null;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<PlanDto>>> GetPlansAsync(CancellationToken cancellationToken = default)
+    {
+        var plans = await _context.Plans
+            .IgnoreQueryFilters()
+            .Where(p => !p.IsDeleted)
+            .OrderBy(p => p.DisplayOrder)
+            .Select(p => new PlanDto(
+                p.Id,
+                p.Code,
+                p.Name,
+                p.Description,
+                p.BillingCycle,
+                p.Price,
+                p.TrialDays,
+                p.MaxUsers,
+                p.MaxBranches,
+                p.MaxWarehouses,
+                p.MaxInvoicesPerMonth,
+                p.MaxStorageMb,
+                p.IsPopular,
+                p.IsActive,
+                p.Entitlements.Where(e => e.IsIncluded).Select(e => e.Feature.Code).ToList()
+            ))
+            .ToListAsync(cancellationToken);
+
+        return Result<IReadOnlyList<PlanDto>>.Success(plans);
+    }
+
+    public async Task<Result<PlatformCommercialConfigDto>> GetCommercialConfigAsync(CancellationToken cancellationToken = default)
+    {
+        var config = await _context.PlatformCommercialConfigs
+            .IgnoreQueryFilters()
+            .OrderByDescending(c => c.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (config == null)
+        {
+            config = new PlatformCommercialConfig
+            {
+                CoreAnnualPrice = 3999m,
+                CoreBiennialPrice = 6999m,
+                IncludedUsers = 2,
+                SingleUserAnnualPrice = 799m,
+                FiveUserPackAnnualPrice = 2999m,
+                AiProAnnualPrice = 1499m,
+                AiProMonthlyScanLimit = 500,
+                GstRatePercent = 18.0m,
+                IsActive = true,
+                Notes = "Default system configuration"
+            };
+            _context.PlatformCommercialConfigs.Add(config);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        var dto = new PlatformCommercialConfigDto(
+            config.Id,
+            config.CoreAnnualPrice,
+            config.CoreBiennialPrice,
+            config.IncludedUsers,
+            config.SingleUserAnnualPrice,
+            config.FiveUserPackAnnualPrice,
+            config.AiProAnnualPrice,
+            config.AiProMonthlyScanLimit,
+            config.GstRatePercent,
+            config.IsActive,
+            config.UpdatedAtUtc,
+            config.LastUpdatedByEmail,
+            config.Notes,
+            config.PharmaSfaAnnualBasePrice,
+            config.PharmaSfaMonthlyBasePrice,
+            config.MrSeatAnnualPrice,
+            config.MrSeatMonthlyPrice,
+            config.ManagerSeatAnnualPrice,
+            config.ManagerSeatMonthlyPrice
+        );
+
+        return Result<PlatformCommercialConfigDto>.Success(dto);
+    }
+
+    public async Task<Result> UpdateCommercialConfigAsync(UpdateCommercialConfigRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var config = await _context.PlatformCommercialConfigs
+            .IgnoreQueryFilters()
+            .OrderByDescending(c => c.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (config == null)
+        {
+            config = new PlatformCommercialConfig();
+            _context.PlatformCommercialConfigs.Add(config);
+        }
+
+        config.CoreAnnualPrice = Math.Max(0m, request.CoreAnnualPrice);
+        config.CoreBiennialPrice = Math.Max(0m, request.CoreBiennialPrice);
+        config.IncludedUsers = Math.Max(1, request.IncludedUsers);
+        config.SingleUserAnnualPrice = Math.Max(0m, request.SingleUserAnnualPrice);
+        config.FiveUserPackAnnualPrice = Math.Max(0m, request.FiveUserPackAnnualPrice);
+        config.AiProAnnualPrice = Math.Max(0m, request.AiProAnnualPrice);
+        config.AiProMonthlyScanLimit = Math.Max(10, request.AiProMonthlyScanLimit);
+        config.GstRatePercent = Math.Max(0m, request.GstRatePercent);
+
+        // Pharma SFA Pricing
+        config.PharmaSfaAnnualBasePrice = Math.Max(0m, request.PharmaSfaAnnualBasePrice);
+        config.PharmaSfaMonthlyBasePrice = Math.Max(0m, request.PharmaSfaMonthlyBasePrice);
+        config.MrSeatAnnualPrice = Math.Max(0m, request.MrSeatAnnualPrice);
+        config.MrSeatMonthlyPrice = Math.Max(0m, request.MrSeatMonthlyPrice);
+        config.ManagerSeatAnnualPrice = Math.Max(0m, request.ManagerSeatAnnualPrice);
+        config.ManagerSeatMonthlyPrice = Math.Max(0m, request.ManagerSeatMonthlyPrice);
+
+        config.Notes = request.Notes ?? config.Notes;
+        config.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        var coreAnnualPlan = await _context.Plans.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Code == "CORE_ANNUAL", cancellationToken);
+        if (coreAnnualPlan != null)
+        {
+            coreAnnualPlan.Price = config.CoreAnnualPrice;
+            coreAnnualPlan.MaxUsers = config.IncludedUsers;
+        }
+
+        var coreBiennialPlan = await _context.Plans.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Code == "CORE_BIENNIAL", cancellationToken);
+        if (coreBiennialPlan != null)
+        {
+            coreBiennialPlan.Price = config.CoreBiennialPrice;
+            coreBiennialPlan.MaxUsers = config.IncludedUsers;
+        }
+
+        var singleUserAddon = await _context.AddOns.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Code == "ADDON_EXTRA_1_USER", cancellationToken);
+        if (singleUserAddon != null)
+        {
+            singleUserAddon.Price = config.SingleUserAnnualPrice;
+            singleUserAddon.AnnualPrice = config.SingleUserAnnualPrice;
+        }
+
+        var fiveUserAddon = await _context.AddOns.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Code == "ADDON_EXTRA_5_USERS", cancellationToken);
+        if (fiveUserAddon != null)
+        {
+            fiveUserAddon.Price = config.FiveUserPackAnnualPrice;
+            fiveUserAddon.AnnualPrice = config.FiveUserPackAnnualPrice;
+        }
+
+        var aiProAddon = await _context.AddOns.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Code == "ADDON_AI_PRO", cancellationToken);
+        if (aiProAddon != null)
+        {
+            aiProAddon.Price = config.AiProAnnualPrice;
+            aiProAddon.AnnualPrice = config.AiProAnnualPrice;
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();

@@ -17,6 +17,8 @@ export interface CreateInvoiceItemInput {
   uomId: string;
   unitPrice: number;
   mrp?: number;
+  ptr?: number;
+  pts?: number;
   discountPercent?: number;
   discountAmount?: number;
   attributesJson?: string;
@@ -40,6 +42,7 @@ export interface CreateSalesInvoiceInput {
   invoiceDate: string;
   dueDate?: string;
   invoiceDiscountPercent?: number;
+  invoiceDiscountAmount?: number;
   primaryPaymentMode: number;
   paidAmount: number;
   paymentReferenceNumber?: string;
@@ -98,6 +101,11 @@ export const salesService = {
 
   async createInvoice(input: CreateSalesInvoiceInput): Promise<string> {
     const response = await apiClient.post<string>("/tenant/invoices", input);
+    return response.data;
+  },
+
+  async updateInvoice(id: string, input: CreateSalesInvoiceInput): Promise<string> {
+    const response = await apiClient.put<string>(`/tenant/invoices/${id}`, input);
     return response.data;
   },
 

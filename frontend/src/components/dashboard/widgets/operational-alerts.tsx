@@ -158,23 +158,23 @@ export function OperationalAlertsWidget({ data, isHi = false }: Props) {
 
   if (activeAlerts.length === 0) {
     return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+      <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between shadow-xs">
         <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40">
             <CheckCircle2 className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-xs font-bold text-white">
+            <div className="text-xs font-bold text-foreground">
               {isHi ? "सभी परिचालन मानक सामान्य स्तर पर हैं" : "All Operational Safeguards Healthy"}
             </div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-muted-foreground">
               {isHi
                 ? "कोई अतिदेय उधारी, शून्य स्टॉक या समाप्ति जोखिम सक्रिय नहीं है (0 सक्रिय अलर्ट)।"
                 : "No critical stockouts, negative balances, overdue credit, or batch expiry risks detected (0 active alerts)."}
             </div>
           </div>
         </div>
-        <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-full uppercase tracking-wider">
           {isHi ? "सुरक्षित" : "Optimal"}
         </span>
       </div>
@@ -182,46 +182,46 @@ export function OperationalAlertsWidget({ data, isHi = false }: Props) {
   }
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
-        <span className="flex items-center space-x-1.5 text-slate-800 dark:text-slate-200">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold px-1">
+        <span className="flex items-center space-x-1.5 text-foreground">
           <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-          <span className="font-black text-xs">{isHi ? "सक्रिय परिचालन अलर्ट" : "Actionable Operational Alerts"} ({activeAlerts.length})</span>
+          <span className="font-bold text-xs">{isHi ? "सक्रिय परिचालन अलर्ट" : "Actionable Operational Alerts"} ({activeAlerts.length})</span>
         </span>
-        <span className="text-[10px] text-slate-500">
+        <span className="text-[10px] text-muted-foreground">
           {isHi ? "प्राथमिकता के अनुसार हल करें" : "Requires business attention"}
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
         {activeAlerts.map((alert) => {
           const Icon = alert.icon;
           const severityColors =
             alert.severity === "danger"
-              ? "bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-500/30 hover:border-rose-500"
+              ? "bg-rose-50/40 border-rose-200 hover:border-rose-400/80 dark:bg-rose-950/20 dark:border-rose-900/40"
               : alert.severity === "warning"
-              ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-500/30 hover:border-amber-500"
-              : "bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-500/30 hover:border-indigo-500";
+              ? "bg-amber-50/40 border-amber-200 hover:border-amber-400/80 dark:bg-amber-950/20 dark:border-amber-900/40"
+              : "bg-blue-50/40 border-blue-200 hover:border-blue-400/80 dark:bg-blue-950/20 dark:border-blue-900/40";
 
           const iconContainerColors =
             alert.severity === "danger"
-              ? "bg-rose-100 dark:bg-rose-900/40 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400"
+              ? "bg-rose-100/70 border-rose-300/60 text-rose-600 dark:bg-rose-950/40 dark:border-rose-800/40 dark:text-rose-400"
               : alert.severity === "warning"
-              ? "bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400"
-              : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400";
+              ? "bg-amber-100/70 border-amber-300/60 text-amber-600 dark:bg-amber-950/40 dark:border-amber-800/40 dark:text-amber-400"
+              : "bg-blue-100/70 border-blue-300/60 text-blue-600 dark:bg-blue-950/40 dark:border-blue-800/40 dark:text-blue-400";
 
           const badgeColors =
             alert.severity === "danger"
-              ? "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-500/30"
+              ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300"
               : alert.severity === "warning"
-              ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-400 border-amber-300 dark:border-amber-500/30"
-              : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-500/30";
+              ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300"
+              : "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300";
 
           return (
             <Link
               key={alert.id}
               href={alert.href}
-              className={`p-2.5 rounded-xl border transition-all flex items-center justify-between space-x-2.5 group shadow-xs ${severityColors}`}
+              className={`p-2.5 rounded-xl border transition-all flex items-center justify-between space-x-2.5 group shadow-2xs ${severityColors}`}
             >
               <div className="flex items-center space-x-2.5 overflow-hidden">
                 <div className={`p-1.5 rounded-lg border shrink-0 ${iconContainerColors}`}>
@@ -229,17 +229,17 @@ export function OperationalAlertsWidget({ data, isHi = false }: Props) {
                 </div>
                 <div className="overflow-hidden">
                   <div className="flex items-center space-x-1.5">
-                    <span className="text-xs font-black text-slate-900 dark:text-white truncate">{alert.title}</span>
+                    <span className="text-xs font-bold text-foreground truncate">{alert.title}</span>
                     <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md border shrink-0 ${badgeColors}`}>
                       {alert.badge}
                     </span>
                   </div>
-                  <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400 truncate">
+                  <p className="text-[10px] font-medium text-muted-foreground truncate">
                     {alert.description}
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
             </Link>
           );
         })}

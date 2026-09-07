@@ -5,3 +5,11 @@ infrastructure/pgsql/
 .next/
 *.exe
 *.dll
+*.zip
+*.tar.gz
+*.apk
+scratch/
+scratch_*
+preview_output.html
+0
+

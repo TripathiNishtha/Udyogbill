@@ -666,14 +666,17 @@ public class TenantHierarchyService : ITenantHierarchyService
         var tenantId = RequireTenantId();
         var plan = await GetActivePlanAsync(tenantId, cancellationToken);
 
-        // Quota Check
+        // Dynamic Quota Check (Core Included + Additional Users)
+        var tenant = await _context.Tenants.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+        var allowedUsers = Math.Max(tenant?.MaxAllowedUsers ?? 2, plan.MaxUsers);
+
         var currentCount = await _context.Users
             .CountAsync(u => u.TenantId == tenantId && !u.IsDeleted, cancellationToken);
 
-        if (currentCount >= plan.MaxUsers)
+        if (currentCount >= allowedUsers)
         {
             return Result<Guid>.Failure(
-                $"User limit ({plan.MaxUsers}) reached for current plan '{plan.Name}'. Please upgrade your subscription.",
+                $"User limit ({currentCount}/{allowedUsers} users) reached. Please purchase an Additional User Add-on to invite more team members.",
                 "QUOTA_EXCEEDED"
             );
         }
@@ -1330,7 +1333,7 @@ public class TenantHierarchyService : ITenantHierarchyService
       Host: {tenant.SmtpHost} | Port: {tenant.SmtpPort ?? 587} | From: {tenant.SmtpFromEmail}
     </div>
     <p style='color: #64748b; font-size: 11px; margin-top: 24px; border-top: 1px solid #334155; pt: 12px;'>
-      Dispatched via UdyogBill Enterprise Commercial ERP
+      Dispatched via UdyogBill
     </p>
   </div>
 </body>

@@ -131,6 +131,7 @@ public class RenderPrintPreviewRequest
 {
     public Guid? TemplateId { get; set; }
     public Guid? InvoiceId { get; set; }
+    public Guid? DocumentId { get; set; }
     public PrintDocumentType? DocumentType { get; set; }
     public string? CustomVariablesJson { get; set; }
 }

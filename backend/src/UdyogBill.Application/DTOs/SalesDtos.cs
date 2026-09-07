@@ -7,6 +7,7 @@ public record CreateSalesInvoiceItemRequest
 {
     public Guid ItemId { get; set; }
     public Guid? BatchId { get; set; }
+    public Guid? VariantId { get; set; }
     public decimal Quantity { get; set; } = 1m;
     public Guid UomId { get; set; }
     public decimal UnitPrice { get; set; }
@@ -14,6 +15,8 @@ public record CreateSalesInvoiceItemRequest
     public decimal DiscountAmount { get; set; }
     public decimal Mrp { get; set; }
     public decimal FreeQuantity { get; set; }
+    public decimal Ptr { get; set; }
+    public decimal Pts { get; set; }
     public string? Packing { get; set; }
     public string? HsnCode { get; set; }
     public string? BatchNumber { get; set; }
@@ -34,12 +37,13 @@ public record CreateSalesInvoiceRequest
     public string? CustomerPAN { get; set; }
     public string? BillingAddress { get; set; }
     public string? ShippingAddress { get; set; }
-    public string BillingStateCode { get; set; } = "27";
-    public string ShippingStateCode { get; set; } = "27";
-    public string PlaceOfSupply { get; set; } = "Maharashtra";
+    public string BillingStateCode { get; set; } = string.Empty;
+    public string ShippingStateCode { get; set; } = string.Empty;
+    public string PlaceOfSupply { get; set; } = string.Empty;
     public DateTime InvoiceDate { get; set; } = DateTime.UtcNow;
     public DateTime? DueDate { get; set; }
     public decimal InvoiceDiscountPercent { get; set; }
+    public decimal InvoiceDiscountAmount { get; set; }
     public PaymentMode PrimaryPaymentMode { get; set; } = PaymentMode.Cash;
     public decimal PaidAmount { get; set; }
     public string? PaymentReferenceNumber { get; set; }
@@ -99,7 +103,12 @@ public record SalesInvoiceListDto(
     PaymentStatus PaymentStatus,
     PaymentMode PrimaryPaymentMode,
     bool IsCancelled,
-    DateTimeOffset CreatedAtUtc
+    DateTimeOffset CreatedAtUtc,
+    bool HasCreditNote = false,
+    string? CreditNoteNumber = null,
+    decimal? CreditNoteAmount = null,
+    DateTimeOffset? CreditNoteDate = null,
+    string? CancellationReason = null
 );
 
 public record SalesInvoiceItemDto(
@@ -218,7 +227,12 @@ public record SalesInvoiceDetailsDto(
     DateTimeOffset CreatedAtUtc,
     IReadOnlyList<SalesInvoiceItemDto> Items,
     IReadOnlyList<SalesInvoicePaymentDto> Payments,
-    IReadOnlyList<GstTaxSummaryItemDto> TaxSummary
+    IReadOnlyList<GstTaxSummaryItemDto> TaxSummary,
+    bool HasCreditNote = false,
+    string? CreditNoteNumber = null,
+    decimal? CreditNoteAmount = null,
+    DateTimeOffset? CreditNoteDate = null,
+    Guid? CreditNoteId = null
 );
 
 public record CreateSalesReturnItemRequest
@@ -228,6 +242,7 @@ public record CreateSalesReturnItemRequest
     public string ItemSku { get; set; } = string.Empty;
     public Guid? BatchId { get; set; }
     public string? BatchNumber { get; set; }
+    public Guid? VariantId { get; set; }
     public decimal ReturnQuantity { get; set; } = 1m;
     public decimal UnitPrice { get; set; }
     public decimal GstRate { get; set; }

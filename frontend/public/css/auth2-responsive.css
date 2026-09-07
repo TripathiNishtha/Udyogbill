@@ -1,0 +1,80 @@
+@media (max-width: 767px) {
+    /* Header container ko adjust karein */
+    .right-col > .row {
+        display: block !important;
+        position: relative !important;
+        min-height: 70px !important;
+    }
+
+    /* Left Side (Logo section) */
+    .tw-absolute.tw-left-4 {
+        position: absolute !important;
+        left: 10px !important;
+        top: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        width: auto !important;
+    }
+
+    /* Logo size mobile ke liye perfect */
+    .tw-w-12.tw-h-12 {
+        width: 128px !important;
+        height: 45px !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* Right Side (Register, Pricing, Lang) */
+    .tw-absolute.tw-right-5 {
+        position: absolute !important;
+        right: 0px !important;
+        top: 15px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        width: auto !important;
+    }
+
+    /* Register Button ko mobile par chota aur sundar banayein */
+    .tw-border-2.tw-rounded-full {
+        width: auto !important;
+        height: 30px !important;
+        padding: 0 8px !important;
+        border-width: 1px !important;
+    }
+
+    /* Only header/nav links — do NOT force nowrap on page content */
+    header.tw-absolute .tw-text-sm,
+    header.tw-absolute .tw-text-base,
+    header.tw-absolute .tw-font-medium,
+    nav.tw-absolute .tw-text-sm,
+    nav.tw-absolute .tw-text-base,
+    nav.tw-absolute .tw-font-medium {
+        font-size: 11px !important;
+        white-space: nowrap !important;
+    }
+
+    /* Pricing aur baki links ki extra space kam karein */
+    .tw-absolute.tw-right-5 a {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}
+
+@media (max-width: 750px) {
+    .tw-pt-20 {
+        padding-top: 1rem !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .lg\:tw-w-16 {
+        width: 14rem !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .md\:tw-h-16 {
+        height: 5rem;
+    }
+}

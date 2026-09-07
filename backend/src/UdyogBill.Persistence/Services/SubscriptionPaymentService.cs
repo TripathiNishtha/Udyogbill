@@ -25,16 +25,19 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
     private readonly AppDbContext _context;
     private readonly IPlatformEmailService _emailService;
     private readonly ILogger<SubscriptionPaymentService> _logger;
+    private readonly IReferralService _referralService;
     private readonly HttpClient _httpClient;
 
     public SubscriptionPaymentService(
         AppDbContext context,
         IPlatformEmailService emailService,
-        ILogger<SubscriptionPaymentService> logger)
+        ILogger<SubscriptionPaymentService> logger,
+        IReferralService referralService)
     {
         _context = context;
         _emailService = emailService;
         _logger = logger;
+        _referralService = referralService;
         _httpClient = new HttpClient();
     }
 
@@ -58,6 +61,21 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
 
         if (!string.IsNullOrWhiteSpace(request.AddonCode))
         {
+            // Business Rule: Active core subscription plan required before purchasing add-ons
+            var activeSub = await _context.TenantSubscriptions
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId &&
+                                          !s.IsDeleted &&
+                                          (s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Trial) &&
+                                          s.EndsAtUtc > DateTimeOffset.UtcNow, cancellationToken);
+
+            if (activeSub == null)
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure(
+                    "Active core subscription plan is required before purchasing add-ons. Please subscribe to a base plan first.",
+                    "MAIN_SUBSCRIPTION_REQUIRED");
+            }
+
             var addon = await _context.AddOns
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(a => a.Code == request.AddonCode && a.IsActive, cancellationToken);
@@ -319,6 +337,16 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
         _context.SubscriptionInvoices.Add(invoice);
         await _context.SaveChangesAsync(cancellationToken);
 
+        // Process referral commission reward (scheduled for next-day payout)
+        try
+        {
+            await _referralService.ProcessSubscriptionPaidReferralTriggerAsync(tenant.Id, invoice.Id, basePrice, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to process referral payout trigger for tenant {TenantId} on invoice {InvoiceId}", tenant.Id, invoice.Id);
+        }
+
         _logger.LogInformation("Subscription Invoice {InvoiceNumber} generated (GST Type: {TaxType}) for Tenant {TenantCode}", 
             invoiceNumber, gst.isInterState ? "IGST 18%" : "CGST 9% + SGST 9%", tenant.Code);
 
@@ -546,6 +574,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 var seedList = new List<AddOn>
                 {
                     new() { Code = "ADDON_PHARMA", Name = "Pharma & Healthcare Suite", Description = "Generic Salt Substitutes, Multi-Batch FEFO, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims.", Price = 499m, AnnualPrice = 4990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
+                    new() { Code = "ADDON_PHARMA_SFA", Name = "Pharma SFA & MR Field Force Suite", Description = "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.", Price = 1999m, AnnualPrice = 19999m, BillingCycle = BillingCycle.Monthly, IsActive = true },
                     new() { Code = "ADDON_GARMENTS", Name = "Apparel & Garments Matrix", Description = "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", Price = 399m, AnnualPrice = 3990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
                     new() { Code = "ADDON_MANUFACTURING", Name = "Manufacturing & Bakery (BOM)", Description = "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", Price = 599m, AnnualPrice = 5990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
                     new() { Code = "ADDON_FMCG", Name = "FMCG, Grocery & Distribution", Description = "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", Price = 399m, AnnualPrice = 3990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
@@ -554,6 +583,22 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 _context.AddOns.AddRange(seedList);
                 await _context.SaveChangesAsync(cancellationToken);
                 addons = seedList;
+            }
+            else if (!addons.Any(a => a.Code == "ADDON_PHARMA_SFA"))
+            {
+                var sfaAddon = new AddOn
+                {
+                    Code = "ADDON_PHARMA_SFA",
+                    Name = "Pharma SFA & MR Field Force Suite",
+                    Description = "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.",
+                    Price = 1999m,
+                    AnnualPrice = 19999m,
+                    BillingCycle = BillingCycle.Monthly,
+                    IsActive = true
+                };
+                _context.AddOns.Add(sfaAddon);
+                await _context.SaveChangesAsync(cancellationToken);
+                addons.Add(sfaAddon);
             }
 
             var dtos = addons.Select(a => new AddonCatalogItemDto(
@@ -584,6 +629,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
         return new List<AddonCatalogItemDto>
         {
             new(Guid.Parse("11111111-1111-1111-1111-111111111111"), "ADDON_PHARMA", "Pharma & Healthcare Suite", "Generic Salt Substitutes, Multi-Batch FEFO, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims.", 499m, "Monthly", true, false, null, 0, 4990m),
+            new(Guid.Parse("66666666-6666-6666-6666-666666666666"), "ADDON_PHARMA_SFA", "Pharma SFA & MR Field Force Suite", "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.", 1999m, "Monthly", true, false, null, 0, 19999m),
             new(Guid.Parse("22222222-2222-2222-2222-222222222222"), "ADDON_GARMENTS", "Apparel & Garments Matrix", "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", 399m, "Monthly", true, false, null, 0, 3990m),
             new(Guid.Parse("33333333-3333-3333-3333-333333333333"), "ADDON_MANUFACTURING", "Manufacturing & Bakery (BOM)", "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", 599m, "Monthly", true, false, null, 0, 5990m),
             new(Guid.Parse("44444444-4444-4444-4444-444444444444"), "ADDON_FMCG", "FMCG, Grocery & Distribution", "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", 399m, "Monthly", true, false, null, 0, 3990m),
@@ -822,7 +868,13 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
         string key = addonCode.Replace("ADDON_", "").ToLower();
         configDict[key] = true;
 
-        if (addonCode == "ADDON_PHARMA")
+        if (addonCode == "ADDON_PHARMA_SFA")
+        {
+            tenant.IsPharmaSfaActive = true;
+            if (tenant.MaxAllowedMrUsers <= 0) tenant.MaxAllowedMrUsers = 15;
+            if (tenant.MaxAllowedManagerUsers <= 0) tenant.MaxAllowedManagerUsers = 5;
+        }
+        else if (addonCode == "ADDON_PHARMA")
         {
             config.EnableBatchTracking = true;
             config.EnableExpiryTracking = true;

@@ -245,7 +245,7 @@ export default function PurchaseBillPrintPage({ params }: { params: Promise<{ id
         {/* Footer */}
         <div className="pt-8 flex justify-between items-end text-xs text-slate-500">
           <div>
-            <div>Recorded in UdyogBill ERP Cloud</div>
+            <div>Recorded in UdyogBill</div>
             <div>Computer generated purchase voucher.</div>
           </div>
           <div className="text-right">

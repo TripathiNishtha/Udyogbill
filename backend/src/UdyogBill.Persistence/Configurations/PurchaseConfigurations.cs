@@ -291,6 +291,11 @@ public class PurchaseBillItemConfiguration : IEntityTypeConfiguration<PurchaseBi
             .WithMany()
             .HasForeignKey(bi => bi.UomId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(bi => bi.Variant)
+            .WithMany()
+            .HasForeignKey(bi => bi.VariantId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

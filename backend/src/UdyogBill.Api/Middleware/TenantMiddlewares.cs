@@ -25,7 +25,26 @@ public class TenantResolutionMiddleware
             var tenantIdClaim = context.User.FindFirst(SharedClaims.TenantId)?.Value;
             var tenantCode = context.User.FindFirst("tenant_code")?.Value;
 
-            if (Guid.TryParse(tenantIdClaim, out var tenantId))
+            Guid tenantId = Guid.Empty;
+            Guid.TryParse(tenantIdClaim, out tenantId);
+
+            // If tenant is not in claim or user is SuperAdmin impersonating, allow X-Tenant-Id header override
+            if (tenantId == Guid.Empty || isSuperAdmin)
+            {
+                if (context.Request.Headers.TryGetValue("X-Tenant-Id", out var headerTenantVal) &&
+                    Guid.TryParse(headerTenantVal, out var headerTenantId) &&
+                    headerTenantId != Guid.Empty)
+                {
+                    tenantId = headerTenantId;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(tenantCode) && context.Request.Headers.TryGetValue("X-Tenant-Code", out var headerCodeVal))
+            {
+                tenantCode = headerCodeVal.ToString();
+            }
+
+            if (tenantId != Guid.Empty)
             {
                 tenantContext.SetTenant(tenantId, tenantCode, isSuperAdmin);
             }

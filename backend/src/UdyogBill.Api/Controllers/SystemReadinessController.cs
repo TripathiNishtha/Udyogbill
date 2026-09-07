@@ -83,7 +83,7 @@ public class SystemReadinessController : BaseApiController
 
         return Ok(new
         {
-            Application = "UdyogBill Enterprise Cloud ERP & Billing Suite",
+            Application = "UdyogBill",
             Version = "2026.1.0-RELEASE",
             Build = version,
             TargetFramework = ".NET 9.0 (C# 13)",

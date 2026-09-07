@@ -1,0 +1,235 @@
+/*
+ * UdyogBill layout fix — full-width content + equal L/R padding + table scroll
+ * Load LAST
+ */
+
+/* Equal horizontal page gutter */
+body.ub-app:not(.pos_layout) {
+  --ub-page-pad-x: 16px;
+}
+
+@media (min-width: 768px) {
+  body.ub-app:not(.pos_layout) {
+    --ub-page-pad-x: 20px;
+  }
+}
+
+@media (min-width: 1280px) {
+  body.ub-app:not(.pos_layout) {
+    --ub-page-pad-x: 24px;
+  }
+}
+
+/* ---- Main column uses full space beside sidebar ---- */
+body.ub-app:not(.pos_layout) .thetop {
+  width: 100% !important;
+  max-width: 100vw !important;
+}
+
+body.ub-app:not(.pos_layout) aside.side-bar {
+  flex: 0 0 272px !important;
+  width: 272px !important;
+  max-width: 272px !important;
+}
+
+body.ub-app:not(.pos_layout) .thetop > main.ub-main-panel,
+body.ub-app:not(.pos_layout) .thetop > main {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Kill AdminLTE leftover side margin (flex layout already has sidebar) */
+body.ub-app .content-wrapper,
+body.ub-app .main-footer,
+body.ub-app .right-side {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Content area — equal left/right padding, never wider than viewport */
+body.ub-app:not(.pos_layout) #scrollable-container,
+body.ub-app:not(.pos_layout) .ub-main-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: var(--ub-page-pad-x) !important;
+  padding-right: var(--ub-page-pad-x) !important;
+  padding-bottom: 32px !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+body.ub-app section.content,
+body.ub-app section.content-header,
+body.ub-app section.content > .row,
+body.ub-app section.content .col-md-12,
+body.ub-app section.content .col-sm-12 {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  float: none !important;
+  box-sizing: border-box !important;
+}
+
+body.ub-app .box,
+body.ub-app .tw-bg-white.tw-rounded-xl,
+body.ub-app section.content .box-primary {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* ---- DataTables / wide tables: horizontal scroll inside card ---- */
+body.ub-app .dataTables_wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box !important;
+}
+
+body.ub-app .dataTables_scroll,
+body.ub-app .dataTables_scrollHead,
+body.ub-app .dataTables_scrollBody {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+body.ub-app .table-responsive {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box !important;
+}
+
+body.ub-app table.table,
+body.ub-app .dataTables_wrapper table.dataTable {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body.ub-app table.table {
+  overflow: visible !important;
+}
+
+/* DataTables toolbar row — stay inside padded area */
+body.ub-app .dataTables_wrapper > .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+}
+
+body.ub-app .dataTables_wrapper > .row > [class*="col-"] {
+  float: none !important;
+  max-width: 100% !important;
+}
+
+/* DataTables export buttons row — wrap instead of pushing past right edge */
+body.ub-app .dataTables_wrapper .dt-buttons.btn-group {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px;
+  max-width: 100% !important;
+}
+
+body.ub-app .dataTables_wrapper .dt-buttons .btn {
+  max-width: 100%;
+}
+
+/* =========================================================
+   MOBILE — minimal left/right padding (full-width feel)
+   ========================================================= */
+@media (max-width: 767px) {
+  body.ub-app:not(.pos_layout) {
+    --ub-page-pad-x: 6px;
+  }
+
+  body.ub-app:not(.pos_layout) #scrollable-container,
+  body.ub-app:not(.pos_layout) .ub-main-scroll {
+    padding-top: 8px !important;
+    padding-bottom: 16px !important;
+    padding-left: var(--ub-page-pad-x) !important;
+    padding-right: var(--ub-page-pad-x) !important;
+  }
+
+  body.ub-app section.content-header {
+    padding: 0 !important;
+    margin: 0 0 8px !important;
+  }
+
+  body.ub-app section.content {
+    padding: 0 !important;
+  }
+
+  body.ub-app section.content-header h1 {
+    font-size: 1.2rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+  }
+
+  body.ub-app .tw-bg-white.tw-rounded-xl,
+  body.ub-app .box,
+  body.ub-app .box-primary,
+  body.ub-app section.content .box-solid {
+    border-radius: 12px !important;
+  }
+
+  body.ub-app .tw-bg-white.tw-rounded-xl > div[class*="tw-p-"],
+  body.ub-app .box .box-body,
+  body.ub-app .box-body {
+    padding: 8px !important;
+  }
+
+  body.ub-app .tw-bg-white .tw-py-2.tw-align-middle,
+  body.ub-app .tw-align-middle.sm\:tw-px-5 {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  body.ub-app .tw-mb-4 {
+    margin-bottom: 10px !important;
+  }
+
+  body.ub-app .box-header,
+  body.ub-app .box-header .box-title {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  body.ub-app .main-footer {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+}
+
+@media (max-width: 399px) {
+  body.ub-app:not(.pos_layout) {
+    --ub-page-pad-x: 4px;
+  }
+
+  body.ub-app:not(.pos_layout) #scrollable-container,
+  body.ub-app:not(.pos_layout) .ub-main-scroll {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  body.ub-app .tw-bg-white.tw-rounded-xl > div[class*="tw-p-"],
+  body.ub-app .box .box-body {
+    padding: 6px !important;
+  }
+}

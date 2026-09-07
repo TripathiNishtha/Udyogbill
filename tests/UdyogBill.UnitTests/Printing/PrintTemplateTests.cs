@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Domain.Entities.Printing;
 using UdyogBill.Domain.Entities.Sales;
+using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Persistence.Services;
 using UdyogBill.UnitTests.SuperAdmin;
@@ -57,7 +58,7 @@ public class PrintTemplateTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.True(result.Data!.Count >= 3);
-        Assert.Contains(result.Data, t => t.TemplateCode == "TPL_A4_MODERN_GST");
+        Assert.Contains(result.Data, t => t.TemplateCode == "TPL_UDYOGBILL_SIGNATURE_B2B");
         Assert.Contains(result.Data, t => t.TemplateCode == "TPL_POS_THERMAL_80MM");
     }
 
@@ -135,9 +136,29 @@ public class PrintTemplateTests
         var auditService = new MockAuditService();
         var service = new PrintTemplateService(context, tenantContext, userContext, auditService);
 
+        var tenant = new Tenant
+        {
+            Id = tenantId,
+            Code = "TNT-TEST-001",
+            BusinessName = "City Pharma Lifesciences Ltd",
+            TradeName = "City Pharma",
+            IndustryId = Guid.NewGuid()
+        };
+        context.Tenants.Add(tenant);
+
+        var branch = new TenantBranch
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            BranchName = "Main Branch",
+            BranchCode = "MAIN"
+        };
+        context.TenantBranches.Add(branch);
+
         var invoice = new SalesInvoice
         {
             TenantId = tenantId,
+            BranchId = branch.Id,
             InvoiceNumber = "INV-2026-9901",
             CustomerName = "Max Super Speciality Hospital",
             TotalAmount = 24500m,
@@ -147,7 +168,7 @@ public class PrintTemplateTests
         await context.SaveChangesAsync();
 
         var templates = await service.GetTemplatesAsync();
-        var defaultTpl = templates.Data!.First();
+        var defaultTpl = templates.Data!.First(t => t.DocumentType == PrintDocumentType.TaxInvoice);
 
         var request = new RenderPrintPreviewRequest
         {

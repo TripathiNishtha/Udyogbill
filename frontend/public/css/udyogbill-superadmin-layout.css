@@ -1,0 +1,246 @@
+/*
+ * UdyogBill — Superadmin wide pages (tabs + business table)
+ * Fixes right-side content cut off / page pushing past viewport.
+ */
+
+/* Nav bar must not exceed viewport (margin + 100% width was overflowing) */
+body.ub-app .ub-superadmin-nav {
+  margin: 12px 12px 0 !important;
+  width: auto !important;
+  max-width: calc(100% - 24px) !important;
+  box-sizing: border-box !important;
+}
+
+body.ub-app .ub-superadmin-nav .container-fluid {
+  max-width: 100% !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* Horizontal scroll for many top tabs */
+body.ub-app .ub-superadmin-nav-scroll {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+body.ub-app .ub-superadmin-nav .navbar-nav {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  float: none !important;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+body.ub-app .ub-superadmin-nav .navbar-nav > li {
+  float: none !important;
+  flex: 0 0 auto;
+}
+
+body.ub-app .ub-superadmin-nav .navbar-nav > li > a {
+  white-space: nowrap;
+  padding: 12px 14px !important;
+}
+
+/* Page content stays inside main column */
+body.ub-app section.content-header,
+body.ub-app section.content {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+body.ub-app section.content .tw-bg-white.tw-rounded-xl,
+body.ub-app section.content .ub-superadmin-table-card {
+  max-width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* Coupon / form grids: full-width rows must clear floated half-columns */
+body.ub-app section.content .box-body > .col-md-12,
+body.ub-app section.content .box-body > .row {
+  clear: both !important;
+}
+
+body.ub-app section.content .box-body > .row {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body.ub-app section.content .box.box-solid .box-body {
+  overflow: visible !important;
+}
+
+/* Wide business table — scroll inside card, not whole page */
+body.ub-app .ub-superadmin-table-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box !important;
+}
+
+body.ub-app .ub-superadmin-table-wrap .table-responsive {
+  margin: 0 !important;
+  overflow-x: visible !important;
+}
+
+body.ub-app .ub-superadmin-table-wrap .dataTables_wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+body.ub-app .ub-superadmin-table-wrap .dataTables_scroll,
+body.ub-app .ub-superadmin-table-wrap .dataTables_scrollHead,
+body.ub-app .ub-superadmin-table-wrap .dataTables_scrollBody {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+}
+
+body.ub-app #superadmin_business_table {
+  width: max-content !important;
+  min-width: 100%;
+}
+
+body.ub-app #superadmin_business_table th.ub-superadmin-action-col,
+body.ub-app #superadmin_business_table td.ub-superadmin-action-col,
+body.ub-app .ub-superadmin-table-wrap .dataTables_scrollHead th.ub-superadmin-action-col,
+body.ub-app .ub-superadmin-table-wrap .dataTables_scrollBody td.ub-superadmin-action-col {
+  min-width: 130px !important;
+  width: 130px !important;
+  max-width: 130px !important;
+  white-space: nowrap;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: #fff;
+  box-shadow: -6px 0 10px rgba(15, 23, 42, 0.06);
+}
+
+body.ub-app #superadmin_business_table thead th.ub-superadmin-action-col,
+body.ub-app .ub-superadmin-table-wrap .dataTables_scrollHead th.ub-superadmin-action-col {
+  background: #faf6f0 !important;
+  z-index: 3;
+}
+
+body.ub-app #superadmin_business_table tbody tr:nth-child(even) td.ub-superadmin-action-col,
+body.ub-app .ub-superadmin-table-wrap .dataTables_scrollBody tbody tr:nth-child(even) td.ub-superadmin-action-col {
+  background: #fdf9f4 !important;
+}
+
+body.ub-app td.ub-superadmin-action-col .ub-action-menu {
+  display: inline-flex;
+}
+
+@media (max-width: 767px) {
+  body.ub-app .ub-superadmin-nav {
+    margin: 8px 8px 0 !important;
+    max-width: calc(100% - 16px) !important;
+  }
+
+  body.ub-app .ub-superadmin-nav .navbar-nav > li > a {
+    padding: 10px 12px !important;
+    font-size: 13px;
+  }
+}
+
+/* Superadmin dashboard — readable text on light surfaces (no :has()) */
+body.ub-app .ub-sa-home-header,
+body.ub-app .ub-sa-home {
+  color: #1c1917 !important;
+}
+
+body.ub-app .ub-sa-home-header h1,
+body.ub-app .ub-sa-home h1,
+body.ub-app .ub-sa-home h2,
+body.ub-app .ub-sa-home h3,
+body.ub-app .ub-sa-home h4,
+body.ub-app .ub-sa-home .box-title {
+  color: #1c1917 !important;
+  -webkit-text-fill-color: #1c1917 !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .ub-superadmin-nav .navbar-brand,
+body.ub-app .ub-superadmin-nav .navbar-brand i,
+body.ub-app .ub-superadmin-nav .navbar-nav > li > a {
+  color: #292524 !important;
+  -webkit-text-fill-color: #292524 !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .ub-superadmin-nav .navbar-nav > li > a:hover,
+body.ub-app .ub-superadmin-nav .navbar-nav > li > a:focus {
+  color: #c2410c !important;
+  -webkit-text-fill-color: #c2410c !important;
+}
+
+body.ub-app .ub-superadmin-nav .navbar-nav > li.active > a,
+body.ub-app .ub-superadmin-nav .navbar-nav > li.active > a:hover,
+body.ub-app .ub-superadmin-nav .navbar-nav > li.active > a:focus {
+  color: #ea580c !important;
+  -webkit-text-fill-color: #ea580c !important;
+  font-weight: 700 !important;
+}
+
+body.ub-app .ub-sa-home .ub-sa-stats-compact h3,
+body.ub-app .ub-sa-home .ub-sa-stats-compact h3 *,
+body.ub-app .ub-sa-home .ub-sa-stat-value,
+body.ub-app .ub-sa-home .new_subscriptions,
+body.ub-app .ub-sa-home .new_registrations {
+  color: #1c1917 !important;
+  -webkit-text-fill-color: #1c1917 !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .ub-sa-home .ub-sa-stats-compact .small-box-footer,
+body.ub-app .ub-sa-home .small-box-footer {
+  color: #ea580c !important;
+  -webkit-text-fill-color: #ea580c !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .ub-sa-home .tw-text-gray-500 {
+  color: #57534e !important;
+  -webkit-text-fill-color: #57534e !important;
+}
+
+body.ub-app .ub-sa-home .tw-text-gray-400 {
+  color: #78716c !important;
+  -webkit-text-fill-color: #78716c !important;
+}
+
+body.ub-app .ub-sa-home .tw-text-gray-900 {
+  color: #1c1917 !important;
+  -webkit-text-fill-color: #1c1917 !important;
+}
+
+/* Subscription package card plan name & price visibility fix */
+body.ub-app .price_card h2,
+body.ub-app .price_card h2 * {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .price_card h3,
+body.ub-app .price_card h3 .display_currency {
+  color: #ea580c !important;
+  -webkit-text-fill-color: #ea580c !important;
+  opacity: 1 !important;
+}
+
+body.ub-app .price_card h3 span:not(.display_currency) {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  opacity: 1 !important;
+}
+

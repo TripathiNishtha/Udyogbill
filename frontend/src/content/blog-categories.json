@@ -1,0 +1,140 @@
+[
+  {
+    "id": "1",
+    "name": "UdyogBill Setup",
+    "slug": "udyogbill-setup",
+    "description": "UdyogBill Setup guides for Indian businesses"
+  },
+  {
+    "id": "2",
+    "name": "GST Billing",
+    "slug": "gst-billing",
+    "description": "GST Billing guides for Indian businesses"
+  },
+  {
+    "id": "3",
+    "name": "Invoicing",
+    "slug": "invoicing",
+    "description": "Invoicing guides for Indian businesses"
+  },
+  {
+    "id": "4",
+    "name": "Retail Billing",
+    "slug": "retail-billing",
+    "description": "Retail Billing guides for Indian businesses"
+  },
+  {
+    "id": "5",
+    "name": "Inventory",
+    "slug": "inventory",
+    "description": "Inventory guides for Indian businesses"
+  },
+  {
+    "id": "6",
+    "name": "E-Invoicing",
+    "slug": "e-invoicing",
+    "description": "E-Invoicing guides for Indian businesses"
+  },
+  {
+    "id": "7",
+    "name": "GST Returns",
+    "slug": "gst-returns",
+    "description": "GST Returns guides for Indian businesses"
+  },
+  {
+    "id": "8",
+    "name": "POS & Operations",
+    "slug": "pos-operations",
+    "description": "POS & Operations guides for Indian businesses"
+  },
+  {
+    "id": "9",
+    "name": "CRM & Growth",
+    "slug": "crm-growth",
+    "description": "CRM & Growth guides for Indian businesses"
+  },
+  {
+    "id": "10",
+    "name": "HR & Payroll",
+    "slug": "hr-payroll",
+    "description": "HR & Payroll for Indian SMB growth"
+  },
+  {
+    "id": "11",
+    "name": "Compliance",
+    "slug": "compliance",
+    "description": "Compliance guides for Indian businesses"
+  },
+  {
+    "id": "12",
+    "name": "Credit & Notes",
+    "slug": "credit-notes",
+    "description": "Credit & Notes guides for Indian businesses"
+  },
+  {
+    "id": "13",
+    "name": "Multi-Store",
+    "slug": "multi-store",
+    "description": "Multi-Store guides for Indian businesses"
+  },
+  {
+    "id": "14",
+    "name": "Pharmacy",
+    "slug": "pharmacy",
+    "description": "Pharmacy guides for Indian businesses"
+  },
+  {
+    "id": "15",
+    "name": "Restaurant",
+    "slug": "restaurant",
+    "description": "Restaurant guides for Indian businesses"
+  },
+  {
+    "id": "16",
+    "name": "Software Comparisons",
+    "slug": "software-comparisons",
+    "description": "Software Comparisons guides for Indian businesses"
+  },
+  {
+    "id": "17",
+    "name": "Wholesale",
+    "slug": "wholesale",
+    "description": "Wholesale guides for Indian businesses"
+  },
+  {
+    "id": "18",
+    "name": "Restaurant POS",
+    "slug": "restaurant-pos",
+    "description": "Restaurant POS guides and operational tutorials by UdyogBill."
+  },
+  {
+    "id": "19",
+    "name": "GST Invoicing",
+    "slug": "gst-invoicing",
+    "description": "GST Invoicing guides and operational tutorials by UdyogBill."
+  },
+  {
+    "id": "20",
+    "name": "Inventory Management",
+    "slug": "inventory-management",
+    "description": "Inventory Management guides and operational tutorials by UdyogBill."
+  },
+  {
+    "id": "21",
+    "name": "Pharmacy Billing",
+    "slug": "pharmacy-billing",
+    "description": "Pharmacy Billing guides and software tutorials for Indian businesses."
+  },
+  {
+    "id": "22",
+    "name": "Pharma Distribution",
+    "slug": "pharma-distribution",
+    "description": "Pharma Distribution guides and software tutorials for Indian businesses."
+  },
+  {
+    "id": "23",
+    "name": "Wholesale & Distribution",
+    "slug": "wholesale-distribution",
+    "description": "Wholesale & Distribution category articles"
+  }
+]

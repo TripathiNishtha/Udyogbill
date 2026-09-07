@@ -1,0 +1,193 @@
+﻿/* Purchase lines: no overlap; horizontal scroll when needed; qty row stays inline */
+.purchase-entry-lines-wrap.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.purchase-entry-lines-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+.purchase-entry-lines-wrap #purchase_entry_table {
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
+    font-size: 12px;
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.purchase-entry-lines-wrap #purchase_entry_table thead th {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: normal;
+    vertical-align: middle;
+    padding: 5px 5px !important;
+    hyphens: auto;
+}
+.purchase-entry-lines-wrap #purchase_entry_table tbody td {
+    vertical-align: middle;
+    padding: 5px 5px !important;
+}
+/* Product tax column */
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.purchase_line_tax_id) {
+    min-width: 7rem;
+    max-width: 8.5rem;
+}
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.purchase_line_tax_id) .input-group {
+    width: 100%;
+    min-width: 6rem;
+}
+.purchase-entry-lines-wrap #purchase_entry_table td:has(.purchase_line_tax_id) .purchase_product_unit_tax_text,
+.purchase-entry-lines-wrap #purchase_entry_table td:has(.purchase_line_tax_id) .input-group-addon {
+    white-space: nowrap;
+}
+.purchase-entry-lines-wrap #purchase_entry_table .form-control.input_number,
+.purchase-entry-lines-wrap #purchase_entry_table input.form-control.input-sm {
+    font-size: 11px;
+    padding: 2px 4px;
+    height: auto;
+    min-height: 22px;
+    line-height: 1.25;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+/* Numeric amount columns â€” compact width */
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.purchase_unit_cost_without_discount),
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.inline_discounts),
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.purchase_unit_cost),
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.purchase_unit_cost_after_tax),
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.profit_percent),
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.default_sell_price) {
+    min-width: 3.75rem;
+    max-width: 4.5rem;
+}
+.purchase-entry-lines-wrap #purchase_entry_table .purchase_unit_cost_without_discount,
+.purchase-entry-lines-wrap #purchase_entry_table .inline_discounts,
+.purchase-entry-lines-wrap #purchase_entry_table .purchase_unit_cost,
+.purchase-entry-lines-wrap #purchase_entry_table .purchase_unit_cost_after_tax,
+.purchase-entry-lines-wrap #purchase_entry_table .profit_percent,
+.purchase-entry-lines-wrap #purchase_entry_table .default_sell_price {
+    min-width: 3.25rem;
+    width: 100%;
+    max-width: 4.25rem;
+}
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.row_subtotal_before_tax),
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.row_subtotal_after_tax) {
+    min-width: 4.25rem;
+    max-width: 5rem;
+}
+.purchase-entry-lines-wrap #purchase_entry_table span.display_currency,
+.purchase-entry-lines-wrap #purchase_entry_table .row_subtotal_before_tax,
+.purchase-entry-lines-wrap #purchase_entry_table .row_subtotal_after_tax,
+.purchase-entry-lines-wrap #purchase_entry_table .purchase_product_unit_tax_text {
+    white-space: nowrap;
+    font-size: 12px;
+}
+.purchase-entry-lines-wrap #purchase_entry_table td .input-group-addon {
+    padding: 3px 6px;
+    font-size: 11px;
+}
+/* Qty + free + unit â€” single horizontal row */
+.purchase-qty-cell-inner {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    min-width: 0;
+}
+.purchase-qty-cell-inner .form-control.input-sm {
+    flex: 0 1 auto;
+    min-width: 0;
+    width: auto;
+}
+.purchase-qty-cell-inner .purchase_quantity {
+    flex: 0 1 2.1rem;
+    max-width: 2.875rem;
+}
+.purchase-qty-cell-inner .free_quantity {
+    flex: 0 1 1.75rem;
+    max-width: 2.375rem;
+}
+.purchase-qty-free-label {
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 600;
+    color: #555;
+    line-height: 1;
+}
+.purchase-qty-cell-inner .sub_unit {
+    flex: 0 1 auto;
+    min-width: 2.25rem;
+    max-width: 3.5rem;
+    padding-left: 2px;
+    padding-right: 14px;
+}
+.purchase-qty-unit-text {
+    font-size: 11px;
+    white-space: nowrap;
+    max-width: 5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.purchase-qty-cell-inner .select2-container {
+    flex: 0 1 auto;
+    min-width: 2rem;
+    max-width: 3.5rem;
+}
+.purchase-qty-second-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    justify-content: flex-start;
+}
+.purchase-qty-second-label {
+    font-size: 10px;
+    white-space: nowrap;
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.purchase-qty-second-row .form-control.input-sm {
+    flex: 0 1 2.1rem;
+    max-width: 2.75rem;
+    min-width: 0;
+}
+/* Product name â€” cap width so numeric columns keep space; scroll handles overflow */
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:nth-child(2),
+.purchase-entry-lines-wrap #purchase_entry_table thead th:nth-child(2) {
+    max-width: 14rem;
+    min-width: 8rem;
+    text-align: left;
+    overflow: hidden;
+}
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:nth-child(2) {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+/* Lot number â€” wider so batch/lot text is readable */
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(input[name*="lot_number"]) {
+    min-width: 7.5rem;
+    max-width: 9rem;
+}
+.purchase-entry-lines-wrap #purchase_entry_table input[name*="lot_number"] {
+    min-width: 6.5rem;
+    width: 100%;
+    max-width: 8.5rem;
+    font-size: 11px;
+    padding: 2px 5px;
+}
+/* Lot / expiry cells */
+.purchase-entry-lines-wrap #purchase_entry_table tbody td:has(.expiry_datepicker) {
+    min-width: 6rem;
+}
+.purchase-entry-lines-wrap #purchase_entry_table tbody td .expiry_datepicker {
+    min-width: 3.4rem;
+    max-width: 4.5rem;
+    font-size: 11px;
+    padding: 2px 4px;
+}

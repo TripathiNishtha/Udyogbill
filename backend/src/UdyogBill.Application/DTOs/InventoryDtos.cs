@@ -104,6 +104,15 @@ public record UnitConversionDto(
 );
 
 // --- Master Item DTOs ---
+public record OpeningBatchItemDto(
+    Guid? WarehouseId = null,
+    string? BatchNumber = null,
+    DateTime? ExpiryDate = null,
+    decimal Quantity = 0m,
+    decimal? PurchaseRate = null,
+    decimal? MRP = null
+);
+
 public record CreateItemRequest(
     string? Sku = null,
     string Name = "",
@@ -134,7 +143,8 @@ public record CreateItemRequest(
     decimal InitialStock = 0m,
     Guid? InitialWarehouseId = null,
     string? InitialBatchNumber = null,
-    DateTime? InitialBatchExpiryDate = null
+    DateTime? InitialBatchExpiryDate = null,
+    List<OpeningBatchItemDto>? OpeningBatches = null
 );
 
 public record UpdateItemRequest(

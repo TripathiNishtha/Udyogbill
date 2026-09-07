@@ -25,6 +25,7 @@ import {
 import { partyService } from "@/services/party-services";
 import { inventoryService } from "@/services/inventory-services";
 import { tenantAppService } from "@/services/tenant-app-services";
+import { downloadMasterMigrationTemplate } from "@/lib/master-migration-template";
 
 export default function DataMigrationHubPage() {
   const [activeTab, setActiveTab] = useState<"parties" | "products" | "history">("parties");
@@ -420,12 +421,26 @@ export default function DataMigrationHubPage() {
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => downloadMasterMigrationTemplate({ includeSampleData: true })}
+              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-900/40 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Download Master Excel (.xlsx)</span>
+            </button>
+            <Link
+              href="/app/settings/migration/universal"
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-900/40"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Universal Multi-Sheet Importer</span>
+            </Link>
             <Link
               href="/app/dashboard"
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
             >
-              Back to Dashboard
+              Dashboard
             </Link>
           </div>
         </div>

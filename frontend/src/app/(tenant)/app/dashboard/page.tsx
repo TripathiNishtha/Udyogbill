@@ -1,7 +1,5 @@
 "use client";
 
-import { TurboOnboardingWizard } from "@/components/onboarding/turbo-onboarding-wizard";
-
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -26,6 +24,7 @@ import {
   Sparkles,
   ArrowUpRight,
   Zap,
+  X,
 } from "lucide-react";
 import { authService } from "@/services/api-services";
 import { ThemeToggle } from "@/components/theme/theme-provider";
@@ -50,6 +49,7 @@ import {
   FinancialSummaryReport,
 } from "@/types";
 import { useAddons } from "@/context/addon-context";
+import { Badge, Button } from "@/components/ui";
 
 // Widgets & Registry
 import {
@@ -80,6 +80,7 @@ import {
 } from "@/components/dashboard/widgets/wholesale-fmcg-widgets";
 import { RecentActivityLedgerWidget } from "@/components/dashboard/widgets/recent-activity-ledger";
 import { DashboardCustomizerModal } from "@/components/dashboard/dashboard-customizer-modal";
+import { PharmaDashboardWidgets } from "@/components/dashboard/pharma-dashboard-widgets";
 
 export default function TenantDashboardPage() {
   const [currentUser, setCurrentUser] = useState<AuthResponse["user"] | null>(null);
@@ -121,7 +122,6 @@ export default function TenantDashboardPage() {
 
   // Widget Layout & Customization
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Profile & Password Modal
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -587,12 +587,12 @@ export default function TenantDashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
-        <div className="font-semibold text-sm text-slate-200">
-          {isHi ? "UdyogBill एंटरप्राइज ERP डैशबोर्ड लोड हो रहा है..." : "Loading UdyogBill Enterprise Commercial ERP..."}
+      <div className="p-16 text-center text-muted-foreground text-xs flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+        <div className="font-semibold text-sm text-foreground">
+          {isHi ? "UdyogBill डैशबोर्ड लोड हो रहा है..." : "Loading UdyogBill..."}
         </div>
-        <p className="text-slate-500 text-xs">
+        <p className="text-muted-foreground text-xs">
           {isHi ? "वास्तविक लेजर और खाता बही से मेट्रिक्स संकलित किए जा रहे हैं" : "Aggregating live ledger entries, tax balances, and real-time inventory"}
         </p>
       </div>
@@ -600,75 +600,60 @@ export default function TenantDashboardPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 py-3 w-full max-w-[1800px] mx-auto space-y-2.5">
-      {/* ─── Sleek Balanced Executive Command Center ─────────── */}
-      <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 px-4 shadow-md space-y-2.5">
-        {/* Row 1: Company Profile on Left <---> User Profile & Sign Out on Right */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-900 pb-2.5">
-          {/* Left: Highlighted Store Brand + Tenant Code + Branch Selector */}
+    <div className="px-4 sm:px-6 py-4 w-full max-w-[1800px] mx-auto space-y-4">
+      {/* ─── Executive Command Header & Period Control ─────────── */}
+      <div className="bg-surface border border-border rounded-xl p-3.5 px-4 shadow-xs space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Left: Greeting & Quick Branch Context */}
           <div className="flex items-center space-x-3 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 p-0.5 flex items-center justify-center shadow-md shadow-indigo-600/30 shrink-0 overflow-hidden">
-              {(profile?.logoUrl || currentUser?.logoUrl) ? (
-                <img
-                  src={profile?.logoUrl || currentUser?.logoUrl}
-                  alt={profile?.businessName || currentUser?.businessName || "Logo"}
-                  className="w-full h-full object-contain rounded-lg bg-white"
-                />
-              ) : (
-                <div className="w-full h-full rounded-lg bg-indigo-950 flex items-center justify-center text-indigo-300 font-black text-xs uppercase">
-                  {(profile?.businessName || currentUser?.businessName || "UB").slice(0, 2)}
-                </div>
-              )}
-            </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-base sm:text-lg font-black text-white tracking-tight">
-                  {profile?.businessName || currentUser?.businessName || "Apex Pharma Care"}
+                <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                  {profile?.tradeName || profile?.businessName || currentUser?.businessName || "Executive Dashboard"}
                 </h1>
-                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 shadow-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>{profile?.code || currentUser?.tenantCode || "TNT-PHARMA-1001"}</span>
-                </span>
+                <Badge variant="primary" size="sm" className="font-mono">
+                  {profile?.code || currentUser?.tenantCode || "LIVE ERP"}
+                </Badge>
               </div>
-            </div>
-
-            <div className="hidden sm:block h-5 w-px bg-slate-800 mx-0.5"></div>
-
-            {/* Branch Switcher */}
-            <div className="hidden sm:flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-800 text-xs">
-              <Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <select
-                value={selectedBranchFilter}
-                onChange={(e) => setSelectedBranchFilter(e.target.value)}
-                className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer pr-1 text-xs"
-              >
-                <option value="all" className="bg-slate-900 text-white">
-                  {isHi ? "सभी शाखाएं" : "All Branches"}
-                </option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id} className="bg-slate-900 text-white">
-                    {b.branchName} ({b.branchCode})
-                  </option>
-                ))}
-              </select>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isHi ? "व्यापार अवलोकन और वास्तविक समय वित्तीय विश्लेषण" : "Business Overview & Real-Time Financial Intelligence"}
+              </p>
             </div>
           </div>
 
-          {/* Right: Sync Badge, Theme, Language, Profile & Sign Out (Exact layout requested by user) */}
-          <div className="flex items-center space-x-2 shrink-0 ml-auto">
-            <NetworkStatusBadge />
-
-            <ThemeToggle />
+          {/* Right: Period Filter Pills + Language + Customize + Refresh */}
+          <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
+            {/* Period selector */}
+            <div className="flex items-center bg-surface-elevated/60 p-0.5 rounded-lg border border-border text-xs">
+              {[
+                { id: "today", labelEn: "Today", labelHi: "आज" },
+                { id: "week", labelEn: "7 Days", labelHi: "7 दिन" },
+                { id: "month", labelEn: "This Month", labelHi: "इस माह" },
+                { id: "year", labelEn: "Full Year", labelHi: "पूरा वर्ष" },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setTimeFilter(p.id as any)}
+                  className={`px-3 py-1 rounded-md font-bold text-xs transition-all cursor-pointer ${
+                    timeFilter === p.id
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {isHi ? p.labelHi : p.labelEn}
+                </button>
+              ))}
+            </div>
 
             {/* Language Toggle */}
-            <div className="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-xs">
+            <div className="flex items-center bg-surface-elevated/60 p-0.5 rounded-lg border border-border text-xs">
               <button
                 onClick={() => {
                   setLang("en");
                   localStorage.setItem("udyogbill_lang", "en");
                 }}
                 className={`px-2 py-0.5 rounded-md font-bold text-xs transition-all cursor-pointer ${
-                  lang === "en" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                  lang === "en" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 EN
@@ -679,201 +664,156 @@ export default function TenantDashboardPage() {
                   localStorage.setItem("udyogbill_lang", "hi");
                 }}
                 className={`px-2 py-0.5 rounded-md font-bold text-xs transition-all cursor-pointer ${
-                  lang === "hi" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
+                  lang === "hi" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 हिं
               </button>
             </div>
 
-            {/* 10-Min Quick Onboarding Wizard Trigger */}
-            <button
-              onClick={() => setIsOnboardingOpen(true)}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 hover:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-              title={isHi ? "10-मिनट क्विक ऑनबोर्डिंग व डेटा इम्पोर्ट" : "10-Minute Quick Onboarding & Data Migrator"}
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xl:inline">{isHi ? "⚡ क्विक सेटअप" : "⚡ 10-Min Setup"}</span>
-            </button>
-
             {/* Refresh */}
             <button
               onClick={loadDashboardData}
               disabled={refreshing}
               title={isHi ? "रिफ्रेश करें" : "Refresh Dashboard Data"}
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-surface hover:bg-surface-elevated border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-indigo-400" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
             </button>
 
-            {/* Profile & Password Icon Button */}
-            <button
-              onClick={openProfileModal}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-950/50 hover:bg-indigo-900/70 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-              title={isHi ? "प्रोफाइल व पासवर्ड बदलें" : "Manage Profile & Password"}
+            {/* Customize Layout button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCustomizerOpen(true)}
+              icon={<Sliders className="w-3.5 h-3.5 text-muted-foreground" />}
+              className="text-xs"
             >
-              <Users2 className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="truncate max-w-[85px]">
-                {currentUser?.fullName?.split(" ")[0] || "Demo"}
-              </span>
-            </button>
-
-            {/* Prominent Red Sign Out Button */}
-            <button
-              onClick={() => authService.logout()}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/70 border border-rose-800/50 text-rose-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
-              title={isHi ? "लॉगआउट करें" : "Sign out of your account"}
-            >
-              <LogOut className="w-3.5 h-3.5 text-rose-400" />
-              <span>{isHi ? "लॉगआउट" : "Sign Out"}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Row 2: 1-Click Time Range Filter Pills (Positioned underneath on the row below) */}
-        <div className="flex items-center justify-between flex-wrap gap-2 pt-0.5">
-          <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium">
-            <span className="font-semibold text-slate-300">{isHi ? "अवधि चुनें:" : "Financial Period:"}</span>
-            <div className="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-800 text-xs">
-              {[
-                { id: "today", labelEn: "Today", labelHi: "आज" },
-                { id: "week", labelEn: "7 Days", labelHi: "7 दिन" },
-                { id: "month", labelEn: "This Month", labelHi: "इस माह" },
-                { id: "year", labelEn: "Full Year", labelHi: "पूरा वर्ष" },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setTimeFilter(p.id as any)}
-                  className={`px-3 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                    timeFilter === p.id
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {isHi ? p.labelHi : p.labelEn}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 text-[11px] text-slate-400">
-            <span>{isHi ? "वर्तमान चक्र:" : "Active Cycle:"}</span>
-            <span className="font-bold text-slate-200 font-mono">
-              {kpiData.periodLabel}
-            </span>
+              <span>{isHi ? "कस्टमाइज़" : "Customize"}</span>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* ─── Fast-Action Command Ribbon: 1-Click Execution (~38px) ──────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      {/* ─── 1. Primary Financial & Ledger Executive KPIs (3-Second Rule) ──── */}
+      {visibleWidgetIds.includes("kpi-summary") && (
+        <div className="w-full">
+          {renderWidgetById("kpi-summary")}
+        </div>
+      )}
+
+      {/* ─── 2. Fast-Action Command Ribbon: 1-Click Execution (~38px) ───────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <Link
           href="/app/sales/invoices"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white shadow-xs border border-emerald-600 transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors shrink-0">
-              <Plus className="w-3.5 h-3.5" />
+            <div className="p-1 rounded-md bg-white/20 text-white shrink-0">
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
             </div>
-            <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-              {isHi ? "+ नया GST बिल" : "+ Create Invoice"}
+            <div className="text-xs font-bold text-white truncate">
+              {isHi ? "नया GST बिल" : "Create Invoice"}
             </div>
           </div>
-          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 ml-1.5 shrink-0 hidden xl:inline">
+          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-800/70 text-emerald-100 border border-emerald-500/50 ml-1.5 shrink-0 hidden xl:inline">
             Alt+N
           </kbd>
         </Link>
 
         <Link
           href="/app/sales/quotations"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:shadow-xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-blue-200 dark:border-blue-900/40 hover:border-blue-400 hover:bg-blue-50/40 shadow-2xs transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors shrink-0">
+            <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/60 shrink-0 group-hover:scale-105 transition-transform">
               <FileText className="w-3.5 h-3.5" />
             </div>
-            <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-              {isHi ? "+ कोटेशन बनाएं" : "+ New Estimate"}
+            <div className="text-xs font-semibold text-foreground group-hover:text-blue-700 dark:group-hover:text-blue-300 truncate">
+              {isHi ? "कोटेशन बनाएं" : "New Estimate"}
             </div>
           </div>
-          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 ml-1.5 shrink-0 hidden xl:inline">
+          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-surface-elevated text-muted-foreground border border-border/40 ml-1.5 shrink-0 hidden xl:inline">
             Alt+E
           </kbd>
         </Link>
 
         <Link
           href="/app/purchase/orders"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:shadow-xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-amber-200 dark:border-amber-900/40 hover:border-amber-400 hover:bg-amber-50/40 shadow-2xs transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-emerald-50 dark:bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-colors shrink-0">
+            <div className="p-1 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/60 shrink-0 group-hover:scale-105 transition-transform">
               <Boxes className="w-3.5 h-3.5" />
             </div>
-            <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-              {isHi ? "+ खरीद ऑर्डर" : "+ Purchase Order"}
+            <div className="text-xs font-semibold text-foreground group-hover:text-amber-700 dark:group-hover:text-amber-300 truncate">
+              {isHi ? "खरीद ऑर्डर" : "Purchase Order"}
             </div>
           </div>
-          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 ml-1.5 shrink-0 hidden xl:inline">
+          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-surface-elevated text-muted-foreground border border-border/40 ml-1.5 shrink-0 hidden xl:inline">
             Alt+P
           </kbd>
         </Link>
 
         <Link
           href="/app/parties/customers"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:shadow-xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-indigo-200 dark:border-indigo-900/40 hover:border-indigo-400 hover:bg-indigo-50/40 shadow-2xs transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-600/15 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+            <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 shrink-0 group-hover:scale-105 transition-transform">
               <Users2 className="w-3.5 h-3.5" />
             </div>
-            <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-              {isHi ? "+ नया ग्राहक" : "+ Add Customer"}
+            <div className="text-xs font-semibold text-foreground group-hover:text-indigo-700 dark:group-hover:text-indigo-300 truncate">
+              {isHi ? "नया ग्राहक" : "Add Customer"}
             </div>
           </div>
-          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 ml-1.5 shrink-0 hidden xl:inline">
+          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-surface-elevated text-muted-foreground border border-border/40 ml-1.5 shrink-0 hidden xl:inline">
             Alt+C
           </kbd>
         </Link>
 
         <Link
           href="/app/inventory/items"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500 hover:shadow-xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-purple-200 dark:border-purple-900/40 hover:border-purple-400 hover:bg-purple-50/40 shadow-2xs transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors shrink-0">
+            <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border border-purple-200/60 shrink-0 group-hover:scale-105 transition-transform">
               <Boxes className="w-3.5 h-3.5" />
             </div>
-            <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-              {isHi ? "+ नया प्रोडक्ट" : "+ Add Product"}
+            <div className="text-xs font-semibold text-foreground group-hover:text-purple-700 dark:group-hover:text-purple-300 truncate">
+              {isHi ? "नया प्रोडक्ट" : "Add Product"}
             </div>
           </div>
-          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 ml-1.5 shrink-0 hidden xl:inline">
+          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-surface-elevated text-muted-foreground border border-border/40 ml-1.5 shrink-0 hidden xl:inline">
             Alt+I
           </kbd>
         </Link>
 
         <Link
           href="/app/expenses"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500 hover:shadow-xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-rose-200 dark:border-rose-900/40 hover:border-rose-400 hover:bg-rose-50/40 shadow-2xs transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-rose-50 dark:bg-rose-600/15 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white transition-colors shrink-0">
+            <div className="p-1 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 shrink-0 group-hover:scale-105 transition-transform">
               <Receipt className="w-3.5 h-3.5" />
             </div>
-            <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-              {isHi ? "+ खर्चा जोड़ें" : "+ Record Expense"}
+            <div className="text-xs font-semibold text-foreground group-hover:text-rose-700 dark:group-hover:text-rose-300 truncate">
+              {isHi ? "खर्चा जोड़ें" : "Record Expense"}
             </div>
           </div>
-          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 ml-1.5 shrink-0 hidden xl:inline">
+          <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-surface-elevated text-muted-foreground border border-border/40 ml-1.5 shrink-0 hidden xl:inline">
             Alt+X
           </kbd>
         </Link>
       </div>
 
-      {/* ─── Dynamic Industry-Aware Configurable Widget Engine ───────────────── */}
+      {/* ─── 3. Pharma Executive Intelligence Widget (Attached when Pharma addon is active) ── */}
+      {hasPharmaAddon && <PharmaDashboardWidgets />}
+
+      {/* ─── 4. Dynamic Industry-Aware Configurable Widget Engine ─────────────── */}
       <div className="space-y-2.5">
         {widgetOrder
-          .filter((wId) => visibleWidgetIds.includes(wId))
+          .filter((wId) => wId !== "kpi-summary" && visibleWidgetIds.includes(wId))
           .map((wId) => {
             return (
               <div key={wId} className="w-full">
@@ -939,14 +879,15 @@ export default function TenantDashboardPage() {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">
-                  {isHi ? "मोबाइल नंबर" : "Phone Number"}
+                  {isHi ? "मोबाइल नंबर (10 अंक)" : "Phone Number (10 Digits)"}
                 </label>
                 <input
-                  type="text"
-                  placeholder="+91 98765 43210"
+                  type="tel"
+                  maxLength={10}
+                  placeholder="9876543210"
                   value={profileForm.phoneNumber}
-                  onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -1002,16 +943,6 @@ export default function TenantDashboardPage() {
           </div>
         </div>
       )}
-
-      {/* ─── 10-Minute Turbo Onboarding & Migrator Wizard Modal ──────────── */}
-      <TurboOnboardingWizard
-        isOpen={isOnboardingOpen}
-        onClose={() => setIsOnboardingOpen(false)}
-        onCompleted={() => {
-          loadDashboardData();
-        }}
-        isHi={isHi}
-      />
     </div>
   );
 }

@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TenantAppSidebar } from "@/components/layout/tenant-app-sidebar";
+import { TenantAppHeader } from "@/components/layout/tenant-app-header";
 import { KeyboardShortcutsHud } from "@/components/common/keyboard-shortcuts-hud";
 import { authService } from "@/services/api-services";
 import { AddonProvider } from "@/context/addon-context";
-import { ArrowLeft, ShieldAlert } from "lucide-react";
+import { UdyogMitraCopilot } from "@/components/assistant/udyog-mitra-copilot";
+import { ArrowLeft, ShieldAlert, ChevronRight } from "lucide-react";
 
 export default function TenantAppLayout({
   children,
@@ -58,9 +60,43 @@ export default function TenantAppLayout({
     }
   };
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("udyogbill_sidebar_collapsed");
+      if (saved === "true") {
+        setIsSidebarCollapsed(true);
+      }
+    } catch {}
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("udyogbill_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Global Ctrl+B shortcut to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   if (!authorized) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-xs">
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-xs">
         Authenticating subscriber session...
       </div>
     );
@@ -68,7 +104,7 @@ export default function TenantAppLayout({
 
   return (
     <AddonProvider>
-      <div className="h-screen h-[100dvh] overflow-hidden bg-slate-950 flex flex-col text-slate-100 antialiased font-sans">
+      <div className="h-screen h-[100dvh] overflow-hidden bg-background text-foreground flex flex-col antialiased font-sans transition-colors">
         {/* Impersonation Banner for Super Admin */}
         {impersonateInfo && (
           <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white px-5 py-2.5 flex items-center justify-between shadow-2xl shrink-0 z-[99999] border-b border-amber-400/30">
@@ -102,12 +138,38 @@ export default function TenantAppLayout({
           </div>
         )}
 
-        <div className="flex-1 flex overflow-hidden min-h-0">
-          <TenantAppSidebar />
-          <main className="flex-1 overflow-y-auto bg-slate-950 min-w-0 h-full">
+        {/* Global Desktop & Mobile Header with Store Info, Search, Quick Actions & Theme Switcher */}
+        <TenantAppHeader
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={toggleSidebar}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        />
+
+        <div className="flex-1 flex overflow-hidden min-h-0 relative">
+          <TenantAppSidebar
+            isOpenMobile={isMobileMenuOpen}
+            onCloseMobile={() => setIsMobileMenuOpen(false)}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+          />
+
+          {/* Floating Expand Sidebar Button when collapsed */}
+          {isSidebarCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-card/95 hover:bg-card text-muted-foreground hover:text-primary border border-border border-l-0 shadow-xl px-1.5 py-3.5 rounded-r-xl transition-all cursor-pointer group backdrop-blur-xs"
+              title="Show Sidebar (Ctrl+B)"
+              aria-label="Expand Sidebar"
+            >
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
+
+          <main className="flex-1 overflow-y-auto bg-background text-foreground min-w-0 h-full transition-all duration-300">
             {children}
           </main>
         </div>
+        <UdyogMitraCopilot />
         <KeyboardShortcutsHud />
       </div>
     </AddonProvider>

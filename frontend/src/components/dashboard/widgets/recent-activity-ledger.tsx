@@ -34,24 +34,24 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
   const paidInvoices = invoices.filter((inv) => (inv.paidAmount || 0) > 0);
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+    <div className="bg-surface border border-border rounded-xl p-5 shadow-xs space-y-4">
       {/* Header & Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
         <div>
-          <h2 className="text-sm font-bold text-white tracking-tight flex items-center space-x-2">
-            <Receipt className="w-4 h-4 text-indigo-400" />
+          <h2 className="text-sm font-bold text-foreground tracking-tight flex items-center space-x-2">
+            <Receipt className="w-4 h-4 text-primary" />
             <span>{isHi ? "हाल की व्यावसायिक गतिविधियां" : "Recent Business Activity & Ledger Transactions"}</span>
           </h2>
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             {isHi ? "दुकान और शाखाओं से दर्ज नवीनतम बिल, वसूली और स्टॉक स्थिति" : "Real-time ledger audit across sales counters, receipts, and warehouse stock"}
           </p>
         </div>
 
-        <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+        <div className="flex items-center space-x-1 bg-surface-muted p-1 rounded-lg border border-border text-xs">
           <button
             onClick={() => setActiveTab("sales")}
             className={`px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center space-x-1.5 ${
-              activeTab === "sales" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
+              activeTab === "sales" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
@@ -60,7 +60,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
           <button
             onClick={() => setActiveTab("collections")}
             className={`px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center space-x-1.5 ${
-              activeTab === "collections" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
+              activeTab === "collections" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Wallet className="w-3.5 h-3.5" />
@@ -69,7 +69,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
           <button
             onClick={() => setActiveTab("inventory")}
             className={`px-3 py-1 rounded font-semibold text-xs transition-colors flex items-center space-x-1.5 ${
-              activeTab === "inventory" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
+              activeTab === "inventory" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Boxes className="w-3.5 h-3.5" />
@@ -82,7 +82,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
       {activeTab === "sales" && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+            <thead className="bg-table-header text-table-header-foreground uppercase text-[10px] tracking-wider border-b border-table-border">
               <tr>
                 <th className="p-2.5">{isHi ? "इनवॉइस #" : "Invoice #"}</th>
                 <th className="p-2.5">{isHi ? "दिनांक" : "Date"}</th>
@@ -94,25 +94,25 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
                 <th className="p-2.5 text-right">{isHi ? "कार्य" : "Action"}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+            <tbody className="divide-y divide-table-border font-mono text-[11px]">
               {invoices.slice(0, 6).map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="p-2.5 font-bold text-white whitespace-nowrap">{inv.invoiceNumber}</td>
-                  <td className="p-2.5 text-slate-400 whitespace-nowrap">{inv.invoiceDate?.slice(0, 10)}</td>
-                  <td className="p-2.5 font-sans font-medium text-slate-200 max-w-[170px] truncate" title={inv.customerName}>
+                <tr key={inv.id} className="hover:bg-table-row-hover transition-colors">
+                  <td className="p-2.5 font-bold text-foreground whitespace-nowrap">{inv.invoiceNumber}</td>
+                  <td className="p-2.5 text-muted-foreground whitespace-nowrap">{inv.invoiceDate?.slice(0, 10)}</td>
+                  <td className="p-2.5 font-sans font-medium text-foreground max-w-[170px] truncate" title={inv.customerName}>
                     {inv.customerName}
                   </td>
-                  <td className="p-2.5 text-right font-bold text-white">{formatCurrency(inv.totalAmount)}</td>
-                  <td className="p-2.5 text-right text-emerald-400">{formatCurrency(inv.paidAmount)}</td>
-                  <td className="p-2.5 text-right text-rose-400">{formatCurrency(inv.balanceAmount)}</td>
+                  <td className="p-2.5 text-right font-bold text-foreground">{formatCurrency(inv.totalAmount)}</td>
+                  <td className="p-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">{formatCurrency(inv.paidAmount)}</td>
+                  <td className="p-2.5 text-right text-rose-600 dark:text-rose-400 font-semibold">{formatCurrency(inv.balanceAmount)}</td>
                   <td className="p-2.5 text-center font-sans">
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                         inv.paymentStatus === 3
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                           : inv.paymentStatus === 2
-                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                          : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
                       }`}
                     >
                       {inv.paymentStatus === 3 ? "Fully Paid" : inv.paymentStatus === 2 ? "Partially Paid" : "Unpaid"}
@@ -122,24 +122,24 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
                     <div className="inline-flex items-center space-x-1.5 justify-end">
                       <Link
                         href={`/app/sales/invoices/${inv.id}`}
-                        className="inline-flex items-center space-x-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-colors border border-slate-750"
+                        className="inline-flex items-center space-x-1 px-2 py-1 rounded bg-surface-muted hover:bg-surface-muted/80 text-foreground text-xs font-semibold transition-colors border border-border"
                         title={isHi ? "बिल देखें" : "View Invoice"}
                       >
-                        <Eye className="w-3 h-3 text-slate-400" />
+                        <Eye className="w-3 h-3 text-muted-foreground" />
                       </Link>
                       <button
                         onClick={() => {
                           const msg = encodeURIComponent(`Tax Invoice ${inv.invoiceNumber} for ₹${inv.totalAmount} issued to ${inv.customerName}. Payment Status: ${inv.paymentStatus === 3 ? "Fully Paid" : "Balance Due: ₹" + inv.balanceAmount}. Thank you for your business!`);
                           window.open(`https://wa.me/?text=${msg}`, "_blank");
                         }}
-                        className="inline-flex items-center space-x-1 px-2 py-1 rounded bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 text-xs font-semibold transition-colors border border-emerald-800/40 cursor-pointer"
+                        className="inline-flex items-center space-x-1 px-2 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition-colors border border-emerald-500/30 cursor-pointer"
                         title={isHi ? "व्हाट्सएप पर शेयर करें" : "Share on WhatsApp"}
                       >
                         <span className="text-[11px]">📲</span>
                       </button>
                       <Link
                         href={`/app/sales/invoices/${inv.id}`}
-                        className="inline-flex items-center space-x-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 text-xs font-semibold transition-colors border border-slate-750"
+                        className="inline-flex items-center space-x-1 px-2 py-1 rounded bg-surface-muted hover:bg-surface-muted/80 text-primary text-xs font-semibold transition-colors border border-border"
                         title={isHi ? "प्रिंट करें" : "Print Tax Invoice"}
                       >
                         <Printer className="w-3 h-3" />
@@ -152,7 +152,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
 
               {invoices.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500 font-sans">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground font-sans">
                     {isHi ? "अभी तक कोई बिल जारी नहीं किया गया है।" : "No sales invoices issued in this period."}
                   </td>
                 </tr>
@@ -166,7 +166,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
       {activeTab === "collections" && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+            <thead className="bg-table-header text-table-header-foreground uppercase text-[10px] tracking-wider border-b border-table-border">
               <tr>
                 <th className="p-2.5">Invoice #</th>
                 <th className="p-2.5">Customer</th>
@@ -176,24 +176,24 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
                 <th className="p-2.5">Realization Rate</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+            <tbody className="divide-y divide-table-border font-mono text-[11px]">
               {paidInvoices.slice(0, 6).map((inv) => {
                 const pct = inv.totalAmount > 0 ? Math.round((inv.paidAmount / inv.totalAmount) * 100) : 100;
                 return (
-                  <tr key={inv.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-2.5 font-bold text-white whitespace-nowrap">{inv.invoiceNumber}</td>
-                    <td className="p-2.5 font-sans font-medium text-slate-200 max-w-[170px] truncate" title={inv.customerName}>
+                  <tr key={inv.id} className="hover:bg-table-row-hover transition-colors">
+                    <td className="p-2.5 font-bold text-foreground whitespace-nowrap">{inv.invoiceNumber}</td>
+                    <td className="p-2.5 font-sans font-medium text-foreground max-w-[170px] truncate" title={inv.customerName}>
                       {inv.customerName}
                     </td>
-                    <td className="p-2.5 text-slate-400 whitespace-nowrap">{inv.invoiceDate?.slice(0, 10)}</td>
-                    <td className="p-2.5 text-right font-bold text-emerald-400">{formatCurrency(inv.paidAmount)}</td>
-                    <td className="p-2.5 text-right text-rose-400">{formatCurrency(inv.balanceAmount)}</td>
+                    <td className="p-2.5 text-muted-foreground whitespace-nowrap">{inv.invoiceDate?.slice(0, 10)}</td>
+                    <td className="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(inv.paidAmount)}</td>
+                    <td className="p-2.5 text-right text-rose-600 dark:text-rose-400 font-semibold">{formatCurrency(inv.balanceAmount)}</td>
                     <td className="p-2.5">
                       <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="w-20 bg-surface-muted h-1.5 rounded-full overflow-hidden border border-border">
                           <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${pct}%` }}></div>
                         </div>
-                        <span className="text-[10px] text-slate-400">{pct}%</span>
+                        <span className="text-[10px] text-muted-foreground font-semibold">{pct}%</span>
                       </div>
                     </td>
                   </tr>
@@ -202,7 +202,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
 
               {paidInvoices.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500 font-sans">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground font-sans">
                     {isHi ? "अभी तक कोई भुगतान वसूली दर्ज नहीं हुई है।" : "No cash or digital collections recorded yet."}
                   </td>
                 </tr>
@@ -216,7 +216,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
       {activeTab === "inventory" && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+            <thead className="bg-table-header text-table-header-foreground uppercase text-[10px] tracking-wider border-b border-table-border">
               <tr>
                 <th className="p-2.5">SKU</th>
                 <th className="p-2.5">Product Name</th>
@@ -226,29 +226,29 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
                 <th className="p-2.5">Stock Health</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+            <tbody className="divide-y divide-table-border font-mono text-[11px]">
               {items.slice(0, 6).map((itm) => {
                 const stock = itm.totalStock ?? itm.currentStock ?? 0;
                 const isLow = stock <= (itm.minimumStockAlert || 5);
                 const isZero = stock === 0;
 
                 return (
-                  <tr key={itm.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-2.5 font-bold text-white whitespace-nowrap">{itm.sku}</td>
-                    <td className="p-2.5 font-sans font-medium text-slate-200 max-w-[180px] truncate" title={itm.name}>
+                  <tr key={itm.id} className="hover:bg-table-row-hover transition-colors">
+                    <td className="p-2.5 font-bold text-foreground whitespace-nowrap">{itm.sku}</td>
+                    <td className="p-2.5 font-sans font-medium text-foreground max-w-[180px] truncate" title={itm.name}>
                       {itm.name}
                     </td>
-                    <td className="p-2.5 text-right text-slate-300">{formatCurrency(itm.purchasePrice)}</td>
-                    <td className="p-2.5 text-right font-bold text-white">{formatCurrency(itm.sellingPrice)}</td>
-                    <td className="p-2.5 text-right font-bold text-white">{stock}</td>
+                    <td className="p-2.5 text-right text-muted-foreground">{formatCurrency(itm.purchasePrice)}</td>
+                    <td className="p-2.5 text-right font-bold text-foreground">{formatCurrency(itm.sellingPrice)}</td>
+                    <td className="p-2.5 text-right font-bold text-foreground">{stock}</td>
                     <td className="p-2.5 font-sans">
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                           isZero
-                            ? "bg-slate-800 text-slate-400 border-slate-700"
+                            ? "bg-surface-muted text-muted-foreground border-border"
                             : isLow
-                            ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                         }`}
                       >
                         {isZero ? "Zero Stock" : isLow ? "Low Stock" : "In Stock"}
@@ -260,7 +260,7 @@ export function RecentActivityLedgerWidget({ invoices, items, isHi = false }: Pr
 
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500 font-sans">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground font-sans">
                     {isHi ? "कोई इन्वेंटरी आइटम नहीं मिला।" : "No inventory master items created yet."}
                   </td>
                 </tr>

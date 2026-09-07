@@ -61,7 +61,7 @@ public class AuditableEntitySaveChangesInterceptor : SaveChangesInterceptor
                 }
                 else if (entry.State == EntityState.Modified || entry.State == EntityState.Deleted)
                 {
-                    if (tenantEntity.TenantId != currentTenantId && !isSuperAdmin && currentTenantId != Guid.Empty)
+                    if (tenantEntity.TenantId != Guid.Empty && tenantEntity.TenantId != currentTenantId && !isSuperAdmin && currentTenantId != Guid.Empty)
                     {
                         throw new TenantIsolationViolationException($"Unauthorized cross-tenant mutation attempted on entity of tenant {tenantEntity.TenantId}.");
                     }

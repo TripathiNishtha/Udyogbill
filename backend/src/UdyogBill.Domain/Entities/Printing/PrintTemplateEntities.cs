@@ -11,7 +11,9 @@ public enum PrintDocumentType
     DeliveryChallan = 4,
     PurchaseOrder = 5,
     PaymentReceipt = 6,
-    BarcodeLabel = 7
+    BarcodeLabel = 7,
+    D2CInvoice = 8,
+    CreditNote = 9
 }
 
 public enum PageSizeFormat

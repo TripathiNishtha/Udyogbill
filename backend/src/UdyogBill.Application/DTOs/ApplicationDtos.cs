@@ -40,7 +40,8 @@ public record RegisterTenantRequest(
     Guid IndustryId,
     string? GSTIN = null,
     string? DrugLicenseNumber = null,
-    string? FSSAINumber = null
+    string? FSSAINumber = null,
+    string? ReferralCode = null
 );
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
@@ -224,4 +225,44 @@ public record TenantSubscriptionSummaryDto(
     DateTimeOffset? TrialEndsAtUtc,
     bool AutoRenew,
     bool IsActive
+);
+
+public record PlatformCommercialConfigDto(
+    Guid Id,
+    decimal CoreAnnualPrice,
+    decimal CoreBiennialPrice,
+    int IncludedUsers,
+    decimal SingleUserAnnualPrice,
+    decimal FiveUserPackAnnualPrice,
+    decimal AiProAnnualPrice,
+    int AiProMonthlyScanLimit,
+    decimal GstRatePercent,
+    bool IsActive,
+    DateTimeOffset? UpdatedAtUtc,
+    string? LastUpdatedByEmail,
+    string? Notes,
+    decimal PharmaSfaAnnualBasePrice = 19999m,
+    decimal PharmaSfaMonthlyBasePrice = 1999m,
+    decimal MrSeatAnnualPrice = 4999m,
+    decimal MrSeatMonthlyPrice = 499m,
+    decimal ManagerSeatAnnualPrice = 6999m,
+    decimal ManagerSeatMonthlyPrice = 699m
+);
+
+public record UpdateCommercialConfigRequest(
+    decimal CoreAnnualPrice,
+    decimal CoreBiennialPrice,
+    int IncludedUsers,
+    decimal SingleUserAnnualPrice,
+    decimal FiveUserPackAnnualPrice,
+    decimal AiProAnnualPrice,
+    int AiProMonthlyScanLimit,
+    decimal GstRatePercent,
+    string? Notes = null,
+    decimal PharmaSfaAnnualBasePrice = 19999m,
+    decimal PharmaSfaMonthlyBasePrice = 1999m,
+    decimal MrSeatAnnualPrice = 4999m,
+    decimal MrSeatMonthlyPrice = 499m,
+    decimal ManagerSeatAnnualPrice = 6999m,
+    decimal ManagerSeatMonthlyPrice = 699m
 );

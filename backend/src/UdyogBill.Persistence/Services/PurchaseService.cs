@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Accounting;
@@ -20,17 +21,43 @@ public class PurchaseService : IPurchaseService
     private readonly ITenantContext _tenantContext;
     private readonly ICurrentUserContext _currentUserContext;
     private readonly IAuditService _auditService;
+    private readonly UdyogBill.Application.Services.Calculations.ICanonicalCalculationEngine _calculationEngine;
+    private readonly Microsoft.Extensions.Logging.ILogger<PurchaseService>? _logger;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, SemaphoreSlim> _tenantDocSemaphores = new();
 
     public PurchaseService(
         AppDbContext context,
         ITenantContext tenantContext,
         ICurrentUserContext currentUserContext,
-        IAuditService auditService)
+        IAuditService auditService,
+        UdyogBill.Application.Services.Calculations.ICanonicalCalculationEngine? calculationEngine = null,
+        Microsoft.Extensions.Logging.ILogger<PurchaseService>? logger = null)
     {
         _context = context;
         _tenantContext = tenantContext;
         _currentUserContext = currentUserContext;
         _auditService = auditService;
+        _calculationEngine = calculationEngine ?? new UdyogBill.Application.Services.Calculations.CanonicalCalculationEngine();
+        _logger = logger;
+    }
+
+    private async Task AcquireSequenceLockAsync(Guid tenantId, string prefix, string fy, CancellationToken cancellationToken)
+    {
+        if (_context.Database.IsRelational())
+        {
+            try
+            {
+                if (_context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    var lockKey = $"doc_seq_{tenantId}_{prefix}_{fy}";
+                    await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}))", new object[] { lockKey }, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Could not acquire DB advisory lock for sequence prefix {Prefix}: {Message}", prefix, ex.Message);
+            }
+        }
     }
 
     private Guid RequireTenantId()
@@ -312,7 +339,7 @@ public class PurchaseService : IPurchaseService
             SupplierGSTIN = supplier.GSTIN,
             SupplierAddress = supplier.Addresses.FirstOrDefault(a => a.IsDefault)?.AddressLine1,
             SupplierStateCode = supplierState,
-            PlaceOfSupply = branch.State ?? "Maharashtra",
+            PlaceOfSupply = branch.State ?? "",
             TaxSupplyType = isIntraState ? TaxSupplyType.IntraState : TaxSupplyType.InterState,
             OrderDate = orderDate,
             ExpectedDeliveryDate = request.ExpectedDeliveryDate.HasValue
@@ -1226,220 +1253,367 @@ public class PurchaseService : IPurchaseService
         var billDate = DateTime.SpecifyKind(request.BillDate, DateTimeKind.Utc);
         var fyCode = GetFinancialYearCode(billDate);
 
-        // Generate sequential Bill Number
-        var prefix = $"BILL-{fyCode}-";
-        var lastNumberStr = await _context.PurchaseBills
-            .Where(b => b.TenantId == tenantId && b.BillNumber.StartsWith(prefix))
-            .OrderByDescending(b => b.BillNumber)
-            .Select(b => b.BillNumber)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var nextSeq = 1;
-        if (!string.IsNullOrEmpty(lastNumberStr) && lastNumberStr.Length > prefix.Length)
-        {
-            if (int.TryParse(lastNumberStr.Substring(prefix.Length), out var parsed))
-            {
-                nextSeq = parsed + 1;
-            }
-        }
-        var billNumber = $"{prefix}{nextSeq:D5}";
-
         var branchState = branch.StateCode ?? "27";
         var supplierState = supplier.StateCode ?? branchState;
         var isIntraState = string.Equals(branchState, supplierState, StringComparison.OrdinalIgnoreCase);
 
-        var bill = new PurchaseBill
-        {
-            TenantId = tenantId,
-            BillNumber = billNumber,
-            VendorInvoiceNumber = request.VendorInvoiceNumber,
-            Status = PurchaseBillStatus.Approved,
-            PurchaseOrderId = request.PurchaseOrderId,
-            GoodsReceiptNoteId = request.GoodsReceiptNoteId,
-            BranchId = request.BranchId,
-            WarehouseId = request.WarehouseId,
-            PartyId = supplier.Id,
-            SupplierName = supplier.LegalName,
-            SupplierGSTIN = supplier.GSTIN,
-            SupplierAddress = supplier.Addresses?.FirstOrDefault(a => a.IsDefault)?.AddressLine1,
-            SupplierStateCode = supplierState,
-            PlaceOfSupply = branch.State ?? "Maharashtra",
-            TaxSupplyType = isIntraState ? TaxSupplyType.IntraState : TaxSupplyType.InterState,
-            BillDate = billDate,
-            DueDate = request.DueDate.HasValue ? DateTime.SpecifyKind(request.DueDate.Value, DateTimeKind.Utc) : null,
-            PrimaryPaymentMode = request.PrimaryPaymentMode,
-            Notes = request.Notes,
-            AttributesJson = request.AttributesJson ?? "{}"
-        };
+        // Preload items and UOMs for canonical calculation
+        var itemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
+        var itemsDict = await _context.Items
+            .Include(i => i.PrimaryUom)
+            .Where(i => i.TenantId == tenantId && itemIds.Contains(i.Id) && !i.IsDeleted)
+            .ToDictionaryAsync(i => i.Id, cancellationToken);
 
-        decimal subTotal = 0m, discountTotal = 0m, totalTaxable = 0m;
-        decimal totalCgst = 0m, totalSgst = 0m, totalIgst = 0m, totalCess = 0m;
+        var uomIds = request.Items.Select(i => i.UomId).Distinct().ToList();
+        var uomsDict = await _context.UnitsOfMeasure
+            .Where(u => u.TenantId == tenantId && uomIds.Contains(u.Id) && !u.IsDeleted)
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
 
+        var lineInputs = new List<UdyogBill.Application.Services.Calculations.LineCalculationInput>();
         foreach (var reqItem in request.Items)
         {
-            var item = await _context.Items
-                .Include(i => i.PrimaryUom)
-                .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == reqItem.ItemId && !i.IsDeleted, cancellationToken);
-            if (item == null)
+            if (!itemsDict.TryGetValue(reqItem.ItemId, out var itm))
             {
-                return Result<Guid>.Failure($"Item '{reqItem.ItemId}' not found.", "ITEM_NOT_FOUND");
+                return Result<Guid>.Failure($"Item with ID '{reqItem.ItemId}' not found.", "ITEM_NOT_FOUND");
             }
 
-            var uom = await _context.UnitsOfMeasure
-                .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Id == reqItem.UomId && !u.IsDeleted, cancellationToken);
-            var uomCode = uom?.Code ?? item.PrimaryUom.Code;
+            decimal conversion = (itm.SecondaryUomId.HasValue && reqItem.UomId == itm.SecondaryUomId.Value && itm.ConversionRatio.HasValue && itm.ConversionRatio.Value > 0)
+                ? itm.ConversionRatio.Value
+                : 1m;
 
-            var gross = reqItem.Quantity * reqItem.UnitPrice;
-            var discAmt = gross * (reqItem.DiscountPercent / 100m);
-            var taxable = gross - discAmt;
+            lineInputs.Add(new UdyogBill.Application.Services.Calculations.LineCalculationInput(
+                Quantity: reqItem.Quantity,
+                FreeQuantity: reqItem.FreeQuantity,
+                UnitPrice: reqItem.UnitPrice,
+                IsTaxInclusive: itm.IsTaxInclusive,
+                DiscountPercent: reqItem.DiscountPercent,
+                DiscountAmount: reqItem.DiscountAmount,
+                GstRate: itm.TaxRate,
+                CessRate: itm.CessRate,
+                IsIntraState: isIntraState,
+                ConversionRatio: conversion
+            ));
+        }
 
-            var gstRate = item.TaxRate;
-            decimal cgstRate = 0m, cgstAmt = 0m;
-            decimal sgstRate = 0m, sgstAmt = 0m;
-            decimal igstRate = 0m, igstAmt = 0m;
-            decimal cessAmt = taxable * (item.CessRate / 100m);
+        var (calculatedLines, totals) = _calculationEngine.CalculateInvoice(
+            lineInputs,
+            invoiceDiscountPercent: 0m,
+            invoiceDiscountAmount: 0m,
+            isIntraState: isIntraState
+        );
 
-            if (isIntraState)
+        var semaphore = _tenantDocSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+        PurchaseBill bill;
+        try
+        {
+            // Generate sequential Bill Number under lock
+            var prefix = $"BILL-{fyCode}-";
+            await AcquireSequenceLockAsync(tenantId, "BILL", fyCode, cancellationToken);
+            var lastNumberStr = await _context.PurchaseBills
+                .Where(b => b.TenantId == tenantId && b.BillNumber.StartsWith(prefix))
+                .OrderByDescending(b => b.BillNumber)
+                .Select(b => b.BillNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var nextSeq = 1;
+            if (!string.IsNullOrEmpty(lastNumberStr) && lastNumberStr.Length > prefix.Length)
             {
-                cgstRate = gstRate / 2m;
-                sgstRate = gstRate / 2m;
-                cgstAmt = Math.Round(taxable * (cgstRate / 100m), 4);
-                sgstAmt = Math.Round(taxable * (sgstRate / 100m), 4);
+                if (int.TryParse(lastNumberStr.Substring(prefix.Length), out var parsed))
+                {
+                    nextSeq = parsed + 1;
+                }
             }
-            else
-            {
-                igstRate = gstRate;
-                igstAmt = Math.Round(taxable * (igstRate / 100m), 4);
-            }
+            var billNumber = $"{prefix}{nextSeq:D5}";
 
-            var lineTotal = taxable + cgstAmt + sgstAmt + igstAmt + cessAmt;
-
-            subTotal += gross;
-            discountTotal += discAmt;
-            totalTaxable += taxable;
-            totalCgst += cgstAmt;
-            totalSgst += sgstAmt;
-            totalIgst += igstAmt;
-            totalCess += cessAmt;
-
-            var billItem = new PurchaseBillItem
+            bill = new PurchaseBill
             {
                 TenantId = tenantId,
-                PurchaseBill = bill,
-                ItemId = item.Id,
-                ItemSku = item.Sku,
-                ItemName = item.Name,
-                HsnCode = item.HSNCode,
-                BatchId = reqItem.BatchId,
-                BatchNumber = reqItem.BatchNumber,
-                Quantity = reqItem.Quantity,
-                UomId = reqItem.UomId,
-                UomCode = uomCode,
-                UnitPrice = reqItem.UnitPrice,
-                DiscountPercent = reqItem.DiscountPercent,
-                DiscountAmount = discAmt,
-                TaxableAmount = taxable,
-                GstRate = gstRate,
-                CgstRate = cgstRate,
-                CgstAmount = cgstAmt,
-                SgstRate = sgstRate,
-                SgstAmount = sgstAmt,
-                IgstRate = igstRate,
-                IgstAmount = igstAmt,
-                CessRate = item.CessRate,
-                CessAmount = cessAmt,
-                TotalAmount = lineTotal,
-                AttributesJson = reqItem.AttributesJson ?? "{}"
+                BillNumber = billNumber,
+                VendorInvoiceNumber = request.VendorInvoiceNumber,
+                Status = PurchaseBillStatus.Approved,
+                PurchaseOrderId = request.PurchaseOrderId,
+                GoodsReceiptNoteId = request.GoodsReceiptNoteId,
+                BranchId = request.BranchId,
+                WarehouseId = request.WarehouseId,
+                PartyId = supplier.Id,
+                SupplierName = supplier.LegalName,
+                SupplierGSTIN = supplier.GSTIN,
+                SupplierAddress = supplier.Addresses?.FirstOrDefault(a => a.IsDefault)?.AddressLine1,
+                SupplierStateCode = supplierState,
+                PlaceOfSupply = branch.State ?? "",
+                TaxSupplyType = isIntraState ? TaxSupplyType.IntraState : TaxSupplyType.InterState,
+                BillDate = billDate,
+                DueDate = request.DueDate.HasValue ? DateTime.SpecifyKind(request.DueDate.Value, DateTimeKind.Utc) : null,
+                PrimaryPaymentMode = request.PrimaryPaymentMode,
+                Notes = request.Notes,
+                AttributesJson = request.AttributesJson ?? "{}"
             };
 
-            bill.Items.Add(billItem);
-        }
-
-        var grandTotal = totalTaxable + totalCgst + totalSgst + totalIgst + totalCess;
-        var roundedTotal = Math.Round(grandTotal);
-        var roundOff = roundedTotal - grandTotal;
-
-        bill.SubTotal = subTotal;
-        bill.DiscountTotal = discountTotal;
-        bill.TaxableAmount = totalTaxable;
-        bill.CgstAmount = totalCgst;
-        bill.SgstAmount = totalSgst;
-        bill.IgstAmount = totalIgst;
-        bill.CessAmount = totalCess;
-        bill.RoundOff = roundOff;
-        bill.TotalAmount = roundedTotal;
-
-        // Payment status & disbursement
-        var paid = Math.Min(request.PaidAmount, roundedTotal);
-        var balance = roundedTotal - paid;
-
-        bill.PaidAmount = paid;
-        bill.BalanceAmount = balance;
-        bill.PaymentStatus = balance == 0 ? PaymentStatus.FullyPaid : (paid > 0 ? PaymentStatus.PartiallyPaid : PaymentStatus.Unpaid);
-        bill.Status = bill.PaymentStatus == PaymentStatus.FullyPaid ? PurchaseBillStatus.Paid : PurchaseBillStatus.Approved;
-
-        if (paid > 0)
-        {
-            bill.Payments.Add(new PurchaseBillPayment
+            for (int i = 0; i < request.Items.Count; i++)
             {
-                TenantId = tenantId,
-                PurchaseBill = bill,
-                PaymentDate = billDate,
-                Amount = paid,
-                PaymentMode = request.PrimaryPaymentMode,
-                TransactionReference = request.PaymentReferenceNumber,
-                Notes = $"Payment at time of purchase bill ({request.PrimaryPaymentMode})"
-            });
-        }
+                var reqItem = request.Items[i];
+                var item = itemsDict[reqItem.ItemId];
+                var lineCalc = calculatedLines[i];
 
-        _context.PurchaseBills.Add(bill);
+                string uomCode = "UNIT";
+                if (uomsDict.TryGetValue(reqItem.UomId, out var uom))
+                {
+                    uomCode = uom.Code ?? item.PrimaryUom?.Code ?? "UNIT";
+                }
+                else if (item.PrimaryUom != null)
+                {
+                    uomCode = item.PrimaryUom.Code;
+                }
 
-        // Supplier Financial Ledger Integration (Credit Bill Amount -> Increases Payables Liability)
-        var creditBalance = supplier.CurrentOutstandingBalance - roundedTotal; // Negative for Payables (Credit)
-        supplier.CurrentOutstandingBalance = creditBalance;
+                decimal conversion = (item.SecondaryUomId.HasValue && reqItem.UomId == item.SecondaryUomId.Value && item.ConversionRatio.HasValue && item.ConversionRatio.Value > 0)
+                    ? item.ConversionRatio.Value
+                    : 1m;
 
-        var billLedger = new PartyLedgerEntry
-        {
-            TenantId = tenantId,
-            PartyId = supplier.Id,
-            TransactionDate = billDate,
-            EntryType = PartyLedgerEntryType.PurchaseInvoice,
-            DebitAmount = 0m,
-            CreditAmount = roundedTotal,
-            RunningBalance = creditBalance,
-            ReferenceDocumentType = "PurchaseBill",
-            ReferenceDocumentId = bill.Id,
-            ReferenceDocumentNumber = billNumber,
-            Description = $"Purchase Bill {billNumber} (Vendor Ref: {request.VendorInvoiceNumber ?? "N/A"})"
-        };
-        _context.PartyLedgerEntries.Add(billLedger);
+                var attributesDict = new Dictionary<string, object>
+                {
+                    ["freeQuantity"] = reqItem.FreeQuantity,
+                    ["conversionRatio"] = conversion
+                };
+                if (!string.IsNullOrWhiteSpace(reqItem.AttributesJson) && reqItem.AttributesJson != "{}")
+                {
+                    try
+                    {
+                        var parsedAttr = JsonSerializer.Deserialize<Dictionary<string, object>>(reqItem.AttributesJson);
+                        if (parsedAttr != null)
+                        {
+                            foreach (var kvp in parsedAttr) attributesDict[kvp.Key] = kvp.Value;
+                        }
+                    }
+                    catch { }
+                }
 
-        // If tender paid at bill creation -> Debit Supplier Ledger (Decreases Payables Liability)
-        if (paid > 0)
-        {
-            var debitBalance = supplier.CurrentOutstandingBalance + paid;
-            supplier.CurrentOutstandingBalance = debitBalance;
+                var billItem = new PurchaseBillItem
+                {
+                    TenantId = tenantId,
+                    PurchaseBill = bill,
+                    ItemId = item.Id,
+                    ItemSku = item.Sku,
+                    ItemName = item.Name,
+                    HsnCode = !string.IsNullOrWhiteSpace(item.HSNCode) ? item.HSNCode : (reqItem.HsnCode ?? ""),
+                    BatchId = reqItem.BatchId,
+                    BatchNumber = reqItem.BatchNumber,
+                    VariantId = reqItem.VariantId,
+                    Quantity = reqItem.Quantity,
+                    UomId = reqItem.UomId,
+                    UomCode = uomCode,
+                    UnitPrice = reqItem.UnitPrice,
+                    DiscountPercent = reqItem.DiscountPercent,
+                    DiscountAmount = lineCalc.ItemDiscountAmount,
+                    TaxableAmount = lineCalc.TaxableAmount,
+                    GstRate = lineCalc.GstRate,
+                    CgstRate = lineCalc.CgstRate,
+                    CgstAmount = lineCalc.CgstAmount,
+                    SgstRate = lineCalc.SgstRate,
+                    SgstAmount = lineCalc.SgstAmount,
+                    IgstRate = lineCalc.IgstRate,
+                    IgstAmount = lineCalc.IgstAmount,
+                    CessRate = lineCalc.CessRate,
+                    CessAmount = lineCalc.CessAmount,
+                    TotalAmount = lineCalc.LineTotalAmount,
+                    AttributesJson = JsonSerializer.Serialize(attributesDict)
+                };
 
-            var paymentLedger = new PartyLedgerEntry
+                bill.Items.Add(billItem);
+            }
+
+            bill.SubTotal = totals.SubTotal;
+            bill.DiscountTotal = totals.ItemDiscountTotal + totals.InvoiceDiscountAmount;
+            bill.TaxableAmount = totals.TaxableAmount;
+            bill.CgstAmount = totals.CgstAmount;
+            bill.SgstAmount = totals.SgstAmount;
+            bill.IgstAmount = totals.IgstAmount;
+            bill.CessAmount = totals.CessAmount;
+            bill.RoundOff = totals.RoundOff;
+            bill.TotalAmount = totals.RoundedTotal;
+
+            // Payment status & disbursement
+            var paid = Math.Min(request.PaidAmount, bill.TotalAmount);
+            var balance = bill.TotalAmount - paid;
+
+            bill.PaidAmount = paid;
+            bill.BalanceAmount = balance;
+            bill.PaymentStatus = balance <= 0.001m ? PaymentStatus.FullyPaid : (paid > 0 ? PaymentStatus.PartiallyPaid : PaymentStatus.Unpaid);
+            bill.Status = bill.PaymentStatus == PaymentStatus.FullyPaid ? PurchaseBillStatus.Paid : PurchaseBillStatus.Approved;
+
+            if (paid > 0)
+            {
+                bill.Payments.Add(new PurchaseBillPayment
+                {
+                    TenantId = tenantId,
+                    PurchaseBill = bill,
+                    PaymentDate = billDate,
+                    Amount = paid,
+                    PaymentMode = request.PrimaryPaymentMode,
+                    TransactionReference = request.PaymentReferenceNumber,
+                    Notes = $"Payment at time of purchase bill ({request.PrimaryPaymentMode})"
+                });
+            }
+
+            _context.PurchaseBills.Add(bill);
+
+            // Supplier Financial Ledger Integration (Credit Bill Amount -> Increases Payables Liability)
+            var creditBalance = supplier.CurrentOutstandingBalance - bill.TotalAmount;
+            supplier.CurrentOutstandingBalance = creditBalance;
+
+            var billLedger = new PartyLedgerEntry
             {
                 TenantId = tenantId,
                 PartyId = supplier.Id,
                 TransactionDate = billDate,
-                EntryType = PartyLedgerEntryType.VendorPayment,
-                DebitAmount = paid,
-                CreditAmount = 0m,
-                RunningBalance = debitBalance,
-                ReferenceDocumentType = "VendorPayment",
+                EntryType = PartyLedgerEntryType.PurchaseInvoice,
+                DebitAmount = 0m,
+                CreditAmount = bill.TotalAmount,
+                RunningBalance = creditBalance,
+                ReferenceDocumentType = "PurchaseBill",
                 ReferenceDocumentId = bill.Id,
                 ReferenceDocumentNumber = billNumber,
-                Description = $"Payment disbursed for Purchase Bill {billNumber}"
+                Description = $"Purchase Bill {billNumber} (Vendor Ref: {request.VendorInvoiceNumber ?? "N/A"})"
             };
-            _context.PartyLedgerEntries.Add(paymentLedger);
+            _context.PartyLedgerEntries.Add(billLedger);
+
+            if (paid > 0)
+            {
+                var debitBalance = supplier.CurrentOutstandingBalance + paid;
+                supplier.CurrentOutstandingBalance = debitBalance;
+
+                var paymentLedger = new PartyLedgerEntry
+                {
+                    TenantId = tenantId,
+                    PartyId = supplier.Id,
+                    TransactionDate = billDate,
+                    EntryType = PartyLedgerEntryType.VendorPayment,
+                    DebitAmount = paid,
+                    CreditAmount = 0m,
+                    RunningBalance = debitBalance,
+                    ReferenceDocumentType = "VendorPayment",
+                    ReferenceDocumentId = bill.Id,
+                    ReferenceDocumentNumber = billNumber,
+                    Description = $"Payment disbursed for Purchase Bill {billNumber}"
+                };
+                _context.PartyLedgerEntries.Add(paymentLedger);
+            }
+
+            // Direct Purchase Bill Stock Inward (when no GRN was pre-created)
+            if (!request.GoodsReceiptNoteId.HasValue || request.GoodsReceiptNoteId.Value == Guid.Empty)
+            {
+                for (int i = 0; i < bill.Items.Count; i++)
+                {
+                    var bItem = bill.Items.ElementAt(i);
+                    var reqItem = request.Items[i];
+                    var lineCalc = calculatedLines[i];
+
+                    var masterItem = itemsDict[bItem.ItemId];
+                    if (masterItem.ItemType == ItemType.Service || !masterItem.TrackInventory)
+                    {
+                        continue; // Do not inward stock or create StockMovement for non-stock service items
+                    }
+
+                    ItemBatch? batch = null;
+                    if (bItem.BatchId.HasValue && bItem.BatchId.Value != Guid.Empty)
+                    {
+                        batch = await _context.ItemBatches.FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == bItem.BatchId.Value, cancellationToken);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(bItem.BatchNumber))
+                    {
+                        batch = await _context.ItemBatches.FirstOrDefaultAsync(b => b.TenantId == tenantId && b.ItemId == bItem.ItemId && b.BatchNumber == bItem.BatchNumber, cancellationToken);
+                        if (batch == null)
+                        {
+                            batch = new ItemBatch
+                            {
+                                TenantId = tenantId,
+                                ItemId = bItem.ItemId,
+                                BatchNumber = bItem.BatchNumber,
+                                PurchaseRate = bItem.UnitPrice,
+                                SaleRate = bItem.UnitPrice,
+                                ExpiryDate = reqItem.ExpiryDate ?? DateTime.UtcNow.AddYears(2)
+                            };
+                            _context.ItemBatches.Add(batch);
+                        }
+                    }
+
+                    var stockQuery = _context.ItemWarehouseStocks
+                        .Where(s => s.TenantId == tenantId && s.ItemId == bItem.ItemId && s.WarehouseId == request.WarehouseId && !s.IsDeleted);
+
+                    if (reqItem.VariantId.HasValue)
+                    {
+                        stockQuery = stockQuery.Where(s => s.VariantId == reqItem.VariantId.Value);
+                    }
+                    else
+                    {
+                        stockQuery = stockQuery.Where(s => s.VariantId == null);
+                    }
+
+                    if (batch != null)
+                    {
+                        stockQuery = stockQuery.Where(s => s.BatchId == batch.Id);
+                    }
+
+                    var stock = await stockQuery.FirstOrDefaultAsync(cancellationToken);
+                    var beforeQty = stock?.CurrentQuantity ?? 0m;
+                    decimal physicalUnits = lineCalc.TotalPhysicalQuantity;
+
+                    if (stock == null)
+                    {
+                        stock = new ItemWarehouseStock
+                        {
+                            TenantId = tenantId,
+                            ItemId = bItem.ItemId,
+                            VariantId = reqItem.VariantId,
+                            WarehouseId = request.WarehouseId,
+                            Batch = batch,
+                            CurrentQuantity = physicalUnits
+                        };
+                        _context.ItemWarehouseStocks.Add(stock);
+                    }
+                    else
+                    {
+                        stock.CurrentQuantity += physicalUnits;
+                    }
+
+                    _context.StockMovements.Add(new StockMovement
+                    {
+                        TenantId = tenantId,
+                        ItemId = bItem.ItemId,
+                        VariantId = reqItem.VariantId,
+                        WarehouseId = request.WarehouseId,
+                        Batch = batch,
+                        MovementType = StockMovementType.PurchaseInward,
+                        Quantity = physicalUnits,
+                        QuantityBefore = beforeQty,
+                        QuantityAfter = stock.CurrentQuantity,
+                        UnitCost = bItem.UnitPrice,
+                        TotalCost = bItem.Quantity * bItem.UnitPrice,
+                        ReferenceDocumentType = "PurchaseBill",
+                        ReferenceDocumentId = bill.Id,
+                        ReferenceDocumentNumber = billNumber,
+                        Notes = $"Direct stock inward from Purchase Bill {billNumber} (Net physical units: {physicalUnits})"
+                    });
+                }
+            }
+
+            await AutoPostPurchaseBillToGeneralLedgerAsync(bill, cancellationToken);
+
+            await _context.SaveChangesAsync(cancellationToken);
+            if (tx != null) await tx.CommitAsync(cancellationToken);
         }
-
-        await AutoPostPurchaseBillToGeneralLedgerAsync(bill, cancellationToken);
-
-        await _context.SaveChangesAsync(cancellationToken);
+        catch (Exception ex)
+        {
+            if (tx != null) await tx.RollbackAsync(cancellationToken);
+            _logger?.LogError(ex, "Failed to create purchase bill for tenant {TenantId}: {Message}", tenantId, ex.Message);
+            throw;
+        }
+        finally
+        {
+            if (tx != null) await tx.DisposeAsync();
+            semaphore.Release();
+        }
 
         await _auditService.LogAsync(new AuditLog
         {
@@ -1544,6 +1718,7 @@ public class PurchaseService : IPurchaseService
         var tenantId = RequireTenantId();
 
         var bill = await _context.PurchaseBills
+            .Include(b => b.Items)
             .Where(b => b.TenantId == tenantId && b.Id == id && !b.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -1555,6 +1730,109 @@ public class PurchaseService : IPurchaseService
         if (bill.IsCancelled)
         {
             return Result.Failure("Purchase bill is already cancelled.", "ALREADY_CANCELLED");
+        }
+
+        if (bill.PaidAmount > 0)
+        {
+            return Result.Failure("Cannot cancel purchase bill that has recorded payments. Reverse or delete payments first.", "CANNOT_CANCEL_BILL_WITH_PAYMENTS_OR_RETURNS");
+        }
+
+        var hasActiveDebitNotes = await _context.PurchaseReturns
+            .AnyAsync(r => r.TenantId == tenantId && r.OriginalPurchaseBillId == bill.Id && !r.IsCancelled && !r.IsDeleted, cancellationToken);
+        if (hasActiveDebitNotes)
+        {
+            return Result.Failure("Cannot cancel purchase bill with active debit notes / purchase returns. Cancel or reverse the returns first.", "CANNOT_CANCEL_BILL_WITH_PAYMENTS_OR_RETURNS");
+        }
+
+        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+        try
+        {
+            // Query prior returns for this bill to prevent phantom duplicate stock depletion
+            var returnedByItem = await _context.PurchaseReturnItems
+            .Where(pri => pri.TenantId == tenantId && 
+                          pri.PurchaseReturn.OriginalPurchaseBillId == bill.Id && 
+                          !pri.IsDeleted && 
+                          !pri.PurchaseReturn.IsCancelled)
+            .GroupBy(pri => pri.ItemId)
+            .Select(g => new { ItemId = g.Key, TotalReturned = g.Sum(x => x.ReturnQuantity) })
+            .ToDictionaryAsync(x => x.ItemId, x => x.TotalReturned, cancellationToken);
+
+        var billItemIds = bill.Items.Select(x => x.ItemId).Distinct().ToList();
+        var billItemsDict = await _context.Items
+            .Where(it => it.TenantId == tenantId && billItemIds.Contains(it.Id) && !it.IsDeleted)
+            .ToDictionaryAsync(it => it.Id, cancellationToken);
+
+        // Deplete Warehouse Stock for unreturned items only
+        foreach (var item in bill.Items)
+        {
+            if (billItemsDict.TryGetValue(item.ItemId, out var masterItem) && (masterItem.ItemType == ItemType.Service || !masterItem.TrackInventory))
+            {
+                continue; // Do not deplete inventory for non-stock service items
+            }
+
+            returnedByItem.TryGetValue(item.ItemId, out var alreadyReturned);
+            decimal remainingToDeplete = Math.Max(0m, item.Quantity - alreadyReturned);
+            if (remainingToDeplete <= 0) continue;
+
+            var stockQuery = _context.ItemWarehouseStocks
+                .Where(s => s.TenantId == tenantId && s.ItemId == item.ItemId && s.WarehouseId == bill.WarehouseId && !s.IsDeleted);
+
+            if (item.VariantId.HasValue)
+            {
+                stockQuery = stockQuery.Where(s => s.VariantId == item.VariantId.Value);
+            }
+            else
+            {
+                stockQuery = stockQuery.Where(s => s.VariantId == null);
+            }
+
+            if (item.BatchId.HasValue && item.BatchId.Value != Guid.Empty)
+            {
+                stockQuery = stockQuery.Where(s => s.BatchId == item.BatchId.Value);
+            }
+
+            decimal freeQty = 0m;
+            decimal conversion = 1m;
+            if (!string.IsNullOrWhiteSpace(item.AttributesJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(item.AttributesJson);
+                    if (doc.RootElement.TryGetProperty("freeQuantity", out var fq)) freeQty = fq.GetDecimal();
+                    if (doc.RootElement.TryGetProperty("conversionRatio", out var cr)) conversion = cr.GetDecimal();
+                }
+                catch { }
+            }
+
+            decimal proRataFree = (item.Quantity > 0 && freeQty > 0) ? (remainingToDeplete / item.Quantity) * freeQty : 0m;
+            decimal physicalUnits = (remainingToDeplete + proRataFree) * (conversion > 0 ? conversion : 1m);
+
+            var stock = await stockQuery.FirstOrDefaultAsync(cancellationToken);
+            if (stock != null)
+            {
+                var beforeQty = stock.CurrentQuantity;
+                stock.CurrentQuantity -= physicalUnits;
+
+                var movement = new StockMovement
+                {
+                    TenantId = tenantId,
+                    ItemId = item.ItemId,
+                    VariantId = item.VariantId,
+                    WarehouseId = bill.WarehouseId,
+                    BatchId = item.BatchId,
+                    MovementType = StockMovementType.TransferOut,
+                    Quantity = -physicalUnits,
+                    QuantityBefore = beforeQty,
+                    QuantityAfter = stock.CurrentQuantity,
+                    UnitCost = item.UnitPrice,
+                    TotalCost = item.UnitPrice * remainingToDeplete,
+                    ReferenceDocumentType = "PurchaseBillCancellation",
+                    ReferenceDocumentId = bill.Id,
+                    ReferenceDocumentNumber = bill.BillNumber,
+                    Notes = $"Stock deducted on purchase bill cancellation: {cancellationReason} (Net Units: {physicalUnits})"
+                };
+                _context.StockMovements.Add(movement);
+            }
         }
 
         // Reverse Supplier Ledger (Debit the bill amount back)
@@ -1587,7 +1865,21 @@ public class PurchaseService : IPurchaseService
         bill.CancellationReason = cancellationReason;
         bill.Status = PurchaseBillStatus.Cancelled;
 
+        await AutoPostPurchaseBillCancellationToGeneralLedgerAsync(bill, cancellationReason, cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
+        if (tx != null) await tx.CommitAsync(cancellationToken);
+    }
+    catch (Exception ex)
+    {
+        if (tx != null) await tx.RollbackAsync(cancellationToken);
+        _logger?.LogError(ex, "Failed to cancel purchase bill {BillNumber}: {Message}", bill.BillNumber, ex.Message);
+        throw;
+    }
+    finally
+    {
+        if (tx != null) await tx.DisposeAsync();
+    }
 
         await _auditService.LogAsync(new AuditLog
         {
@@ -1733,112 +2025,216 @@ public class PurchaseService : IPurchaseService
         if (request.Items == null || request.Items.Count == 0)
             return Result<Guid>.Failure("At least one item must be returned.", "VALIDATION_ERROR");
 
-        var count = await _context.PurchaseReturns.CountAsync(r => r.TenantId == tenantId, cancellationToken) + 1;
-        var debitNoteNumber = $"DN-{DateTime.UtcNow:yyMM}-{count:D5}";
-
-        decimal subTotal = 0m;
-        decimal taxTotal = 0m;
-
-        var purchaseReturn = new PurchaseReturn
+        PurchaseBill? origBill = null;
+        Dictionary<Guid, decimal> priorReturns = new();
+        if (request.OriginalPurchaseBillId.HasValue && request.OriginalPurchaseBillId.Value != Guid.Empty)
         {
-            TenantId = tenantId,
-            DebitNoteNumber = debitNoteNumber,
-            ReturnDate = DateTimeOffset.UtcNow,
-            OriginalPurchaseBillId = request.OriginalPurchaseBillId,
-            OriginalBillNumber = request.OriginalBillNumber,
-            PartyId = request.PartyId,
-            SupplierName = request.SupplierName.Trim(),
-            BranchId = request.BranchId,
-            WarehouseId = request.WarehouseId,
-            ReturnReason = request.ReturnReason,
-            Notes = request.Notes
-        };
+            origBill = await _context.PurchaseBills
+                .Include(b => b.Items)
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == request.OriginalPurchaseBillId.Value && !b.IsDeleted, cancellationToken);
 
-        foreach (var line in request.Items)
-        {
-            var lineTaxable = line.ReturnQuantity * line.UnitPrice;
-            var lineTax = lineTaxable * (line.GstRate / 100m);
-            var lineTotal = lineTaxable + lineTax;
+            if (origBill == null)
+                return Result<Guid>.Failure("Original purchase bill not found.", "NOT_FOUND");
 
-            subTotal += lineTaxable;
-            taxTotal += lineTax;
+            if (origBill.IsCancelled)
+                return Result<Guid>.Failure("Cannot create purchase return against a cancelled purchase bill.", "INVALID_OPERATION");
 
-            purchaseReturn.Items.Add(new PurchaseReturnItem
-            {
-                TenantId = tenantId,
-                ItemId = line.ItemId,
-                ItemName = line.ItemName,
-                ItemSku = line.ItemSku,
-                BatchId = line.BatchId,
-                BatchNumber = line.BatchNumber,
-                ReturnQuantity = line.ReturnQuantity,
-                UnitPrice = line.UnitPrice,
-                GstRate = line.GstRate,
-                TotalAmount = lineTotal
-            });
-
-            // Deplete from Warehouse Stock
-            var stock = await _context.ItemWarehouseStocks
-                .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == request.WarehouseId, cancellationToken);
-
-            if (stock != null)
-            {
-                stock.CurrentQuantity -= line.ReturnQuantity;
-            }
-
-            _context.StockMovements.Add(new StockMovement
-            {
-                TenantId = tenantId,
-                ItemId = line.ItemId,
-                WarehouseId = request.WarehouseId,
-                BatchId = line.BatchId,
-                MovementType = StockMovementType.PurchaseReturn,
-                Quantity = -line.ReturnQuantity,
-                QuantityBefore = stock?.CurrentQuantity ?? 0,
-                QuantityAfter = (stock?.CurrentQuantity ?? 0) - line.ReturnQuantity,
-                UnitCost = line.UnitPrice,
-                TotalCost = lineTaxable,
-                ReferenceDocumentType = "DebitNote",
-                ReferenceDocumentId = purchaseReturn.Id,
-                ReferenceDocumentNumber = debitNoteNumber,
-                Notes = $"Stock Outward for Purchase Return {debitNoteNumber}"
-            });
+            priorReturns = await _context.PurchaseReturnItems
+                .Where(pri => pri.TenantId == tenantId &&
+                              pri.PurchaseReturn.OriginalPurchaseBillId == origBill.Id &&
+                              !pri.IsDeleted &&
+                              !pri.PurchaseReturn.IsCancelled)
+                .GroupBy(pri => pri.ItemId)
+                .Select(g => new { ItemId = g.Key, TotalReturned = g.Sum(x => x.ReturnQuantity) })
+                .ToDictionaryAsync(x => x.ItemId, x => x.TotalReturned, cancellationToken);
         }
 
-        purchaseReturn.SubTotal = subTotal;
-        purchaseReturn.TaxAmount = taxTotal;
-        purchaseReturn.TotalAmount = Math.Round(subTotal + taxTotal, 2);
-
-        // Adjust Supplier Ledger
-        if (request.PartyId != Guid.Empty)
+        var semaphore = _tenantDocSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+        PurchaseReturn purchaseReturn;
+        try
         {
-            var supplier = await _context.Parties
-                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == request.PartyId && !p.IsDeleted, cancellationToken);
+            var dnPrefix = $"DN-{DateTime.UtcNow:yyMM}-";
+            await AcquireSequenceLockAsync(tenantId, "DN", DateTime.UtcNow.ToString("yyMM"), cancellationToken);
+            var lastNumberStr = await _context.PurchaseReturns
+                .Where(r => r.TenantId == tenantId && r.DebitNoteNumber.StartsWith(dnPrefix))
+                .OrderByDescending(r => r.DebitNoteNumber)
+                .Select(r => r.DebitNoteNumber)
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (supplier != null)
+            int nextNum = 1;
+            if (!string.IsNullOrEmpty(lastNumberStr) && lastNumberStr.Length > dnPrefix.Length)
             {
-                supplier.CurrentOutstandingBalance += purchaseReturn.TotalAmount;
+                if (int.TryParse(lastNumberStr.Substring(dnPrefix.Length), out var parsed))
+                {
+                    nextNum = parsed + 1;
+                }
+            }
+            var debitNoteNumber = $"{dnPrefix}{nextNum:D5}";
 
-                _context.PartyLedgerEntries.Add(new PartyLedgerEntry
+            decimal subTotal = 0m;
+            decimal taxTotal = 0m;
+
+            purchaseReturn = new PurchaseReturn
+            {
+                TenantId = tenantId,
+                DebitNoteNumber = debitNoteNumber,
+                ReturnDate = DateTimeOffset.UtcNow,
+                OriginalPurchaseBillId = request.OriginalPurchaseBillId,
+                OriginalBillNumber = request.OriginalBillNumber,
+                PartyId = request.PartyId,
+                SupplierName = request.SupplierName.Trim(),
+                BranchId = request.BranchId,
+                WarehouseId = request.WarehouseId,
+                ReturnReason = request.ReturnReason,
+                Notes = request.Notes
+            };
+
+            var retItemIds = request.Items.Select(x => x.ItemId).Distinct().ToList();
+            var retItemsDict = await _context.Items
+                .Where(it => it.TenantId == tenantId && retItemIds.Contains(it.Id) && !it.IsDeleted)
+                .ToDictionaryAsync(it => it.Id, cancellationToken);
+
+            foreach (var line in request.Items)
+            {
+                if (origBill != null)
+                {
+                    var origItem = origBill.Items.FirstOrDefault(i => i.ItemId == line.ItemId);
+                    if (origItem == null)
+                    {
+                        return Result<Guid>.Failure($"Item '{line.ItemName}' was not found on original purchase bill.", "INVALID_LINE_ITEM");
+                    }
+
+                    priorReturns.TryGetValue(line.ItemId, out var alreadyReturned);
+                    if (alreadyReturned + line.ReturnQuantity > origItem.Quantity)
+                    {
+                        return Result<Guid>.Failure($"Cannot return {line.ReturnQuantity} of '{line.ItemName}'. Already returned: {alreadyReturned}, Original billed quantity: {origItem.Quantity}.", "RETURN_QTY_EXCEEDED");
+                    }
+                }
+
+                var lineTaxable = line.ReturnQuantity * line.UnitPrice;
+                var lineTax = lineTaxable * (line.GstRate / 100m);
+                var lineTotal = lineTaxable + lineTax;
+
+                subTotal += lineTaxable;
+                taxTotal += lineTax;
+
+                purchaseReturn.Items.Add(new PurchaseReturnItem
                 {
                     TenantId = tenantId,
-                    PartyId = supplier.Id,
-                    TransactionDate = DateTime.UtcNow,
-                    EntryType = PartyLedgerEntryType.DebitNote,
-                    DebitAmount = purchaseReturn.TotalAmount,
-                    CreditAmount = 0m,
-                    RunningBalance = supplier.CurrentOutstandingBalance,
-                    ReferenceDocumentType = "DebitNote",
-                    ReferenceDocumentId = purchaseReturn.Id,
-                    ReferenceDocumentNumber = debitNoteNumber,
-                    Description = $"Purchase Return / Debit Note {debitNoteNumber}: {request.ReturnReason}"
+                    ItemId = line.ItemId,
+                    VariantId = line.VariantId,
+                    ItemName = line.ItemName,
+                    ItemSku = line.ItemSku,
+                    BatchId = line.BatchId,
+                    BatchNumber = line.BatchNumber,
+                    ReturnQuantity = line.ReturnQuantity,
+                    UnitPrice = line.UnitPrice,
+                    GstRate = line.GstRate,
+                    TotalAmount = lineTotal
                 });
-            }
-        }
 
-        _context.PurchaseReturns.Add(purchaseReturn);
-        await AutoPostPurchaseReturnToGeneralLedgerAsync(purchaseReturn, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+                retItemsDict.TryGetValue(line.ItemId, out var retMasterItem);
+                bool isServiceItem = retMasterItem != null && (retMasterItem.ItemType == ItemType.Service || !retMasterItem.TrackInventory);
+
+                if (!isServiceItem)
+                {
+                    // Deplete from Warehouse Stock (matching variant and batch if tracked)
+                    var stockQuery = _context.ItemWarehouseStocks
+                        .Where(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == request.WarehouseId && !s.IsDeleted);
+
+                    if (line.VariantId.HasValue)
+                    {
+                        stockQuery = stockQuery.Where(s => s.VariantId == line.VariantId.Value);
+                    }
+                    else
+                    {
+                        stockQuery = stockQuery.Where(s => s.VariantId == null);
+                    }
+
+                    if (line.BatchId.HasValue && line.BatchId.Value != Guid.Empty)
+                    {
+                        stockQuery = stockQuery.Where(s => s.BatchId == line.BatchId.Value);
+                    }
+
+                    var stock = await stockQuery.FirstOrDefaultAsync(cancellationToken);
+                    if (stock == null || stock.CurrentQuantity < line.ReturnQuantity)
+                    {
+                        return Result<Guid>.Failure($"Insufficient warehouse stock to return item '{line.ItemName}'. Available: {stock?.CurrentQuantity ?? 0m}, Requested: {line.ReturnQuantity}.", "INSUFFICIENT_STOCK");
+                    }
+
+                    decimal beforeQty = stock.CurrentQuantity;
+                    stock.CurrentQuantity -= line.ReturnQuantity;
+
+                    _context.StockMovements.Add(new StockMovement
+                    {
+                        TenantId = tenantId,
+                        ItemId = line.ItemId,
+                        VariantId = line.VariantId,
+                        WarehouseId = request.WarehouseId,
+                        BatchId = line.BatchId,
+                        MovementType = StockMovementType.PurchaseReturn,
+                        Quantity = -line.ReturnQuantity,
+                        QuantityBefore = beforeQty,
+                        QuantityAfter = stock.CurrentQuantity,
+                        UnitCost = line.UnitPrice,
+                        TotalCost = lineTaxable,
+                        ReferenceDocumentType = "DebitNote",
+                        ReferenceDocumentId = purchaseReturn.Id,
+                        ReferenceDocumentNumber = debitNoteNumber,
+                        Notes = $"Stock Outward for Purchase Return {debitNoteNumber}"
+                    });
+                }
+            }
+
+            purchaseReturn.SubTotal = subTotal;
+            purchaseReturn.TaxAmount = taxTotal;
+            purchaseReturn.TotalAmount = Math.Round(subTotal + taxTotal, 2);
+
+            // Adjust Supplier Ledger
+            if (request.PartyId != Guid.Empty)
+            {
+                var supplier = await _context.Parties
+                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == request.PartyId && !p.IsDeleted, cancellationToken);
+
+                if (supplier != null)
+                {
+                    supplier.CurrentOutstandingBalance += purchaseReturn.TotalAmount;
+
+                    _context.PartyLedgerEntries.Add(new PartyLedgerEntry
+                    {
+                        TenantId = tenantId,
+                        PartyId = supplier.Id,
+                        TransactionDate = DateTime.UtcNow,
+                        EntryType = PartyLedgerEntryType.DebitNote,
+                        DebitAmount = purchaseReturn.TotalAmount,
+                        CreditAmount = 0m,
+                        RunningBalance = supplier.CurrentOutstandingBalance,
+                        ReferenceDocumentType = "DebitNote",
+                        ReferenceDocumentId = purchaseReturn.Id,
+                        ReferenceDocumentNumber = debitNoteNumber,
+                        Description = $"Purchase Return / Debit Note {debitNoteNumber}: {request.ReturnReason}"
+                    });
+                }
+            }
+
+            _context.PurchaseReturns.Add(purchaseReturn);
+            await AutoPostPurchaseReturnToGeneralLedgerAsync(purchaseReturn, origBill, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            if (tx != null) await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            if (tx != null) await tx.RollbackAsync(cancellationToken);
+            _logger?.LogError(ex, "Failed to create purchase return for tenant {TenantId}: {Message}", tenantId, ex.Message);
+            throw;
+        }
+        finally
+        {
+            if (tx != null) await tx.DisposeAsync();
+            semaphore.Release();
+        }
 
         await _auditService.LogAsync(new AuditLog
         {
@@ -1866,6 +2262,8 @@ public class PurchaseService : IPurchaseService
             var cgstAccount = bill.CgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CGST-IN", "Input CGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
             var sgstAccount = bill.SgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SGST-IN", "Input SGST/UTGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
             var igstAccount = bill.IgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-IGST-IN", "Input IGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var cessAccount = bill.CessAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CESS-IN", "Input GST Cess Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var roundOffAccount = bill.RoundOff != 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-ROUNDOFF", "Round Off Differences", "GRP-IDEXP", "Indirect Expenses", "Expense", "Debit", cancellationToken) : null;
 
             var voucher = new JournalVoucher
             {
@@ -1933,7 +2331,51 @@ public class PurchaseService : IPurchaseService
                 igstAccount.CurrentBalance += bill.IgstAmount;
             }
 
-            // Leg 5: Credit AP (Supplier)
+            // Leg 5: Debit Input Cess
+            if (cessAccount != null && bill.CessAmount > 0)
+            {
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = cessAccount.Id,
+                    DebitAmount = bill.CessAmount,
+                    CreditAmount = 0,
+                    Narration = $"Input Cess credit on bill {bill.BillNumber}"
+                });
+                cessAccount.CurrentBalance += bill.CessAmount;
+            }
+
+            // Leg 6: Round Off
+            if (roundOffAccount != null && bill.RoundOff != 0)
+            {
+                if (bill.RoundOff > 0)
+                {
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = roundOffAccount.Id,
+                        DebitAmount = bill.RoundOff,
+                        CreditAmount = 0,
+                        Narration = $"Round off expense on bill {bill.BillNumber}"
+                    });
+                    roundOffAccount.CurrentBalance += bill.RoundOff;
+                }
+                else
+                {
+                    var gain = Math.Abs(bill.RoundOff);
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = roundOffAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = gain,
+                        Narration = $"Round off gain on bill {bill.BillNumber}"
+                    });
+                    roundOffAccount.CurrentBalance -= gain;
+                }
+            }
+
+            // Leg 7: Credit AP (Supplier)
             voucher.Legs.Add(new JournalVoucherLeg
             {
                 TenantId = tenantId,
@@ -1948,24 +2390,172 @@ public class PurchaseService : IPurchaseService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AccountingAutoPost] Warning: Could not auto-post purchase bill {bill.BillNumber}: {ex.Message}");
+            _logger?.LogError(ex, "[AccountingAutoPost] Error auto-posting purchase bill {BillNumber} to General Ledger: {Message}", bill.BillNumber, ex.Message);
+            throw new InvalidOperationException($"General Ledger auto-posting failed for purchase bill {bill.BillNumber}: {ex.Message}", ex);
         }
     }
 
-    private async Task AutoPostPurchaseReturnToGeneralLedgerAsync(PurchaseReturn purchaseReturn, CancellationToken cancellationToken)
+    private async Task AutoPostPurchaseBillCancellationToGeneralLedgerAsync(PurchaseBill bill, string cancellationReason, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var tenantId = bill.TenantId;
+            var apAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-AP", "Accounts Payable (Sundry Creditors)", "GRP-CL", "Current Liabilities", "Liability", "Credit", cancellationToken);
+            var expAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-PURCHASE-EXP", "Direct Purchase Expense / Inward Inventory", "GRP-COGS", "Cost of Goods Sold", "Expense", "Debit", cancellationToken);
+            var cgstAccount = bill.CgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CGST-IN", "Input CGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var sgstAccount = bill.SgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SGST-IN", "Input SGST/UTGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var igstAccount = bill.IgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-IGST-IN", "Input IGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var cessAccount = bill.CessAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CESS-IN", "Input GST Cess Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var roundOffAccount = bill.RoundOff != 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-ROUNDOFF", "Round Off Differences", "GRP-IDEXP", "Indirect Expenses", "Expense", "Debit", cancellationToken) : null;
+
+            var voucher = new JournalVoucher
+            {
+                TenantId = tenantId,
+                VoucherNumber = $"JV-REV-BILL-{bill.BillNumber}",
+                VoucherDate = DateTime.UtcNow,
+                VoucherType = "Reversal",
+                ReferenceNumber = bill.BillNumber,
+                TotalDebit = bill.TotalAmount,
+                TotalCredit = bill.TotalAmount,
+                Narration = $"Reversing journal entry for cancelled purchase bill {bill.BillNumber}: {cancellationReason}",
+                CreatedByName = "System Auto-Posting"
+            };
+
+            // Leg 1: Debit AP (Reduces Accounts Payable)
+            voucher.Legs.Add(new JournalVoucherLeg
+            {
+                TenantId = tenantId,
+                AccountId = apAccount.Id,
+                DebitAmount = bill.TotalAmount,
+                CreditAmount = 0,
+                Narration = $"Debit AP on cancellation of purchase bill {bill.BillNumber}"
+            });
+            apAccount.CurrentBalance -= bill.TotalAmount;
+
+            // Leg 2: Credit Purchase Expense (Reverses COGS/Expense)
+            voucher.Legs.Add(new JournalVoucherLeg
+            {
+                TenantId = tenantId,
+                AccountId = expAccount.Id,
+                DebitAmount = 0,
+                CreditAmount = bill.TaxableAmount,
+                Narration = $"Reverse purchase expense for bill {bill.BillNumber}"
+            });
+            expAccount.CurrentBalance -= bill.TaxableAmount;
+
+            // Leg 3: Credit Input CGST
+            if (cgstAccount != null && bill.CgstAmount > 0)
+            {
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = cgstAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = bill.CgstAmount,
+                    Narration = $"Reverse input CGST on cancelled bill {bill.BillNumber}"
+                });
+                cgstAccount.CurrentBalance -= bill.CgstAmount;
+            }
+
+            // Leg 4: Credit Input SGST
+            if (sgstAccount != null && bill.SgstAmount > 0)
+            {
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = sgstAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = bill.SgstAmount,
+                    Narration = $"Reverse input SGST on cancelled bill {bill.BillNumber}"
+                });
+                sgstAccount.CurrentBalance -= bill.SgstAmount;
+            }
+
+            // Leg 5: Credit Input IGST
+            if (igstAccount != null && bill.IgstAmount > 0)
+            {
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = igstAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = bill.IgstAmount,
+                    Narration = $"Reverse input IGST on cancelled bill {bill.BillNumber}"
+                });
+                igstAccount.CurrentBalance -= bill.IgstAmount;
+            }
+
+            // Leg 6: Credit Input Cess
+            if (cessAccount != null && bill.CessAmount > 0)
+            {
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = cessAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = bill.CessAmount,
+                    Narration = $"Reverse input Cess on cancelled bill {bill.BillNumber}"
+                });
+                cessAccount.CurrentBalance -= bill.CessAmount;
+            }
+
+            // Leg 7: Round Off reversal
+            if (roundOffAccount != null && bill.RoundOff != 0)
+            {
+                if (bill.RoundOff > 0)
+                {
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = roundOffAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = bill.RoundOff,
+                        Narration = $"Reverse round off expense for bill {bill.BillNumber}"
+                    });
+                    roundOffAccount.CurrentBalance -= bill.RoundOff;
+                }
+                else
+                {
+                    var gain = Math.Abs(bill.RoundOff);
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = roundOffAccount.Id,
+                        DebitAmount = gain,
+                        CreditAmount = 0,
+                        Narration = $"Reverse round off gain for bill {bill.BillNumber}"
+                    });
+                    roundOffAccount.CurrentBalance += gain;
+                }
+            }
+
+            _context.JournalVouchers.Add(voucher);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[AccountingAutoPost] Error auto-posting reversal for bill {BillNumber}: {Message}", bill.BillNumber, ex.Message);
+            throw new InvalidOperationException($"General Ledger auto-posting failed for bill reversal {bill.BillNumber}: {ex.Message}", ex);
+        }
+    }
+
+    private async Task AutoPostPurchaseReturnToGeneralLedgerAsync(PurchaseReturn purchaseReturn, PurchaseBill? origBill, CancellationToken cancellationToken)
     {
         try
         {
             var tenantId = purchaseReturn.TenantId;
             var apAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-AP", "Accounts Payable (Sundry Creditors)", "GRP-CL", "Current Liabilities", "Liability", "Credit", cancellationToken);
             var retAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-PURCHASE-RET", "Purchase Returns & Outward Deductions", "GRP-COGS", "Cost of Goods Sold", "Expense", "Credit", cancellationToken);
-            var taxAccount = purchaseReturn.TaxAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-TAX-IN", "Input GST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+
+            bool isInterState = origBill != null ? origBill.TaxSupplyType == TaxSupplyType.InterState : false;
+            var cgstAccount = (!isInterState && purchaseReturn.TaxAmount > 0) ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CGST-IN", "Input CGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var sgstAccount = (!isInterState && purchaseReturn.TaxAmount > 0) ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SGST-IN", "Input SGST/UTGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
+            var igstAccount = (isInterState && purchaseReturn.TaxAmount > 0) ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-IGST-IN", "Input IGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
 
             var voucher = new JournalVoucher
             {
                 TenantId = tenantId,
                 VoucherNumber = $"JV-DN-{purchaseReturn.DebitNoteNumber}",
-                VoucherDate = purchaseReturn.ReturnDate,
+                VoucherDate = purchaseReturn.ReturnDate.UtcDateTime,
                 VoucherType = "DebitNote",
                 ReferenceNumber = purchaseReturn.DebitNoteNumber,
                 TotalDebit = purchaseReturn.TotalAmount,
@@ -1996,25 +2586,57 @@ public class PurchaseService : IPurchaseService
             });
             retAccount.CurrentBalance += purchaseReturn.SubTotal;
 
-            // Leg 3: Credit Input GST Reversal
-            if (taxAccount != null && purchaseReturn.TaxAmount > 0)
+            // Leg 3: Credit Input GST Reversals
+            if (isInterState && igstAccount != null && purchaseReturn.TaxAmount > 0)
             {
                 voucher.Legs.Add(new JournalVoucherLeg
                 {
                     TenantId = tenantId,
-                    AccountId = taxAccount.Id,
+                    AccountId = igstAccount.Id,
                     DebitAmount = 0,
                     CreditAmount = purchaseReturn.TaxAmount,
-                    Narration = "Input GST tax credit reversal on purchase return"
+                    Narration = "Input IGST credit reversal on purchase return"
                 });
-                taxAccount.CurrentBalance -= purchaseReturn.TaxAmount;
+                igstAccount.CurrentBalance -= purchaseReturn.TaxAmount;
+            }
+            else if (!isInterState && purchaseReturn.TaxAmount > 0)
+            {
+                var halfTax = Math.Round(purchaseReturn.TaxAmount / 2m, 2);
+                var otherHalf = purchaseReturn.TaxAmount - halfTax;
+
+                if (cgstAccount != null)
+                {
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = cgstAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = halfTax,
+                        Narration = "Input CGST credit reversal on purchase return"
+                    });
+                    cgstAccount.CurrentBalance -= halfTax;
+                }
+
+                if (sgstAccount != null)
+                {
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = sgstAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = otherHalf,
+                        Narration = "Input SGST credit reversal on purchase return"
+                    });
+                    sgstAccount.CurrentBalance -= otherHalf;
+                }
             }
 
             _context.JournalVouchers.Add(voucher);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AccountingAutoPost] Warning: Could not auto-post debit note {purchaseReturn.DebitNoteNumber}: {ex.Message}");
+            _logger?.LogError(ex, "[AccountingAutoPost] Error auto-posting debit note {DebitNoteNumber} to General Ledger: {Message}", purchaseReturn.DebitNoteNumber, ex.Message);
+            throw new InvalidOperationException($"General Ledger auto-posting failed for debit note {purchaseReturn.DebitNoteNumber}: {ex.Message}", ex);
         }
     }
 

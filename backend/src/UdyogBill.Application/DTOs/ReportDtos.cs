@@ -103,6 +103,9 @@ public class Gstr1ReportDto
     public int TotalB2CInvoices { get; set; }
     public decimal TotalB2CTaxable { get; set; }
     public decimal TotalB2CTax { get; set; }
+    public int TotalCreditNotes { get; set; }
+    public decimal TotalCreditNotesTaxable { get; set; }
+    public decimal TotalCreditNotesTax { get; set; }
     public decimal TotalOutwardTaxable { get; set; }
     public decimal TotalOutwardTax { get; set; }
     public List<GstSummaryRowDto> RateWiseSummary { get; set; } = new();

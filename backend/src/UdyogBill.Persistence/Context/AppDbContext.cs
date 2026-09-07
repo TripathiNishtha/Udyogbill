@@ -12,6 +12,8 @@ using UdyogBill.Domain.Entities.Purchases;
 using UdyogBill.Domain.Entities.Sales;
 using UdyogBill.Domain.Entities.Subscriptions;
 using UdyogBill.Domain.Entities.Tenants;
+using UdyogBill.Domain.Entities.CMS;
+using UdyogBill.Domain.Entities.Common;
 using UdyogBill.Domain.Entities.Pharma;
 using CatalogModule = UdyogBill.Domain.Entities.Catalog.Module;
 
@@ -65,6 +67,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<PaymentGatewayConfig> PaymentGatewayConfigs => Set<PaymentGatewayConfig>();
     public DbSet<SubscriptionInvoice> SubscriptionInvoices => Set<SubscriptionInvoice>();
     public DbSet<PlatformCompanyProfile> PlatformCompanyProfiles => Set<PlatformCompanyProfile>();
+    public DbSet<PlatformCommercialConfig> PlatformCommercialConfigs => Set<PlatformCommercialConfig>();
     public DbSet<PlatformEmailConfig> PlatformEmailConfigs => Set<PlatformEmailConfig>();
     public DbSet<PlatformPasswordResetOtp> PlatformPasswordResetOtps => Set<PlatformPasswordResetOtp>();
 
@@ -156,11 +159,52 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<ExpiryReturnClaim> ExpiryReturnClaims => Set<ExpiryReturnClaim>();
     public DbSet<ExpiryReturnClaimItem> ExpiryReturnClaimItems => Set<ExpiryReturnClaimItem>();
 
+    // Pharma CBO-Level SFA & Field Force Suite
+    public DbSet<SfaDivision> SfaDivisions => Set<SfaDivision>();
+    public DbSet<SfaTerritory> SfaTerritories => Set<SfaTerritory>();
+    public DbSet<SfaPatch> SfaPatches => Set<SfaPatch>();
+    public DbSet<SfaBeat> SfaBeats => Set<SfaBeat>();
+    public DbSet<SfaEmployeeProfile> SfaEmployeeProfiles => Set<SfaEmployeeProfile>();
+    public DbSet<SfaDoctor> SfaDoctors => Set<SfaDoctor>();
+    public DbSet<SfaDoctorAllocationHistory> SfaDoctorAllocationHistories => Set<SfaDoctorAllocationHistory>();
+    public DbSet<SfaChemist> SfaChemists => Set<SfaChemist>();
+    public DbSet<SfaStockistAllocation> SfaStockistAllocations => Set<SfaStockistAllocation>();
+    public DbSet<SfaTourPlan> SfaTourPlans => Set<SfaTourPlan>();
+    public DbSet<SfaTourPlanItem> SfaTourPlanItems => Set<SfaTourPlanItem>();
+    public DbSet<SfaDailyCallReport> SfaDailyCallReports => Set<SfaDailyCallReport>();
+    public DbSet<SfaDcrDoctorVisit> SfaDcrDoctorVisits => Set<SfaDcrDoctorVisit>();
+    public DbSet<SfaDcrChemistVisit> SfaDcrChemistVisits => Set<SfaDcrChemistVisit>();
+    public DbSet<SfaDcrStockistVisit> SfaDcrStockistVisits => Set<SfaDcrStockistVisit>();
+    public DbSet<SfaSampleStock> SfaSampleStocks => Set<SfaSampleStock>();
+    public DbSet<SfaSampleChallan> SfaSampleChallans => Set<SfaSampleChallan>();
+    public DbSet<SfaSampleChallanItem> SfaSampleChallanItems => Set<SfaSampleChallanItem>();
+    public DbSet<SfaPobOrder> SfaPobOrders => Set<SfaPobOrder>();
+    public DbSet<SfaPobOrderItem> SfaPobOrderItems => Set<SfaPobOrderItem>();
+    public DbSet<SfaSalesAttribution> SfaSalesAttributions => Set<SfaSalesAttribution>();
+    public DbSet<SfaMrTarget> SfaMrTargets => Set<SfaMrTarget>();
+    public DbSet<SfaExpenseClaim> SfaExpenseClaims => Set<SfaExpenseClaim>();
+    public DbSet<SfaExpenseClaimItem> SfaExpenseClaimItems => Set<SfaExpenseClaimItem>();
+    public DbSet<SfaExpensePolicy> SfaExpensePolicies => Set<SfaExpensePolicy>();
+    public DbSet<SfaUserHierarchy> SfaUserHierarchies => Set<SfaUserHierarchy>();
+    public DbSet<SfaSchemeMaster> SfaSchemeMasters => Set<SfaSchemeMaster>();
+    public DbSet<SfaSchemeSlab> SfaSchemeSlabs => Set<SfaSchemeSlab>();
+
     // Financial Accounting Suite
     public DbSet<Domain.Entities.Accounting.AccountGroup> AccountGroups => Set<Domain.Entities.Accounting.AccountGroup>();
     public DbSet<Domain.Entities.Accounting.LedgerAccount> LedgerAccounts => Set<Domain.Entities.Accounting.LedgerAccount>();
     public DbSet<Domain.Entities.Accounting.JournalVoucher> JournalVouchers => Set<Domain.Entities.Accounting.JournalVoucher>();
     public DbSet<Domain.Entities.Accounting.JournalVoucherLeg> JournalVoucherLegs => Set<Domain.Entities.Accounting.JournalVoucherLeg>();
+
+    // CMS - Marketing Website
+    public DbSet<Lead> Leads => Set<Lead>();
+
+    // Referrals & Affiliate Partner Program
+    public DbSet<Domain.Entities.Referrals.ReferralProgramConfig> ReferralProgramConfigs => Set<Domain.Entities.Referrals.ReferralProgramConfig>();
+    public DbSet<Domain.Entities.Referrals.TenantReferralProfile> TenantReferralProfiles => Set<Domain.Entities.Referrals.TenantReferralProfile>();
+    public DbSet<Domain.Entities.Referrals.TenantReferralConversion> TenantReferralConversions => Set<Domain.Entities.Referrals.TenantReferralConversion>();
+
+    // Idempotency Tracking
+    public DbSet<IdempotentRequest> IdempotentRequests => Set<IdempotentRequest>();
 
     void IAppDbContext.Add<TEntity>(TEntity entity) => base.Add(entity);
 
@@ -191,6 +235,7 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<PaymentGatewayConfig> IAppDbContext.PaymentGatewayConfigs => PaymentGatewayConfigs;
     IQueryable<SubscriptionInvoice> IAppDbContext.SubscriptionInvoices => SubscriptionInvoices;
     IQueryable<PlatformCompanyProfile> IAppDbContext.PlatformCompanyProfiles => PlatformCompanyProfiles;
+    IQueryable<PlatformCommercialConfig> IAppDbContext.PlatformCommercialConfigs => PlatformCommercialConfigs;
     IQueryable<PlatformEmailConfig> IAppDbContext.PlatformEmailConfigs => PlatformEmailConfigs;
     IQueryable<PlatformPasswordResetOtp> IAppDbContext.PlatformPasswordResetOtps => PlatformPasswordResetOtps;
     IQueryable<AuditLog> IAppDbContext.AuditLogs => AuditLogs;
@@ -279,6 +324,14 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<ExpiryReturnClaim> IAppDbContext.ExpiryReturnClaims => ExpiryReturnClaims;
     IQueryable<ExpiryReturnClaimItem> IAppDbContext.ExpiryReturnClaimItems => ExpiryReturnClaimItems;
 
+    // CMS - Marketing Website explicit properties
+    IQueryable<Lead> IAppDbContext.Leads => Leads;
+
+    // Referrals explicit properties
+    IQueryable<Domain.Entities.Referrals.ReferralProgramConfig> IAppDbContext.ReferralProgramConfigs => ReferralProgramConfigs;
+    IQueryable<Domain.Entities.Referrals.TenantReferralProfile> IAppDbContext.TenantReferralProfiles => TenantReferralProfiles;
+    IQueryable<Domain.Entities.Referrals.TenantReferralConversion> IAppDbContext.TenantReferralConversions => TenantReferralConversions;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -322,11 +375,32 @@ public class AppDbContext : DbContext, IAppDbContext
             .HasIndex(e => new { e.TenantId, e.CategoryId, e.ExpenseDate });
 
         modelBuilder.Entity<SalesReturn>()
+            .HasIndex(r => new { r.TenantId, r.CreditNoteNumber })
+            .IsUnique();
+        modelBuilder.Entity<SalesReturn>()
             .HasIndex(r => new { r.TenantId, r.ReturnDate, r.PartyId });
+
+        modelBuilder.Entity<PurchaseReturn>()
+            .HasIndex(r => new { r.TenantId, r.DebitNoteNumber })
+            .IsUnique();
         modelBuilder.Entity<PurchaseReturn>()
             .HasIndex(r => new { r.TenantId, r.ReturnDate, r.PartyId });
+
+        modelBuilder.Entity<IdempotentRequest>()
+            .HasIndex(r => new { r.TenantId, r.IdempotencyKey })
+            .IsUnique();
+
         modelBuilder.Entity<StockTransfer>()
             .HasIndex(t => new { t.TenantId, t.TransferDate, t.Status });
+
+        modelBuilder.Entity<SfaUserHierarchy>(b =>
+        {
+            b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.ReportsToUser).WithMany().HasForeignKey(x => x.ReportsToUserId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.AbmUser).WithMany().HasForeignKey(x => x.AbmUserId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.RsmUser).WithMany().HasForeignKey(x => x.RsmUserId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.ZsmUser).WithMany().HasForeignKey(x => x.ZsmUserId).OnDelete(DeleteBehavior.Restrict);
+        });
 
         // Configure Global Query Filters for Soft Delete and Multi-Tenancy
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

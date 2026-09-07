@@ -3,51 +3,79 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Moon, Sun, Palette, Sparkles, Check } from "lucide-react";
 
-export type ThemeType = "dark" | "light" | "vibrant" | "navy" | "emerald" | "amber";
+export type ThemeType = "light" | "dark";
 
 interface ThemeContextType {
   theme: ThemeType;
   setTheme: (theme: ThemeType) => void;
 }
 
+const ALL_THEME_CLASSES = [
+  "theme-dark",
+  "theme-light",
+  "theme-high-contrast",
+  "theme-vibrant",
+  "theme-navy",
+  "theme-emerald",
+  "theme-amber",
+  "dark",
+  "marketing-active",
+];
+
 const ThemeContext = createContext<ThemeContextType>({
-  theme: "dark",
+  theme: "light",
   setTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeType>("dark");
+  const [theme, setThemeState] = useState<ThemeType>("light");
 
   useEffect(() => {
-    const saved = localStorage.getItem("udyogbill_theme") as ThemeType;
-    if (saved && ["dark", "light", "vibrant", "navy", "emerald", "amber"].includes(saved)) {
-      setThemeState(saved);
-      applyTheme(saved);
+    const saved = localStorage.getItem("udyogbill_theme");
+    if (saved === "dark" || saved === "light") {
+      setThemeState(saved as ThemeType);
+      applyTheme(saved as ThemeType);
     } else {
-      applyTheme("dark");
+      // Default to light theme
+      setThemeState("light");
+      applyTheme("light");
+      localStorage.setItem("udyogbill_theme", "light");
     }
   }, []);
 
   const applyTheme = (newTheme: ThemeType) => {
     if (typeof document !== "undefined") {
+      if (typeof window !== "undefined") {
+        const path = window.location.pathname;
+        const isMarketing =
+          path === "/" ||
+          path.startsWith("/features") ||
+          path.startsWith("/pricing") ||
+          path.startsWith("/industries") ||
+          path.startsWith("/about") ||
+          path.startsWith("/contact");
+        if (isMarketing) {
+          const root = document.documentElement;
+          const body = document.body;
+          root.classList.remove(...ALL_THEME_CLASSES);
+          body.classList.remove(...ALL_THEME_CLASSES);
+          root.classList.add("marketing-active");
+          body.classList.add("marketing-active");
+          return;
+        }
+      }
+
       const root = document.documentElement;
       const body = document.body;
-      root.classList.remove("theme-dark", "theme-light", "theme-vibrant", "theme-navy", "theme-emerald", "theme-amber", "dark");
-      body.classList.remove("theme-dark", "theme-light", "theme-vibrant", "theme-navy", "theme-emerald", "theme-amber", "dark");
+      root.classList.remove(...ALL_THEME_CLASSES);
+      body.classList.remove(...ALL_THEME_CLASSES);
 
-      if (newTheme === "light") {
+      if (newTheme === "dark") {
+        root.classList.add("dark", "theme-dark");
+        body.classList.add("dark", "theme-dark");
+      } else {
         root.classList.add("theme-light");
         body.classList.add("theme-light");
-      } else if (newTheme === "vibrant") {
-        root.classList.add("theme-vibrant");
-        body.classList.add("theme-vibrant");
-      } else if (newTheme === "amber") {
-        root.classList.add("theme-amber");
-        body.classList.add("theme-amber");
-      } else {
-        root.classList.add("dark");
-        root.classList.add(`theme-${newTheme}`);
-        body.classList.add(`theme-${newTheme}`);
       }
     }
   };
@@ -71,44 +99,36 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
 
-  const themeOptions: { id: ThemeType; label: string; icon: any; color: string }[] = [
-    { id: "dark", label: "Midnight Dark", icon: Moon, color: "bg-slate-900 border-slate-700 text-slate-100" },
-    { id: "amber", label: "Warm Amber (Classic ERP)", icon: Palette, color: "bg-[#fff8f0] border-amber-500 text-amber-900" },
-    { id: "light", label: "Daylight Bright (Simple)", icon: Sun, color: "bg-white border-slate-300 text-slate-900" },
-    { id: "vibrant", label: "Vibrant Colourful (Light)", icon: Sparkles, color: "bg-gradient-to-r from-indigo-50 via-emerald-50 to-amber-50 border-indigo-300 text-indigo-900" },
-    { id: "navy", label: "Royal Navy Blue", icon: Sparkles, color: "bg-blue-950 border-blue-800 text-blue-100" },
-    { id: "emerald", label: "Pharma Emerald Green", icon: Palette, color: "bg-emerald-950 border-emerald-800 text-emerald-100" },
+  const isLight = theme === "light";
+
+  const themeOptions: { id: ThemeType; label: string; icon: any }[] = [
+    { id: "light", label: "Light Theme", icon: Sun },
+    { id: "dark", label: "Dark Theme", icon: Moon },
   ];
 
   return (
     <div className="relative inline-block text-left">
       <button
         onClick={() => setOpen(!open)}
-        title="Change App Theme"
-        className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 transition-all shadow-sm"
+        title="Toggle Light/Dark Theme"
+        className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-surface-elevated border border-border/40 text-xs text-foreground transition-all shadow-2xs cursor-pointer"
       >
-        {theme === "amber" ? (
-          <Palette className="w-3.5 h-3.5 text-amber-500" />
-        ) : theme === "light" ? (
-          <Sun className="w-3.5 h-3.5 text-amber-400" />
-        ) : theme === "vibrant" ? (
-          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-        ) : theme === "emerald" ? (
-          <Palette className="w-3.5 h-3.5 text-emerald-400" />
-        ) : theme === "navy" ? (
-          <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+        {isLight ? (
+          <Sun className="w-3.5 h-3.5 text-amber-500" />
         ) : (
-          <Moon className="w-3.5 h-3.5 text-indigo-400" />
+          <Moon className="w-3.5 h-3.5 text-primary" />
         )}
-        <span className="capitalize font-medium text-[11px]">{theme} Theme</span>
+        <span className="font-semibold text-[11px]">
+          {isLight ? "Light Theme" : "Dark Theme"}
+        </span>
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-60 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl z-50 p-1.5 space-y-1 backdrop-blur-xl">
-            <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
-              Select Appearance Theme
+          <div className="absolute right-0 top-full mt-1.5 w-44 rounded-xl bg-surface border border-border/40 shadow-xl z-50 p-1.5 space-y-1 backdrop-blur-xl text-foreground">
+            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+              Select Theme
             </div>
             {themeOptions.map((opt) => {
               const Icon = opt.icon;
@@ -120,17 +140,17 @@ export function ThemeToggle() {
                     setTheme(opt.id);
                     setOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30"
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "text-foreground hover:bg-surface-muted"
                   }`}
                 >
                   <div className="flex items-center space-x-2">
-                    <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-white" : "text-slate-400"}`} />
+                    <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-primary-foreground" : opt.id === "light" ? "text-amber-500" : "text-primary"}`} />
                     <span>{opt.label}</span>
                   </div>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                  {isSelected && <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[2.5]" />}
                 </button>
               );
             })}

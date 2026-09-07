@@ -68,16 +68,20 @@ export const onboardingService = {
         hsnCode: p.hsn || "30049099",
         barcode: null,
         primaryUom: p.unit || "PCS",
-        taxRate: Number(p.taxRate) || 12,
+        taxRate: Math.min(100, Math.max(0, Number(p.taxRate) || 12)),
         cessRate: 0,
-        purchasePrice: Number(p.purchasePrice) || (Number(p.salePrice) * 0.8) || 0,
-        salePrice: Number(p.salePrice) || 0,
-        mrp: Number(p.mrp) || Number(p.salePrice) || 0,
+        purchasePrice: Math.max(0, Number(p.purchasePrice) || (Number(p.salePrice) * 0.8) || 0),
+        salePrice: Math.max(0, Number(p.salePrice) || 0),
+        mrp: Math.max(0, Number(p.mrp) || Number(p.salePrice) || 0),
         minimumStockAlert: 0,
         reorderQuantity: 0,
-        openingStock: Number(p.openingStock) || 0,
+        openingStock: Math.max(0, Number(p.openingStock) || 0),
         batchNumber: p.batchNumber || null,
-        expiryDate: p.expiryDate ? new Date(p.expiryDate) : null,
+        expiryDate: (() => {
+          if (!p.expiryDate) return null;
+          const d = new Date(p.expiryDate);
+          return isNaN(d.getTime()) ? null : d.toISOString();
+        })(),
         rackLocation: null,
         description: "Migrated from previous software"
       })),

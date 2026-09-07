@@ -34,7 +34,8 @@ import {
   ClipboardList,
   Shield,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  RotateCcw
 } from "lucide-react";
 import { salesService } from "@/services/sales-services";
 import { tenantAppService } from "@/services/tenant-app-services";
@@ -42,6 +43,7 @@ import { barcodeService } from "@/services/barcode-services";
 import { printTemplateService, PrintTemplate } from "@/services/print-template-services";
 import { SalesInvoiceDetails, TenantDetails, UpiQrPayload, SalesInvoicePayment } from "@/types";
 import { printRawHtml } from "@/lib/print-helper";
+import { useAddons } from "@/context/addon-context";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type PrintFormat = "a4" | "compact_a5" | "thermal80" | "thermal58";
@@ -249,6 +251,238 @@ function RecordPaymentModal({
   );
 }
 
+// ─── Issue Credit Note / Sales Return Modal ─────────────────────────────────
+function IssueCreditNoteModal({
+  open,
+  invoice,
+  submitting,
+  returnReason,
+  setReturnReason,
+  restock,
+  setRestock,
+  notes,
+  setNotes,
+  items,
+  setItems,
+  onSubmit,
+  onClose,
+}: {
+  open: boolean;
+  invoice: SalesInvoiceDetails;
+  submitting: boolean;
+  returnReason: string;
+  setReturnReason: (r: string) => void;
+  restock: boolean;
+  setRestock: (r: boolean) => void;
+  notes: string;
+  setNotes: (n: string) => void;
+  items: Array<{
+    itemId: string;
+    itemName: string;
+    itemSku: string;
+    batchNumber?: string;
+    maxQuantity: number;
+    returnQuantity: number;
+    unitPrice: number;
+    gstRate: number;
+    selected: boolean;
+  }>;
+  setItems: React.Dispatch<React.SetStateAction<any[]>>;
+  onSubmit: (e: React.FormEvent) => void;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+
+  const totalReturnTaxable = items
+    .filter((it) => it.selected && it.returnQuantity > 0)
+    .reduce((sum, it) => sum + it.returnQuantity * it.unitPrice, 0);
+
+  const totalReturnGst = items
+    .filter((it) => it.selected && it.returnQuantity > 0)
+    .reduce((sum, it) => sum + (it.returnQuantity * it.unitPrice * it.gstRate) / 100, 0);
+
+  const totalCreditAmount = totalReturnTaxable + totalReturnGst;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl p-6 space-y-4 my-8">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Issue GST Credit Note / Sales Return</h3>
+              <p className="text-[11px] text-slate-400">Against Tax Invoice #{invoice.invoiceNumber}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Customer & Invoice Summary */}
+        <div className="grid grid-cols-3 gap-2.5 bg-slate-900 border border-slate-800 rounded-2xl p-3 text-xs">
+          <div>
+            <span className="text-slate-400 block text-[10px]">Customer:</span>
+            <strong className="text-white truncate block">{invoice.customerName}</strong>
+          </div>
+          <div>
+            <span className="text-slate-400 block text-[10px]">Invoice Total:</span>
+            <strong className="text-white font-mono">₹{invoice.totalAmount.toFixed(2)}</strong>
+          </div>
+          <div>
+            <span className="text-slate-400 block text-[10px]">Credit Value:</span>
+            <strong className="text-cyan-400 font-mono text-sm">₹{totalCreditAmount.toFixed(2)}</strong>
+          </div>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4 text-xs">
+          {/* Reason & Restock */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-slate-300 font-semibold block mb-1">Return / Credit Reason *</label>
+              <select
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500 text-xs"
+              >
+                <option value="GoodsReturned">Goods Returned by Customer</option>
+                <option value="DamagedInTransit">Defective / Damaged Goods</option>
+                <option value="PriceAdjustment">Post-Sale Price Difference / Discount</option>
+                <option value="QuantityDifference">Shortage / Quantity Correction</option>
+                <option value="OrderCancelled">Order Cancelled After Dispatch</option>
+                <option value="Other">Other Adjustment</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-6">
+              <input
+                type="checkbox"
+                id="restock_check"
+                checked={restock}
+                onChange={(e) => setRestock(e.target.checked)}
+                className="w-4 h-4 rounded text-cyan-600 bg-slate-900 border-slate-700 focus:ring-cyan-500 cursor-pointer"
+              />
+              <label htmlFor="restock_check" className="text-slate-300 font-medium cursor-pointer">
+                Restore returned items back into Warehouse Stock
+              </label>
+            </div>
+          </div>
+
+          {/* Line Items Table */}
+          <div>
+            <label className="text-slate-300 font-semibold block mb-1.5">
+              Select Invoice Items &amp; Return Quantities:
+            </label>
+            <div className="border border-slate-800 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+              <table className="w-full text-left border-collapse text-[11px]">
+                <thead className="bg-slate-900 text-slate-400 sticky top-0 border-b border-slate-800">
+                  <tr>
+                    <th className="p-2 w-8 text-center">
+                      <input
+                        type="checkbox"
+                        checked={items.every((it) => it.selected)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setItems((prev) => prev.map((it) => ({ ...it, selected: checked })));
+                        }}
+                        className="rounded"
+                      />
+                    </th>
+                    <th className="p-2">Item</th>
+                    <th className="p-2 text-right">Inv Qty</th>
+                    <th className="p-2 text-center w-24">Return Qty</th>
+                    <th className="p-2 text-right">Rate</th>
+                    <th className="p-2 text-right">Credit (₹)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 bg-slate-950">
+                  {items.map((it, idx) => (
+                    <tr key={idx} className={it.selected ? "bg-cyan-950/20" : ""}>
+                      <td className="p-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={it.selected}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setItems((prev) =>
+                              prev.map((item, i) => (i === idx ? { ...item, selected: checked } : item))
+                            );
+                          }}
+                          className="rounded cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <div className="font-semibold text-white truncate max-w-[180px]">{it.itemName}</div>
+                        <div className="text-[9.5px] text-slate-500 font-mono">
+                          {it.batchNumber ? `Batch: ${it.batchNumber}` : it.itemSku || "—"}
+                        </div>
+                      </td>
+                      <td className="p-2 text-right font-mono text-slate-300">{it.maxQuantity}</td>
+                      <td className="p-2 text-center">
+                        <input
+                          type="number"
+                          min="0"
+                          max={it.maxQuantity}
+                          step="any"
+                          value={it.returnQuantity}
+                          disabled={!it.selected}
+                          onChange={(e) => {
+                            const val = Math.max(0, Math.min(it.maxQuantity, parseFloat(e.target.value) || 0));
+                            setItems((prev) =>
+                              prev.map((item, i) => (i === idx ? { ...item, returnQuantity: val } : item))
+                            );
+                          }}
+                          className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-center disabled:opacity-30 focus:outline-none focus:border-cyan-500"
+                        />
+                      </td>
+                      <td className="p-2 text-right font-mono text-slate-300">₹{it.unitPrice.toFixed(2)}</td>
+                      <td className="p-2 text-right font-mono font-bold text-cyan-400">
+                        ₹{(it.selected ? it.returnQuantity * it.unitPrice * (1 + it.gstRate / 100) : 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="text-slate-300 font-semibold block mb-1">Narration / Credit Note Remarks</label>
+            <input
+              type="text"
+              placeholder="e.g. Sales return received against Invoice and credit note issued to ledger"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500 text-xs"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || totalCreditAmount <= 0}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition shadow-lg shadow-cyan-600/25 disabled:opacity-40"
+            >
+              {submitting ? "Issuing Credit Note..." : `Issue Credit Note (₹${totalCreditAmount.toFixed(2)})`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Toast notification ──────────────────────────────────────────────────────
 function Toast({ msg, type }: { msg: string; type: "success" | "error" | "info" }) {
   const bg = type === "success" ? "bg-emerald-600" : type === "error" ? "bg-rose-600" : "bg-indigo-600";
@@ -263,7 +497,7 @@ function Toast({ msg, type }: { msg: string; type: "success" | "error" | "info" 
 
 // ─── Delivery Challan Document ───────────────────────────────────────────────
 function generateDeliveryChallanHtml(invoice: SalesInvoiceDetails, profile: TenantDetails | null) {
-  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL ENTERPRISES";
+  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
   const sellerAddress = profile?.addressLine1 ? `${profile.addressLine1}${profile.addressLine2 ? `, ${profile.addressLine2}` : ""}, ${profile.city || ""}, ${profile.state || ""} - ${profile.pincode || ""}` : (invoice.branchAddress || "");
   const sellerGstin = invoice.branchGstin || profile?.gstin || "";
 
@@ -278,7 +512,7 @@ function generateDeliveryChallanHtml(invoice: SalesInvoiceDetails, profile: Tena
     </tr>`).join("");
 
   return `
-    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; background:#ffffff; color:#0f172a; padding:8px 12px; box-sizing:border-box; overflow:hidden;">
+    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; background:#ffffff; color:#0f172a; padding:12px 16px; box-sizing:border-box;">
       <!-- Header -->
       <div style="flex-shrink:0;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:6px; margin-bottom:6px;">
@@ -305,8 +539,8 @@ function generateDeliveryChallanHtml(invoice: SalesInvoiceDetails, profile: Tena
         </div>
       </div>
 
-      <!-- Line Items Table -->
-      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <!-- Line Items Table (All items show dynamically) -->
+      <div style="flex:1; display:flex; flex-direction:column; margin-bottom:12px;">
         <table style="width:100%; border-collapse:collapse; font-size:10.5px; border-bottom:1.5px solid #0f172a;">
           <thead style="background:#f1f5f9;">
             <tr style="text-transform:uppercase; font-size:9.5px; border-bottom:1.5px solid #0f172a;">
@@ -325,7 +559,7 @@ function generateDeliveryChallanHtml(invoice: SalesInvoiceDetails, profile: Tena
       </div>
 
       <!-- Footer Signatures -->
-      <div style="flex-shrink:0; margin-top:auto; padding-top:8px;">
+      <div style="flex-shrink:0; margin-top:auto; padding-top:12px;">
         <div style="display:flex; justify-content:space-between; font-size:10.5px;">
           <div style="text-align:center; width:220px; border-top:1.5px solid #0f172a; padding-top:4px;">
             <strong>Receiver's Signature &amp; Stamp</strong>
@@ -339,7 +573,7 @@ function generateDeliveryChallanHtml(invoice: SalesInvoiceDetails, profile: Tena
 }
 
 function generateGatePassHtml(invoice: SalesInvoiceDetails, profile: TenantDetails | null) {
-  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL ENTERPRISES";
+  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
   const sellerAddress = profile?.addressLine1 ? `${profile.addressLine1}, ${profile.city || ""}` : (invoice.branchAddress || "");
 
   const itemsHtml = invoice.items.map((item, i) => `
@@ -351,7 +585,7 @@ function generateGatePassHtml(invoice: SalesInvoiceDetails, profile: TenantDetai
     </tr>`).join("");
 
   return `
-    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #dc2626; background:#ffffff; color:#0f172a; padding:8px 12px; box-sizing:border-box; overflow:hidden;">
+    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #dc2626; background:#ffffff; color:#0f172a; padding:12px 16px; box-sizing:border-box;">
       <div style="flex-shrink:0;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #dc2626; padding-bottom:6px; margin-bottom:6px;">
           <div>
@@ -378,7 +612,7 @@ function generateGatePassHtml(invoice: SalesInvoiceDetails, profile: TenantDetai
         </div>
       </div>
 
-      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="flex:1; display:flex; flex-direction:column; margin-bottom:12px;">
         <table style="width:100%; border-collapse:collapse; font-size:10.5px; border-bottom:1.5px solid #dc2626;">
           <thead style="background:#fee2e2; color:#991b1b;">
             <tr style="text-transform:uppercase; font-size:9.5px; border-bottom:1.5px solid #fca5a5;">
@@ -392,7 +626,7 @@ function generateGatePassHtml(invoice: SalesInvoiceDetails, profile: TenantDetai
         </table>
       </div>
 
-      <div style="flex-shrink:0; margin-top:auto; padding-top:8px;">
+      <div style="flex-shrink:0; margin-top:auto; padding-top:12px;">
         <div style="display:flex; justify-content:space-between; font-size:10.5px;">
           <div style="text-align:center; width:160px; border-top:1.5px solid #dc2626; padding-top:4px;">
             Driver's Signature
@@ -409,7 +643,7 @@ function generateGatePassHtml(invoice: SalesInvoiceDetails, profile: TenantDetai
 }
 
 function generatePackingSlipHtml(invoice: SalesInvoiceDetails, profile: TenantDetails | null) {
-  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL ENTERPRISES";
+  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
   const totalQty = invoice.items.reduce((acc, it) => acc + it.quantity, 0);
 
   const itemsHtml = invoice.items.map((item, i) => `
@@ -423,7 +657,7 @@ function generatePackingSlipHtml(invoice: SalesInvoiceDetails, profile: TenantDe
     </tr>`).join("");
 
   return `
-    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; background:#ffffff; color:#0f172a; padding:8px 12px; box-sizing:border-box; overflow:hidden;">
+    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; background:#ffffff; color:#0f172a; padding:12px 16px; box-sizing:border-box;">
       <div style="flex-shrink:0;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:6px; margin-bottom:6px;">
           <div>
@@ -448,7 +682,7 @@ function generatePackingSlipHtml(invoice: SalesInvoiceDetails, profile: TenantDe
         </div>
       </div>
 
-      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="flex:1; display:flex; flex-direction:column; margin-bottom:12px;">
         <table style="width:100%; border-collapse:collapse; font-size:10.5px; border-bottom:1.5px solid #0f172a;">
           <thead style="background:#f1f5f9;">
             <tr style="text-transform:uppercase; font-size:9.5px; border-bottom:1.5px solid #cbd5e1;">
@@ -464,7 +698,7 @@ function generatePackingSlipHtml(invoice: SalesInvoiceDetails, profile: TenantDe
         </table>
       </div>
 
-      <div style="flex-shrink:0; margin-top:auto; padding-top:8px;">
+      <div style="flex-shrink:0; margin-top:auto; padding-top:12px;">
         <div style="display:flex; justify-content:space-between; font-size:10.5px;">
           <div style="text-align:center; width:220px; border-top:1.5px solid #0f172a; padding-top:4px;">
             Packed By (Sign &amp; Stamp)
@@ -482,11 +716,11 @@ function generatePaymentReceiptVoucherHtml(
   payment: SalesInvoicePayment,
   profile: TenantDetails | null
 ) {
-  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL ENTERPRISES";
+  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
   const sellerAddress = profile?.addressLine1 ? `${profile.addressLine1}, ${profile.city || ""}` : (invoice.branchAddress || "");
 
   return `
-    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #059669; background:#ffffff; color:#0f172a; padding:10px 14px; box-sizing:border-box; overflow:hidden;">
+    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #059669; background:#ffffff; color:#0f172a; padding:12px 16px; box-sizing:border-box;">
       <div style="flex-shrink:0;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #059669; padding-bottom:6px; margin-bottom:8px;">
           <div>
@@ -513,7 +747,7 @@ function generatePaymentReceiptVoucherHtml(
         </div>
       </div>
 
-      <div style="flex:1; display:flex; align-items:center;">
+      <div style="flex:1; display:flex; align-items:center; margin-bottom:12px;">
         <div style="width:100%; background:#ecfdf5; border:2px solid #059669; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <span style="font-size:11px; font-weight:bold; color:#065f46; text-transform:uppercase;">Amount Received:</span>
@@ -526,7 +760,7 @@ function generatePaymentReceiptVoucherHtml(
         </div>
       </div>
 
-      <div style="flex-shrink:0; margin-top:auto; padding-top:8px;">
+      <div style="flex-shrink:0; margin-top:auto; padding-top:12px;">
         <div style="display:flex; justify-content:space-between; font-size:10.5px;">
           <div style="font-size:9.5px; color:#64748b; max-width:350px;">
             This is an official computer-generated receipt voucher. Thank you for your prompt payment!
@@ -544,7 +778,7 @@ function generateCashMemoA5Html(
   profile: TenantDetails | null,
   upiQr: UpiQrPayload | null
 ): string {
-  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL ENTERPRISES";
+  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
   const sellerAddress = profile?.addressLine1 ? `${profile.addressLine1}${profile.addressLine2 ? `, ${profile.addressLine2}` : ""}, ${profile.city || ""}, ${profile.state || ""} - ${profile.pincode || ""}` : (invoice.branchAddress || "");
   const sellerGstin = invoice.branchGstin || profile?.gstin || "";
   const totalGst = invoice.cgstAmount + invoice.sgstAmount + invoice.igstAmount;
@@ -573,9 +807,32 @@ function generateCashMemoA5Html(
     `;
   }).join("");
 
+  const cancelledBanner = invoice.isCancelled
+    ? `<div style="background-color:#fee2e2; border:2px solid #ef4444; border-radius:4px; padding:6px 10px; margin-bottom:6px; text-align:center; color:#991b1b;">
+        <div style="font-size:12px; font-weight:900; letter-spacing:1px;">&#10006; CANCELLED / VOID MEMO</div>
+        <div style="font-size:9px; font-weight:bold; color:#b91c1c;">${invoice.cancellationReason ? `Reason: ${invoice.cancellationReason}` : "Invoice has been voided"}</div>
+      </div>`
+    : "";
+
+  const creditNoteBanner = !invoice.isCancelled && invoice.hasCreditNote
+    ? `<div style="background-color:#fef3c7; border:2px solid #f59e0b; border-radius:4px; padding:6px 10px; margin-bottom:6px; text-align:center; color:#92400e;">
+        <div style="font-size:11.5px; font-weight:900;">&#9888; CREDIT NOTE ISSUED / GOODS RETURNED</div>
+        <div style="font-size:9px; font-weight:bold; color:#78350f;">CN #: ${invoice.creditNoteNumber || ""} &bull; Return Total: ₹${(invoice.creditNoteAmount || 0).toFixed(2)}</div>
+      </div>`
+    : "";
+
+  const watermarkHtml = invoice.isCancelled
+    ? `<div style="position:absolute; top:40%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); font-size:48px; font-weight:900; color:rgba(239, 68, 68, 0.20); border:4px solid rgba(239, 68, 68, 0.25); padding:8px 30px; border-radius:8px; pointer-events:none; z-index:9999; text-transform:uppercase;">CANCELLED</div>`
+    : invoice.hasCreditNote
+    ? `<div style="position:absolute; top:40%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); font-size:36px; font-weight:900; color:rgba(217, 119, 6, 0.20); border:4px solid rgba(217, 119, 6, 0.25); padding:6px 20px; border-radius:8px; pointer-events:none; z-index:9999; text-transform:uppercase;">CREDIT NOTE</div>`
+    : "";
+
   return `
-    <div style="font-family:Arial,sans-serif; width:100%; min-height:138mm; height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; background:#ffffff; color:#0f172a; padding:8px 12px; box-sizing:border-box; overflow:hidden;">
+    <div style="position:relative; font-family:Arial,sans-serif; width:100%; min-height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; background:#ffffff; color:#0f172a; padding:12px 16px; box-sizing:border-box;">
+      ${watermarkHtml}
       <div style="flex-shrink:0;">
+        ${cancelledBanner}
+        ${creditNoteBanner}
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:4px; margin-bottom:6px;">
           <div>
             <div style="font-size:18px; font-weight:900; color:#0f172a; text-transform:uppercase;">${sellerName}</div>
@@ -595,7 +852,7 @@ function generateCashMemoA5Html(
         </div>
       </div>
 
-      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="flex:1; display:flex; flex-direction:column; margin-bottom:12px;">
         <table style="width:100%; border-collapse:collapse; font-size:10px; border-bottom:1.5px solid #0f172a;">
           <thead style="background:#f1f5f9;">
             <tr style="text-transform:uppercase; font-size:9px; border-bottom:1.5px solid #0f172a;">
@@ -631,6 +888,108 @@ function generateCashMemoA5Html(
     </div>`;
 }
 
+function generateProformaInvoiceHtml(
+  invoice: SalesInvoiceDetails,
+  profile: TenantDetails | null,
+  upiQr: UpiQrPayload | null
+): string {
+  const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
+  const sellerAddress = profile?.addressLine1 ? `${profile.addressLine1}${profile.addressLine2 ? `, ${profile.addressLine2}` : ""}, ${profile.city || ""}, ${profile.state || ""} - ${profile.pincode || ""}` : (invoice.branchAddress || "");
+  const sellerGstin = invoice.branchGstin || profile?.gstin || "";
+  const totalGst = invoice.cgstAmount + invoice.sgstAmount + invoice.igstAmount;
+
+  const rowsHtml = invoice.items.map((item, idx) => {
+    let expStr = "—";
+    if (item.expiryDate) {
+      const d = new Date(item.expiryDate);
+      expStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
+    }
+
+    return `
+      <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
+        <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1;">${idx + 1}</td>
+        <td style="padding: 5px 6px; font-weight: 700; border-right: 1px solid #cbd5e1; color: #0f172a;">
+          ${item.itemName} ${item.itemSku ? `<span style="font-size:8.5px; color:#64748b;">(${item.itemSku})</span>` : ""}
+        </td>
+        <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.hsnCode || "—"}</td>
+        <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.batchNumber || "—"}</td>
+        <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-weight: 700;">${item.quantity} ${item.uomCode || ""}</td>
+        <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">₹${item.unitPrice.toFixed(2)}</td>
+        <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.discountPercent > 0 ? `${item.discountPercent}%` : "—"}</td>
+        <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">₹${item.taxableAmount.toFixed(2)}</td>
+        <td style="padding: 5px 6px; text-align: right; font-family: monospace; font-weight: 700; color: #0f172a;">₹${item.totalAmount.toFixed(2)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  return `
+    <div style="font-family:Arial,sans-serif; width:100%; min-height:140mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #7c3aed; background:#ffffff; color:#0f172a; padding:14px 18px; box-sizing:border-box;">
+      <div style="flex-shrink:0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #7c3aed; padding-bottom:6px; margin-bottom:8px;">
+          <div>
+            <div style="font-size:20px; font-weight:900; color:#0f172a; text-transform:uppercase;">${sellerName}</div>
+            <div style="font-size:10.5px; color:#475569;">${sellerAddress}</div>
+            ${sellerGstin ? `<div style="font-size:10px; font-weight:bold; margin-top:2px;">GSTIN: ${sellerGstin}</div>` : ""}
+          </div>
+          <div style="text-align:right;">
+            <div style="background:#7c3aed; color:#fff; font-size:13px; font-weight:900; padding:4px 14px; border-radius:4px; letter-spacing:0.5px;">PROFORMA INVOICE</div>
+            <div style="font-size:10.5px; font-weight:bold; margin-top:3px;">PI Ref: PI-${invoice.invoiceNumber}</div>
+            <div style="font-size:9.5px; color:#475569;">Date: ${new Date(invoice.invoiceDate).toLocaleDateString("en-IN")}</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:11px; background:#f5f3ff; padding:8px 10px; border:1px solid #ddd6fe; border-radius:6px; margin-bottom:8px;">
+          <div>
+            <div style="font-size:9px; text-transform:uppercase; color:#6d28d9; font-weight:bold;">Proforma Billed To:</div>
+            <div style="font-size:12px; font-weight:bold; color:#0f172a;">${invoice.customerName}</div>
+            ${invoice.customerPhone ? `<div style="color:#475569;">Phone: ${invoice.customerPhone}</div>` : ""}
+            ${invoice.customerGSTIN ? `<div><b>GSTIN:</b> ${invoice.customerGSTIN}</div>` : ""}
+          </div>
+          <div style="text-align:right;">
+            <div><b>Original Invoice Ref:</b> ${invoice.invoiceNumber}</div>
+            <div><b>Terms:</b> Advance / Confirmed Order</div>
+            <div><b>Valid Until:</b> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "15 Days from Date"}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1; display:flex; flex-direction:column; margin-bottom:12px;">
+        <table style="width:100%; border-collapse:collapse; font-size:10px; border-bottom:1.5px solid #7c3aed;">
+          <thead style="background:#f5f3ff; color:#6d28d9;">
+            <tr style="text-transform:uppercase; font-size:9px; border-bottom:1.5px solid #ddd6fe;">
+              <th style="padding:5px 4px; width:24px; border-right:1px solid #ddd6fe;">#</th>
+              <th style="padding:5px 6px; text-align:left; border-right:1px solid #ddd6fe;">Item Description</th>
+              <th style="padding:5px 4px; width:55px; text-align:center; border-right:1px solid #ddd6fe;">HSN</th>
+              <th style="padding:5px 4px; width:60px; text-align:center; border-right:1px solid #ddd6fe;">Batch</th>
+              <th style="padding:5px 4px; width:55px; text-align:right; border-right:1px solid #ddd6fe;">Qty</th>
+              <th style="padding:5px 4px; width:60px; text-align:right; border-right:1px solid #ddd6fe;">Rate</th>
+              <th style="padding:5px 4px; width:45px; text-align:right; border-right:1px solid #ddd6fe;">Disc%</th>
+              <th style="padding:5px 4px; width:65px; text-align:right; border-right:1px solid #ddd6fe;">Taxable</th>
+              <th style="padding:5px 6px; width:75px; text-align:right;">Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+
+      <div style="flex-shrink:0; margin-top:auto; padding-top:8px; border-top:1.5px solid #7c3aed;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:9.5px; color:#64748b; max-width:380px;">
+            <b>Note:</b> This is a Proforma Invoice, not a Tax Invoice. Supplies will be dispatched upon confirmation/payment.<br/>
+            ${profile?.bankAccountNumber ? `<b>Bank:</b> ${profile.bankName || ""} | <b>A/c:</b> ${profile.bankAccountNumber} | <b>IFSC:</b> ${profile.bankIfsc || ""}` : ""}
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; color:#64748b;">Subtotal: ₹${invoice.taxableAmount.toFixed(2)} | GST: ₹${totalGst.toFixed(2)}</div>
+            <div style="font-size:18px; font-weight:900; color:#7c3aed; font-family:monospace; margin-top:2px;">
+              PROFORMA TOTAL: ₹${invoice.totalAmount.toFixed(2)}
+            </div>
+            <div style="font-size:8.5px; color:#64748b; margin-top:2px;">Authorized Signatory (${sellerName})</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function SalesInvoiceDetailsPage({
   params,
@@ -640,6 +999,10 @@ export default function SalesInvoiceDetailsPage({
   const resolvedParams = use(params);
   const invoiceId = resolvedParams.id;
   const router = useRouter();
+  const { isAddonActive } = useAddons();
+  const hasPharma = isAddonActive("pharma");
+  const hasManufacturing = isAddonActive("manufacturing");
+  const hasGarments = isAddonActive("garments");
 
   const [invoice, setInvoice] = useState<SalesInvoiceDetails | null>(null);
   const [profile, setProfile] = useState<TenantDetails | null>(null);
@@ -684,6 +1047,14 @@ export default function SalesInvoiceDetailsPage({
   const [availableTemplates, setAvailableTemplates] = useState<PrintTemplate[]>([]);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Credit Note Modal State
+  const [creditNoteModalOpen, setCreditNoteModalOpen] = useState(false);
+  const [issuingCreditNote, setIssuingCreditNote] = useState(false);
+  const [creditReturnReason, setCreditReturnReason] = useState("GoodsReturned");
+  const [creditRestock, setCreditRestock] = useState(true);
+  const [creditNotes, setCreditNotes] = useState("");
+  const [creditItems, setCreditItems] = useState<any[]>([]);
 
   const showToast = (msg: string, type: "success" | "error" | "info" = "success") => {
     setToast({ msg, type });
@@ -815,6 +1186,9 @@ export default function SalesInvoiceDetailsPage({
       } else {
         showToast("No payment record available to print.", "error");
       }
+    } else if (activeDoc === "proforma") {
+      html = generateProformaInvoiceHtml(invoice, profile, upiQr);
+      printRawHtml(html, `Proforma_Invoice_${invoice.invoiceNumber}`, "A4 portrait", "6mm");
     } else if (printFormat === "compact_a5") {
       await handlePrintCashMemoA5();
     } else {
@@ -831,10 +1205,84 @@ export default function SalesInvoiceDetailsPage({
     }
   };
 
+  const handleOpenCreditNoteModal = () => {
+    if (!invoice) return;
+    const initialItems = invoice.items.map((it) => ({
+      itemId: it.itemId,
+      itemName: it.itemName,
+      itemSku: it.itemSku || "",
+      batchId: it.batchId || undefined,
+      batchNumber: it.batchNumber || "",
+      maxQuantity: it.quantity,
+      returnQuantity: it.quantity,
+      unitPrice: it.unitPrice,
+      gstRate: it.gstRate || (it.taxableAmount > 0 ? ((it.cgstAmount + it.sgstAmount + it.igstAmount) / it.taxableAmount) * 100 : 0),
+      selected: true,
+    }));
+    setCreditItems(initialItems);
+    setCreditReturnReason("GoodsReturned");
+    setCreditRestock(true);
+    setCreditNotes(`Credit note against Tax Invoice #${invoice.invoiceNumber}`);
+    setCreditNoteModalOpen(true);
+  };
+
+  const handleCreditNoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invoice) return;
+    const selectedLines = creditItems.filter((it) => it.selected && it.returnQuantity > 0);
+    if (selectedLines.length === 0) {
+      showToast("Select at least one item with return quantity > 0.", "error");
+      return;
+    }
+
+    try {
+      setIssuingCreditNote(true);
+      await salesService.createSalesReturn({
+        originalSalesInvoiceId: invoice.id,
+        originalInvoiceNumber: invoice.invoiceNumber,
+        partyId: invoice.partyId || "00000000-0000-0000-0000-000000000000",
+        customerName: invoice.customerName || "Walk-in Customer",
+        branchId: invoice.branchId || "00000000-0000-0000-0000-000000000000",
+        warehouseId: invoice.warehouseId || "00000000-0000-0000-0000-000000000000",
+        returnReason: creditReturnReason,
+        restockToWarehouse: creditRestock,
+        notes: creditNotes,
+        items: selectedLines.map((l) => ({
+          itemId: l.itemId,
+          itemName: l.itemName,
+          itemSku: l.itemSku,
+          batchId: l.batchId,
+          batchNumber: l.batchNumber || undefined,
+          returnQuantity: l.returnQuantity,
+          unitPrice: l.unitPrice,
+          gstRate: l.gstRate,
+        })),
+      });
+
+      showToast("Credit Note & Sales Return issued successfully! Opening Credit Note register...", "success");
+      setCreditNoteModalOpen(false);
+      setTimeout(() => {
+        router.push("/app/sales/returns");
+      }, 700);
+    } catch (err: any) {
+      const msg = err?.response?.data?.errorMessage || err?.response?.data?.message || err?.response?.data?.title || err.message || "Failed to issue credit note.";
+      alert(`Credit Note Issue Error: ${msg}`);
+      showToast(msg, "error");
+    } finally {
+      setIssuingCreditNote(false);
+    }
+  };
+
   const handleSendWhatsApp = () => {
     if (!invoice) return;
+    const merchantName = profile?.tradeName || profile?.businessName || "UdyogBill";
+    const upiId = (profile as any)?.upiId || profile?.bankAccountNumber ? `${(profile as any)?.upiId || "merchant@upi"}` : "";
+    const upiDeepLink = upiId
+      ? `\n\n*Click to Pay via UPI (GPay/PhonePe):*\nupi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${invoice.balanceAmount > 0 ? invoice.balanceAmount.toFixed(2) : invoice.totalAmount.toFixed(2)}&tn=Inv_${invoice.invoiceNumber}`
+      : "";
+
     const msg = encodeURIComponent(
-      `Dear ${invoice.customerName},\n\nYour Tax Invoice *${invoice.invoiceNumber}* for ₹${invoice.totalAmount.toFixed(2)} has been issued by ${profile?.businessName || "UdyogBill"}.\n\nBalance Due: ₹${invoice.balanceAmount.toFixed(2)}\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "N/A"}\n\nThank you for your business!\n\n— ${profile?.businessName || "UdyogBill"}`
+      `Dear ${invoice.customerName},\n\nYour Tax Invoice *${invoice.invoiceNumber}* for ₹${invoice.totalAmount.toFixed(2)} has been issued by ${merchantName}.\n\nBalance Due: *₹${invoice.balanceAmount.toFixed(2)}*\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Immediate"}${upiDeepLink}\n\nThank you for your business!\n\n— ${merchantName}`
     );
     const phone = invoice.customerPhone?.replace(/\D/g, "") || "";
     const url = phone
@@ -855,8 +1303,14 @@ export default function SalesInvoiceDetailsPage({
 
   const handlePaymentReminder = () => {
     if (!invoice) return;
+    const merchantName = profile?.tradeName || profile?.businessName || "UdyogBill";
+    const upiId = (profile as any)?.upiId || profile?.bankAccountNumber ? `${(profile as any)?.upiId || "merchant@upi"}` : "";
+    const upiDeepLink = upiId
+      ? `\n\n*Pay Now via UPI (GPay/PhonePe):*\nupi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${invoice.balanceAmount.toFixed(2)}&tn=Reminder_${invoice.invoiceNumber}`
+      : "";
+
     const msg = encodeURIComponent(
-      `Dear ${invoice.customerName},\n\n*PAYMENT REMINDER*\n\nThis is a friendly reminder for your outstanding invoice:\n\nInvoice: *${invoice.invoiceNumber}*\nTotal Amount: ₹${invoice.totalAmount.toFixed(2)}\n*Balance Due: ₹${invoice.balanceAmount.toFixed(2)}*\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Please pay immediately"}\n\nPlease arrange payment at the earliest.\n\n— ${profile?.businessName || "UdyogBill"}`
+      `Dear ${invoice.customerName},\n\n*PAYMENT REMINDER*\n\nThis is a friendly reminder for your outstanding invoice:\n\nInvoice: *${invoice.invoiceNumber}*\nTotal Amount: ₹${invoice.totalAmount.toFixed(2)}\n*Balance Due: ₹${invoice.balanceAmount.toFixed(2)}*\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Please pay immediately"}${upiDeepLink}\n\nPlease arrange payment at the earliest.\n\n— ${merchantName}`
     );
     const phone = invoice.customerPhone?.replace(/\D/g, "") || "";
     const url = phone
@@ -940,6 +1394,23 @@ export default function SalesInvoiceDetailsPage({
         onClose={() => setRecordPaymentModalOpen(false)}
       />
 
+      {/* Issue Credit Note / Sales Return Modal */}
+      <IssueCreditNoteModal
+        open={creditNoteModalOpen}
+        invoice={invoice}
+        submitting={issuingCreditNote}
+        returnReason={creditReturnReason}
+        setReturnReason={setCreditReturnReason}
+        restock={creditRestock}
+        setRestock={setCreditRestock}
+        notes={creditNotes}
+        setNotes={setCreditNotes}
+        items={creditItems}
+        setItems={setCreditItems}
+        onSubmit={handleCreditNoteSubmit}
+        onClose={() => setCreditNoteModalOpen(false)}
+      />
+
       <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
         {/* ── Back + Status strip ── */}
         <div className="flex items-center justify-between print:hidden">
@@ -966,6 +1437,57 @@ export default function SalesInvoiceDetailsPage({
           </div>
         </div>
 
+        {/* Cancelled Banner Card */}
+        {isCancelled && (
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-start space-x-3 text-rose-300">
+            <Ban className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="text-sm font-bold text-rose-400 uppercase tracking-wide">
+                This Invoice Has Been Cancelled / Voided
+              </div>
+              <p className="text-xs text-rose-300/80">
+                Cancellation Reason: <span className="font-semibold text-rose-200">{invoice.cancellationReason || "Voided"}</span>
+                {invoice.cancelledAtUtc && (
+                  <span> &bull; Cancelled on: {new Date(invoice.cancelledAtUtc).toLocaleString("en-IN")}</span>
+                )}
+              </p>
+              <div className="text-[11px] text-rose-400/70 font-mono">
+                Inventory has been restored and reversal voucher entries have been posted to General Ledger.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Credit Note Issued / Sale Return Card */}
+        {invoice.hasCreditNote && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-300">
+            <div className="flex items-start space-x-3">
+              <RotateCcw className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="text-sm font-bold text-amber-400 uppercase tracking-wide flex items-center space-x-2">
+                  <span>Sale Return Processed &bull; Credit Note Issued</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {invoice.creditNoteNumber}
+                  </span>
+                </div>
+                <p className="text-xs text-amber-200/80">
+                  Credit Note Return Total: <span className="font-bold text-amber-300 font-mono">₹{(invoice.creditNoteAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  {invoice.creditNoteDate && (
+                    <span> &bull; Return Date: {new Date(invoice.creditNoteDate).toLocaleDateString("en-IN")}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/app/sales/returns"
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold text-amber-300 whitespace-nowrap transition flex items-center space-x-1.5"
+            >
+              <span>View Credit Notes</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
         {/* ══════════════════════════════════════════════════════════════
             PRIMARY ACTION TOOLBAR — The Heart of the Billing Software
         ══════════════════════════════════════════════════════════════ */}
@@ -978,12 +1500,15 @@ export default function SalesInvoiceDetailsPage({
             {/* Document Selector */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 flex-1 overflow-x-auto gap-1 shadow-inner">
               {[
-                { id: "invoice", label: "Tax Invoice", icon: Receipt },
-                { id: "challan", label: "Delivery Challan", icon: Truck },
-                { id: "gatepass", label: "Gate Pass", icon: Shield },
-                { id: "packingslip", label: "Packing Slip", icon: Package },
-                { id: "receipt", label: "Payment Receipt", icon: CreditCard },
-              ].map(({ id, label, icon: Icon }) => (
+                { id: "invoice", label: "Tax Invoice", icon: Receipt, visible: true },
+                { id: "proforma", label: "Proforma Invoice", icon: FileText, visible: true },
+                { id: "challan", label: "Delivery Challan", icon: Truck, visible: hasManufacturing },
+                { id: "gatepass", label: "Gate Pass", icon: Shield, visible: hasManufacturing },
+                { id: "packingslip", label: "Packing Slip", icon: Package, visible: hasManufacturing },
+                { id: "receipt", label: "Payment Receipt", icon: CreditCard, visible: true },
+              ]
+                .filter((d) => d.visible)
+                .map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => setActiveDoc(id as DocumentType)}
@@ -1132,7 +1657,33 @@ export default function SalesInvoiceDetailsPage({
               <span className="text-white">Copy Link</span>
             </button>
 
-            {/* 7. MORE (⋯) dropdown */}
+            {/* 7. CANCEL INVOICE (Direct action button) */}
+            {!isCancelled && (
+              <button
+                onClick={() => setCancelModal(true)}
+                style={{ color: "#ffffff" }}
+                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-rose-700 hover:bg-rose-600 text-white text-xs font-black shadow-lg shadow-rose-700/30 transition-all cursor-pointer"
+                title="Cancel this invoice and reverse stock"
+              >
+                <Ban className="w-4 h-4 text-white" />
+                <span className="text-white">Cancel Invoice</span>
+              </button>
+            )}
+
+            {/* 7.5 ISSUE CREDIT NOTE / SALES RETURN */}
+            {!isCancelled && (
+              <button
+                onClick={handleOpenCreditNoteModal}
+                style={{ color: "#ffffff" }}
+                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-black shadow-lg shadow-cyan-700/30 transition-all cursor-pointer"
+                title="Issue Credit Note / Sales Return against this invoice"
+              >
+                <RotateCcw className="w-4 h-4 text-white" />
+                <span className="text-white">Credit Note</span>
+              </button>
+            )}
+
+            {/* 8. MORE (⋯) dropdown */}
             <div className="relative" ref={moreMenuRef}>
               <button
                 onClick={() => setMoreMenuOpen((v) => !v)}
@@ -1149,7 +1700,10 @@ export default function SalesInvoiceDetailsPage({
                   {/* Edit Invoice */}
                   {!isCancelled && (
                     <button
-                      onClick={() => { setMoreMenuOpen(false); showToast("Edit invoice feature coming soon.", "info"); }}
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        router.push(`/app/sales/invoices?editId=${invoice.id}`);
+                      }}
                       className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
                       <Edit2 className="w-4 h-4 text-indigo-400" />
@@ -1180,25 +1734,51 @@ export default function SalesInvoiceDetailsPage({
 
                   {/* Proforma Invoice */}
                   <button
-                    onClick={() => { setMoreMenuOpen(false); showToast("Proforma invoice conversion coming soon.", "info"); }}
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      setActiveDoc("proforma");
+                      showToast("Proforma invoice generated & view activated!", "success");
+                    }}
                     className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                   >
                     <FileText className="w-4 h-4 text-purple-400" />
                     <span>Generate Proforma</span>
                   </button>
 
-                  {/* Credit Note */}
-                  <button
-                    onClick={() => { setMoreMenuOpen(false); showToast("Credit note generation coming soon.", "info"); }}
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                  >
-                    <ClipboardList className="w-4 h-4 text-cyan-400" />
-                    <span>Issue Credit Note</span>
-                  </button>
+                  {/* Sales Return / Credit Note */}
+                  {!isCancelled ? (
+                    <button
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        handleOpenCreditNoteModal();
+                      }}
+                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      <RotateCcw className="w-4 h-4 text-cyan-400" />
+                      <span>Sales Return (Credit Note)</span>
+                    </button>
+                  ) : (
+                    <div className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 cursor-not-allowed">
+                      <RotateCcw className="w-4 h-4 text-slate-600" />
+                      <span>Sales Return (Invoice Cancelled)</span>
+                    </div>
+                  )}
 
                   {/* Send SMS */}
                   <button
-                    onClick={() => { setMoreMenuOpen(false); showToast("SMS dispatch coming soon.", "info"); }}
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      const phone = invoice.customerPhone?.replace(/\D/g, "") || "";
+                      if (!phone) {
+                        showToast("Customer mobile number not found.", "error");
+                        return;
+                      }
+                      const smsText = encodeURIComponent(
+                        `Inv #${invoice.invoiceNumber} for Rs.${invoice.totalAmount.toFixed(2)} issued by ${profile?.businessName || "UdyogBill"}. Due: Rs.${invoice.balanceAmount.toFixed(2)}.`
+                      );
+                      window.open(`sms:${phone}?body=${smsText}`, "_self");
+                      showToast(`SMS link triggered for ${phone}`, "success");
+                    }}
                     className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                   >
                     <Share2 className="w-4 h-4 text-orange-400" />
@@ -1207,7 +1787,7 @@ export default function SalesInvoiceDetailsPage({
 
                   {/* Refresh */}
                   <button
-                    onClick={() => { setMoreMenuOpen(false); loadData(); }}
+                    onClick={() => { setMoreMenuOpen(false); loadData(); showToast("Invoice data refreshed", "info"); }}
                     className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                   >
                     <RefreshCw className="w-4 h-4 text-slate-400" />
@@ -1218,7 +1798,7 @@ export default function SalesInvoiceDetailsPage({
                   <div className="border-t border-slate-800 my-1"></div>
 
                   {/* Cancel Invoice */}
-                  {!isCancelled && (
+                  {!isCancelled ? (
                     <button
                       onClick={() => { setMoreMenuOpen(false); setCancelModal(true); }}
                       className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
@@ -1226,6 +1806,11 @@ export default function SalesInvoiceDetailsPage({
                       <Ban className="w-4 h-4" />
                       <span>Cancel Invoice</span>
                     </button>
+                  ) : (
+                    <div className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500/60 cursor-not-allowed">
+                      <Ban className="w-4 h-4 text-rose-500/40" />
+                      <span>Invoice Already Cancelled</span>
+                    </div>
                   )}
                 </div>
               )}
@@ -1237,14 +1822,16 @@ export default function SalesInvoiceDetailsPage({
             DOCUMENT RENDERERS
         ══════════════════════════════════════════════════════════════ */}
 
-        {/* Delivery Challan, Gate Pass, Packing Slip — live preview */}
+        {/* Delivery Challan, Gate Pass, Packing Slip, Proforma Invoice — live preview */}
         {activeDoc !== "invoice" && activeDoc !== "receipt" && (
           <div className="rounded-2xl bg-slate-700 p-6 shadow-xl">
             <div
               className="bg-white text-slate-900 w-full shadow-lg rounded-sm overflow-hidden"
               dangerouslySetInnerHTML={{
                 __html:
-                  activeDoc === "challan"
+                  activeDoc === "proforma"
+                    ? generateProformaInvoiceHtml(invoice, profile, upiQr)
+                    : activeDoc === "challan"
                     ? generateDeliveryChallanHtml(invoice, profile)
                     : activeDoc === "gatepass"
                     ? generateGatePassHtml(invoice, profile)
@@ -1360,11 +1947,12 @@ export default function SalesInvoiceDetailsPage({
           const upiPaymentUri = hasUpi
             ? `upi://pay?pa=${upiId}&pn=${encodeURIComponent(profile?.businessName || "Merchant")}&am=${invoice.totalAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent("Inv-" + invoice.invoiceNumber)}`
             : "";
-          const bankName = profile?.bankName || "CENTRAL BANK OF INDIA";
-          const bankAccountName = profile?.businessName || "SVASMIT PHARMACEUTICALS PVT. LTD";
-          const bankAccountNumber = profile?.bankAccountNumber || "5910261112";
-          const bankIfsc = profile?.bankIfsc || "CBIN0283533";
-          const bankBranch = profile?.bankBranch || "ANAND VIHAR";
+          const bankName = profile?.bankName || "";
+          const bankAccountName = profile?.businessName || "";
+          const bankAccountNumber = profile?.bankAccountNumber || "";
+          const bankIfsc = profile?.bankIfsc || "";
+          const bankBranch = profile?.bankBranch || "";
+          const hasBank = bankAccountNumber.length > 0;
 
           // Convert amount to words
           const amountInWords = (() => {
@@ -1443,61 +2031,115 @@ export default function SalesInvoiceDetailsPage({
                 }
               `}</style>
 
-              <div className="space-y-3">
-                {/* 1. Header Box with Orange Border */}
-                <div className="border border-[#d9531e] rounded-sm p-3 flex flex-row justify-between items-center gap-4 bg-white">
+              <div className="space-y-3.5 relative">
+                {/* Print Watermark */}
+                {isCancelled && (
+                  <div className="absolute top-[42%] left-[50%] -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-red-500/20 text-6xl font-black border-4 border-red-500/30 px-8 py-3 rounded-2xl pointer-events-none uppercase tracking-widest z-50 select-none">
+                    CANCELLED
+                  </div>
+                )}
+                {!isCancelled && invoice.hasCreditNote && (
+                  <div className="absolute top-[42%] left-[50%] -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-amber-600/20 text-5xl font-black border-4 border-amber-600/30 px-6 py-2 rounded-2xl pointer-events-none uppercase tracking-wider z-50 select-none">
+                    CREDIT NOTE ISSUED
+                  </div>
+                )}
+
+                {/* Print Alert Banners */}
+                {isCancelled && (
+                  <div className="bg-red-50 border-2 border-red-500 rounded p-2.5 text-center text-red-800">
+                    <div className="text-sm font-black uppercase tracking-wider text-red-700">
+                      &#10006; CANCELLED / VOID INVOICE
+                    </div>
+                    <div className="text-[11px] font-semibold text-red-600 mt-0.5">
+                      This invoice was CANCELLED {invoice.cancelledAtUtc ? `on ${new Date(invoice.cancelledAtUtc).toLocaleDateString("en-IN")}` : ""}. Reason: {invoice.cancellationReason || "Voided"}
+                    </div>
+                    <div className="text-[9.5px] font-bold text-red-500 uppercase mt-0.5">
+                      Not valid for payment, accounting or Input Tax Credit (ITC)
+                    </div>
+                  </div>
+                )}
+
+                {invoice.hasCreditNote && (
+                  <div className="bg-amber-50 border-2 border-amber-500 rounded p-2.5 text-center text-amber-900">
+                    <div className="text-sm font-black uppercase tracking-wider text-amber-700">
+                      &#9888; CREDIT NOTE ISSUED / SALE RETURN PROCESSED
+                    </div>
+                    <div className="text-[11px] font-bold text-amber-800 mt-0.5">
+                      Credit Note No: <span className="font-mono font-black text-amber-900">{invoice.creditNoteNumber}</span>
+                      &nbsp;&bull;&nbsp; Return Total: <span className="font-bold text-amber-900">₹{(invoice.creditNoteAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                      {invoice.creditNoteDate && <span>&nbsp;&bull;&nbsp; Return Date: {new Date(invoice.creditNoteDate).toLocaleDateString("en-IN")}</span>}
+                    </div>
+                    <div className="text-[9.5px] font-medium text-amber-700 mt-0.5">
+                      Goods/services against this invoice have been returned. Refer to Credit Note for net ledger adjustment.
+                    </div>
+                  </div>
+                )}
+
+                {/* 1. Header Box with Orange Border & Senior Designer Breathing Space */}
+                <div className="border-2 border-[#d9531e] rounded-md p-4 flex flex-row justify-between items-center gap-4 bg-white shadow-xs">
                   {/* Left: Company Logo + Details */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3.5">
                     {profile?.logoUrl ? (
                       <img
                         src={profile.logoUrl}
                         alt="Logo"
-                        className="w-14 h-14 object-contain shrink-0"
+                        className="w-16 h-16 object-contain shrink-0 rounded-sm"
                       />
                     ) : (
-                      <div className="w-14 h-14 border border-slate-200 rounded p-1 flex items-center justify-center shrink-0">
+                      <div className="w-16 h-16 border border-slate-200 rounded-md p-1.5 flex items-center justify-center shrink-0 bg-slate-50">
                         <svg className="w-10 h-10 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M12 6v12M6 12h12" />
                         </svg>
                       </div>
                     )}
-                    <div className="space-y-0.5">
-                      <h1 className="text-lg font-black tracking-tight text-slate-900 uppercase">
-                        {profile?.businessName || "SVASMIT PHARMACEUTICALS PVT LTD"}
+                    <div className="space-y-1">
+                      <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">
+                        {profile?.businessName || profile?.tradeName || "BUSINESS NAME"}
                       </h1>
-                      <p className="text-[10.5px] text-slate-700 leading-tight">
-                        {invoice.branchAddress || profile?.branches?.[0]?.addressLine1 || "HASAN PUR DEPO., DELHI, Delhi, 110092, India"}
-                      </p>
-                      <p className="text-[10.5px] text-slate-800 font-medium leading-tight">
-                        <b>Mobile:</b> {profile?.primaryPhone || "+919076661084"}
-                      </p>
-                      <p className="text-[10.5px] text-slate-900 font-mono leading-tight">
-                        <b>GST NUM:</b> {invoice.branchGstin || profile?.gstin || "07ABPCS0239Q1ZN"} &nbsp;|&nbsp; <b>DRUG LICEN:</b> {(profile as any)?.drugLicenseNumber || "WLF20B2025DL001180/1177"}
-                      </p>
+                      {(invoice.branchAddress || profile?.branches?.[0]?.addressLine1 || profile?.addressLine1) && (
+                        <p className="text-[11px] text-slate-700 leading-snug">
+                          {invoice.branchAddress || profile?.branches?.[0]?.addressLine1 || profile?.addressLine1}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px] text-slate-800 font-medium">
+                        {profile?.primaryPhone && <span><b>Mobile:</b> {profile.primaryPhone}</span>}
+                        {(invoice.branchGstin || profile?.gstin) && (
+                          <>
+                            {profile?.primaryPhone && <span>|</span>}
+                            <span><b>GSTIN:</b> <span className="font-mono font-bold text-slate-900">{invoice.branchGstin || profile?.gstin}</span></span>
+                          </>
+                        )}
+                        {(profile as any)?.drugLicenseNumber && (
+                          <>
+                            <span>|</span>
+                            <span><b>DL No:</b> <span className="font-mono text-slate-900">{(profile as any).drugLicenseNumber}</span></span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Right: Orange Tax Invoice Pill + Invoice Metadata + Verification QR */}
-                  <div className="flex items-center space-x-3 text-right shrink-0">
-                    <div className="space-y-1">
-                      <div className="inline-block px-5 py-1 bg-[#c2410c] text-white font-extrabold text-xs uppercase tracking-wider rounded-sm shadow-sm">
+                  <div className="flex items-center space-x-3.5 text-right shrink-0">
+                    <div className="space-y-1.5">
+                      <div className="inline-block px-5 py-1.5 bg-[#c2410c] text-white font-black text-xs uppercase tracking-wider rounded-sm shadow-sm">
                         Tax Invoice
                       </div>
-                      <div className="text-[10.5px] text-slate-800 space-y-0.5">
+                      <div className="text-[11px] text-slate-800 space-y-0.5 leading-snug">
                         <p>
-                          <b>Invoice No.</b> <span className="font-mono font-bold">{invoice.invoiceNumber}</span>
+                          <b>Invoice No:</b> <span className="font-mono font-black text-slate-900">{invoice.invoiceNumber}</span>
                         </p>
                         <p>
-                          <b>Date</b> {new Date(invoice.invoiceDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} 18:50
+                          <b>Date:</b> {new Date(invoice.invoiceDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} 18:50
                         </p>
                         <p>
-                          <b>Due Date</b> {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : new Date(invoice.invoiceDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} 18:50
+                          <b>Due Date:</b> {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : new Date(invoice.invoiceDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} 18:50
                         </p>
                       </div>
                     </div>
                     {/* Header Real Invoice QR Code */}
-                    <div className="w-16 h-16 bg-white border border-slate-300 rounded p-0.5 flex items-center justify-center shrink-0">
+                    <div className="w-16 h-16 bg-white border border-slate-300 rounded p-0.5 flex items-center justify-center shrink-0 shadow-xs">
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(invoiceQrString)}`}
                         alt="Invoice Verification QR"
@@ -1522,12 +2164,16 @@ export default function SalesInvoiceDetailsPage({
                         <b>Mobile:</b> {invoice.customerPhone}
                       </div>
                     )}
-                    <div className="text-slate-900 font-mono text-[10.5px]">
-                      <b>GST:</b> {invoice.customerGSTIN || "Unregistered"}
-                    </div>
-                    <div className="text-slate-900 font-mono text-[10.5px]">
-                      <b>DL NUM:</b> {(invoice as any)?.customerDlNumber || "TMR 114370,71"}
-                    </div>
+                    {invoice.customerGSTIN && (
+                      <div className="text-slate-900 font-mono text-[10.5px]">
+                        <b>GST:</b> {invoice.customerGSTIN}
+                      </div>
+                    )}
+                    {hasPharma && (invoice as any)?.customerDlNumber && (
+                      <div className="text-slate-900 font-mono text-[10.5px]">
+                        <b>DL NUM:</b> {(invoice as any).customerDlNumber}
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-2.5 space-y-0.5">
@@ -1535,7 +2181,7 @@ export default function SalesInvoiceDetailsPage({
                       SHIP TO / DISPATCH
                     </div>
                     <div className="text-slate-700 text-[10.5px] leading-tight">
-                      {invoice.shippingAddress || invoice.billingAddress || "SHOP NO. 2 WATER WORK WAZIRABAD, DELHI, DELHI, INDIA"}
+                      {invoice.shippingAddress || invoice.billingAddress || "Same as Billing Address"}
                     </div>
                     <div className="text-[10.5px] text-slate-700 pt-2">
                       <b>Place of Supply:</b> {invoice.placeOfSupply} (State Code: {invoice.shippingStateCode || invoice.billingStateCode})
@@ -1543,32 +2189,46 @@ export default function SalesInvoiceDetailsPage({
                   </div>
                 </div>
 
-                {/* 3. Product Line Items Grid Table with Only Vertical Lines in Blank Space */}
+                {/* 3. Product Line Items Grid Table — Smart Industry Specific */}
                 <div className="border border-slate-400 overflow-hidden">
                   <table className="w-full text-left text-[10px] border-collapse">
                     <thead className="bg-[#e2e8f0] text-slate-900 font-bold border-b border-slate-400">
-                      <tr>
-                        <th className="py-1 px-1 border-r border-slate-400 w-6 text-center">S.</th>
-                        <th className="py-1 px-1.5 border-r border-slate-400 min-w-[140px]">Product</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-12 text-center">Packing</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-14 text-center">HSN/SAC</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-14 text-center">Lot No</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-12 text-center">Expiry</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-10 text-right">Qty</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-9 text-right">Free</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-12 text-right">MRP</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-9 text-center">Unit</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-12 text-right">Rate</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-10 text-right">Disc</th>
-                        <th className="py-1 px-1.5 border-r border-slate-400 w-14 text-right">Taxable</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-11 text-right">CGST %</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-11 text-right">SGST %</th>
-                        <th className="py-1 px-1 border-r border-slate-400 w-11 text-right">IGST %</th>
-                        <th className="py-1 px-1.5 w-16 text-right">Amount</th>
-                      </tr>
+                      {hasPharma ? (
+                        /* Dedicated Chemist / Pharma Grid */
+                        <tr>
+                          <th className="py-1 px-1 border-r border-slate-400 w-6 text-center">S.</th>
+                          <th className="py-1 px-1.5 border-r border-slate-400 min-w-[140px]">Medicine / Item</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-12 text-center">Packing</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-14 text-center">HSN/SAC</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-14 text-center">Batch</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-12 text-center">Expiry</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-10 text-right">Qty</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-9 text-right">Free</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-12 text-right">MRP</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-9 text-center">Unit</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-12 text-right">Rate</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-10 text-right">Disc</th>
+                          <th className="py-1 px-1.5 border-r border-slate-400 w-14 text-right">Taxable</th>
+                          <th className="py-1 px-1 border-r border-slate-400 w-11 text-right">GST %</th>
+                          <th className="py-1 px-1.5 w-16 text-right">Amount</th>
+                        </tr>
+                      ) : (
+                        /* Ultra-Clean GimBooks / Vyapar Universal Retail & Kirana Grid */
+                        <tr>
+                          <th className="py-1.5 px-2 border-r border-slate-400 w-8 text-center">#</th>
+                          <th className="py-1.5 px-3 border-r border-slate-400 min-w-[200px]">Item Description</th>
+                          <th className="py-1.5 px-2 border-r border-slate-400 w-20 text-center">HSN/SAC</th>
+                          <th className="py-1.5 px-2 border-r border-slate-400 w-16 text-right">Qty</th>
+                          <th className="py-1.5 px-2 border-r border-slate-400 w-14 text-center">Unit</th>
+                          <th className="py-1.5 px-2 border-r border-slate-400 w-20 text-right">Rate (₹)</th>
+                          <th className="py-1.5 px-2 border-r border-slate-400 w-16 text-right">Disc (₹)</th>
+                          <th className="py-1.5 px-3 border-r border-slate-400 w-24 text-right">Taxable (₹)</th>
+                          <th className="py-1.5 px-2 border-r border-slate-400 w-16 text-right">GST %</th>
+                          <th className="py-1.5 px-3 w-28 text-right font-black">Total (₹)</th>
+                        </tr>
+                      )}
                     </thead>
                     <tbody className="text-slate-900 font-sans">
-                      {/* Product rows with horizontal border */}
                       {invoice.items.map((item, idx) => {
                         let itemAttrs: any = {};
                         try {
@@ -1580,55 +2240,89 @@ export default function SalesInvoiceDetailsPage({
                           const d = new Date(item.expiryDate);
                           expStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
                         }
-                        if (!expStr) expStr = "11/27";
 
-                        const packingStr = itemAttrs.packing || "10X10";
+                        const packingStr = itemAttrs.packing || "—";
                         const freeQty = itemAttrs.freeQuantity || 0;
 
+                        if (hasPharma) {
+                          return (
+                            <tr key={item.id} className="border-b border-slate-400 hover:bg-slate-50">
+                              <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{idx + 1}</td>
+                              <td className="py-1 px-1.5 border-r border-slate-400 font-bold uppercase text-[9.5px]">
+                                {item.itemName}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{packingStr}</td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{item.hsnCode || "—"}</td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-center font-mono font-semibold text-slate-900">
+                                {item.batchNumber || "—"}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{expStr || "—"}</td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-right font-mono font-bold">
+                                {item.quantity.toFixed(2)}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-right font-mono text-emerald-700">
+                                {freeQty > 0 ? freeQty.toFixed(2) : "—"}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-right font-mono">
+                                {(item.mrp || 0).toFixed(2)}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-center font-mono text-[9px]">
+                                {item.uomCode || "Unit"}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-right font-mono font-semibold">
+                                {item.unitPrice.toFixed(2)}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-right font-mono text-slate-600">
+                                {item.discountAmount > 0 ? item.discountAmount.toFixed(2) : "0.00"}
+                              </td>
+                              <td className="py-1 px-1.5 border-r border-slate-400 text-right font-mono font-bold text-slate-900">
+                                {item.taxableAmount.toFixed(2)}
+                              </td>
+                              <td className="py-1 px-1 border-r border-slate-400 text-right font-mono">
+                                {item.gstRate.toFixed(2)}%
+                              </td>
+                              <td className="py-1 px-1.5 text-right font-mono font-black text-slate-900">
+                                {item.totalAmount.toFixed(2)}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        // Clean Retail / Kirana Row
                         return (
-                          <tr key={item.id} className="border-b border-slate-400 hover:bg-slate-50">
-                            <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{idx + 1}</td>
-                            <td className="py-1 px-1.5 border-r border-slate-400 font-bold uppercase text-[9.5px]">
+                          <tr key={item.id} className="border-b border-slate-400 hover:bg-slate-50 text-[11px]">
+                            <td className="py-1.5 px-2 border-r border-slate-400 text-center font-mono">{idx + 1}</td>
+                            <td className="py-1.5 px-3 border-r border-slate-400 font-bold uppercase text-[11px] text-slate-900">
                               {item.itemName}
+                              {item.itemSku && (
+                                <span className="block text-[9.5px] font-mono text-slate-500 font-normal">
+                                  SKU: {item.itemSku}
+                                </span>
+                              )}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{packingStr}</td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{item.hsnCode || "30049099"}</td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-center font-mono font-semibold text-slate-900">
-                              {item.batchNumber || "GT30427E"}
+                            <td className="py-1.5 px-2 border-r border-slate-400 text-center font-mono text-slate-700">
+                              {item.hsnCode || "—"}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{expStr}</td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono font-bold">
+                            <td className="py-1.5 px-2 border-r border-slate-400 text-right font-mono font-bold text-slate-900">
                               {item.quantity.toFixed(2)}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono text-emerald-700">
-                              {freeQty > 0 ? freeQty.toFixed(2) : "0.00"}
+                            <td className="py-1.5 px-2 border-r border-slate-400 text-center font-mono text-[10px] text-slate-600 uppercase">
+                              {item.uomCode || "Pcs"}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono">
-                              {(item.mrp || 0).toFixed(2)}
-                            </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-center font-mono text-[9px]">
-                              {item.uomCode || "Strip"}
-                            </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono font-semibold">
+                            <td className="py-1.5 px-2 border-r border-slate-400 text-right font-mono font-semibold">
                               {item.unitPrice.toFixed(2)}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono text-slate-600">
+                            <td className="py-1.5 px-2 border-r border-slate-400 text-right font-mono text-slate-600">
                               {item.discountAmount > 0 ? item.discountAmount.toFixed(2) : "0.00"}
                             </td>
-                            <td className="py-1 px-1.5 border-r border-slate-400 text-right font-mono font-bold text-slate-900">
+                            <td className="py-1.5 px-3 border-r border-slate-400 text-right font-mono font-bold text-slate-900">
                               {item.taxableAmount.toFixed(2)}
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono">
-                              {isIntraState ? `${(item.gstRate / 2).toFixed(2)}%` : "—"}
+                            <td className="py-1.5 px-2 border-r border-slate-400 text-right font-mono text-slate-700 font-semibold">
+                              {item.gstRate.toFixed(1)}%
                             </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono">
-                              {isIntraState ? `${(item.gstRate / 2).toFixed(2)}%` : "—"}
-                            </td>
-                            <td className="py-1 px-1 border-r border-slate-400 text-right font-mono">
-                              {!isIntraState ? `${item.gstRate.toFixed(2)}%` : "—"}
-                            </td>
-                            <td className="py-1 px-1.5 text-right font-mono font-black text-slate-900">
-                              {item.totalAmount.toFixed(2)}
+                            <td className="py-1.5 px-3 text-right font-mono font-black text-slate-900 text-[12px]">
+                              ₹{item.totalAmount.toFixed(2)}
                             </td>
                           </tr>
                         );
@@ -1637,23 +2331,38 @@ export default function SalesInvoiceDetailsPage({
                       {/* Blank rows WITHOUT horizontal lines, ONLY vertical lines running top to bottom */}
                       {Array.from({ length: emptyRowsCount }).map((_, emptyIdx) => (
                         <tr key={`empty-${emptyIdx}`}>
-                          <td className="py-2.5 px-1 border-r border-slate-400 text-center">&nbsp;</td>
-                          <td className="py-2.5 px-1.5 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1.5 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
-                          <td className="py-2.5 px-1.5">&nbsp;</td>
+                          {hasPharma ? (
+                            <>
+                              <td className="py-2.5 px-1 border-r border-slate-400 text-center">&nbsp;</td>
+                              <td className="py-2.5 px-1.5 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1.5 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-1.5">&nbsp;</td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="py-2.5 px-2 border-r border-slate-400 text-center">&nbsp;</td>
+                              <td className="py-2.5 px-3 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-2 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-2 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-2 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-2 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-2 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-3 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-2 border-r border-slate-400">&nbsp;</td>
+                              <td className="py-2.5 px-3">&nbsp;</td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -1667,11 +2376,19 @@ export default function SalesInvoiceDetailsPage({
                     <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px] mb-1">
                       Bank Details:
                     </div>
-                    <div><b>Bank:</b> {bankName}</div>
-                    <div><b>Account Name:</b> {bankAccountName}</div>
-                    <div className="font-mono"><b>Account No:</b> {bankAccountNumber}</div>
-                    <div className="font-mono"><b>IFSC:</b> {bankIfsc}</div>
-                    <div><b>Branch:</b> {bankBranch}</div>
+                    {hasBank ? (
+                      <>
+                        {bankName && <div><b>Bank:</b> {bankName}</div>}
+                        {bankAccountName && <div><b>Account Name:</b> {bankAccountName}</div>}
+                        <div className="font-mono"><b>Account No:</b> {bankAccountNumber}</div>
+                        {bankIfsc && <div className="font-mono"><b>IFSC:</b> {bankIfsc}</div>}
+                        {bankBranch && <div><b>Branch:</b> {bankBranch}</div>}
+                      </>
+                    ) : (
+                      <div className="text-slate-400 italic py-2">
+                        Bank details not configured in Settings.
+                      </div>
+                    )}
                   </div>
 
                   {/* Middle: UPI QR Code (Only if configured in Settings) */}

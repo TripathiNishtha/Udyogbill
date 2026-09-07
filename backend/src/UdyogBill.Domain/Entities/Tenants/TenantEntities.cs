@@ -53,6 +53,23 @@ public class Tenant : BaseAuditableEntity
     public DateTimeOffset? SuspendedAtUtc { get; set; }
     public string? SuspensionReason { get; set; }
 
+    // Modular Industry Pack & Entitlements
+    public string IndustryTypeCode { get; set; } = IndustryTypeCodes.Other;
+    public string ActiveIndustryModule { get; set; } = IndustryTypeCodes.Other;
+    public IndustryModuleStatus IndustryModuleStatus { get; set; } = IndustryModuleStatus.Active;
+    public DateTimeOffset IndustryActivatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public int MaxAllowedUsers { get; set; } = 2;
+
+    // AI Pro Add-on Module
+    public bool IsAiAddonActive { get; set; } = true; // Active for premium subscribers
+    public int AiScansLimit { get; set; } = 500; // Monthly scans quota
+    public int AiScansUsed { get; set; } = 0;
+
+    // Pharma ERP & SFA Add-On Suite
+    public bool IsPharmaSfaActive { get; set; } = false;
+    public int MaxAllowedMrUsers { get; set; } = 0;
+    public int MaxAllowedManagerUsers { get; set; } = 0;
+
     public ICollection<TenantBranch> Branches { get; set; } = new List<TenantBranch>();
     public ICollection<TenantWarehouse> Warehouses { get; set; } = new List<TenantWarehouse>();
     public ICollection<TenantIndustryConfig> IndustryConfigs { get; set; } = new List<TenantIndustryConfig>();

@@ -356,8 +356,45 @@ public class InventoryService : IInventoryService
     {
         var tenantId = RequireTenantId();
 
-        var units = await _context.UnitsOfMeasure
+        var existingUnits = await _context.UnitsOfMeasure
             .Where(u => u.TenantId == tenantId && !u.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (existingUnits.Count < 3)
+        {
+            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+            var industryCode = tenant?.IndustryTypeCode ?? "OTHER";
+            var standardUoms = IndustryStandardUoms.GetForIndustry(industryCode);
+            var existingCodes = existingUnits.Select(u => u.Code.ToUpperInvariant()).ToHashSet();
+
+            bool addedAny = false;
+            foreach (var uomDef in standardUoms)
+            {
+                if (!existingCodes.Contains(uomDef.Code.ToUpperInvariant()))
+                {
+                    _context.UnitsOfMeasure.Add(new UnitOfMeasure
+                    {
+                        TenantId = tenantId,
+                        Code = uomDef.Code,
+                        Name = uomDef.Name,
+                        Symbol = uomDef.Symbol,
+                        DecimalPlaces = uomDef.DecimalPlaces,
+                        IsActive = true
+                    });
+                    addedAny = true;
+                }
+            }
+
+            if (addedAny)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                existingUnits = await _context.UnitsOfMeasure
+                    .Where(u => u.TenantId == tenantId && !u.IsDeleted)
+                    .ToListAsync(cancellationToken);
+            }
+        }
+
+        var units = existingUnits
             .OrderBy(u => u.Name)
             .Select(u => new UomDto(
                 u.Id,
@@ -368,7 +405,7 @@ public class InventoryService : IInventoryService
                 u.DecimalPlaces,
                 u.IsActive
             ))
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return Result<IReadOnlyList<UomDto>>.Success(units);
     }
@@ -783,62 +820,132 @@ public class InventoryService : IInventoryService
         _context.Items.Add(item);
 
         // Initial Stock Onboarding (Skip for Services or non-stock items)
-        if (request.ItemType != ItemType.Service && request.TrackInventory && request.InitialStock > 0)
+        if (request.ItemType != ItemType.Service && request.TrackInventory)
         {
-            var defaultWarehouse = request.InitialWarehouseId.HasValue && request.InitialWarehouseId.Value != Guid.Empty
-                ? await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.Id == request.InitialWarehouseId.Value && !w.IsDeleted, cancellationToken)
-                : await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.IsDefault && !w.IsDeleted, cancellationToken);
-
-            if (defaultWarehouse != null)
+            if (request.OpeningBatches != null && request.OpeningBatches.Count > 0)
             {
-                ItemBatch? batch = null;
-                if (request.TrackBatches && !string.IsNullOrWhiteSpace(request.InitialBatchNumber))
+                var defaultWarehouse = await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.IsDefault && !w.IsDeleted, cancellationToken)
+                    ?? await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, cancellationToken);
+
+                foreach (var ob in request.OpeningBatches.Where(b => b.Quantity > 0 || !string.IsNullOrWhiteSpace(b.BatchNumber)))
                 {
-                    batch = new ItemBatch
+                    var warehouse = ob.WarehouseId.HasValue && ob.WarehouseId.Value != Guid.Empty
+                        ? await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.Id == ob.WarehouseId.Value && !w.IsDeleted, cancellationToken)
+                        : defaultWarehouse;
+
+                    if (warehouse == null) continue;
+
+                    ItemBatch? batch = null;
+                    if (request.TrackBatches && !string.IsNullOrWhiteSpace(ob.BatchNumber))
+                    {
+                        var batchNum = ob.BatchNumber.Trim().ToUpperInvariant();
+                        batch = new ItemBatch
+                        {
+                            TenantId = tenantId,
+                            ItemId = item.Id,
+                            BatchNumber = batchNum,
+                            ExpiryDate = ob.ExpiryDate.HasValue
+                                ? DateTime.SpecifyKind(ob.ExpiryDate.Value, DateTimeKind.Utc)
+                                : DateTime.UtcNow.AddYears(2),
+                            ManufacturingDate = DateTime.UtcNow.AddMonths(-1),
+                            MRP = ob.MRP.HasValue && ob.MRP.Value > 0 ? ob.MRP.Value : request.MRP,
+                            PurchaseRate = ob.PurchaseRate.HasValue && ob.PurchaseRate.Value > 0 ? ob.PurchaseRate.Value : request.PurchasePrice,
+                            SaleRate = request.SellingPrice,
+                            IsActive = true
+                        };
+                        item.Batches.Add(batch);
+                    }
+
+                    var stock = new ItemWarehouseStock
                     {
                         TenantId = tenantId,
                         ItemId = item.Id,
-                        BatchNumber = request.InitialBatchNumber.Trim().ToUpperInvariant(),
-                        ExpiryDate = request.InitialBatchExpiryDate.HasValue
-                            ? DateTime.SpecifyKind(request.InitialBatchExpiryDate.Value, DateTimeKind.Utc)
-                            : DateTime.UtcNow.AddYears(2),
-                        ManufacturingDate = DateTime.UtcNow.AddMonths(-1),
-                        MRP = request.MRP,
-                        PurchaseRate = request.PurchasePrice,
-                        SaleRate = request.SellingPrice,
-                        IsActive = true
+                        WarehouseId = warehouse.Id,
+                        Batch = batch,
+                        CurrentQuantity = ob.Quantity,
+                        ReservedQuantity = 0,
+                        ReorderLevel = request.MinimumStockAlert
                     };
-                    item.Batches.Add(batch);
+                    item.WarehouseStocks.Add(stock);
+
+                    var unitCost = ob.PurchaseRate.HasValue && ob.PurchaseRate.Value > 0 ? ob.PurchaseRate.Value : request.PurchasePrice;
+                    var movement = new StockMovement
+                    {
+                        TenantId = tenantId,
+                        ItemId = item.Id,
+                        WarehouseId = warehouse.Id,
+                        Batch = batch,
+                        MovementType = StockMovementType.PhysicalAdjustment,
+                        Quantity = ob.Quantity,
+                        QuantityBefore = 0,
+                        QuantityAfter = ob.Quantity,
+                        UnitCost = unitCost,
+                        TotalCost = ob.Quantity * unitCost,
+                        ReferenceDocumentType = "InitialStockOpening",
+                        Notes = string.IsNullOrWhiteSpace(ob.BatchNumber)
+                            ? "Opening stock balance upon product catalog creation"
+                            : $"Opening stock batch {ob.BatchNumber.Trim().ToUpperInvariant()}" + (ob.ExpiryDate.HasValue ? $" (Exp: {ob.ExpiryDate.Value:yyyy-MM-dd})" : "")
+                    };
+                    _context.StockMovements.Add(movement);
                 }
+            }
+            else if (request.InitialStock > 0)
+            {
+                var defaultWarehouse = request.InitialWarehouseId.HasValue && request.InitialWarehouseId.Value != Guid.Empty
+                    ? await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.Id == request.InitialWarehouseId.Value && !w.IsDeleted, cancellationToken)
+                    : await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.IsDefault && !w.IsDeleted, cancellationToken);
 
-                var stock = new ItemWarehouseStock
+                if (defaultWarehouse != null)
                 {
-                    TenantId = tenantId,
-                    ItemId = item.Id,
-                    WarehouseId = defaultWarehouse.Id,
-                    Batch = batch,
-                    CurrentQuantity = request.InitialStock,
-                    ReservedQuantity = 0,
-                    ReorderLevel = request.MinimumStockAlert
-                };
-                item.WarehouseStocks.Add(stock);
+                    ItemBatch? batch = null;
+                    if (request.TrackBatches && !string.IsNullOrWhiteSpace(request.InitialBatchNumber))
+                    {
+                        batch = new ItemBatch
+                        {
+                            TenantId = tenantId,
+                            ItemId = item.Id,
+                            BatchNumber = request.InitialBatchNumber.Trim().ToUpperInvariant(),
+                            ExpiryDate = request.InitialBatchExpiryDate.HasValue
+                                ? DateTime.SpecifyKind(request.InitialBatchExpiryDate.Value, DateTimeKind.Utc)
+                                : DateTime.UtcNow.AddYears(2),
+                            ManufacturingDate = DateTime.UtcNow.AddMonths(-1),
+                            MRP = request.MRP,
+                            PurchaseRate = request.PurchasePrice,
+                            SaleRate = request.SellingPrice,
+                            IsActive = true
+                        };
+                        item.Batches.Add(batch);
+                    }
 
-                var movement = new StockMovement
-                {
-                    TenantId = tenantId,
-                    ItemId = item.Id,
-                    WarehouseId = defaultWarehouse.Id,
-                    Batch = batch,
-                    MovementType = StockMovementType.PhysicalAdjustment,
-                    Quantity = request.InitialStock,
-                    QuantityBefore = 0,
-                    QuantityAfter = request.InitialStock,
-                    UnitCost = request.PurchasePrice,
-                    TotalCost = request.InitialStock * request.PurchasePrice,
-                    ReferenceDocumentType = "InitialStockOpening",
-                    Notes = "Opening stock balance upon product catalog creation"
-                };
-                _context.StockMovements.Add(movement);
+                    var stock = new ItemWarehouseStock
+                    {
+                        TenantId = tenantId,
+                        ItemId = item.Id,
+                        WarehouseId = defaultWarehouse.Id,
+                        Batch = batch,
+                        CurrentQuantity = request.InitialStock,
+                        ReservedQuantity = 0,
+                        ReorderLevel = request.MinimumStockAlert
+                    };
+                    item.WarehouseStocks.Add(stock);
+
+                    var movement = new StockMovement
+                    {
+                        TenantId = tenantId,
+                        ItemId = item.Id,
+                        WarehouseId = defaultWarehouse.Id,
+                        Batch = batch,
+                        MovementType = StockMovementType.PhysicalAdjustment,
+                        Quantity = request.InitialStock,
+                        QuantityBefore = 0,
+                        QuantityAfter = request.InitialStock,
+                        UnitCost = request.PurchasePrice,
+                        TotalCost = request.InitialStock * request.PurchasePrice,
+                        ReferenceDocumentType = "InitialStockOpening",
+                        Notes = "Opening stock balance upon product catalog creation"
+                    };
+                    _context.StockMovements.Add(movement);
+                }
             }
         }
 

@@ -3,6 +3,10 @@ import { AuthResponse, Industry, TenantDetails, Plan } from "@/types";
 
 export const authService = {
   async login(credentials: { email: string; password: string }): Promise<AuthResponse> {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("udyogbill_token");
+      localStorage.removeItem("udyogbill_user");
+    }
     const response = await apiClient.post<AuthResponse>("/auth/login", credentials);
     if (response.data.accessToken) {
       localStorage.setItem("udyogbill_token", response.data.accessToken);
@@ -20,6 +24,7 @@ export const authService = {
     primaryPhone: string;
     industryId: string;
     gstin?: string;
+    referralCode?: string;
   }): Promise<string> {
     const response = await apiClient.post<string>("/auth/register", data);
     return response.data;

@@ -1,14 +1,15 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authService, industryService } from "@/services/api-services";
 import { Industry } from "@/types";
-import { Building2, Mail, Lock, Phone, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Building2, Mail, Lock, Phone, AlertCircle, Loader2, CheckCircle, Gift } from "lucide-react";
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [loadingIndustries, setLoadingIndustries] = useState(true);
 
@@ -21,6 +22,7 @@ export default function RegisterPage() {
     primaryPhone: "",
     industryId: "",
     gstin: "",
+    referralCode: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -28,22 +30,33 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    const refParam = searchParams.get("ref");
+    if (refParam) {
+      setFormData((prev) => ({ ...prev, referralCode: refParam.trim().toUpperCase() }));
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     async function loadIndustries() {
       try {
         const data = await industryService.getIndustries();
-        setIndustries(data);
-        if (data.length > 0) {
-          setFormData((prev) => ({ ...prev, industryId: data[0].id }));
+        const canonical = data.filter((ind: any) =>
+          ["PHARMA", "FMCG", "ELECTRONICS", "GARMENTS", "HARDWARE", "SERVICE_SECTOR", "OTHER"].includes(ind.code)
+        );
+        const finalIndustries = canonical.length > 0 ? canonical : data;
+        setIndustries(finalIndustries);
+        if (finalIndustries.length > 0) {
+          setFormData((prev) => ({ ...prev, industryId: finalIndustries[0].id }));
         }
       } catch (err) {
-        // Fallback default target industries if backend not currently running
         setIndustries([
-          { id: "1", code: "PHARMA", name: "Pharmaceuticals & Healthcare", description: "Batch & Expiry", icon: "activity", displayOrder: 1, isActive: true, modules: [] },
-          { id: "2", code: "FMCG", name: "FMCG Distribution", description: "Multi-UOM & Schemes", icon: "truck", displayOrder: 2, isActive: true, modules: [] },
-          { id: "3", code: "GARMENTS", name: "Garments & Apparel", description: "Size/Color Matrix", icon: "tag", displayOrder: 3, isActive: true, modules: [] },
-          { id: "4", code: "BAKERY", name: "Bakery & Confectionery", description: "Recipe & BOM", icon: "coffee", displayOrder: 4, isActive: true, modules: [] },
-          { id: "5", code: "WHOLESALE", name: "B2B Wholesale Trading", description: "Tier Pricing", icon: "briefcase", displayOrder: 5, isActive: true, modules: [] },
-          { id: "6", code: "RETAIL", name: "Retail Store & POS", description: "Fast Barcode POS", icon: "shopping-cart", displayOrder: 6, isActive: true, modules: [] },
+          { id: "1", code: "PHARMA", name: "Pharmaceuticals & Healthcare (Batch, Expiry, H1)", description: "Batch & Expiry", icon: "activity", displayOrder: 1, isActive: true, modules: [] },
+          { id: "2", code: "FMCG", name: "FMCG & Grocery (Multi-UOM, Packaging, Schemes)", description: "Multi-UOM & Schemes", icon: "truck", displayOrder: 2, isActive: true, modules: [] },
+          { id: "3", code: "ELECTRONICS", name: "Electronics & Mobile (Serial Numbers, IMEI, Warranty)", description: "Serials & Warranty", icon: "tv", displayOrder: 3, isActive: true, modules: [] },
+          { id: "4", code: "GARMENTS", name: "Garments, Apparel & Footwear (Size-Color-Fit Matrix)", description: "Size/Color Matrix", icon: "tag", displayOrder: 4, isActive: true, modules: [] },
+          { id: "5", code: "HARDWARE", name: "Hardware, Paint & Sanitary (Weight/Dimensions)", description: "Hardware & Multi-Rate", icon: "tool", displayOrder: 5, isActive: true, modules: [] },
+          { id: "6", code: "SERVICE_SECTOR", name: "Service Sector & Consulting (Job Sheets, Services)", description: "Service Invoicing", icon: "briefcase", displayOrder: 6, isActive: true, modules: [] },
+          { id: "7", code: "OTHER", name: "General Trading & Retail (Invoicing & POS)", description: "General Trade & POS", icon: "globe", displayOrder: 7, isActive: true, modules: [] },
         ]);
       } finally {
         setLoadingIndustries(false);
@@ -81,6 +94,18 @@ export default function RegisterPage() {
           <p className="text-sm text-slate-400 mt-1">Multi-Industry Configuration Driven Platform</p>
         </div>
 
+        {formData.referralCode && (
+          <div className="mb-5 p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-3 text-emerald-400 text-xs">
+            <Gift className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+            <div>
+              <span className="font-semibold text-white">Referral Partner Applied:</span>{" "}
+              <code className="font-mono bg-emerald-950 px-1.5 py-0.5 rounded text-emerald-300 font-bold">
+                {formData.referralCode}
+              </code>
+            </div>
+          </div>
+        )}
+
         {success ? (
           <div className="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-center space-y-3">
             <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
@@ -100,7 +125,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                Target Industry Template
+                Business Category
               </label>
               <select
                 value={formData.industryId}
@@ -110,7 +135,7 @@ export default function RegisterPage() {
               >
                 {industries.map((ind) => (
                   <option key={ind.id} value={ind.id} className="bg-slate-900 text-white">
-                    {ind.name} ({ind.code}) — {ind.description}
+                    {ind.name}
                   </option>
                 ))}
               </select>
@@ -162,15 +187,16 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Primary Mobile Phone
+                  Primary Mobile Phone (10 Digits)
                 </label>
                 <input
                   type="tel"
                   required
+                  maxLength={10}
                   value={formData.primaryPhone}
-                  onChange={(e) => setFormData({ ...formData, primaryPhone: e.target.value })}
-                  placeholder="+91 9876543210"
-                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
+                  onChange={(e) => setFormData({ ...formData, primaryPhone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  placeholder="9876543210"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>
@@ -203,6 +229,20 @@ export default function RegisterPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center justify-between">
+                <span>Referral / Partner Code (Optional)</span>
+                <span className="text-slate-500 lowercase text-[11px]">(e.g. UB-REF-XXXXX)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.referralCode}
+                onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+                placeholder="UB-REF-XXXXX"
+                className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm font-mono uppercase tracking-wider focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -221,5 +261,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }

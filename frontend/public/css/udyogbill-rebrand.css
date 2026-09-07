@@ -1,0 +1,218 @@
+:root{
+  --ub2-bg: #fff8f0;
+  --ub2-card: rgba(255,255,255,.9);
+  --ub2-card-solid:#ffffff;
+  --ub2-border: rgba(245,130,32,.16);
+  --ub2-text:#1a120b;
+  --ub2-muted: rgba(26,18,11,.58);
+  --ub2-primary:#f58220;
+  --ub2-primary-2:#27ae60;
+  --ub2-gold:#e8a317;
+  --ub2-radius: 12px;
+  --ub2-shadow: 0 16px 40px rgba(11,11,11,.10);
+  --ub2-shadow-soft: 0 10px 24px rgba(245,130,32,.10);
+}
+
+/* Warm brand atmosphere (not AdminLTE blue/indigo) */
+body.ub-app{
+  background:
+    radial-gradient(1200px 640px at 8% -8%, rgba(245,130,32,.18), transparent 52%),
+    radial-gradient(900px 520px at 92% 0%, rgba(232,163,23,.14), transparent 48%),
+    radial-gradient(700px 420px at 50% 110%, rgba(39,174,96,.10), transparent 55%),
+    var(--ub2-bg) !important;
+}
+
+body.ub-app .side-bar{
+  width: 268px !important;
+  background: linear-gradient(185deg, #0b0b0b 0%, #141414 48%, #1a120b 100%) !important;
+  border-right: 1px solid rgba(245,130,32,.25) !important;
+  box-shadow: 8px 0 32px rgba(0,0,0,.22) !important;
+}
+
+body.ub-app .side-bar a.tw-h-15{
+  height: 64px !important;
+  background: linear-gradient(135deg, #f58220 0%, #e8a317 100%) !important;
+  border-right: none !important;
+  border-bottom: 1px solid rgba(0,0,0,.15) !important;
+}
+
+body.ub-app .side-bar .side-bar-heading{
+  font-weight: 800;
+  letter-spacing: .2px;
+  color: #ffffff !important;
+}
+
+body.ub-app #side-bar{
+  padding: 12px 10px !important;
+}
+
+body.ub-app #side-bar a,
+body.ub-app #side-bar .drop_down{
+  padding: 7px 10px !important;
+  border-radius: 10px !important;
+}
+
+body.ub-app #side-bar .chiled{
+  margin-top: 4px !important;
+  margin-bottom: 6px !important;
+}
+
+body.ub-app #side-bar .chiled .tw-absolute{
+  background: rgba(245,130,32,.35) !important;
+}
+
+/* Header: black bar + orange underline feel */
+body.ub-app .no-print.tw-border-b,
+body.ub-app .no-print[class*="tw-bg-gradient"]{
+  background: linear-gradient(90deg, #0b0b0b 0%, #171717 100%) !important;
+  border-bottom: 2px solid #f58220 !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 22px rgba(0,0,0,.28) !important;
+}
+
+body.ub-app .no-print.tw-border-b *{
+  text-shadow: none !important;
+}
+
+body.ub-app #scrollable-container{
+  padding: 20px 24px 32px 24px;
+}
+@media (min-width: 1280px){
+  body.ub-app #scrollable-container{
+    padding: 24px 32px 40px 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+body.ub-app .box,
+body.ub-app .small-box,
+body.ub-app .modal-content,
+body.ub-app .tw-bg-white.tw-rounded-xl{
+  border-radius: var(--ub2-radius) !important;
+}
+
+body.ub-app .box,
+body.ub-app .tw-bg-white.tw-ring-1.tw-ring-gray-200{
+  background: var(--ub2-card) !important;
+  border: 1px solid var(--ub2-border) !important;
+  box-shadow: var(--ub2-shadow-soft) !important;
+  backdrop-filter: blur(10px);
+}
+
+body.ub-app table.table{
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(245,130,32,.12) !important;
+}
+body.ub-app table.table thead th{
+  background: linear-gradient(180deg, rgba(245,130,32,.10) 0%, rgba(232,163,23,.06) 100%) !important;
+  border-bottom: 1px solid rgba(245,130,32,.22) !important;
+  font-weight: 700;
+  color: #9a4d0d !important;
+}
+body.ub-app table.table tbody td{
+  border-top: 1px solid rgba(26,18,11,.06) !important;
+}
+
+body.ub-app .form-control,
+body.ub-app input[type="text"],
+body.ub-app input[type="number"],
+body.ub-app select,
+body.ub-app textarea{
+  border-radius: 10px !important;
+  border: 1px solid rgba(26,18,11,.12) !important;
+  box-shadow: none !important;
+}
+body.ub-app .form-control:focus,
+body.ub-app input:focus,
+body.ub-app select:focus,
+body.ub-app textarea:focus{
+  border-color: rgba(245,130,32,.55) !important;
+  box-shadow: 0 0 0 4px rgba(245,130,32,.14) !important;
+  outline: none !important;
+}
+
+body.ub-app .btn,
+body.ub-app .tw-dw-btn{
+  border-radius: 10px !important;
+}
+body.ub-app .btn-primary{
+  background: linear-gradient(135deg, var(--ub2-primary) 0%, var(--ub2-gold) 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(245,130,32,.28) !important;
+}
+body.ub-app .btn-primary:hover{
+  filter: brightness(.97);
+}
+body.ub-app .btn-success{
+  background: var(--ub2-primary-2) !important;
+  border-color: #219150 !important;
+}
+
+body.ub-app .no-print button[class*="tw-bg-"],
+body.ub-app .no-print a[class*="tw-bg-"]:not(.tw-bg-white),
+body.ub-app .side-bar-collapse,
+body.ub-app .small-view-button{
+  background: rgba(255,255,255,.12) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+}
+body.ub-app .no-print button[class*="tw-bg-"]:hover,
+body.ub-app .no-print a[class*="tw-bg-"]:not(.tw-bg-white):hover,
+body.ub-app .side-bar-collapse:hover,
+body.ub-app .small-view-button:hover{
+  background: rgba(245,130,32,.9) !important;
+  border-color: #e8a317 !important;
+}
+
+body.ub-app .content-wrapper,
+body.ub-app .right-side{
+  background: transparent !important;
+}
+
+/* Override leftover indigo/blue gradients */
+body.ub-app [class*="tw-bg-gradient-to-r"][class*="tw-from-"],
+body.ub-app [class*="tw-bg-gradient"][class*="tw-from-"]{
+  background: linear-gradient(135deg, #f58220 0%, #e8a317 55%, #27ae60 130%) !important;
+}
+
+body.ub-app #dashboard_date_filter{
+  background: rgba(255,255,255,.96) !important;
+  color: #c45f0f !important;
+  border: 1px solid rgba(245,130,32,.35) !important;
+}
+body.ub-app #dashboard_date_filter:hover{
+  background: #fff !important;
+  color: #9a4d0d !important;
+}
+
+body.ub-app .tw-ring-1.tw-ring-gray-200{
+  border-color: rgba(245,130,32,.14) !important;
+  box-shadow: 0 4px 20px rgba(11,11,11,.05) !important;
+}
+body.ub-app .tw-ring-1.tw-ring-gray-200:hover{
+  box-shadow: 0 8px 28px rgba(245,130,32,.14) !important;
+  border-color: rgba(245,130,32,.28) !important;
+}
+
+body.ub-app .tw-ring-1 .tw-bg-sky-100{
+  background: rgba(245,130,32,.14) !important;
+}
+body.ub-app .tw-ring-1 .tw-text-sky-500{
+  color: #f58220 !important;
+}
+
+body.ub-app .tw-border-2.tw-flex.tw-items-center{
+  border-color: rgba(245,130,32,.22) !important;
+}
+
+body.ub-app .badge-primary,
+body.ub-app .label-primary{
+  background: var(--ub2-primary) !important;
+}
+body.ub-app .badge-success,
+body.ub-app .label-success{
+  background: var(--ub2-primary-2) !important;
+}

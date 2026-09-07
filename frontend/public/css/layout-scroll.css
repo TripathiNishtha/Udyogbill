@@ -1,0 +1,126 @@
+/* Independent scroll: sidebar menu vs main dashboard/content */
+
+body.ub-app:not(.lockscreen) {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden !important;
+}
+
+body.ub-app:not(.lockscreen) html {
+    height: 100%;
+    overflow: hidden;
+}
+
+body.ub-app:not(.lockscreen) .thetop {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Desktop sidebar — fixed shell, menu scrolls inside */
+@media (min-width: 1024px) {
+    body.ub-app:not(.lockscreen) aside.side-bar {
+        display: flex !important;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        align-self: flex-start;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        min-height: 0;
+        overflow: hidden !important;
+        flex-shrink: 0;
+    }
+}
+
+/* Mobile drawer — scroll entire panel so all items (HRM, Essentials, etc.) are reachable */
+body.ub-app:not(.lockscreen) aside.side-bar.small-view-side-active {
+    display: flex !important;
+    flex-direction: column !important;
+    position: fixed !important;
+    top: 52px;
+    left: 0;
+    width: min(280px, 85vw) !important;
+    height: calc(100vh - 52px) !important;
+    height: calc(100dvh - 52px) !important;
+    max-height: calc(100vh - 52px) !important;
+    max-height: calc(100dvh - 52px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    z-index: 1050;
+    box-sizing: border-box;
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+
+@media (max-width: 1023px) {
+    body.ub-app aside.side-bar.small-view-side-active > a[href] {
+        display: none !important;
+    }
+
+    body.ub-app aside.side-bar.small-view-side-active #side-bar {
+        flex: none !important;
+        min-height: auto !important;
+        max-height: none !important;
+        height: auto !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+        overflow: visible !important;
+    }
+
+    body.ub-app aside.side-bar.small-view-side-active .ub-sidebar-manual-wrap {
+        display: block !important;
+        flex-shrink: 0 !important;
+        margin-top: 8px !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    body.ub-app:not(.lockscreen) aside.side-bar.small-view-side-active {
+        top: 56px;
+        height: calc(100vh - 56px) !important;
+        max-height: calc(100vh - 56px) !important;
+    }
+}
+
+/* Menu list scrolls inside sidebar only */
+body.ub-app:not(.lockscreen) #side-bar {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.ub-app:not(.lockscreen) .ub-sidebar-manual-wrap {
+    flex-shrink: 0;
+}
+
+/* Main column — header fixed, content scrolls */
+body.ub-app:not(.lockscreen) .thetop > main {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+body.ub-app:not(.lockscreen) #scrollable-container,
+body.ub-app:not(.lockscreen) .ub-main-scroll {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}

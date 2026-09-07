@@ -18,13 +18,28 @@ import {
   AlertCircle,
   Check
 } from "lucide-react";
-import { subscriptionService } from "@/services/api-services";
-import { superAdminService, CreatePlanInput, UpdatePlanInput } from "@/services/super-admin-services";
+import { superAdminService, CreatePlanInput, UpdatePlanInput, PlatformCommercialConfig, UpdateCommercialConfigInput } from "@/services/super-admin-services";
 import { Plan } from "@/types";
 
 export default function SuperAdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Canonical Commercial Configuration State
+  const [commercialConfig, setCommercialConfig] = useState<PlatformCommercialConfig | null>(null);
+  const [commercialLoading, setCommercialLoading] = useState(false);
+  const [commercialSaving, setCommercialSaving] = useState(false);
+  const [commercialForm, setCommercialForm] = useState<UpdateCommercialConfigInput>({
+    coreAnnualPrice: 3999,
+    coreBiennialPrice: 6999,
+    singleUserAnnualPrice: 799,
+    fiveUserPackAnnualPrice: 2999,
+    aiProAnnualPrice: 1499,
+    aiProMonthlyQuota: 500,
+    defaultIncludedUsers: 2,
+    gstRatePercent: 18,
+    commercialNotes: ""
+  });
 
   // Create Plan Modal
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -68,10 +83,50 @@ export default function SuperAdminPlansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  const loadCommercialConfig = async () => {
+    try {
+      setCommercialLoading(true);
+      const data = await superAdminService.getCommercialConfig();
+      if (data) {
+        setCommercialConfig(data);
+        setCommercialForm({
+          coreAnnualPrice: Number(data.coreAnnualPrice),
+          coreBiennialPrice: Number(data.coreBiennialPrice),
+          singleUserAnnualPrice: Number(data.singleUserAnnualPrice),
+          fiveUserPackAnnualPrice: Number(data.fiveUserPackAnnualPrice),
+          aiProAnnualPrice: Number(data.aiProAnnualPrice),
+          aiProMonthlyQuota: Number(data.aiProMonthlyScanLimit),
+          defaultIncludedUsers: Number(data.includedUsers),
+          gstRatePercent: Number(data.gstRatePercent),
+          commercialNotes: data.notes || ""
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load commercial config", err);
+    } finally {
+      setCommercialLoading(false);
+    }
+  };
+
+  const handleCommercialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setCommercialSaving(true);
+      await superAdminService.updateCommercialConfig(commercialForm);
+      setActionMsg({ type: "success", text: "Canonical commercial pricing updated live in database!" });
+      setTimeout(() => setActionMsg(null), 4000);
+      await loadCommercialConfig();
+    } catch (err: any) {
+      setActionMsg({ type: "error", text: err?.response?.data?.message || "Failed to update commercial pricing." });
+    } finally {
+      setCommercialSaving(false);
+    }
+  };
+
   const loadPlans = async () => {
     try {
       setLoading(true);
-      const data = await subscriptionService.getPlans();
+      const data = await superAdminService.getPlans();
       setPlans(data);
     } catch (err) {
       console.error("Failed to load plans", err);
@@ -81,6 +136,7 @@ export default function SuperAdminPlansPage() {
   };
 
   useEffect(() => {
+    loadCommercialConfig();
     loadPlans();
   }, []);
 
@@ -207,6 +263,238 @@ export default function SuperAdminPlansPage() {
           <span>{actionMsg.text}</span>
         </div>
       )}
+
+      {/* Canonical Platform Commercial Pricing Configuration */}
+      <div className="rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-emerald-500/30 p-6 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              Live Commercial Pricing Control (Database Backed)
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              UdyogBill Core SaaS Commercial Engine
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400">
+              Single core subscription. All 7 industry modules (Pharma, FMCG, Electronics, Garments, Hardware, Services, Retail) are included free with registration. SuperAdmin dynamically controls add-ons and core rates.
+            </p>
+          </div>
+          {commercialConfig && (
+            <div className="text-right text-xs text-slate-400">
+              <span className="block font-medium text-slate-300">Status: <span className="text-emerald-400 font-semibold">Active & Live</span></span>
+              {commercialConfig.updatedAtUtc && (
+                <span>Last saved: {new Date(commercialConfig.updatedAtUtc).toLocaleString()}</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={handleCommercialSubmit} className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Card 1: Core 1-Year */}
+            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Core 1-Year</span>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300">Primary</span>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Base Price (excl. GST)</label>
+                <div className="mt-1 relative rounded-lg">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={commercialForm.coreAnnualPrice}
+                    onChange={(e) => setCommercialForm({ ...commercialForm, coreAnnualPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-7 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white font-semibold focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80 space-y-1">
+                <div className="flex justify-between">
+                  <span>+ {commercialForm.gstRatePercent}% GST:</span>
+                  <span className="text-slate-300">₹{(commercialForm.coreAnnualPrice * (commercialForm.gstRatePercent / 100)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-emerald-400 pt-1 border-t border-slate-800">
+                  <span>Total Payable:</span>
+                  <span>₹{(commercialForm.coreAnnualPrice * (1 + commercialForm.gstRatePercent / 100)).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                <span>Includes <strong>{commercialForm.defaultIncludedUsers} users</strong></span>
+              </div>
+            </div>
+
+            {/* Card 2: Core 2-Year Bundle */}
+            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Core 2-Year Bundle</span>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500/20 text-amber-300">High Value</span>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Base Price (excl. GST)</label>
+                <div className="mt-1 relative rounded-lg">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={commercialForm.coreBiennialPrice}
+                    onChange={(e) => setCommercialForm({ ...commercialForm, coreBiennialPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-7 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white font-semibold focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80 space-y-1">
+                <div className="flex justify-between">
+                  <span>+ {commercialForm.gstRatePercent}% GST:</span>
+                  <span className="text-slate-300">₹{(commercialForm.coreBiennialPrice * (commercialForm.gstRatePercent / 100)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-amber-400 pt-1 border-t border-slate-800">
+                  <span>Total Payable:</span>
+                  <span>₹{(commercialForm.coreBiennialPrice * (1 + commercialForm.gstRatePercent / 100)).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>24-month validity lock</span>
+              </div>
+            </div>
+
+            {/* Card 3: User Add-ons */}
+            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">User Add-Ons</span>
+                <Users className="w-4 h-4 text-sky-400" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Extra Single User / yr</label>
+                <div className="mt-1 relative rounded-lg">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={commercialForm.singleUserAnnualPrice}
+                    onChange={(e) => setCommercialForm({ ...commercialForm, singleUserAnnualPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">5-User Pack / yr</label>
+                <div className="mt-1 relative rounded-lg">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={commercialForm.fiveUserPackAnnualPrice}
+                    onChange={(e) => setCommercialForm({ ...commercialForm, fiveUserPackAnnualPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="text-[11px] text-sky-300">
+                Bulk discount: ₹{((commercialForm.singleUserAnnualPrice * 5) - commercialForm.fiveUserPackAnnualPrice).toFixed(0)} savings vs 5 single seats.
+              </div>
+            </div>
+
+            {/* Card 4: AI Pro Add-on */}
+            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">AI Pro Scanner</span>
+                <Sparkles className="w-4 h-4 text-purple-400" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">AI Pro Price / yr</label>
+                <div className="mt-1 relative rounded-lg">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={commercialForm.aiProAnnualPrice}
+                    onChange={(e) => setCommercialForm({ ...commercialForm, aiProAnnualPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-purple-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Monthly Scan Limit</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={commercialForm.aiProMonthlyQuota}
+                  onChange={(e) => setCommercialForm({ ...commercialForm, aiProMonthlyQuota: parseInt(e.target.value) || 500 })}
+                  className="mt-1 w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-purple-500"
+                  required
+                />
+              </div>
+              <div className="text-[11px] text-purple-300">
+                Invoice OCR + Auto Purchase Entry quota
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Secondary Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2 border-t border-slate-800/80">
+            <div>
+              <label className="text-xs text-slate-400 font-medium">Default Included Users in Core</label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={commercialForm.defaultIncludedUsers}
+                onChange={(e) => setCommercialForm({ ...commercialForm, defaultIncludedUsers: parseInt(e.target.value) || 2 })}
+                className="mt-1 w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 font-medium">GST Rate (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="28"
+                step="0.01"
+                value={commercialForm.gstRatePercent}
+                onChange={(e) => setCommercialForm({ ...commercialForm, gstRatePercent: parseFloat(e.target.value) || 18 })}
+                className="mt-1 w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 font-medium">Internal Commercial Notes</label>
+              <input
+                type="text"
+                placeholder="e.g. FY26 Promotion Pricing"
+                value={commercialForm.commercialNotes || ""}
+                onChange={(e) => setCommercialForm({ ...commercialForm, commercialNotes: e.target.value })}
+                className="mt-1 w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+            <button
+              type="submit"
+              disabled={commercialSaving || commercialLoading}
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-emerald-600/25 flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Zap className="w-4 h-4" />
+              <span>{commercialSaving ? "Saving Live Changes..." : "Save Commercial Pricing Changes"}</span>
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* Plans Pricing Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

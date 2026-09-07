@@ -21,6 +21,7 @@ import {
   StockValuationReport,
 } from "@/services/p0-reports.service";
 import { ReportExportToolbar } from "@/components/reports/report-export-toolbar";
+import { QuickReportJumpBar } from "@/components/reports/quick-report-jump-bar";
 
 const formatCurrency = (val?: number) => {
   if (val === undefined || val === null) return "₹0.00";
@@ -139,7 +140,7 @@ function StockReportsContent() {
         (it.stockValue ?? 0).toFixed(2)
       ]);
 
-  const summaryExportData = activeTab === "balance"
+  const summaryExportData: Record<string, string | number> = activeTab === "balance"
     ? {
         "Total Stock SKUs": balanceData?.totalCount || 0,
         "Total Current Stock": balanceData?.totalCurrentStock || 0,
@@ -154,14 +155,8 @@ function StockReportsContent() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-xs text-slate-400">
-        <Link href="/app/reports" className="hover:text-white transition-colors">
-          Report Center
-        </Link>
-        <span>/</span>
-        <span className="text-slate-200">Inventory & Stock Audits</span>
-      </div>
+      {/* Top Quick Jump Bar */}
+      <QuickReportJumpBar currentReportTitle="Stock Balance & Valuation" />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

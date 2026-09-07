@@ -1,0 +1,392 @@
+/**
+ * UdyogBill — Business Import Hub
+ * Scoped: .ub-bi-page / .ub-bi-header
+ */
+
+section.content.no-print:has(.ub-bi-page) {
+    background: #faf6f0 !important;
+    padding: 0.25rem 10px 0.75rem !important;
+}
+
+.ub-bi-page {
+    --bi-primary: #f58220;
+    --bi-brown-header: linear-gradient(135deg, #1c1410 0%, #3b2a1a 55%, #4a3728 100%);
+    --bi-success: #059669;
+    --bi-radius: 12px;
+    --bi-radius-sm: 6px;
+    --bi-shadow: 0 8px 24px rgba(62, 54, 45, 0.10);
+    font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+    padding-bottom: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ── Header ── */
+.ub-bi-header {
+    background: var(--bi-brown-header);
+    margin: -0.25rem -10px 0.75rem;
+    padding: 0.65rem 0.9rem 0.6rem;
+    border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 0 0 var(--bi-radius-sm) var(--bi-radius-sm);
+    box-shadow: 0 4px 16px rgba(28, 20, 16, 0.22);
+}
+
+.ub-bi-header__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #fff7ed !important;
+    line-height: 1.2;
+}
+
+.ub-bi-header__subtitle {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    color: #d6d3d1;
+    font-weight: 500;
+}
+
+.ub-bi-alert {
+    border-radius: var(--bi-radius-sm);
+    margin-bottom: 0.75rem;
+}
+
+/* ── Order card ── */
+.ub-bi-page .ub-table-card {
+    margin-bottom: 1.25rem;
+    padding: 12px 14px 14px;
+    background: #fff;
+    border: 1px solid #d6d3d1;
+    border-radius: var(--bi-radius);
+    box-shadow: var(--bi-shadow);
+}
+
+.ub-bi-page .ub-card-header {
+    margin: -2px -2px 12px;
+    padding: 10px 12px;
+    border-radius: var(--bi-radius-sm);
+    background: var(--bi-brown-header);
+}
+
+.ub-bi-page .ub-card-header h3 {
+    margin: 0 0 2px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff7ed !important;
+}
+
+.ub-bi-page .ub-card-header p {
+    margin: 0;
+    font-size: 11px;
+    color: #d6d3d1 !important;
+}
+
+.ub-bi-page .ub-card-tag {
+    display: inline-flex;
+    margin-bottom: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(245, 130, 32, 0.18);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    color: #fcd34d;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.ub-bi-order-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.ub-bi-order-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #fafaf9;
+    border: 1px solid #e7e5e4;
+    border-radius: var(--bi-radius-sm);
+    font-size: 0.8125rem;
+}
+
+.ub-bi-order-step__num {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f58220, #c45f0f);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.ub-bi-order-step__label {
+    flex: 1;
+    font-weight: 600;
+    color: #1c1917;
+    line-height: 1.25;
+}
+
+.ub-bi-order-step__optional {
+    flex-shrink: 0;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #f5f5f4;
+    color: #78716c;
+    border: 1px solid #e7e5e4;
+}
+
+/* ── Section heading ── */
+.ub-bi-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(245, 130, 32, 0.25);
+}
+
+.ub-bi-section-tag {
+    display: inline-block;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(245, 130, 32, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    color: #c45f0f;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.ub-bi-section-head h2 {
+    margin: 0 0 2px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1c1917;
+}
+
+.ub-bi-section-head p {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #78716c;
+}
+
+.ub-bi-template-hint {
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: var(--bi-radius-sm);
+    background: #fff8f0;
+    border: 1px solid #fed7aa;
+    color: #c2410c;
+    font-size: 0.75rem;
+    font-weight: 600;
+    max-width: 320px;
+    line-height: 1.35;
+}
+
+.ub-bi-template-hint .fa {
+    margin-right: 4px;
+}
+
+/* ── Import cards grid — equal height, 3 columns ── */
+.ub-bi-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    align-items: stretch;
+}
+
+.ub-bi-import-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 220px;
+    background: #fff;
+    border: 1px solid #d6d3d1;
+    border-radius: var(--bi-radius);
+    box-shadow: var(--bi-shadow);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.ub-bi-import-card:hover {
+    border-color: rgba(245, 130, 32, 0.45);
+    box-shadow: 0 12px 32px rgba(245, 130, 32, 0.14);
+    transform: translateY(-2px);
+}
+
+.ub-bi-import-card--done {
+    border-left: 4px solid var(--bi-success);
+}
+
+.ub-bi-import-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px 10px;
+    background: var(--bi-brown-header);
+    min-height: 72px;
+}
+
+.ub-bi-import-card__title-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.ub-bi-import-card__title-wrap .ub-card-tag {
+    margin-bottom: 4px;
+    font-size: 9px;
+}
+
+.ub-bi-import-card--done .ub-bi-import-card__title-wrap .ub-card-tag {
+    background: rgba(5, 150, 105, 0.25);
+    border-color: rgba(110, 231, 183, 0.45);
+    color: #6ee7b7;
+}
+
+.ub-bi-import-card__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff7ed !important;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.ub-bi-import-card__status {
+    flex-shrink: 0;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.ub-bi-import-card__status--pending {
+    background: rgba(255, 255, 255, 0.12);
+    color: #d6d3d1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ub-bi-import-card__status--done {
+    background: rgba(5, 150, 105, 0.35);
+    color: #a7f3d0;
+    border: 1px solid rgba(110, 231, 183, 0.4);
+}
+
+.ub-bi-import-card__body {
+    flex: 1;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ub-bi-import-card__desc {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #57534e;
+    line-height: 1.45;
+    flex: 1;
+}
+
+.ub-bi-import-card__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 14px 14px;
+    margin-top: auto;
+    border-top: 1px solid #f5f5f4;
+    padding-top: 12px;
+}
+
+.ub-bi-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--bi-radius-sm);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-decoration: none !important;
+    transition: background 0.15s ease, transform 0.15s ease;
+    white-space: nowrap;
+}
+
+.ub-bi-btn--primary {
+    background: linear-gradient(135deg, #f58220, #c45f0f);
+    color: #fff !important;
+    border: none;
+    box-shadow: 0 3px 10px rgba(245, 130, 32, 0.25);
+}
+
+.ub-bi-btn--primary:hover {
+    background: linear-gradient(135deg, #ea580c, #9a3412);
+    color: #fff !important;
+    transform: translateY(-1px);
+}
+
+.ub-bi-btn--template {
+    background: #fff;
+    color: #047857 !important;
+    border: 1px solid #a7f3d0;
+}
+
+.ub-bi-btn--template:hover {
+    background: #ecfdf5;
+    color: #047857 !important;
+    border-color: #6ee7b7;
+}
+
+/* ── Responsive ── */
+@media (max-width: 991px) {
+    .ub-bi-cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ub-bi-order-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767px) {
+    .ub-bi-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ub-bi-order-steps {
+        grid-template-columns: 1fr;
+    }
+
+    .ub-bi-section-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ub-bi-template-hint {
+        max-width: none;
+    }
+
+    .ub-bi-import-card__footer {
+        flex-direction: column;
+    }
+
+    .ub-bi-btn {
+        width: 100%;
+    }
+}

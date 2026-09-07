@@ -1,0 +1,72 @@
+/* Mobile app header — keep toolbar on one row */
+@media (max-width: 767px) {
+    .ub-app-header .ub-header-inner {
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+
+    .ub-app-header .ub-header-toolbar {
+        flex-wrap: nowrap !important;
+        flex: 1 1 auto;
+        min-width: 0;
+        justify-content: flex-end;
+        gap: 0.35rem !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 1px;
+    }
+
+    .ub-app-header .ub-header-toolbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .ub-app-header .ub-header-toolbar > *,
+    .ub-app-header .ub-header-toolbar .notifications-menu {
+        flex-shrink: 0;
+    }
+
+    .ub-app-header .notifications-menu {
+        display: inline-flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .ub-app-header .ub-header-shell {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .ub-app-header .ub-header-toolbar summary,
+    .ub-app-header .ub-header-toolbar > a,
+    .ub-app-header .ub-header-toolbar > button,
+    .ub-app-header .ub-header-toolbar > details > summary,
+    .ub-app-header .ub-header-toolbar .clock_in_btn,
+    .ub-app-header .ub-header-toolbar .clock_out_btn,
+    .ub-app-header .notifications-menu > a {
+        padding: 0.375rem !important;
+        min-width: 2rem;
+        min-height: 2rem;
+    }
+
+    .ub-app-header .ub-header-pos-label {
+        display: none !important;
+    }
+
+    .ub-app-header .ub-header-pos-btn svg {
+        display: block !important;
+    }
+
+    .ub-app-header .ub-header-left {
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 399px) {
+    .ub-app-header .ub-header-toolbar {
+        gap: 0.25rem !important;
+    }
+}

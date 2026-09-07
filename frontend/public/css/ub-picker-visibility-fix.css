@@ -1,0 +1,203 @@
+/* UdyogBill — global visibility fix for floating pickers/dropdowns (auth + app) */
+
+/* Bootstrap Datepicker */
+.datepicker,
+.datepicker-dropdown,
+.datepicker.datepicker-dropdown {
+    background: #fff !important;
+    color: #1a120b !important;
+    border: 1px solid #d6d3d1 !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12) !important;
+}
+
+.datepicker table tr th,
+.datepicker table tr td {
+    color: #1a120b !important;
+}
+
+.datepicker table tr th.dow {
+    color: #57534e !important;
+    font-weight: 700 !important;
+}
+
+.datepicker .datepicker-switch,
+.datepicker .prev,
+.datepicker .next,
+.datepicker tfoot tr th {
+    color: #1a120b !important;
+}
+
+.datepicker table tr td.day:hover,
+.datepicker table tr td.focused {
+    background: #fff7ed !important;
+    color: #1a120b !important;
+}
+
+.datepicker table tr td.today {
+    background: #ffedd5 !important;
+    color: #9a3412 !important;
+    font-weight: 700 !important;
+}
+
+.datepicker table tr td.active.active,
+.datepicker table tr td.active.active:hover,
+.datepicker table tr td.active.highlighted.active,
+.datepicker table tr td.active.highlighted.active:hover {
+    background: #f58220 !important;
+    color: #fff !important;
+}
+
+.datepicker table tr td.old,
+.datepicker table tr td.new {
+    color: #a8a29e !important;
+}
+
+.datepicker table tr td.disabled,
+.datepicker table tr td.disabled:hover {
+    color: #d6d3d1 !important;
+    background: transparent !important;
+}
+
+/* Bootstrap Datetimepicker */
+.bootstrap-datetimepicker-widget,
+.bootstrap-datetimepicker-widget.dropdown-menu {
+    background: #fff !important;
+    color: #1a120b !important;
+    border: 1px solid #d6d3d1 !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12) !important;
+}
+
+.bootstrap-datetimepicker-widget table th,
+.bootstrap-datetimepicker-widget table td,
+.bootstrap-datetimepicker-widget table td span,
+.bootstrap-datetimepicker-widget .picker-switch,
+.bootstrap-datetimepicker-widget .timepicker-hour,
+.bootstrap-datetimepicker-widget .timepicker-minute,
+.bootstrap-datetimepicker-widget .timepicker-second {
+    color: #1a120b !important;
+}
+
+.bootstrap-datetimepicker-widget table td.day:hover,
+.bootstrap-datetimepicker-widget table td.hour:hover,
+.bootstrap-datetimepicker-widget table td.minute:hover,
+.bootstrap-datetimepicker-widget table td.second:hover,
+.bootstrap-datetimepicker-widget table td span:hover {
+    background: #fff7ed !important;
+    color: #1a120b !important;
+}
+
+.bootstrap-datetimepicker-widget table td.active,
+.bootstrap-datetimepicker-widget table td.active:hover,
+.bootstrap-datetimepicker-widget table td span.active {
+    background: #f58220 !important;
+    color: #fff !important;
+}
+
+.bootstrap-datetimepicker-widget table td.today:before {
+    border-bottom-color: #f58220 !important;
+}
+
+/* Date Range Picker */
+.daterangepicker {
+    background: #fff !important;
+    color: #1a120b !important;
+    border: 1px solid #d6d3d1 !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12) !important;
+}
+
+.daterangepicker .calendar-table th,
+.daterangepicker .calendar-table td,
+.daterangepicker .drp-selected,
+.daterangepicker .ranges li {
+    color: #1a120b !important;
+}
+
+.daterangepicker td.available:hover,
+.daterangepicker th.available:hover {
+    background: #fff7ed !important;
+    color: #1a120b !important;
+}
+
+.daterangepicker td.in-range {
+    background: #ffedd5 !important;
+    color: #1a120b !important;
+}
+
+.daterangepicker td.active,
+.daterangepicker td.active:hover,
+.daterangepicker .ranges li.active {
+    background: #f58220 !important;
+    color: #fff !important;
+}
+
+.daterangepicker .drp-buttons .btn {
+    color: #1a120b !important;
+}
+
+/* jQuery UI Datepicker */
+.ui-datepicker {
+    background: #fff !important;
+    color: #1a120b !important;
+    border: 1px solid #d6d3d1 !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12) !important;
+}
+
+.ui-datepicker .ui-datepicker-title,
+.ui-datepicker th,
+.ui-datepicker td a,
+.ui-datepicker .ui-state-default {
+    color: #1a120b !important;
+}
+
+.ui-datepicker .ui-state-hover,
+.ui-datepicker .ui-state-focus {
+    background: #fff7ed !important;
+    color: #1a120b !important;
+    border-color: #fdba74 !important;
+}
+
+.ui-datepicker .ui-state-active,
+.ui-datepicker .ui-state-active:hover {
+    background: #f58220 !important;
+    color: #fff !important;
+    border-color: #f58220 !important;
+}
+
+.ui-datepicker .ui-state-disabled,
+.ui-datepicker .ui-state-disabled .ui-state-default {
+    color: #d6d3d1 !important;
+    opacity: 1 !important;
+}
+
+/* Select2 — global fallback (dropdown appended to body) */
+.select2-container--default .select2-dropdown {
+    background: #fff !important;
+    border: 1px solid #d6d3d1 !important;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    color: #1a120b !important;
+    background: #fff !important;
+    border: 1px solid #d6d3d1 !important;
+}
+
+.select2-container--default .select2-results__option {
+    color: #1a120b !important;
+    background: #fff !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background: #fff7ed !important;
+    color: #1a120b !important;
+}
+
+.select2-container--default .select2-results__option[aria-selected="true"] {
+    background: #ffedd5 !important;
+    color: #9a3412 !important;
+    font-weight: 600;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected="true"] {
+    background: #fdba74 !important;
+    color: #1a120b !important;
+}

@@ -212,6 +212,7 @@ public class TenantPurchaseBillsController : BaseApiController
     }
 
     [HttpPost]
+    [Idempotent]
     [RequirePermission(Permissions.PurchaseCreate)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

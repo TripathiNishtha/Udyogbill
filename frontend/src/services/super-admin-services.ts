@@ -53,6 +53,46 @@ export interface UpdatePlanInput {
   entitledFeatureIds: string[];
 }
 
+export interface PlatformCommercialConfig {
+  id: string;
+  coreAnnualPrice: number;
+  coreBiennialPrice: number;
+  includedUsers: number;
+  singleUserAnnualPrice: number;
+  fiveUserPackAnnualPrice: number;
+  aiProAnnualPrice: number;
+  aiProMonthlyScanLimit: number;
+  gstRatePercent: number;
+  isActive: boolean;
+  updatedAtUtc?: string | null;
+  lastUpdatedByEmail?: string | null;
+  notes?: string | null;
+  pharmaSfaAnnualBasePrice?: number;
+  pharmaSfaMonthlyBasePrice?: number;
+  mrSeatAnnualPrice?: number;
+  mrSeatMonthlyPrice?: number;
+  managerSeatAnnualPrice?: number;
+  managerSeatMonthlyPrice?: number;
+}
+
+export interface UpdateCommercialConfigInput {
+  coreAnnualPrice: number;
+  coreBiennialPrice: number;
+  singleUserAnnualPrice: number;
+  fiveUserPackAnnualPrice: number;
+  aiProAnnualPrice: number;
+  aiProMonthlyQuota: number;
+  defaultIncludedUsers: number;
+  gstRatePercent: number;
+  commercialNotes?: string;
+  pharmaSfaAnnualBasePrice?: number;
+  pharmaSfaMonthlyBasePrice?: number;
+  mrSeatAnnualPrice?: number;
+  mrSeatMonthlyPrice?: number;
+  managerSeatAnnualPrice?: number;
+  managerSeatMonthlyPrice?: number;
+}
+
 export const superAdminService = {
   // Platform Stats
   async getStats(): Promise<PlatformStats> {
@@ -123,6 +163,16 @@ export const superAdminService = {
     await apiClient.delete(`/superadmin/plans/${id}`);
   },
 
+  // Canonical Commercial & Pricing Engine
+  async getCommercialConfig(): Promise<PlatformCommercialConfig> {
+    const res = await apiClient.get<any>("/superadmin/commercial/config");
+    return res.data?.data ?? res.data;
+  },
+
+  async updateCommercialConfig(data: UpdateCommercialConfigInput): Promise<void> {
+    await apiClient.put("/superadmin/commercial/config", data);
+  },
+
   // Audit Logs
   async getAuditLogs(params?: {
     tenantId?: string;
@@ -172,6 +222,7 @@ export const superAdminService = {
     }
     return [
       { id: "11111111-1111-1111-1111-111111111111", code: "ADDON_PHARMA", name: "Pharma & Healthcare Suite", description: "Generic Salt Substitutes, Multi-Batch FEFO, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims.", price: 499, annualPrice: 4990, billingCycle: "Monthly", isActive: true },
+      { id: "66666666-6666-6666-6666-666666666666", code: "ADDON_PHARMA_SFA", name: "Pharma SFA & MR Field Force Suite", description: "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.", price: 1999, annualPrice: 19999, billingCycle: "Monthly", isActive: true },
       { id: "22222222-2222-2222-2222-222222222222", code: "ADDON_GARMENTS", name: "Apparel & Garments Matrix", description: "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", price: 399, annualPrice: 3990, billingCycle: "Monthly", isActive: true },
       { id: "33333333-3333-3333-3333-333333333333", code: "ADDON_MANUFACTURING", name: "Manufacturing & Bakery (BOM)", description: "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", price: 599, annualPrice: 5990, billingCycle: "Monthly", isActive: true },
       { id: "44444444-4444-4444-4444-444444444444", code: "ADDON_FMCG", name: "FMCG, Grocery & Distribution", description: "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", price: 399, annualPrice: 3990, billingCycle: "Monthly", isActive: true },

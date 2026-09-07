@@ -58,7 +58,7 @@ public class PlatformEmailService : IPlatformEmailService
                 client.Credentials = new NetworkCredential(config.SmtpUsername, config.SmtpPassword);
             }
 
-            var fromAddress = new MailAddress(config.FromEmail, config.FromName ?? "UdyogBill Cloud Billing");
+            var fromAddress = new MailAddress(config.FromEmail, config.FromName ?? "UdyogBill");
             var toAddress = new MailAddress(toEmail, toName);
 
             using var message = new MailMessage(fromAddress, toAddress)
@@ -93,7 +93,7 @@ public class PlatformEmailService : IPlatformEmailService
 <head><meta charset='utf-8'></head>
 <body style='font-family: Arial, sans-serif; background-color: #0f172a; padding: 40px; color: #f8fafc;'>
   <div style='max-width: 550px; margin: 0 auto; background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px;'>
-    <div style='font-size: 20px; font-weight: bold; color: #818cf8; margin-bottom: 8px;'>UDYOGBILL CLOUD BILLING</div>
+    <div style='font-size: 20px; font-weight: bold; color: #818cf8; margin-bottom: 8px;'>UDYOGBILL</div>
     <h2 style='color: #ffffff; margin-top: 0;'>SMTP Mail Gateway Active!</h2>
     <p style='color: #94a3b8; font-size: 14px; line-height: 1.6;'>
       This is a test notification confirming that your Super Admin SMTP mail server configuration is fully operational and authenticated.
@@ -103,30 +103,30 @@ public class PlatformEmailService : IPlatformEmailService
       ✓ TLS/SSL Security Validated<br>
       ✓ Ready to dispatch automated invoices, welcome emails, and password reset OTPs.
     </div>
-    <div style='font-size: 11px; color: #64748b; border-top: 1px solid #334155; padding-top: 16px;'>
-      Generated at {DateTime.UtcNow:dd-MMM-yyyy HH:mm:ss} UTC by UdyogBill SuperAdmin
+    <div style='font-size: 11px; color: #64748b; border-top: 1px solid #334155; padding-top: 16px; margin-top: 24px;'>
+      Need help? Reach out to support@udyogbill.com.
     </div>
   </div>
 </body>
 </html>";
 
-        return await SendEmailAsync(recipientEmail, "Administrator", subject, html, cancellationToken);
+        return await SendEmailAsync(recipientEmail, "Super Admin", subject, html, cancellationToken);
     }
 
     public async Task<bool> SendPasswordResetOtpAsync(string toEmail, string userName, string otpCode, CancellationToken cancellationToken = default)
     {
-        string subject = $"{otpCode} is your UdyogBill Password Reset Code";
+        string subject = "Your UdyogBill Verification OTP Code";
         string html = $@"
 <!DOCTYPE html>
 <html>
 <head><meta charset='utf-8'></head>
 <body style='font-family: Arial, sans-serif; background-color: #0f172a; padding: 40px; color: #f8fafc;'>
   <div style='max-width: 500px; margin: 0 auto; background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px;'>
-    <div style='font-size: 18px; font-weight: bold; color: #818cf8; margin-bottom: 6px;'>UDYOGBILL SECURITY</div>
-    <h2 style='color: #ffffff; margin-top: 0;'>Password Reset Verification</h2>
+    <div style='font-size: 20px; font-weight: bold; color: #818cf8; margin-bottom: 8px;'>UDYOGBILL</div>
+    <h2 style='color: #ffffff; margin-top: 0;'>Password Reset Request</h2>
     <p style='color: #94a3b8; font-size: 14px; line-height: 1.6;'>
       Hello {WebUtility.HtmlEncode(userName)},<br>
-      We received a request to reset your password. Use the verification code below to complete the reset:
+      We received a request to reset your password. Use the following One-Time Password (OTP) to complete your verification:
     </p>
     <div style='background-color: #0f172a; border: 1px dashed #6366f1; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;'>
       <span style='font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #818cf8; font-family: monospace;'>{otpCode}</span>
@@ -135,7 +135,7 @@ public class PlatformEmailService : IPlatformEmailService
       ⚠ This OTP code is confidential and will expire in 15 minutes. If you did not make this request, please ignore this email.
     </p>
     <div style='font-size: 11px; color: #64748b; border-top: 1px solid #334155; padding-top: 16px; margin-top: 24px;'>
-      UdyogBill Cloud ERP • Automated Security Dispatch
+      UdyogBill • Automated Security Dispatch
     </div>
   </div>
 </body>
@@ -153,11 +153,11 @@ public class PlatformEmailService : IPlatformEmailService
 <head><meta charset='utf-8'></head>
 <body style='font-family: Arial, sans-serif; background-color: #0f172a; padding: 40px; color: #f8fafc;'>
   <div style='max-width: 550px; margin: 0 auto; background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px;'>
-    <div style='font-size: 20px; font-weight: bold; color: #818cf8; margin-bottom: 6px;'>UDYOGBILL ENTERPRISE</div>
+    <div style='font-size: 20px; font-weight: bold; color: #818cf8; margin-bottom: 6px;'>UDYOGBILL</div>
     <h2 style='color: #ffffff; margin-top: 0;'>Welcome to Your New Business Workspace!</h2>
     <p style='color: #94a3b8; font-size: 14px; line-height: 1.6;'>
       Dear {WebUtility.HtmlEncode(adminName)},<br>
-      Congratulations on registering <strong>{WebUtility.HtmlEncode(businessName)}</strong> with UdyogBill Cloud Invoicing & ERP.
+      Congratulations on registering <strong>{WebUtility.HtmlEncode(businessName)}</strong> with UdyogBill.
     </p>
     <div style='background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; margin: 20px 0; font-size: 13px;'>
       <div style='margin-bottom: 8px;'><span style='color: #64748b;'>Workspace ID:</span> <strong style='color: #ffffff;'>{tenantCode}</strong></div>

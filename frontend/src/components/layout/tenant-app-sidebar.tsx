@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   BookOpen,
   Settings2,
   FileText,
@@ -61,7 +62,17 @@ interface NavGroup {
   }[];
 }
 
-export function TenantAppSidebar() {
+export function TenantAppSidebar({
+  isOpenMobile = false,
+  onCloseMobile,
+  isCollapsed = false,
+  onToggleCollapse,
+}: {
+  isOpenMobile?: boolean;
+  onCloseMobile?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   const pathname = usePathname();
   const { activeNavGroups } = useAddons();
   const [currentUser, setCurrentUser] = useState<AuthResponse["user"] | null>(null);
@@ -130,6 +141,7 @@ export function TenantAppSidebar() {
         icon: Receipt,
         items: [
           { label: "Vendor Purchase Bills", href: "/app/purchase/bills", icon: Receipt },
+          { label: "AI Invoice Scanner", href: "/app/purchase/bills?scan=ai", icon: Sparkles },
           { label: "Purchase Returns", href: "/app/purchase/returns", icon: RotateCcw },
           { label: "Purchase Orders (PO)", href: "/app/purchase/orders", icon: Boxes },
           { label: "Goods Receipt (GRN)", href: "/app/purchase/grn", icon: FileText },
@@ -167,7 +179,9 @@ export function TenantAppSidebar() {
         title: "Settings & System",
         icon: Settings2,
         items: [
-          { label: "Industry Add-on Store", href: "/app/settings/addons", icon: Sparkles },
+          { label: "🎁 Refer & Earn ₹500", href: "/app/referrals", icon: Gift },
+          { label: "⚡ 1-Click Data Migration", href: "/app/settings/migration/universal", icon: Database },
+          { label: "Plan & Add-ons", href: "/app/settings/addons", icon: Sparkles },
           { label: "Subscription & Invoices", href: "/app/settings/billing", icon: Receipt },
           { label: "Business Settings", href: "/app/settings", icon: Settings2 },
           { label: "Invoice Settings", href: "/app/settings/templates", icon: Printer },
@@ -201,113 +215,163 @@ export function TenantAppSidebar() {
         )
       }))
       .filter((g) => g.items.length > 0);
-  }, [searchQuery]);
+  }, [searchQuery, navGroups]);
 
   return (
-    <aside className="w-64 bg-slate-950 border-r border-slate-850 flex flex-col justify-between shrink-0 h-full overflow-hidden select-none">
-      {/* Brand Header: Official UdyogBill Full HD Brand */}
-      <div className="shrink-0 p-3 border-b border-slate-800/80 bg-slate-950/95 z-10 space-y-2.5">
-        <Link href="/app/dashboard" className="block group" title="UdyogBill Enterprise Commercial ERP">
-          <div className="bg-white rounded-xl py-2 px-3 shadow-md border border-slate-200/40 flex items-center justify-center transition-all group-hover:shadow-lg group-hover:scale-[1.01]">
-            <img
-              src="/udyogbill-brand-logo.png"
-              alt="UdyogBill - हर व्यापारी का स्मार्ट साथी"
-              className="w-full max-w-[190px] h-10 object-contain drop-shadow-xs filter brightness-100"
-            />
-          </div>
-        </Link>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpenMobile && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+          onClick={onCloseMobile}
+        />
+      )}
 
-        {/* Quick Menu Search */}
-        <div className="relative">
-          <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search menu (e.g. GST, PO)..."
-            className="w-full pl-7 pr-6 py-1 bg-slate-900/90 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Navigation Groups (Categorized & Scrollable) */}
-      <nav className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2 bg-slate-950">
-        {filteredGroups.map((group) => {
-          const isCollapsed = Boolean(collapsedGroups[group.id]) && !searchQuery;
-          const hasActiveItem = group.items.some(
-            (item) => pathname === item.href || pathname?.startsWith(item.href + "/")
-          );
-
-          return (
-            <div key={group.id} className="space-y-0.5">
-              {/* Group Header Button */}
+      <aside
+        className={`bg-sidebar border-sidebar-border flex flex-col justify-between shrink-0 h-full select-none transition-all duration-300 ease-in-out z-50 ${
+          isOpenMobile
+            ? "fixed inset-y-0 left-0 w-64 translate-x-0 shadow-2xl border-r"
+            : isCollapsed
+            ? "w-0 -translate-x-full overflow-hidden border-none pointer-events-none lg:w-0"
+            : "w-64 border-r fixed inset-y-0 left-0 -translate-x-full lg:static lg:translate-x-0"
+        }`}
+      >
+        {/* Brand Header / Quick Menu Search */}
+        <div className="shrink-0 p-3 border-b border-sidebar-border bg-sidebar z-10 space-y-2.5">
+          {/* Mobile drawer header (only when sidebar is opened on mobile) */}
+          <div className="flex items-center justify-between gap-2 lg:hidden">
+            <div className="bg-white rounded-xl px-2.5 py-1 shadow-xs border border-border/40 flex items-center justify-center">
+              <img
+                src="/udyogbill-brand-logo.png"
+                alt="UdyogBill"
+                className="h-7 w-auto object-contain"
+              />
+            </div>
+            {onCloseMobile && (
               <button
                 type="button"
-                onClick={() => toggleGroup(group.id)}
-                className="w-full flex items-center justify-between px-2 py-0.5 text-[10px] font-black tracking-wider text-slate-400 hover:text-slate-200 transition-colors group uppercase"
+                onClick={onCloseMobile}
+                className="p-1.5 rounded-lg bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors cursor-pointer"
               >
-                <div className="flex items-center space-x-1.5">
-                  <span className={hasActiveItem ? "text-amber-400 dark:text-indigo-400" : "text-slate-500 group-hover:text-slate-400"}>
-                    {group.title}
-                  </span>
-                </div>
-                {!searchQuery && (
-                  <span className="text-slate-600 group-hover:text-slate-400">
-                    {isCollapsed ? (
-                      <ChevronRight className="w-3 h-3" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3" />
-                    )}
-                  </span>
-                )}
+                <X className="w-5 h-5" />
               </button>
+            )}
+          </div>
 
-              {/* Group Items */}
-              {!isCollapsed && (
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold tracking-normal transition-all ${
-                          isActive
-                            ? "bg-indigo-600 text-white shadow-xs font-bold"
-                            : "text-slate-300 hover:text-white hover:bg-slate-900/70"
-                        }`}
-                      >
-                        <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-white" : "text-amber-500/90 dark:text-slate-400"}`} />
-                        <span className="truncate flex-1">{item.label}</span>
-                        {item.href === "/app/settings/addons" && (
-                          <span className="ml-auto px-1.5 py-0.2 text-[8px] font-bold tracking-wider uppercase rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            Packs
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
+          {/* Quick Menu Search & Desktop Hide/Collapse Button */}
+          <div className="flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search menu (e.g. GST, PO)..."
+                className="w-full pl-8 pr-6 py-1.5 bg-sidebar-accent/60 border border-sidebar-border rounded-lg text-xs text-sidebar-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-sidebar-foreground"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               )}
             </div>
-          );
-        })}
-
-        {filteredGroups.length === 0 && (
-          <div className="py-6 text-center text-xs text-slate-500">
-            No menu options match &quot;{searchQuery}&quot;
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                title="Hide Sidebar (Ctrl+B)"
+                className="hidden lg:flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors cursor-pointer shrink-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
           </div>
-        )}
-      </nav>
-    </aside>
+        </div>
+
+        {/* Navigation Groups (Categorized & Scrollable) */}
+        <nav className="flex-1 overflow-y-auto min-h-0 p-2.5 space-y-2 bg-sidebar">
+          {filteredGroups.map((group) => {
+            const isCollapsed = Boolean(collapsedGroups[group.id]) && !searchQuery;
+            const hasActiveItem = group.items.some(
+              (item) => pathname === item.href || pathname?.startsWith(item.href + "/")
+            );
+
+            return (
+              <div key={group.id} className="space-y-0.5">
+                {/* Group Header Button */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold tracking-wider text-muted-foreground hover:text-sidebar-foreground transition-colors group uppercase"
+                >
+                  <div className="flex items-center space-x-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      group.id === "sales" || group.id === "overview" ? "bg-emerald-500" :
+                      group.id === "purchase" ? "bg-amber-500" :
+                      group.id === "inventory" ? "bg-purple-500" :
+                      group.id === "pharma" ? "bg-rose-500" :
+                      group.id === "reports" ? "bg-blue-500" : "bg-slate-400"
+                    }`} />
+                    <span className={hasActiveItem ? "text-primary font-black" : "text-muted-foreground group-hover:text-sidebar-foreground"}>
+                      {group.title}
+                    </span>
+                  </div>
+                  {!searchQuery && (
+                    <span className="text-muted-foreground/70 group-hover:text-sidebar-foreground">
+                      {isCollapsed ? (
+                        <ChevronRight className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
+                      )}
+                    </span>
+                  )}
+                </button>
+
+                {/* Group Items */}
+                {!isCollapsed && (
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+                      const Icon = item.icon;
+                      const iconColor = 
+                        group.id === "sales" || group.id === "overview" ? "text-emerald-600 dark:text-emerald-400" :
+                        group.id === "purchase" ? "text-amber-600 dark:text-amber-400" :
+                        group.id === "inventory" ? "text-purple-600 dark:text-purple-400" :
+                        group.id === "pharma" ? "text-rose-600 dark:text-rose-400" :
+                        group.id === "reports" ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400";
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={onCloseMobile}
+                          className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium tracking-normal transition-all ${
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                              : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-hover"
+                          }`}
+                        >
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-primary-foreground" : iconColor}`} />
+                          <span className="truncate flex-1">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {filteredGroups.length === 0 && (
+            <div className="py-6 text-center text-xs text-muted-foreground">
+              No menu options match &quot;{searchQuery}&quot;
+            </div>
+          )}
+        </nav>
+      </aside>
+    </>
   );
 }
