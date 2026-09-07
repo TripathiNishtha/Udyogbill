@@ -24,9 +24,9 @@ export default function SuperAdminLayout({
   }, []);
 
   return (
-    <div className="flex h-screen h-[100dvh] overflow-hidden bg-slate-900 text-slate-100 font-sans antialiased">
+    <div className="super-admin-light-scope flex h-screen h-[100dvh] overflow-hidden bg-slate-100 text-slate-900 font-sans antialiased">
       <SuperAdminSidebar />
-      <main className="flex-1 overflow-y-auto bg-slate-900 h-full min-w-0">
+      <main className="flex-1 overflow-y-auto bg-slate-50 h-full min-w-0">
         {children}
       </main>
     </div>

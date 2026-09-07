@@ -621,5 +621,227 @@ footer.footer a:hover,
   color: #0f172a !important;
 }
 
+/* ==========================================================================
+   SUPER ADMIN COMPLETE LIGHT THEME OVERRIDES (.super-admin-light-scope)
+   Ensures 100% crystal-clear visibility, bright white surfaces, high-contrast
+   charcoal text, distinct borders, and vibrant badges across all admin pages.
+   ========================================================================== */
 
+.super-admin-light-scope {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
 
+.super-admin-light-scope main {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Card & container surfaces */
+.super-admin-light-scope [class*="bg-slate-950"],
+.super-admin-light-scope [class*="bg-slate-900"],
+.super-admin-light-scope [class*="bg-slate-850"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Modal overlays & dialogs */
+.super-admin-light-scope .fixed.inset-0.bg-black\/70,
+.super-admin-light-scope .fixed.inset-0.bg-black\/60,
+.super-admin-light-scope .fixed.inset-0.bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.super-admin-light-scope .fixed.inset-0 [class*="bg-slate-950"],
+.super-admin-light-scope .fixed.inset-0 [class*="bg-slate-900"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Borders */
+.super-admin-light-scope [class*="border-slate-800"],
+.super-admin-light-scope [class*="border-slate-850"],
+.super-admin-light-scope [class*="border-slate-900"] {
+  border-color: #e2e8f0 !important;
+}
+
+.super-admin-light-scope .divide-slate-850 > :not([hidden]) ~ :not([hidden]),
+.super-admin-light-scope .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.super-admin-light-scope .divide-slate-900 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #f1f5f9 !important;
+}
+
+/* Text visibility - Headings & Primary Text */
+.super-admin-light-scope h1.text-white,
+.super-admin-light-scope h2.text-white,
+.super-admin-light-scope h3.text-white,
+.super-admin-light-scope h4.text-white,
+.super-admin-light-scope .text-white,
+.super-admin-light-scope span.text-white,
+.super-admin-light-scope div.text-white,
+.super-admin-light-scope p.text-white {
+  color: #0f172a !important;
+}
+
+/* Secondary & Subdued Text */
+.super-admin-light-scope .text-slate-200,
+.super-admin-light-scope .text-slate-300 {
+  color: #334155 !important;
+}
+
+.super-admin-light-scope .text-slate-400 {
+  color: #64748b !important;
+}
+
+.super-admin-light-scope .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Table headers & rows */
+.super-admin-light-scope table thead,
+.super-admin-light-scope thead[class*="bg-slate-"] {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.super-admin-light-scope table thead th {
+  color: #475569 !important;
+  font-weight: 700 !important;
+}
+
+.super-admin-light-scope table tbody tr {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.super-admin-light-scope table tbody tr:hover,
+.super-admin-light-scope tr[class*="hover:bg-slate-"]:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Form inputs & dropdown selects */
+.super-admin-light-scope input[type="text"],
+.super-admin-light-scope input[type="email"],
+.super-admin-light-scope input[type="password"],
+.super-admin-light-scope input[type="number"],
+.super-admin-light-scope input[type="search"],
+.super-admin-light-scope textarea,
+.super-admin-light-scope select,
+.super-admin-light-scope input[class*="bg-slate-"],
+.super-admin-light-scope select[class*="bg-slate-"],
+.super-admin-light-scope textarea[class*="bg-slate-"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.super-admin-light-scope input::placeholder,
+.super-admin-light-scope textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.super-admin-light-scope select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Metric badges & pill tags */
+.super-admin-light-scope span[class*="bg-slate-900"],
+.super-admin-light-scope div[class*="bg-slate-900"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+/* Light Status Badges */
+.super-admin-light-scope .bg-emerald-500\/10,
+.super-admin-light-scope .bg-emerald-500\/20 {
+  background-color: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #15803d !important;
+}
+
+.super-admin-light-scope .text-emerald-400 {
+  color: #16a34a !important;
+}
+
+.super-admin-light-scope .bg-blue-500\/10,
+.super-admin-light-scope .bg-blue-500\/20 {
+  background-color: #dbeafe !important;
+  border-color: #93c5fd !important;
+  color: #1d4ed8 !important;
+}
+
+.super-admin-light-scope .text-blue-400 {
+  color: #2563eb !important;
+}
+
+.super-admin-light-scope .bg-rose-500\/10,
+.super-admin-light-scope .bg-rose-500\/20,
+.super-admin-light-scope .bg-red-500\/10 {
+  background-color: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+}
+
+.super-admin-light-scope .text-rose-400 {
+  color: #dc2626 !important;
+}
+
+.super-admin-light-scope .bg-indigo-500\/10,
+.super-admin-light-scope .bg-indigo-600\/20 {
+  background-color: #e0e7ff !important;
+  border-color: #c7d2fe !important;
+  color: #4338ca !important;
+}
+
+.super-admin-light-scope .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+.super-admin-light-scope .bg-purple-500\/10 {
+  background-color: #f3e8ff !important;
+  border-color: #e9d5ff !important;
+  color: #7e22ce !important;
+}
+
+.super-admin-light-scope .text-purple-400 {
+  color: #9333ea !important;
+}
+
+.super-admin-light-scope .bg-amber-500\/10,
+.super-admin-light-scope .bg-amber-500\/20 {
+  background-color: #fef3c7 !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+}
+
+/* Action buttons on dark */
+.super-admin-light-scope button[class*="bg-slate-900"],
+.super-admin-light-scope a[class*="bg-slate-900"] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+.super-admin-light-scope button[class*="bg-slate-900"]:hover,
+.super-admin-light-scope a[class*="bg-slate-900"]:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Keep primary buttons readable with white text */
+.super-admin-light-scope button[class*="bg-indigo-600"],
+.super-admin-light-scope a[class*="bg-indigo-600"],
+.super-admin-light-scope button[class*="bg-emerald-600"],
+.super-admin-light-scope a[class*="bg-emerald-600"],
+.super-admin-light-scope button[class*="bg-blue-600"],
+.super-admin-light-scope a[class*="bg-blue-600"],
+.super-admin-light-scope button[class*="bg-rose-600"],
+.super-admin-light-scope a[class*="bg-rose-600"] {
+  color: #ffffff !important;
+}
