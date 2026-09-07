@@ -8,7 +8,8 @@ import '../../auth/screens/login_screen.dart';
 import '../services/sfa_gps_service.dart';
 
 class PharmaSfaShellScreen extends StatefulWidget {
-  const PharmaSfaShellScreen({super.key});
+  final bool isSfaOnly;
+  const PharmaSfaShellScreen({super.key, this.isSfaOnly = false});
 
   @override
   State<PharmaSfaShellScreen> createState() => _PharmaSfaShellScreenState();
@@ -223,7 +224,7 @@ class _PharmaSfaShellScreenState extends State<PharmaSfaShellScreen> {
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  MaterialPageRoute(builder: (_) => LoginScreen(isSfaOnly: widget.isSfaOnly)),
                 );
               }
             },

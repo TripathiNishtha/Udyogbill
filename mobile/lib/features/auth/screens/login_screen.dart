@@ -5,8 +5,11 @@ import '../../../app/theme/app_theme.dart';
 import '../../../app/shell/native_shell_screen.dart';
 import '../../../core/network/api_client.dart';
 
+import '../../pharma_sfa/screens/pharma_sfa_shell_screen.dart';
+
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool isSfaOnly;
+  const LoginScreen({super.key, this.isSfaOnly = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -14,9 +17,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController(text: 'demo');
-  final _passwordController = TextEditingController(text: 'demo');
-  final _serverUrlController = TextEditingController(text: AppConstants.physicalDeviceApiUrl);
+  final _usernameController = TextEditingController(text: '');
+  final _passwordController = TextEditingController(text: '');
+  final _serverUrlController = TextEditingController(text: AppConstants.productionApiUrl);
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   bool _obscurePassword = true;
@@ -67,7 +70,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const NativeShellScreen()),
+          MaterialPageRoute(
+            builder: (_) => widget.isSfaOnly
+                ? const PharmaSfaShellScreen()
+                : const NativeShellScreen(),
+          ),
         );
         return;
       } else {
@@ -81,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await _storage.write(key: AppConstants.keyToken, value: 'offline-demo-token');
         await _storage.write(key: AppConstants.keyTenantId, value: 'demo-tenant');
         await _storage.write(key: AppConstants.keyTenantName, value: 'UdyogBill Demo Mart');
-        await _storage.write(key: AppConstants.keyUserRole, value: 'Store Admin');
+        await _storage.write(key: AppConstants.keyUserRole, value: widget.isSfaOnly ? 'MR' : 'Store Admin');
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const NativeShellScreen()),
+          MaterialPageRoute(
+            builder: (_) => widget.isSfaOnly
+                ? const PharmaSfaShellScreen()
+                : const NativeShellScreen(),
+          ),
         );
         return;
       }
@@ -110,11 +121,15 @@ class _LoginScreenState extends State<LoginScreen> {
     await _storage.write(key: AppConstants.keyToken, value: 'offline-demo-token');
     await _storage.write(key: AppConstants.keyTenantId, value: 'demo-tenant');
     await _storage.write(key: AppConstants.keyTenantName, value: 'UdyogBill Demo Mart');
-    await _storage.write(key: AppConstants.keyUserRole, value: 'Store Admin');
+    await _storage.write(key: AppConstants.keyUserRole, value: widget.isSfaOnly ? 'MR' : 'Store Admin');
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const NativeShellScreen()),
+      MaterialPageRoute(
+        builder: (_) => widget.isSfaOnly
+            ? const PharmaSfaShellScreen()
+            : const NativeShellScreen(),
+      ),
     );
   }
 
@@ -157,10 +172,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Center(
+                  Center(
                     child: Text(
-                      'UdyogBill',
-                      style: TextStyle(
+                      widget.isSfaOnly ? 'UdyogBill SFA' : 'UdyogBill',
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
@@ -168,10 +183,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const Center(
+                  Center(
                     child: Text(
-                      'Smart GST Billing & Executive POS',
-                      style: TextStyle(
+                      widget.isSfaOnly
+                          ? 'Pharma Field Force & MR Reporting Suite'
+                          : 'Smart GST Billing & Executive POS',
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF64748B),
                         fontWeight: FontWeight.w500,

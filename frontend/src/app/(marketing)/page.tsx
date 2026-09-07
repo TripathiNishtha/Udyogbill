@@ -1804,6 +1804,90 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Native Android Mobile Apps Download Banner */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.95))",
+            border: "1px solid rgba(249, 115, 22, 0.25)",
+            borderRadius: "16px",
+            padding: "1.75rem 2rem",
+            marginBottom: "2rem",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1.5rem"
+          }}>
+            <div style={{ maxWidth: "520px" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(249, 115, 22, 0.15)", border: "1px solid rgba(249, 115, 22, 0.4)", borderRadius: "20px", padding: "0.25rem 0.75rem", fontSize: "0.75rem", fontWeight: 700, color: "#f97316", marginBottom: "0.6rem" }}>
+                <span>📱 100% Native Android Apps</span>
+              </div>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#ffffff", margin: "0 0 0.4rem" }}>
+                Download UdyogBill Mobile Apps (Direct APK)
+              </h3>
+              <p style={{ fontSize: "0.85rem", color: "#94a3b8", margin: 0, lineHeight: 1.5 }}>
+                Do alag apps: Ek dukaan ke retail/wholesale GST billing ke liye aur doosra Medical Rep (MR) field force reporting ke liye jisme billing ka koi jhanjhat nahi.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+              {/* Billing App Card */}
+              <a
+                href="/downloads/udyogbill-billing.apk"
+                download="udyogbill-billing.apk"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.85rem",
+                  background: "#0f172a",
+                  border: "1px solid #334155",
+                  padding: "0.85rem 1.25rem",
+                  borderRadius: "12px",
+                  textDecoration: "none",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e: any) => e.currentTarget.style.borderColor = "#f97316"}
+                onMouseOut={(e: any) => e.currentTarget.style.borderColor = "#334155"}
+              >
+                <div style={{ width: "42px", height: "42px", background: "linear-gradient(135deg, #f97316, #ea580c)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem" }}>
+                  🧾
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.72rem", textTransform: "uppercase", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em" }}>Retail &amp; POS App</div>
+                  <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "#ffffff" }}>Download Billing APK</div>
+                  <div style={{ fontSize: "0.7rem", color: "#4ade80", fontWeight: 600 }}>Android • Direct Download</div>
+                </div>
+              </a>
+
+              {/* Pharma SFA App Card */}
+              <a
+                href="/downloads/udyogbill-sfa.apk"
+                download="udyogbill-sfa.apk"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.85rem",
+                  background: "#0f172a",
+                  border: "1px solid #334155",
+                  padding: "0.85rem 1.25rem",
+                  borderRadius: "12px",
+                  textDecoration: "none",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e: any) => e.currentTarget.style.borderColor = "#10b981"}
+                onMouseOut={(e: any) => e.currentTarget.style.borderColor = "#334155"}
+              >
+                <div style={{ width: "42px", height: "42px", background: "linear-gradient(135deg, #10b981, #059669)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem" }}>
+                  🩺
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.72rem", textTransform: "uppercase", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em" }}>MR &amp; Field Force App</div>
+                  <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "#ffffff" }}>Download Pharma SFA APK</div>
+                  <div style={{ fontSize: "0.7rem", color: "#4ade80", fontWeight: 600 }}>Pure Reporting • No Billing</div>
+                </div>
+              </a>
+            </div>
+          </div>
+
           {/* Local SEO Cities Row */}
           <div style={{
             borderTop: "1px solid rgba(255, 255, 255, 0.1)",

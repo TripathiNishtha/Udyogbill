@@ -279,6 +279,55 @@ function Footer({ onDemoClick }: { onDemoClick: () => void }) {
           </div>
         </div>
 
+        {/* Native Android Mobile Apps Download Banner */}
+        <div className="bg-slate-900/80 border border-orange-500/30 rounded-2xl p-6 sm:p-7 mb-8 flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="max-w-xl text-center lg:text-left">
+            <span className="inline-flex items-center gap-1.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 px-3 py-1 rounded-full text-xs font-bold mb-2">
+              📱 100% Native Android Apps
+            </span>
+            <h3 className="text-xl font-bold text-white mb-1.5">
+              Download UdyogBill Mobile Apps (Direct APK)
+            </h3>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Do alag dedicated apps: Store Billing &amp; POS app dukaan ke liye aur Pharma SFA app Field Medical Reps (MR) reporting ke liye without billing clutter.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {/* Billing App */}
+            <a
+              href="/downloads/udyogbill-billing.apk"
+              download="udyogbill-billing.apk"
+              className="flex items-center gap-3.5 bg-slate-950 border border-slate-700 hover:border-orange-500 px-5 py-3.5 rounded-xl transition-all group"
+            >
+              <div className="w-11 h-11 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center text-xl shadow-md">
+                🧾
+              </div>
+              <div className="text-left">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Retail &amp; POS App</div>
+                <div className="text-sm font-extrabold text-white group-hover:text-orange-400 transition-colors">Download Billing APK</div>
+                <div className="text-[11px] text-green-400 font-semibold">Android • Direct Download</div>
+              </div>
+            </a>
+
+            {/* Pharma SFA App */}
+            <a
+              href="/downloads/udyogbill-sfa.apk"
+              download="udyogbill-sfa.apk"
+              className="flex items-center gap-3.5 bg-slate-950 border border-slate-700 hover:border-emerald-500 px-5 py-3.5 rounded-xl transition-all group"
+            >
+              <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-xl shadow-md">
+                🩺
+              </div>
+              <div className="text-left">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MR &amp; Field Force App</div>
+                <div className="text-sm font-extrabold text-white group-hover:text-emerald-400 transition-colors">Download Pharma SFA APK</div>
+                <div className="text-[11px] text-green-400 font-semibold">Pure Reporting • No Billing</div>
+              </div>
+            </a>
+          </div>
+        </div>
+
         {/* Local SEO Cities Row */}
         <div className="border-t border-gray-800/80 pt-6 pb-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5">

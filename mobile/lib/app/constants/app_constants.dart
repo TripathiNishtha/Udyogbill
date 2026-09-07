@@ -2,7 +2,7 @@ class AppConstants {
   // Base URLs (Switchable for Prod / Local Dev)
   static const String defaultLocalApiUrl = "http://10.0.2.2:5050/api/v1"; // Android Emulator
   static const String physicalDeviceApiUrl = "http://192.168.29.127:5050/api/v1"; // LAN IP
-  static const String productionApiUrl = "https://api.udyogbill.com/api/v1";
+  static const String productionApiUrl = "https://udyogbill.com/api/v1";
 
   // Storage Keys
   static const String keyToken = "udyogbill_access_token";
