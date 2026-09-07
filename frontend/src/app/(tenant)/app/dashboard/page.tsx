@@ -695,14 +695,7 @@ export default function TenantDashboardPage() {
         </div>
       </div>
 
-      {/* ─── 1. Primary Financial & Ledger Executive KPIs (3-Second Rule) ──── */}
-      {visibleWidgetIds.includes("kpi-summary") && (
-        <div className="w-full">
-          {renderWidgetById("kpi-summary")}
-        </div>
-      )}
-
-      {/* ─── 2. Fast-Action Command Ribbon: 1-Click Execution (~38px) ───────── */}
+      {/* ─── 1. Fast-Action Command Ribbon: 1-Click Execution (~38px) ───────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <Link
           href="/app/sales/invoices"
@@ -806,6 +799,13 @@ export default function TenantDashboardPage() {
           </kbd>
         </Link>
       </div>
+
+      {/* ─── 2. Primary Financial & Ledger Executive KPIs (3-Second Rule) ──── */}
+      {visibleWidgetIds.includes("kpi-summary") && (
+        <div className="w-full">
+          {renderWidgetById("kpi-summary")}
+        </div>
+      )}
 
       {/* ─── 3. Pharma Executive Intelligence Widget (Attached when Pharma addon is active) ── */}
       {hasPharmaAddon && <PharmaDashboardWidgets />}
