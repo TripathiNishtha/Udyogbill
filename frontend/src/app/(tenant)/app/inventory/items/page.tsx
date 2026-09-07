@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
-  Calendar
+  Calendar,
+  Award
 } from "lucide-react";
 import {
   inventoryService,
@@ -72,6 +73,7 @@ export default function TenantItemsCatalogPage() {
     primaryUomId: "",
     hsnCode: "",
     taxRate: 18,
+    isTaxInclusive: false,
     purchasePrice: 0,
     sellingPrice: 0,
     minimumSellingPrice: 0,
@@ -149,6 +151,42 @@ export default function TenantItemsCatalogPage() {
   const [isUomModalOpen, setIsUomModalOpen] = useState(false);
   const [newUomForm, setNewUomForm] = useState({ code: "", name: "", symbol: "", decimalPlaces: 0 });
   const [creatingUom, setCreatingUom] = useState(false);
+
+  // Quick Brand / Maker Creation Modal State
+  const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
+  const [newBrandForm, setNewBrandForm] = useState({ name: "", manufacturerName: "", description: "" });
+  const [creatingBrand, setCreatingBrand] = useState(false);
+
+  const handleCreateBrand = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBrandForm.name.trim()) {
+      alert("Brand / Maker name is required.");
+      return;
+    }
+    try {
+      setCreatingBrand(true);
+      const cleanName = newBrandForm.name.trim();
+      const code = cleanName.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10) || "BRD";
+      await inventoryService.createBrand({
+        code,
+        name: cleanName,
+        manufacturerName: newBrandForm.manufacturerName.trim() || undefined,
+        description: newBrandForm.description.trim() || undefined,
+      });
+      const refreshedBrands = await inventoryService.getBrands();
+      setBrands(refreshedBrands);
+      const added = refreshedBrands.find((b) => b.name.toLowerCase() === cleanName.toLowerCase());
+      if (added) {
+        setForm((prev) => ({ ...prev, brandId: added.id }));
+      }
+      setIsBrandModalOpen(false);
+      setNewBrandForm({ name: "", manufacturerName: "", description: "" });
+    } catch (err: any) {
+      alert(err?.response?.data?.errorMessage || "Failed to create Brand / Maker.");
+    } finally {
+      setCreatingBrand(false);
+    }
+  };
 
   const handleCreateCustomUom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +315,7 @@ export default function TenantItemsCatalogPage() {
         mrp: Number(form.mrp) || 0,
         taxRate: Number(form.taxRate) || 0,
         minimumStockAlert: Number(form.minimumStockAlert) || 0,
+        isTaxInclusive: form.isTaxInclusive || false,
       });
 
       setIsModalOpen(false);
@@ -290,6 +329,7 @@ export default function TenantItemsCatalogPage() {
         primaryUomId: units[0]?.id || "",
         hsnCode: "",
         taxRate: 18,
+        isTaxInclusive: false,
         purchasePrice: 0,
         sellingPrice: 0,
         minimumSellingPrice: 0,
@@ -865,7 +905,18 @@ export default function TenantItemsCatalogPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Brand / Maker</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Brand / Maker</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsBrandModalOpen(true)}
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center space-x-0.5 transition-colors cursor-pointer"
+                      title="Add New Brand / Maker"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add Brand</span>
+                    </button>
+                  </div>
                   <select
                     value={form.brandId || ""}
                     onChange={(e) => setForm({ ...form, brandId: e.target.value || undefined })}
@@ -920,18 +971,51 @@ export default function TenantItemsCatalogPage() {
               </div>
 
               {/* Pricing Section: Retail Rate & Wholesale Rate Separate */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
                     <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Pricing & Multi-Tier Rates (₹)</span>
+                    <span>Pricing &amp; Multi-Tier Rates (₹)</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Retail & Wholesale Rates</span>
+
+                  {/* GST Tax Mode Toggle: Without GST (Exclusive) vs With GST (Inclusive) */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Rates are:</span>
+                    <div className="inline-flex rounded-lg p-0.5 bg-slate-200/80 dark:bg-slate-800 border border-slate-300 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: false }))}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                          !form.isTaxInclusive
+                            ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                      >
+                        Without GST (Exclusive)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: true }))}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                          form.isTaxInclusive
+                            ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                      >
+                        With GST (Inclusive)
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Purchase Rate (₹)</label>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Purchase Rate (₹)</span>
+                      <span className={`text-[10px] font-bold ${form.isTaxInclusive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"}`}>
+                        {form.isTaxInclusive ? "With GST" : "Without GST"}
+                      </span>
+                    </label>
                     <input
                       type="number"
                       step="0.01"
@@ -942,7 +1026,12 @@ export default function TenantItemsCatalogPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Retail Rate (₹) *</label>
+                    <label className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
+                      <span>Retail Rate (₹) *</span>
+                      <span className={`text-[10px] font-bold ${form.isTaxInclusive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"}`}>
+                        {form.isTaxInclusive ? "With GST" : "Without GST"}
+                      </span>
+                    </label>
                     <input
                       type="number"
                       step="0.01"
@@ -953,7 +1042,12 @@ export default function TenantItemsCatalogPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400">Wholesale Rate (₹)</label>
+                    <label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 flex items-center justify-between">
+                      <span>Wholesale Rate (₹)</span>
+                      <span className={`text-[10px] font-bold ${form.isTaxInclusive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500"}`}>
+                        {form.isTaxInclusive ? "With GST" : "Without GST"}
+                      </span>
+                    </label>
                     <input
                       type="number"
                       step="0.01"
@@ -964,7 +1058,12 @@ export default function TenantItemsCatalogPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">MRP (₹)</label>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>MRP (₹)</span>
+                      <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                        Max / With GST
+                      </span>
+                    </label>
                     <input
                       type="number"
                       step="0.01"
@@ -989,6 +1088,38 @@ export default function TenantItemsCatalogPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Calculation helper preview */}
+                {Number(form.taxRate || 0) > 0 && (Number(form.sellingPrice || 0) > 0 || Number(form.purchasePrice || 0) > 0) && (() => {
+                  const sp = Number(form.sellingPrice || 0);
+                  const tr = Number(form.taxRate || 0);
+                  const isIncl = Boolean(form.isTaxInclusive);
+                  const basic = isIncl ? sp / (1 + tr / 100) : sp;
+                  const gstAmt = isIncl ? sp - basic : (sp * tr) / 100;
+                  const total = isIncl ? sp : sp + gstAmt;
+
+                  return (
+                    <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600 dark:text-slate-400 border-t border-slate-200/60 dark:border-slate-800">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        💡 Rate Preview ({tr}% GST):
+                      </span>
+                      {sp > 0 && (
+                        <span>
+                          Retail:{" "}
+                          <strong className="text-emerald-600 dark:text-emerald-400">
+                            ₹{sp.toFixed(2)} {isIncl ? "(incl. GST)" : "(excl. GST)"}
+                          </strong>
+                          {" → "}
+                          {isIncl ? (
+                            <>Basic: ₹{basic.toFixed(2)} + GST: ₹{gstAmt.toFixed(2)}</>
+                          ) : (
+                            <>+ GST ₹{gstAmt.toFixed(2)} = Total ₹{total.toFixed(2)}</>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Additional Inventory & Storage Details */}
@@ -1390,6 +1521,79 @@ export default function TenantItemsCatalogPage() {
                   className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm"
                 >
                   {creatingUom ? "Saving Unit..." : "Create & Select Unit"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Brand / Maker Creation Modal */}
+      {isBrandModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Add New Brand / Maker</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBrandModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateBrand} className="p-5 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Brand / Maker Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Cipla, Sun Pharma, Raymond, Samsung"
+                  value={newBrandForm.name}
+                  onChange={(e) => setNewBrandForm({ ...newBrandForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Manufacturer / Company Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Cipla Ltd. / GlaxoSmithKline Pharmaceuticals"
+                  value={newBrandForm.manufacturerName}
+                  onChange={(e) => setNewBrandForm({ ...newBrandForm, manufacturerName: e.target.value })}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Description / Note</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Top pharma manufacturer, Generic division"
+                  value={newBrandForm.description}
+                  onChange={(e) => setNewBrandForm({ ...newBrandForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBrandModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingBrand}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm cursor-pointer"
+                >
+                  {creatingBrand ? "Saving Brand..." : "Save & Select Brand"}
                 </button>
               </div>
             </form>
