@@ -132,7 +132,17 @@ export function TenantAppSidebar({
           { label: "Sales Returns", href: "/app/sales/returns", icon: RotateCcw },
           { label: "Quotations & Estimates", href: "/app/sales/quotations", icon: FileSpreadsheet },
           { label: "Customers (Debtors)", href: "/app/parties/customers", icon: Users2 },
+          { label: "Brokers & Agents", href: "/app/parties/brokers", icon: Users2 },
           { label: "Loyalty & Promos", href: "/app/loyalty", icon: Gift },
+        ]
+      },
+      {
+        id: "banking",
+        title: "Banking & Cheques",
+        icon: Landmark,
+        items: [
+          { label: "Bank Accounts & Cash", href: "/app/banking/accounts", icon: Landmark },
+          { label: "Cheque & PDC Register", href: "/app/banking/cheques", icon: FileCheck2 },
         ]
       },
       {
@@ -189,6 +199,7 @@ export function TenantAppSidebar({
           { label: "Staff & RBAC", href: "/app/staff", icon: ShieldCheck },
           { label: "Backups & System Health", href: "/app/settings/backup", icon: ShieldCheck },
           { label: "Audit & Activity Logs", href: "/app/audit", icon: ShieldAlert },
+          { label: "📖 User Manual & Help", href: "/app/help", icon: BookOpen },
         ]
       }
     ];

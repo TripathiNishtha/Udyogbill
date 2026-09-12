@@ -24,6 +24,11 @@ import { onboardingService } from "@/services/onboarding-service";
 import { PartyList, TenantDetails } from "@/types";
 import { useAddons } from "@/context/addon-context";
 import { Badge, Button, EmptyState, TableSkeleton } from "@/components/ui";
+import {
+  PartyLicenseEditor,
+  PartyLicenseItem,
+  formatLicensesForPayload,
+} from "@/components/parties/party-license-editor";
 
 export default function TenantCustomersPage() {
   const { isAddonActive } = useAddons();
@@ -38,6 +43,7 @@ export default function TenantCustomersPage() {
 
   // Add Customer Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [licenses, setLicenses] = useState<PartyLicenseItem[]>([]);
   const [form, setForm] = useState<CreatePartyInput>({
     code: "",
     legalName: "",
@@ -133,14 +139,19 @@ export default function TenantCustomersPage() {
 
     try {
       setSubmitting(true);
+      const licensePayload = formatLicensesForPayload(licenses, form.attributesJson);
       await partyService.createCustomer({
         ...form,
         creditLimit: Number(form.creditLimit) || 0,
         creditPeriodDays: Number(form.creditPeriodDays) || 0,
         openingBalance: Number(form.openingBalance) || 0,
+        drugLicenseNumber1: licensePayload.drugLicenseNumber1,
+        fssaiNumber: licensePayload.fssaiNumber,
+        attributesJson: licensePayload.attributesJson,
       });
 
       setIsModalOpen(false);
+      setLicenses([]);
       setForm({
         code: "",
         legalName: "",
@@ -277,74 +288,53 @@ export default function TenantCustomersPage() {
             actionIcon={Plus}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-foreground">
-              <thead className="text-table-headerForeground uppercase tracking-wider bg-table-header border-b border-border text-[11px] font-bold">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Account Code &amp; Business</th>
-                  <th className="px-4 py-3 font-semibold">Type &amp; GSTIN</th>
-                  <th className="px-4 py-3 font-semibold">Contact Info</th>
-                  <th className="px-4 py-3 font-semibold">Credit Limit &amp; Terms</th>
-                  <th className="px-4 py-3 font-semibold text-right">Outstanding Balance</th>
-                  <th className="px-4 py-3 font-semibold text-right">Ledger</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {customers.map((c) => {
-                  const isExceeded = c.creditLimit > 0 && c.currentOutstandingBalance > c.creditLimit;
-                  return (
-                    <tr key={c.id} className="hover:bg-table-rowHover transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-foreground tracking-tight">{c.legalName}</div>
-                        {c.tradeName && <div className="text-[11px] text-muted-foreground">{c.tradeName}</div>}
-                        <div className="font-mono text-[10px] text-primary font-semibold mt-0.5">
-                          {c.code}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="primary" size="sm">
-                          {getCustomerTypeLabel(c.customerType)}
-                        </Badge>
-                        {c.gstin ? (
-                          <div className="font-mono text-[11px] text-foreground mt-1">
-                            GST: {c.gstin} <span className="text-muted-foreground">({c.stateCode})</span>
-                          </div>
-                        ) : (
-                          <div className="text-[10px] text-muted-foreground mt-1">Unregistered / B2C</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {c.mobile && (
-                          <div className="flex items-center space-x-1 font-mono text-[11px] text-foreground">
-                            <Phone className="w-3 h-3 text-muted-foreground" />
-                            <span>{c.mobile}</span>
-                          </div>
-                        )}
-                        {c.email && (
-                          <div className="flex items-center space-x-1 text-[11px] text-muted-foreground mt-0.5">
-                            <Mail className="w-3 h-3 text-muted-foreground" />
-                            <span>{c.email}</span>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-mono">
-                        <div className="text-foreground font-medium">
-                          {c.creditLimit > 0 ? `₹${c.creditLimit.toLocaleString()}` : "Unlimited"}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">{c.creditPeriodDays} Days Terms</div>
-                        {isExceeded && (
-                          <Badge variant="danger" size="sm" className="mt-0.5">
-                            ⚠️ Limit Exceeded
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono">
+          <>
+            {/* Mobile Customers List (Clean, Touch-Friendly Cards View) */}
+            <div className="block md:hidden divide-y divide-border">
+              {customers.map((c) => {
+                const isExceeded = c.creditLimit > 0 && c.currentOutstandingBalance > c.creditLimit;
+                return (
+                  <div key={c.id} className="p-3.5 space-y-2.5 hover:bg-surface-elevated/40 transition-colors">
+                    {/* Header: Legal Name, Code & Type */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-sm text-foreground tracking-tight truncate">{c.legalName}</div>
+                        {c.tradeName && <div className="text-[11px] text-muted-foreground truncate">{c.tradeName}</div>}
+                        <div className="font-mono text-[10px] text-primary font-semibold mt-0.5">{c.code}</div>
+                      </div>
+                      <Badge variant="primary" size="sm" className="shrink-0">
+                        {getCustomerTypeLabel(c.customerType)}
+                      </Badge>
+                    </div>
+
+                    {/* Contact & GST */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {c.mobile && (
+                        <a
+                          href={`tel:${c.mobile}`}
+                          className="inline-flex items-center space-x-1 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 font-mono text-xs border border-emerald-500/20 active:scale-95 transition-transform"
+                        >
+                          <Phone className="w-3 h-3 text-emerald-400" />
+                          <span>{c.mobile}</span>
+                        </a>
+                      )}
+                      {c.gstin && (
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-elevated text-foreground border border-border">
+                          GST: {c.gstin}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Outstanding Balance & Credit Limit */}
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-surface-elevated/60 border border-border/80 text-xs">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block leading-none mb-0.5">Outstanding</span>
                         <div
-                          className={`font-bold text-sm ${
+                          className={`font-bold font-mono text-sm ${
                             c.currentOutstandingBalance > 0
-                              ? "text-warning font-semibold"
+                              ? "text-warning"
                               : c.currentOutstandingBalance < 0
-                              ? "text-success font-semibold"
+                              ? "text-success"
                               : "text-muted-foreground"
                           }`}
                         >
@@ -353,22 +343,136 @@ export default function TenantCustomersPage() {
                             {c.currentOutstandingBalance >= 0 ? "Dr" : "Cr"}
                           </span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/app/parties/${c.id}/ledger`}
-                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-surface-elevated hover:bg-surface border border-border text-primary text-xs font-semibold transition-colors shadow-2xs"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Ledger</span>
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] text-muted-foreground block leading-none mb-0.5">Credit Limit</span>
+                        <span className="text-xs font-mono font-medium text-foreground">
+                          {c.creditLimit > 0 ? `₹${c.creditLimit.toLocaleString()}` : "Unlimited"}
+                        </span>
+                        {isExceeded && (
+                          <div className="text-[9px] text-danger font-bold">⚠️ Limit Exceeded</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Link
+                        href={`/app/parties/${c.id}/ledger`}
+                        className="flex-1 py-1.5 px-2.5 rounded-lg bg-surface-elevated hover:bg-surface border border-border text-primary text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>View Ledger</span>
+                      </Link>
+
+                      <Link
+                        href="/app/sales/invoices?new=1"
+                        className="py-1.5 px-3 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 text-xs font-bold transition-colors flex items-center space-x-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Bill</span>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Customers Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs text-foreground">
+                <thead className="text-table-headerForeground uppercase tracking-wider bg-table-header border-b border-border text-[11px] font-bold">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Account Code &amp; Business</th>
+                    <th className="px-4 py-3 font-semibold">Type &amp; GSTIN</th>
+                    <th className="px-4 py-3 font-semibold">Contact Info</th>
+                    <th className="px-4 py-3 font-semibold">Credit Limit &amp; Terms</th>
+                    <th className="px-4 py-3 font-semibold text-right">Outstanding Balance</th>
+                    <th className="px-4 py-3 font-semibold text-right">Ledger</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {customers.map((c) => {
+                    const isExceeded = c.creditLimit > 0 && c.currentOutstandingBalance > c.creditLimit;
+                    return (
+                      <tr key={c.id} className="hover:bg-table-rowHover transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="font-bold text-foreground tracking-tight">{c.legalName}</div>
+                          {c.tradeName && <div className="text-[11px] text-muted-foreground">{c.tradeName}</div>}
+                          <div className="font-mono text-[10px] text-primary font-semibold mt-0.5">
+                            {c.code}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="primary" size="sm">
+                            {getCustomerTypeLabel(c.customerType)}
+                          </Badge>
+                          {c.gstin ? (
+                            <div className="font-mono text-[11px] text-foreground mt-1">
+                              GST: {c.gstin} <span className="text-muted-foreground">({c.stateCode})</span>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-muted-foreground mt-1">Unregistered / B2C</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {c.mobile && (
+                            <div className="flex items-center space-x-1 font-mono text-[11px] text-foreground">
+                              <Phone className="w-3 h-3 text-muted-foreground" />
+                              <span>{c.mobile}</span>
+                            </div>
+                          )}
+                          {c.email && (
+                            <div className="flex items-center space-x-1 text-[11px] text-muted-foreground mt-0.5">
+                              <Mail className="w-3 h-3 text-muted-foreground" />
+                              <span>{c.email}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-mono">
+                          <div className="text-foreground font-medium">
+                            {c.creditLimit > 0 ? `₹${c.creditLimit.toLocaleString()}` : "Unlimited"}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">{c.creditPeriodDays} Days Terms</div>
+                          {isExceeded && (
+                            <Badge variant="danger" size="sm" className="mt-0.5">
+                              ⚠️ Limit Exceeded
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono">
+                          <div
+                            className={`font-bold text-sm ${
+                              c.currentOutstandingBalance > 0
+                                ? "text-warning font-semibold"
+                                : c.currentOutstandingBalance < 0
+                                ? "text-success font-semibold"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            ₹{Math.abs(c.currentOutstandingBalance).toFixed(2)}
+                            <span className="text-[10px] ml-1">
+                              {c.currentOutstandingBalance >= 0 ? "Dr" : "Cr"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link
+                            href={`/app/parties/${c.id}/ledger`}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-surface-elevated hover:bg-surface border border-border text-primary text-xs font-semibold transition-colors shadow-2xs"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Ledger</span>
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -492,18 +596,11 @@ export default function TenantCustomersPage() {
                 </div>
               </div>
 
-              {hasPharmaAddon && (
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Drug License Number (Form 20B/21B)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. MH-MZ2-123456 / MH-MZ2-123457"
-                    value={form.drugLicenseNumber1 || ""}
-                    onChange={(e) => setForm({ ...form, drugLicenseNumber1: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono"
-                  />
-                </div>
-              )}
+              {/* Business Licenses & Registrations (DL, FSSAI, ISO, IEC, Trade, MSME, etc.) */}
+              <PartyLicenseEditor
+                licenses={licenses}
+                onChange={setLicenses}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">

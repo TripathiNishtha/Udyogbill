@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#fff7ed"/>
+      <stop offset="100%" stop-color="#ffedd5"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#ea580c" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle Grid Pattern -->
+  <g stroke="#f97316" stroke-opacity="0.08" stroke-width="1">
+    <line x1="100" y1="0" x2="100" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="500" y1="0" x2="500" y2="630"/>
+    <line x1="700" y1="0" x2="700" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1100" y1="0" x2="1100" y2="630"/>
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="200" x2="1200" y2="200"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/>
+    <line x1="0" y1="400" x2="1200" y2="400"/>
+    <line x1="0" y1="500" x2="1200" y2="500"/>
+  </g>
+
+  <!-- Main Card -->
+  <rect x="60" y="60" width="1080" height="510" rx="24" fill="#ffffff" stroke="#fed7aa" stroke-width="2" filter="url(#shadow)"/>
+
+  <!-- Top Accent Bar -->
+  <rect x="60" y="60" width="1080" height="12" rx="6" fill="url(#accent)"/>
+
+  <!-- Logo Pill -->
+  <g transform="translate(100, 110)">
+    <rect width="210" height="42" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
+    <circle cx="24" cy="21" r="10" fill="#16a34a"/>
+    <text x="44" y="27" fill="#9a3412" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="900" letter-spacing="-0.02em">UDYOGBILL</text>
+  </g>
+
+  <!-- Category Tag -->
+  <g transform="translate(325, 110)">
+    <rect width="180" height="42" rx="10" fill="#16a34a" fill-opacity="0.1" stroke="#16a34a" stroke-opacity="0.3" stroke-width="1.5"/>
+    <text x="90" y="26" fill="#16a34a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="800" text-anchor="middle">Retail POS</text>
+  </g>
+
+  <!-- Verified Trust Badge -->
+  <g transform="translate(930, 110)">
+    <rect width="170" height="42" rx="10" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1.5"/>
+    <text x="85" y="26" fill="#065f46" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" text-anchor="middle">✓ CBIC Compliant</text>
+  </g>
+
+  <!-- Emoji Icon Circle -->
+  <g transform="translate(100, 200)">
+    <circle cx="50" cy="50" r="50" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
+    <text x="50" y="65" font-size="48" text-anchor="middle">🛒</text>
+  </g>
+
+  <!-- Main Title -->
+  <text x="230" y="240" fill="#0f172a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="900" letter-spacing="-0.03em">
+    Retail POS, Counter Billing & Supermarket Ops
+  </text>
+  <text x="230" y="285" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="500">
+    Comprehensive Business Operating &amp; Compliance Guide for Indian Vyaparis
+  </text>
+
+  <!-- Divider Line -->
+  <line x1="100" y1="350" x2="1100" y2="350" stroke="#f1f5f9" stroke-width="2"/>
+
+  <!-- Value Feature Pills -->
+  <g transform="translate(100, 390)">
+    <!-- Pill 1 -->
+    <g transform="translate(0, 0)">
+      <rect width="310" height="60" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+      <circle cx="28" cy="30" r="12" fill="#16a34a" fill-opacity="0.15"/>
+      <text x="28" y="35" fill="#16a34a" font-size="14" font-weight="900" text-anchor="middle">1</text>
+      <text x="52" y="28" fill="#0f172a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="800">100% Tax Compliant</text>
+      <text x="52" y="47" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Direct CBIC &amp; GST Rules</text>
+    </g>
+
+    <!-- Pill 2 -->
+    <g transform="translate(330, 0)">
+      <rect width="310" height="60" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+      <circle cx="28" cy="30" r="12" fill="#16a34a" fill-opacity="0.15"/>
+      <text x="28" y="35" fill="#16a34a" font-size="14" font-weight="900" text-anchor="middle">2</text>
+      <text x="52" y="28" fill="#0f172a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="800">15-Second Billing</text>
+      <text x="52" y="47" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Barcode &amp; Thermal Print</text>
+    </g>
+
+    <!-- Pill 3 -->
+    <g transform="translate(660, 0)">
+      <rect width="310" height="60" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+      <circle cx="28" cy="30" r="12" fill="#16a34a" fill-opacity="0.15"/>
+      <text x="28" y="35" fill="#16a34a" font-size="14" font-weight="900" text-anchor="middle">3</text>
+      <text x="52" y="28" fill="#0f172a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="800">Automated Khata</text>
+      <text x="52" y="47" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">WhatsApp Payment Links</text>
+    </g>
+  </g>
+
+  <!-- Footer Info -->
+  <text x="100" y="520" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600">
+    Published by UdyogBill Editorial Team • https://udyogbill.com
+  </text>
+  <text x="1100" y="520" fill="#16a34a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="800" text-anchor="end">
+    Cloud ERP for Indian MSMEs →
+  </text>
+</svg>

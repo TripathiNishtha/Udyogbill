@@ -213,18 +213,7 @@ a.bg-amber-600 *,
   stroke: currentColor;
 }
 
-/* Secondary dark action pills in light/amber themes */
-html.theme-amber button[class*="bg-slate-800"],
-html.theme-amber button[class*="bg-slate-700"],
-html.theme-vibrant button[class*="bg-slate-800"],
-html.theme-vibrant button[class*="bg-slate-700"],
-html.theme-light button[class*="bg-slate-800"],
-html.theme-light button[class*="bg-slate-700"] {
-  background-color: #1e293b !important;
-  border: 1px solid #475569 !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
-}
+/* Secondary action buttons inherit clean semantic styles */
 
 /* ==========================================================================
    LIGHT THEME ACCESSIBILITY & 100% VISIBILITY GUARANTEE
@@ -351,6 +340,86 @@ html:not(.dark) span.text-slate-400,
 html.theme-light p.text-slate-400,
 html.theme-light span.text-slate-400 {
   color: #64748b !important;
+}
+
+/* ==========================================================================
+   UNIVERSAL LIGHT THEME PAGE & TABLE VISIBILITY PROTECTION
+   Guarantees that ANY page, table, card header, or sub-container across
+   the entire software that uses dark Tailwind utility classes (like bg-slate-900,
+   bg-slate-950, border-slate-800, text-white) instantly switches to clean,
+   high-contrast professional light accounting theme when in light mode.
+   ========================================================================== */
+html:not(.dark) div[class*="bg-slate-900"],
+html:not(.dark) div[class*="bg-slate-950"],
+html.theme-light div[class*="bg-slate-900"],
+html.theme-light div[class*="bg-slate-950"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Headings inside any container in light theme */
+html:not(.dark) h1.text-white,
+html:not(.dark) h2.text-white,
+html:not(.dark) h3.text-white,
+html:not(.dark) h4.text-white,
+html.theme-light h1.text-white,
+html.theme-light h2.text-white,
+html.theme-light h3.text-white,
+html.theme-light h4.text-white {
+  color: #0f172a !important;
+}
+
+/* Sub-text and descriptions */
+html:not(.dark) p[class*="text-slate-4"],
+html:not(.dark) p[class*="text-slate-5"],
+html.theme-light p[class*="text-slate-4"],
+html.theme-light p[class*="text-slate-5"] {
+  color: #475569 !important;
+}
+
+/* Universal Tables in Light Theme */
+html:not(.dark) thead[class*="bg-slate-9"],
+html:not(.dark) thead[class*="bg-slate-8"],
+html.theme-light thead[class*="bg-slate-9"],
+html.theme-light thead[class*="bg-slate-8"] {
+  background-color: #f8fafc !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) thead[class*="bg-slate-9"] th,
+html.theme-light thead[class*="bg-slate-9"] th {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) tbody[class*="divide-slate-8"],
+html.theme-light tbody[class*="divide-slate-8"] {
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) tr[class*="hover:bg-slate-8"]:hover,
+html:not(.dark) tr[class*="hover:bg-slate-9"]:hover,
+html.theme-light tr[class*="hover:bg-slate-8"]:hover,
+html.theme-light tr[class*="hover:bg-slate-9"]:hover {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) td.text-white,
+html:not(.dark) td div.text-white,
+html:not(.dark) td span.text-white,
+html.theme-light td.text-white,
+html.theme-light td div.text-white,
+html.theme-light td span.text-white {
+  color: #0f172a !important;
+}
+
+html:not(.dark) td.text-slate-300,
+html:not(.dark) td.text-slate-400,
+html.theme-light td.text-slate-300,
+html.theme-light td.text-slate-400 {
+  color: #475569 !important;
 }
 
 /* Print Specific Isolation Rules */
@@ -510,77 +579,74 @@ html.marketing-active body {
   color: transparent !important;
 }
 
-/* Retain dark background for footer and hero visual terminal specifically */
+/* 100% Light Theme Footer (Aligned with UdyogBill Brand Colors) */
 .marketing-site-wrapper footer,
 footer.footer,
 .footer {
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
-  background-color: #0f172a !important;
-  color: #94a3b8 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border-top: 1px solid #e2e8f0 !important;
 }
 
 .marketing-site-wrapper footer h4,
 .marketing-site-wrapper footer .footer-nav-title,
 footer.footer .footer-nav-title,
 .footer .footer-nav-title {
-  color: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
 }
 
 .marketing-site-wrapper footer p,
 footer.footer p,
 .footer p {
-  color: #94a3b8 !important;
+  color: #475569 !important;
 }
 
 .marketing-site-wrapper footer a,
 footer.footer a,
 .footer a {
-  color: #cbd5e1 !important;
+  color: #475569 !important;
 }
 
 .marketing-site-wrapper footer a:hover,
 footer.footer a:hover,
 .footer a:hover {
-  color: #f97316 !important;
+  color: #ea580c !important;
 }
 
-/* Final CTA section with dark gradient */
-.marketing-site-wrapper section.relative.overflow-hidden h2,
-.marketing-site-wrapper section.relative.overflow-hidden p.text-gray-300 {
-  color: #ffffff !important;
-}
-
-/* Contact Demo Card Dark Left Box: crisp white & light slate text */
+/* Contact Demo Card Light Box: Crisp white/warm orange tint */
 .cta-corp__left,
 .marketing-site-wrapper .cta-corp__left {
-  background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 100%) !important;
-  color: #f8fafc !important;
+  background: linear-gradient(160deg, #fff7ed 0%, #ffffff 60%, #f0fdf4 100%) !important;
+  border: 1px solid #fed7aa !important;
+  color: #0f172a !important;
 }
 
 .cta-corp__left h2,
 .cta-corp__left .cta-corp__title,
 .marketing-site-wrapper .cta-corp__left h2,
 .marketing-site-wrapper .cta-corp__left .cta-corp__title {
-  color: #ffffff !important;
+  color: #0f172a !important;
 }
 
 .cta-corp__left p,
 .cta-corp__left .cta-corp__text,
 .marketing-site-wrapper .cta-corp__left p,
 .marketing-site-wrapper .cta-corp__left .cta-corp__text {
-  color: #cbd5e1 !important;
+  color: #334155 !important;
 }
 
 .cta-corp__left li,
 .marketing-site-wrapper .cta-corp__left li {
-  color: #f1f5f9 !important;
+  color: #1e293b !important;
 }
 
 .cta-corp__left .cta-corp__tag,
 .marketing-site-wrapper .cta-corp__left .cta-corp__tag {
-  color: #86efac !important;
-  background: rgba(22, 163, 74, 0.2) !important;
-  border-color: rgba(134, 239, 172, 0.4) !important;
+  color: #15803d !important;
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
 }
 
 /* White text on solid colored buttons & badges */
@@ -844,4 +910,471 @@ footer.footer a:hover,
 .super-admin-light-scope button[class*="bg-rose-600"],
 .super-admin-light-scope a[class*="bg-rose-600"] {
   color: #ffffff !important;
+}
+
+/* Actions Dropdown High-Contrast Overrides */
+.super-admin-light-scope .actions-dropdown-menu {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08) !important;
+}
+
+.super-admin-light-scope .actions-dropdown-menu button {
+  color: #1e293b !important;
+  background-color: transparent !important;
+}
+
+.super-admin-light-scope .actions-dropdown-menu button:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.super-admin-light-scope .actions-dropdown-menu .font-bold,
+.super-admin-light-scope .actions-dropdown-menu .font-semibold {
+  color: #0f172a !important;
+}
+
+/* ==========================================================================
+   CREATE TAX INVOICE MODAL LIGHT THEME OVERRIDES
+   Ensures 100% crystal-clear visibility, pure white surfaces, high-contrast
+   charcoal text, distinct borders and inputs when Light Theme is active.
+   ========================================================================== */
+html:not(.dark) .create-tax-invoice-modal,
+body:not(.dark) .create-tax-invoice-modal,
+html.theme-light .create-tax-invoice-modal,
+body.theme-light .create-tax-invoice-modal {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+}
+
+/* Header & Title bar */
+html:not(.dark) .create-tax-invoice-modal h3,
+body:not(.dark) .create-tax-invoice-modal h3,
+html:not(.dark) .create-tax-invoice-modal h3 span,
+body:not(.dark) .create-tax-invoice-modal h3 span {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .border-b,
+body:not(.dark) .create-tax-invoice-modal .border-b,
+html:not(.dark) .create-tax-invoice-modal .border-t,
+body:not(.dark) .create-tax-invoice-modal .border-t {
+  border-color: #e2e8f0 !important;
+}
+
+/* Customer / Meta Top Container */
+html:not(.dark) .create-tax-invoice-modal > form > div:first-child,
+body:not(.dark) .create-tax-invoice-modal > form > div:first-child {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Search bar wrapper */
+html:not(.dark) .create-tax-invoice-modal .border-purple-500\/30,
+body:not(.dark) .create-tax-invoice-modal .border-purple-500\/30 {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Search input */
+html:not(.dark) .create-tax-invoice-modal #quick-product-search-input,
+body:not(.dark) .create-tax-invoice-modal #quick-product-search-input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal #quick-product-search-input::placeholder,
+body:not(.dark) .create-tax-invoice-modal #quick-product-search-input::placeholder {
+  color: #64748b !important;
+}
+
+/* Line Items Table Container & Background */
+html:not(.dark) .create-tax-invoice-modal .min-h-\[360px\],
+body:not(.dark) .create-tax-invoice-modal .min-h-\[360px\] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Table Header */
+html:not(.dark) .create-tax-invoice-modal thead,
+body:not(.dark) .create-tax-invoice-modal thead,
+html:not(.dark) .create-tax-invoice-modal thead th,
+body:not(.dark) .create-tax-invoice-modal thead th {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+/* Table Body Rows */
+html:not(.dark) .create-tax-invoice-modal tbody,
+body:not(.dark) .create-tax-invoice-modal tbody {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal tbody tr,
+body:not(.dark) .create-tax-invoice-modal tbody tr {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal tbody tr:hover,
+body:not(.dark) .create-tax-invoice-modal tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Inputs & Selects inside modal */
+html:not(.dark) .create-tax-invoice-modal input,
+body:not(.dark) .create-tax-invoice-modal input,
+html:not(.dark) .create-tax-invoice-modal select,
+body:not(.dark) .create-tax-invoice-modal select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal input::placeholder,
+body:not(.dark) .create-tax-invoice-modal input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal select option,
+body:not(.dark) .create-tax-invoice-modal select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Text visibility inside table cells */
+html:not(.dark) .create-tax-invoice-modal td,
+body:not(.dark) .create-tax-invoice-modal td {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal td .text-slate-400,
+body:not(.dark) .create-tax-invoice-modal td .text-slate-400,
+html:not(.dark) .create-tax-invoice-modal td .text-slate-300,
+body:not(.dark) .create-tax-invoice-modal td .text-slate-300 {
+  color: #475569 !important;
+}
+
+/* Bottom Docked Footer */
+html:not(.dark) .create-tax-invoice-modal > form > div:last-child,
+body:not(.dark) .create-tax-invoice-modal > form > div:last-child {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal > form > div:last-child span.text-slate-400,
+body:not(.dark) .create-tax-invoice-modal > form > div:last-child span.text-slate-400 {
+  color: #475569 !important;
+}
+
+/* Footer Metrics badges */
+html:not(.dark) .create-tax-invoice-modal > form > div:last-child .bg-slate-800\/90,
+body:not(.dark) .create-tax-invoice-modal > form > div:last-child .bg-slate-800\/90,
+html:not(.dark) .create-tax-invoice-modal > form > div:last-child .bg-slate-950,
+body:not(.dark) .create-tax-invoice-modal > form > div:last-child .bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Mode Switcher Buttons & Options button */
+html:not(.dark) .create-tax-invoice-modal .bg-slate-900,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-900 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .text-slate-400,
+body:not(.dark) .create-tax-invoice-modal .text-slate-400 {
+  color: #475569 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal button:not([class*="bg-indigo-600"]):not([class*="bg-emerald-600"]):not([class*="bg-amber-600"]):not([class*="bg-teal-"]):not([class*="bg-gradient-"]):hover,
+body:not(.dark) .create-tax-invoice-modal button:not([class*="bg-indigo-600"]):not([class*="bg-emerald-600"]):not([class*="bg-amber-600"]):not([class*="bg-teal-"]):not([class*="bg-gradient-"]):hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Specific Light Theme Fixes for Pills & Elements visible in screenshot */
+/* 1. Pharma Trade Tier & Industry Pill Containers */
+html:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950,
+body:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 {
+  background-color: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button,
+body:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button {
+  color: #475569 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button:hover,
+body:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button:hover {
+  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+}
+
+/* Active Tier (Stockist -> Chemist etc.) */
+html:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button.bg-teal-500,
+body:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button.bg-teal-500 {
+  background-color: #0d9488 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button.bg-indigo-600,
+body:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button.bg-indigo-600 {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button.bg-emerald-600,
+body:not(.dark) .create-tax-invoice-modal .inline-flex.rounded-lg.bg-slate-950 button.bg-emerald-600 {
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* 2. Rx / Dr (H1) Button & Transport Toggle Button */
+html:not(.dark) .create-tax-invoice-modal button.bg-slate-950,
+body:not(.dark) .create-tax-invoice-modal button.bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal button.bg-slate-950:hover,
+body:not(.dark) .create-tax-invoice-modal button.bg-slate-950:hover {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+/* 3. Discount Toggle Button (% / ₹) */
+html:not(.dark) .create-tax-invoice-modal button.bg-slate-800,
+body:not(.dark) .create-tax-invoice-modal button.bg-slate-800 {
+  background-color: #e2e8f0 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal button.bg-slate-800:hover,
+body:not(.dark) .create-tax-invoice-modal button.bg-slate-800:hover {
+  background-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* 4. Table inputs font color and borders */
+html:not(.dark) .create-tax-invoice-modal table input,
+body:not(.dark) .create-tax-invoice-modal table input,
+html:not(.dark) .create-tax-invoice-modal table select,
+body:not(.dark) .create-tax-invoice-modal table select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 600 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal table input:focus,
+body:not(.dark) .create-tax-invoice-modal table input:focus,
+html:not(.dark) .create-tax-invoice-modal table select:focus,
+body:not(.dark) .create-tax-invoice-modal table select:focus {
+  border-color: #6366f1 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* 5. Bottom Docked Footer - Tender / Mode Boxes */
+html:not(.dark) .create-tax-invoice-modal .shrink-0 > div:first-child .bg-slate-950,
+body:not(.dark) .create-tax-invoice-modal .shrink-0 > div:first-child .bg-slate-950 {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .shrink-0 > div:first-child input,
+body:not(.dark) .create-tax-invoice-modal .shrink-0 > div:first-child input {
+  background-color: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .shrink-0 > div:first-child select,
+body:not(.dark) .create-tax-invoice-modal .shrink-0 > div:first-child select {
+  color: #1e293b !important;
+}
+
+/* 6. Footer Summary Badges (Taxable, GST, Items, Net Total) */
+html:not(.dark) .create-tax-invoice-modal .bg-sky-950\/40,
+body:not(.dark) .create-tax-invoice-modal .bg-sky-950\/40 {
+  background-color: #e0f2fe !important;
+  border: 1px solid #bae6fd !important;
+  color: #0369a1 !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/40,
+body:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/40 {
+  background-color: #e0e7ff !important;
+  border: 1px solid #c7d2fe !important;
+  color: #4338ca !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-emerald-950\/40,
+body:not(.dark) .create-tax-invoice-modal .bg-emerald-950\/40 {
+  background-color: #ecfdf5 !important;
+  border: 1.5px solid #a7f3d0 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-emerald-950\/40 span.text-emerald-300,
+body:not(.dark) .create-tax-invoice-modal .bg-emerald-950\/40 span.text-emerald-300 {
+  color: #047857 !important;
+  font-weight: 800 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-emerald-950\/40 span.text-emerald-400,
+body:not(.dark) .create-tax-invoice-modal .bg-emerald-950\/40 span.text-emerald-400 {
+  color: #059669 !important;
+  font-weight: 900 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-amber-950\/40,
+body:not(.dark) .create-tax-invoice-modal .bg-amber-950\/40 {
+  background-color: #fef3c7 !important;
+  border: 1px solid #fde68a !important;
+  color: #b45309 !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-slate-800\/50,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-800\/50 {
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* 7. Transport, LR & PO Details Card in Light Theme */
+html:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20,
+body:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 {
+  background-color: #f8fafc !important;
+  border: 1.5px solid #c7d2fe !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 .border-indigo-500\/20,
+body:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 .border-indigo-500\/20 {
+  border-bottom: 1px solid #e0e7ff !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 .text-indigo-300,
+body:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 .text-indigo-300 {
+  color: #3730a3 !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 label,
+body:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 label,
+html:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 span,
+body:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 span {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 input,
+body:not(.dark) .create-tax-invoice-modal .bg-indigo-950\/20 input {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* 8. Prescribing Doctor & Patient Card in Light Theme */
+html:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 {
+  background-color: #f0fdfa !important;
+  border: 1.5px solid #99f6e4 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 .text-teal-400,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 .text-teal-400 {
+  color: #0f766e !important;
+  font-weight: 800 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 label,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 label,
+html:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 span,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 span {
+  color: #134e4a !important;
+  font-weight: 600 !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 input,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 input {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 input::placeholder,
+body:not(.dark) .create-tax-invoice-modal .bg-slate-900\/90 input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 9. Mobile Touch & Viewport Optimization */
+@media (max-width: 1024px) {
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+}
+
+/* 10. Record Vendor Bill Modal Full HD Visibility */
+.record-vendor-bill-modal input,
+.record-vendor-bill-modal select,
+.record-vendor-bill-modal textarea {
+  color: var(--foreground) !important;
+  border-color: var(--border-strong) !important;
+  background-color: var(--surface) !important;
+}
+
+html:not(.dark) .record-vendor-bill-modal input,
+html:not(.dark) .record-vendor-bill-modal select,
+html:not(.dark) .record-vendor-bill-modal textarea {
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .record-vendor-bill-modal input::placeholder,
+html:not(.dark) .record-vendor-bill-modal textarea::placeholder {
+  color: #64748b !important;
+}
+
+html:not(.dark) .record-vendor-bill-modal label {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .record-vendor-bill-modal thead {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) .record-vendor-bill-modal thead th {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+/* Safe area inset support */
+:root {
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }

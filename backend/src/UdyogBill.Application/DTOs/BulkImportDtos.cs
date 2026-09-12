@@ -22,7 +22,8 @@ public record BulkProductImportRow(
     string? BatchNumber,
     DateTime? ExpiryDate,
     string? RackLocation,
-    string? Description
+    string? Description,
+    decimal WholesalePrice = 0m
 );
 
 public record BulkProductImportRequest(

@@ -18,9 +18,13 @@ import {
   Sparkles,
   Image as ImageIcon,
   Eye,
+  EyeOff,
   Check,
   UploadCloud,
-  FileSignature
+  FileSignature,
+  Zap,
+  Key,
+  Loader2
 } from "lucide-react";
 
 export default function PlatformCompanyProfilePage() {
@@ -31,33 +35,41 @@ export default function PlatformCompanyProfilePage() {
   const [activeTab, setActiveTab] = useState<"settings" | "preview">("settings");
 
   const [form, setForm] = useState({
-    legalCompanyName: "Udyog Software Technologies Private Limited",
+    legalCompanyName: "DigiOpera Private Limited",
     productBrandName: "UdyogBill",
     tagline: "Smart Cloud Invoicing & Business ERP",
-    gstin: "09AAACU9876A1Z5",
-    pan: "AAACU9876A",
-    state: "Uttar Pradesh",
-    stateCode: "09",
-    addressLine1: "Tower B, Cyber City",
-    addressLine2: "Sector 62",
-    city: "Noida",
-    pincode: "201309",
+    gstin: "06AAMCD2668N1Z2",
+    pan: "AAMCD2668N",
+    state: "Haryana",
+    stateCode: "06",
+    addressLine1: "3rd Floor, Landmark Cyber Park",
+    addressLine2: "Sector 67",
+    city: "Gurugram",
+    pincode: "122102",
     supportEmail: "support@udyogbill.com",
-    supportPhone: "+91 98765 43210",
+    supportPhone: "9473807622",
     website: "https://udyogbill.com",
-    bankName: "HDFC Bank",
-    bankAccountNumber: "50200012345678",
-    bankIfsc: "HDFC0001234",
-    bankBranch: "Noida Sector 62 Branch",
-    upiId: "udyogbill@hdfcbank",
+    bankName: "State Bank of India",
+    bankAccountNumber: "44777396364",
+    bankIfsc: "SBIN0061808",
+    bankBranch: "Gurugram Branch",
+    upiId: "",
     upiQrImageUrl: "",
-    logoUrl: "https://placehold.co/200x60/4f46e5/ffffff?text=UdyogBill",
+    logoUrl: "",
     signatoryImageUrl: "",
     authorizedSignatoryName: "Authorized Signatory",
-    authorizedSignatoryDesignation: "Managing Director",
+    authorizedSignatoryDesignation: "Director",
     invoicePrefix: "UB/SUB/26-27/",
+    nextInvoiceSequence: 1,
     invoiceTermsAndConditions: "1. This is a computer generated tax invoice for Information Technology Software Services (SAC 998313).\n2. Input tax credit is available subject to valid GSTIN.\n3. All subscription fees are paid via automated electronic funds transfer.",
+    enableGstAutoFill: false,
+    sandboxApiKey: "",
+    sandboxApiSecret: "",
   });
+
+  const [showSandboxSecret, setShowSandboxSecret] = useState(false);
+  const [testingGst, setTestingGst] = useState(false);
+  const [gstTestResult, setGstTestResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -73,12 +85,47 @@ export default function PlatformCompanyProfilePage() {
           ...data,
           logoUrl: data.logoUrl || prev.logoUrl,
           legalCompanyName: data.legalCompanyName || prev.legalCompanyName,
+          nextInvoiceSequence: data.nextInvoiceSequence || prev.nextInvoiceSequence || 1,
+          enableGstAutoFill: data.enableGstAutoFill ?? false,
+          sandboxApiKey: data.sandboxApiKey || "",
+          sandboxApiSecret: data.sandboxApiSecret || "",
         }));
       }
     } catch (err: any) {
       console.error("Failed to load platform company profile", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleTestSandboxGst() {
+    try {
+      setTestingGst(true);
+      setGstTestResult(null);
+      const res = await superAdminService.testSandboxGst({
+        apiKey: form.sandboxApiKey,
+        apiSecret: form.sandboxApiSecret,
+        testGstin: form.gstin || "06AAMCD2668N1Z2"
+      });
+      if (res && (res.success || res.legalName)) {
+        setGstTestResult({
+          success: true,
+          message: `Connected successfully! Verified: ${res.legalName || 'Active Entity'} (${res.tradeName || ''})`,
+          details: res
+        });
+      } else {
+        setGstTestResult({
+          success: false,
+          message: res?.errorMessage || "Test connection failed. Please verify your Sandbox API Key & Secret."
+        });
+      }
+    } catch (err: any) {
+      setGstTestResult({
+        success: false,
+        message: err.response?.data?.message || err.message || "Failed to connect to Sandbox.co.in"
+      });
+    } finally {
+      setTestingGst(false);
     }
   }
 
@@ -596,10 +643,10 @@ export default function PlatformCompanyProfilePage() {
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
               <ShieldCheck className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-sm font-bold text-white">Invoice Prefix &amp; Authorized Signatory</h2>
+              <h2 className="text-sm font-bold text-white">Invoice Sequence Numbering &amp; Authorized Signatory</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 text-xs">
               <div>
                 <label className="block font-semibold uppercase text-slate-400 mb-1">Invoice Number Prefix</label>
                 <input
@@ -609,9 +656,31 @@ export default function PlatformCompanyProfilePage() {
                   placeholder="UB/SUB/26-27/"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-indigo-500"
                 />
+                <p className="text-[10px] text-slate-500 mt-1 font-mono">e.g. UB/SUB/26-27/ ya INV-</p>
               </div>
 
               <div>
+                <label className="block font-semibold uppercase text-slate-400 mb-1">Next Invoice Sequence #</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.nextInvoiceSequence || 1}
+                  onChange={(e) => setForm({ ...form, nextInvoiceSequence: Math.max(1, parseInt(e.target.value) || 1) })}
+                  placeholder="101"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono font-bold text-indigo-400 focus:outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Jaha tak invoices ban chuki hain, uske aage ka number dalein</p>
+              </div>
+
+              <div className="md:col-span-2 bg-slate-950/80 p-3 rounded-xl border border-indigo-500/30 flex flex-col justify-center">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Next Generated Invoice Preview:</span>
+                <span className="text-base font-mono font-black text-emerald-400 mt-0.5 tracking-wide">
+                  {(form.invoicePrefix || "UB/SUB/26-27/") + String(form.nextInvoiceSequence || 1).padStart(4, "0")}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-0.5">Har naye subscription invoice par ye sequence auto-increment hoga.</span>
+              </div>
+
+              <div className="md:col-span-2">
                 <label className="block font-semibold uppercase text-slate-400 mb-1">Authorized Signatory Name</label>
                 <input
                   type="text"
@@ -622,7 +691,7 @@ export default function PlatformCompanyProfilePage() {
                 />
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label className="block font-semibold uppercase text-slate-400 mb-1">Signatory Designation</label>
                 <input
                   type="text"
@@ -633,7 +702,7 @@ export default function PlatformCompanyProfilePage() {
                 />
               </div>
 
-              <div className="md:col-span-3">
+              <div className="md:col-span-4">
                 <label className="block font-semibold uppercase text-slate-400 mb-1">Invoice Terms &amp; Declarations</label>
                 <textarea
                   rows={3}
@@ -644,6 +713,134 @@ export default function PlatformCompanyProfilePage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Card 7: Instant GST Auto-Fill Settings (Sandbox.co.in) */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>GST Auto-Fill Integration</span>
+                    <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30">
+                      Sandbox.co.in
+                    </span>
+                  </h2>
+                  <p className="text-[11px] text-slate-400">
+                    Allows new users to enter their GSTIN on the registration/free-trial page to automatically populate their business legal name, trade name, and address.
+                  </p>
+                </div>
+              </div>
+
+              {/* Master Toggle */}
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.enableGstAutoFill}
+                  onChange={(e) => setForm({ ...form, enableGstAutoFill: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span className="ml-2.5 text-xs font-bold text-slate-300">
+                  {form.enableGstAutoFill ? "Auto-Fill Active" : "Disabled"}
+                </span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+              <div>
+                <label className="block font-semibold uppercase text-slate-400 mb-1 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Sandbox API Key</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.sandboxApiKey}
+                  onChange={(e) => setForm({ ...form, sandboxApiKey: e.target.value.trim() })}
+                  placeholder="key_live_c3dd7b53ca0f40909c3cf1e943df1cd3"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 font-mono text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold uppercase text-slate-400 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Sandbox API Secret</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSandboxSecret(!showSandboxSecret)}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                  >
+                    {showSandboxSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    <span>{showSandboxSecret ? "Hide" : "Show Secret"}</span>
+                  </button>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSandboxSecret ? "text" : "password"}
+                    value={form.sandboxApiSecret}
+                    onChange={(e) => setForm({ ...form, sandboxApiSecret: e.target.value.trim() })}
+                    placeholder="Enter Sandbox API Secret"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 font-mono text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Test Connection Action */}
+            <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-slate-800/80">
+              <div className="text-[11px] text-slate-400">
+                Test credentials against <code className="text-indigo-300 font-mono">api.sandbox.co.in</code> before saving.
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTestSandboxGst}
+                disabled={testingGst || !form.sandboxApiKey || !form.sandboxApiSecret}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 active:scale-95 disabled:opacity-40 text-white font-semibold text-xs px-4 py-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer"
+              >
+                {testingGst ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                    <span>Testing Connection...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Test Sandbox Connection</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {gstTestResult && (
+              <div
+                className={`p-3.5 rounded-xl border flex items-start gap-2.5 text-xs animate-in fade-in ${
+                  gstTestResult.success
+                    ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-300"
+                    : "bg-rose-950/40 border-rose-800/60 text-rose-300"
+                }`}
+              >
+                {gstTestResult.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="font-semibold">{gstTestResult.message}</div>
+                  {gstTestResult.details?.state && (
+                    <div className="text-[11px] opacity-85 mt-1 font-mono">
+                      State: {gstTestResult.details.state} ({gstTestResult.details.stateCode}) | Status: {gstTestResult.details.status}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-2">
@@ -715,15 +912,15 @@ export default function PlatformCompanyProfilePage() {
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400">Billed To (Subscriber / Customer):</span>
                 <div className="font-bold text-slate-950 text-sm mt-1">Apex Pharma Care</div>
-                <div className="text-slate-600">Main Road, Sector 18, Lucknow, Uttar Pradesh</div>
-                <div className="text-slate-600">Email: suresh@citypharma.com</div>
+                <div className="text-slate-600">Main Market, Sector 14, Gurugram, Haryana - 122001</div>
+                <div className="text-slate-600">Email: suresh@apexpharma.com</div>
                 <div className="text-slate-600">Phone: +91 98765 43210</div>
               </div>
 
               <div className="text-right space-y-1">
                 <div>
                   <span className="text-slate-500">Customer GSTIN: </span>
-                  <span className="font-mono font-bold text-slate-900">09AAACP1234F1Z1</span>
+                  <span className="font-mono font-bold text-slate-900">06AAACP1234F1Z1</span>
                 </div>
                 <div>
                   <span className="text-slate-500">Customer PAN: </span>
@@ -731,7 +928,7 @@ export default function PlatformCompanyProfilePage() {
                 </div>
                 <div>
                   <span className="text-slate-500">Supply Type: </span>
-                  <span className="font-bold text-indigo-700">Intra-State (CGST 9% + SGST 9%)</span>
+                  <span className="font-bold text-indigo-700">Intra-State (Haryana: CGST 9% + SGST 9%)</span>
                 </div>
                 <div>
                   <span className="text-slate-500">Payment Ref: </span>

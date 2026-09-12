@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { 
@@ -20,7 +20,9 @@ import {
   CreditCard, 
   Loader2,
   ExternalLink,
-  ShieldAlert
+  ShieldAlert,
+  Lock,
+  Sparkles
 } from "lucide-react";
 
 export default function TenantReferralsPage() {
@@ -115,28 +117,67 @@ export default function TenantReferralsPage() {
             Share your exclusive permanent referral link with other business owners. When they register and purchase any paid subscription or add-on, your commission reward is automatically credited with next-day direct payout to your UPI/Bank.
           </p>
 
-          {/* Referral Link Action Bar */}
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-            <div className="flex-1 bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 flex items-center justify-between text-sm font-mono text-indigo-200 select-all overflow-x-auto">
-              <span className="truncate">{summary?.referralLink}</span>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium rounded-xl text-sm transition-all shadow-md shadow-indigo-600/30"
+          {/* Referral Link Action Bar or Plan Required Lock Banner */}
+          {summary?.hasActiveSubscription === false ? (
+            <div className="mt-6 rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-lg bg-amber-500/20 text-amber-300 flex-shrink-0 mt-0.5">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-amber-200">Active Paid Plan Required</h3>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
+                    Apna referral code generate karne aur referral rewards paane ke liye pehle koi bhi subscription plan active karein.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/app/plans"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 whitespace-nowrap active:scale-95"
               >
-                {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? "Copied!" : "Copy Link"}</span>
-              </button>
-              <button
-                onClick={handleWhatsAppShare}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-medium rounded-xl text-sm transition-all shadow-md shadow-emerald-600/30"
-              >
-                <Share2 className="w-4 h-4" />
-                <span className="hidden sm:inline">WhatsApp</span>
-              </button>
+                <Sparkles className="w-4 h-4" />
+                <span>Activate Plan Now</span>
+              </a>
             </div>
-          </div>
+          ) : (
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <a
+                href={summary?.referralLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-slate-950/80 border border-slate-700 hover:border-indigo-500 rounded-xl px-4 py-2.5 flex items-center justify-between text-sm font-mono text-indigo-200 hover:text-indigo-100 hover:underline select-all overflow-x-auto transition-colors cursor-pointer"
+              >
+                <span className="truncate">{summary?.referralLink || "Generating your referral link..."}</span>
+              </a>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopyLink}
+                  disabled={!summary?.referralLink}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 text-white font-medium rounded-xl text-sm transition-all shadow-md shadow-indigo-600/30"
+                >
+                  {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                  <span>{copied ? "Copied!" : "Copy Link"}</span>
+                </button>
+                <a
+                  href={summary?.referralLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-medium rounded-xl text-sm transition-all"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">Open</span>
+                </a>
+                <button
+                  onClick={handleWhatsAppShare}
+                  disabled={!summary?.referralLink}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 text-white font-medium rounded-xl text-sm transition-all shadow-md shadow-emerald-600/30"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Decorative background glow */}

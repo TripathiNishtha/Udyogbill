@@ -106,6 +106,22 @@ export default function OfflineSyncHubPage() {
     }
   };
 
+  const handleClearLocalCache = async () => {
+    if (typeof window !== "undefined" && !window.confirm("Are you sure you want to clear the local browser offline cache for this store? This will reset local product and customer caches.")) {
+      return;
+    }
+    try {
+      setLoading(true);
+      await offlineDb.clearAllLocalData();
+      setNotification("Local browser offline cache cleared successfully. Count is now 0.");
+      await refreshAll();
+    } catch {
+      alert("Failed to clear local cache.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExportOfflineBackup = async () => {
     const all = await offlineDb.getAllOutboxInvoices();
     const blob = new Blob([JSON.stringify(all, null, 2)], { type: "application/json" });
@@ -221,13 +237,26 @@ export default function OfflineSyncHubPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={handleSeedCache}
-          disabled={loading || !networkStatus.isOnline}
-          className="shrink-0 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
-        >
-          Download Latest Catalog Cache
-        </button>
+        <div className="flex items-center space-x-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleClearLocalCache}
+            disabled={loading}
+            className="px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-300 text-xs font-semibold transition-all flex items-center space-x-1.5 disabled:opacity-50"
+            title="Wipe local browser offline cache for this store"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+            <span>Clear Local Cache</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSeedCache}
+            disabled={loading || !networkStatus.isOnline}
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+          >
+            Download Latest Catalog Cache
+          </button>
+        </div>
       </div>
 
       {/* Outbox & Offline Bills Table */}

@@ -8,17 +8,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // 1. Core Marketing & Legal Pages
   const corePages: MetadataRoute.Sitemap = [
-    { url: base, priority: 1.0, changeFrequency: "daily", lastModified: now },
-    { url: `${base}/features`, priority: 0.9, changeFrequency: "weekly", lastModified: now },
-    { url: `${base}/pricing`, priority: 0.9, changeFrequency: "weekly", lastModified: now },
+    { url: base, priority: 1.0, changeFrequency: "daily", lastModified: new Date("2025-06-01") },
+    { url: `${base}/features`, priority: 0.9, changeFrequency: "weekly", lastModified: new Date("2025-06-01") },
+    { url: `${base}/pricing`, priority: 0.9, changeFrequency: "weekly", lastModified: new Date("2025-06-01") },
     { url: `${base}/blog`, priority: 0.95, changeFrequency: "daily", lastModified: now },
-    { url: `${base}/about`, priority: 0.7, changeFrequency: "monthly", lastModified: now },
-    { url: `${base}/contact`, priority: 0.8, changeFrequency: "monthly", lastModified: now },
-    { url: `${base}/industries`, priority: 0.95, changeFrequency: "weekly", lastModified: now },
-    { url: `${base}/register`, priority: 0.9, changeFrequency: "monthly", lastModified: now },
-    { url: `${base}/login`, priority: 0.6, changeFrequency: "monthly", lastModified: now },
-    { url: `${base}/terms`, priority: 0.5, changeFrequency: "monthly", lastModified: now },
-    { url: `${base}/privacy`, priority: 0.5, changeFrequency: "monthly", lastModified: now },
+    { url: `${base}/about`, priority: 0.7, changeFrequency: "monthly", lastModified: new Date("2025-01-01") },
+    { url: `${base}/contact`, priority: 0.8, changeFrequency: "monthly", lastModified: new Date("2025-01-01") },
+    { url: `${base}/industries`, priority: 0.95, changeFrequency: "weekly", lastModified: new Date("2025-06-01") },
+    { url: `${base}/terms`, priority: 0.5, changeFrequency: "monthly", lastModified: new Date("2025-01-01") },
+    { url: `${base}/privacy`, priority: 0.5, changeFrequency: "monthly", lastModified: new Date("2025-01-01") },
   ];
 
   // 2. Official Industry Landing Pages

@@ -71,11 +71,21 @@ export const platformCouponService = {
     data: {
       planId: string;
       planDurationDays: number;
-      addons: { addonCode: string; durationDays: number }[];
+      addons?: { addonCode: string; durationDays: number }[];
+      reason?: string;
       notes?: string;
+      customAmount?: number | null;
+      isGstInclusive?: boolean;
+      paymentMode?: string;
+      paymentReference?: string;
+      generateInvoice?: boolean;
     }
   ): Promise<void> {
-    await apiClient.post(`/superadmin/tenants/${tenantId}/assign-package-addons`, data);
+    const payload = {
+      ...data,
+      reason: data.reason || data.notes || "Assigned by Super Admin",
+    };
+    await apiClient.post(`/superadmin/tenants/${tenantId}/assign-package-addons`, payload);
   },
 
   async extendTenantTrial(

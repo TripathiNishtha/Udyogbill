@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../app/constants/app_constants.dart';
 import '../../../../core/database/daos/item_dao.dart';
+import '../../../../core/utils/pharma_pricing_calculator.dart';
 
 class AddItemDialog extends StatefulWidget {
   final Function(ItemModel)? onSaved;
@@ -17,10 +20,20 @@ class _AddItemDialogState extends State<AddItemDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _barcodeController = TextEditingController();
+  final _hsnController = TextEditingController(text: '3004');
   final _salePriceController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _stockController = TextEditingController(text: '10');
   final _categoryController = TextEditingController(text: 'General');
+
+  // Pharma / Wholesale B2B Master Fields
+  bool _showBatchDetails = false;
+  final _batchController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _mrpController = TextEditingController();
+  final _ptrController = TextEditingController();
+  final _ptsController = TextEditingController();
+  final _rackController = TextEditingController();
 
   double _gstRate = 18.0;
   String _uom = 'Pcs';
@@ -33,11 +46,32 @@ class _AddItemDialogState extends State<AddItemDialog> {
   void dispose() {
     _nameController.dispose();
     _barcodeController.dispose();
+    _hsnController.dispose();
     _salePriceController.dispose();
     _purchasePriceController.dispose();
     _stockController.dispose();
     _categoryController.dispose();
+    _batchController.dispose();
+    _expiryController.dispose();
+    _mrpController.dispose();
+    _ptrController.dispose();
+    _ptsController.dispose();
+    _rackController.dispose();
     super.dispose();
+  }
+
+  void _onMrpChanged(String val) {
+    final mrp = double.tryParse(val.trim()) ?? 0.0;
+    if (mrp > 0) {
+      final rates = PharmaPricingCalculator.calculateMargRates(mrp: mrp, gstRate: _gstRate);
+      setState(() {
+        _ptrController.text = rates.ptr.toStringAsFixed(2);
+        _ptsController.text = rates.pts.toStringAsFixed(2);
+        if (_salePriceController.text.isEmpty || _salePriceController.text == '0.00') {
+          _salePriceController.text = rates.ptr.toStringAsFixed(2);
+        }
+      });
+    }
   }
 
   void _scanBarcode() {
@@ -81,16 +115,29 @@ class _AddItemDialogState extends State<AddItemDialog> {
 
     setState(() => _isSaving = true);
     try {
+      const storage = FlutterSecureStorage();
+      final activeTenantId = await storage.read(key: AppConstants.keyTenantId) ?? '';
+
       final salePrice = double.tryParse(_salePriceController.text.trim()) ?? 0.0;
       final purchasePrice = double.tryParse(_purchasePriceController.text.trim()) ?? (salePrice * 0.8);
       final stock = double.tryParse(_stockController.text.trim()) ?? 0.0;
+      final mrp = double.tryParse(_mrpController.text.trim()) ?? 0.0;
+      final ptr = double.tryParse(_ptrController.text.trim()) ?? 0.0;
+      final pts = double.tryParse(_ptsController.text.trim()) ?? 0.0;
 
       final newItem = ItemModel(
         id: const Uuid().v4(),
-        tenantId: 'demo-tenant',
+        tenantId: activeTenantId,
         name: _nameController.text.trim(),
         barcode: _barcodeController.text.trim().isEmpty ? null : _barcodeController.text.trim(),
         sku: _barcodeController.text.trim().isEmpty ? 'SKU-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}' : _barcodeController.text.trim(),
+        hsnCode: _hsnController.text.trim().isEmpty ? null : _hsnController.text.trim(),
+        batchNumber: _batchController.text.trim().isEmpty ? null : _batchController.text.trim().toUpperCase(),
+        expiryDate: _expiryController.text.trim().isEmpty ? null : _expiryController.text.trim(),
+        mrp: mrp,
+        ptr: ptr,
+        pts: pts,
+        rackLocation: _rackController.text.trim().isEmpty ? null : _rackController.text.trim().toUpperCase(),
         salePrice: salePrice,
         purchasePrice: purchasePrice,
         stockQuantity: stock,
@@ -239,8 +286,160 @@ class _AddItemDialogState extends State<AddItemDialog> {
                   ),
                   items: _gstRates.map((r) => DropdownMenuItem(value: r, child: Text('GST $r%'))).toList(),
                   onChanged: (val) {
-                    if (val != null) setState(() => _gstRate = val);
+                    if (val != null) {
+                      setState(() {
+                        _gstRate = val;
+                        _onMrpChanged(_mrpController.text);
+                      });
+                    }
                   },
+                ),
+                const SizedBox(height: 14),
+
+                // Pharma & Wholesale B2B Batch Details (Collapsible)
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                  ),
+                  child: Column(
+                    children: [
+                      InkWell(
+                        onTap: () => setState(() => _showBatchDetails = !_showBatchDetails),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.medication_liquid_outlined, size: 18, color: AppTheme.primary),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Pharma & Batch Details (बैच/एक्सपायरी)',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B)),
+                                  ),
+                                ],
+                              ),
+                              Icon(_showBatchDetails ? Icons.expand_less : Icons.expand_more, color: Colors.grey[600]),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_showBatchDetails)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Divider(height: 1),
+                              const SizedBox(height: 10),
+                              // Batch No & Expiry
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _batchController,
+                                      textCapitalization: TextCapitalization.characters,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Batch Number',
+                                        hintText: 'e.g. B-9941',
+                                        prefixIcon: Icon(Icons.pin_outlined, size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _expiryController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Expiry (MM/YY)',
+                                        hintText: 'e.g. 12/28',
+                                        prefixIcon: Icon(Icons.event_outlined, size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+
+                              // MRP (Auto-calculates PTR & PTS)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _mrpController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      onChanged: _onMrpChanged,
+                                      decoration: const InputDecoration(
+                                        labelText: 'MRP (₹)',
+                                        hintText: '0.00',
+                                        prefixText: '₹ ',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _ptrController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: const InputDecoration(
+                                        labelText: 'PTR (₹) [Retailer]',
+                                        hintText: '0.00',
+                                        prefixText: '₹ ',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+
+                              // PTS & HSN
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _ptsController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: const InputDecoration(
+                                        labelText: 'PTS (₹) [Stockist]',
+                                        hintText: '0.00',
+                                        prefixText: '₹ ',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _hsnController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'HSN Code',
+                                        hintText: '3004',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Rack Location
+                              TextFormField(
+                                controller: _rackController,
+                                textCapitalization: TextCapitalization.characters,
+                                decoration: const InputDecoration(
+                                  labelText: 'Rack / Shelf Location',
+                                  hintText: 'e.g. RACK-A3 / SHELF-2',
+                                  prefixIcon: Icon(Icons.shelves, size: 18),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
 

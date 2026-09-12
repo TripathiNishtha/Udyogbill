@@ -195,12 +195,15 @@ public class PurchaseService : IPurchaseService
                 i.ItemName,
                 i.HsnCode,
                 i.OrderQuantity,
+                i.FreeQuantity,
                 i.ReceivedQuantity,
                 i.RemainingQuantity,
                 i.UomId,
                 i.UomCode,
                 i.UnitPrice,
                 i.DiscountPercent,
+                i.SchemeDiscountPercent,
+                i.CashDiscountPercent,
                 i.DiscountAmount,
                 i.TaxableAmount,
                 i.GstRate,
@@ -368,7 +371,9 @@ public class PurchaseService : IPurchaseService
             var uomCode = uom?.Code ?? item.PrimaryUom.Code;
 
             var gross = reqItem.Quantity * reqItem.UnitPrice;
-            var discAmt = gross * (reqItem.DiscountPercent / 100m);
+            // Compound discount: Trade Disc % + Scheme Disc % + Cash Disc %
+            var totalDiscPct = Math.Min(100m, reqItem.DiscountPercent + reqItem.SchemeDiscountPercent + reqItem.CashDiscountPercent);
+            var discAmt = gross * (totalDiscPct / 100m);
             var taxable = gross - discAmt;
 
             var gstRate = item.TaxRate;
@@ -409,11 +414,14 @@ public class PurchaseService : IPurchaseService
                 ItemName = item.Name,
                 HsnCode = item.HSNCode,
                 OrderQuantity = reqItem.Quantity,
+                FreeQuantity = reqItem.FreeQuantity,
                 ReceivedQuantity = 0m,
                 UomId = reqItem.UomId,
                 UomCode = uomCode,
                 UnitPrice = reqItem.UnitPrice,
                 DiscountPercent = reqItem.DiscountPercent,
+                SchemeDiscountPercent = reqItem.SchemeDiscountPercent,
+                CashDiscountPercent = reqItem.CashDiscountPercent,
                 DiscountAmount = discAmt,
                 TaxableAmount = taxable,
                 GstRate = gstRate,
@@ -634,7 +642,9 @@ public class PurchaseService : IPurchaseService
                 i.ManufacturingDate ?? i.Batch?.ManufacturingDate,
                 i.ExpiryDate ?? i.Batch?.ExpiryDate,
                 i.ReceivedQuantity,
+                i.ReceivedFreeQuantity,
                 i.AcceptedQuantity,
+                i.AcceptedFreeQuantity,
                 i.RejectedQuantity,
                 i.UomId,
                 i.UomCode,
@@ -792,8 +802,10 @@ public class PurchaseService : IPurchaseService
             }
 
             var acceptedQty = reqItem.AcceptedQuantity;
+            var acceptedFreeQty = reqItem.AcceptedFreeQuantity;
+            var totalInwardQty = acceptedQty + acceptedFreeQty;
 
-            // Replenish Warehouse Stock
+            // Replenish Warehouse Stock (Total physical units = Paid + Free)
             var stockQuery = _context.ItemWarehouseStocks
                 .Where(s => s.TenantId == tenantId && s.ItemId == item.Id && s.WarehouseId == request.WarehouseId && !s.IsDeleted);
 
@@ -813,14 +825,19 @@ public class PurchaseService : IPurchaseService
                     ItemId = item.Id,
                     WarehouseId = request.WarehouseId,
                     Batch = batch,
-                    CurrentQuantity = acceptedQty
+                    CurrentQuantity = totalInwardQty
                 };
                 _context.ItemWarehouseStocks.Add(stock);
             }
             else
             {
-                stock.CurrentQuantity += acceptedQty;
+                stock.CurrentQuantity += totalInwardQty;
             }
+
+            // Effective landed unit cost: Total invoice cost apportioned over (paid + free) units
+            var effectiveUnitCost = totalInwardQty > 0 
+                ? (reqItem.UnitCost * acceptedQty) / totalInwardQty 
+                : (reqItem.UnitCost > 0 ? reqItem.UnitCost : item.PurchasePrice);
 
             // Log StockMovement (PurchaseInward)
             var movement = new StockMovement
@@ -830,25 +847,66 @@ public class PurchaseService : IPurchaseService
                 WarehouseId = request.WarehouseId,
                 Batch = batch,
                 MovementType = StockMovementType.PurchaseInward,
-                Quantity = acceptedQty,
+                Quantity = totalInwardQty,
                 QuantityBefore = beforeQty,
                 QuantityAfter = stock.CurrentQuantity,
-                UnitCost = reqItem.UnitCost > 0 ? reqItem.UnitCost : item.PurchasePrice,
-                TotalCost = (reqItem.UnitCost > 0 ? reqItem.UnitCost : item.PurchasePrice) * acceptedQty,
+                UnitCost = effectiveUnitCost,
+                TotalCost = reqItem.UnitCost * acceptedQty,
                 ReferenceDocumentType = "GoodsReceiptNote",
                 ReferenceDocumentId = grn.Id,
                 ReferenceDocumentNumber = grnNumber,
-                Notes = $"Inward stock via GRN {grnNumber} from {supplier.LegalName}"
+                Notes = $"Inward stock via GRN {grnNumber} from {supplier.LegalName} (Paid: {acceptedQty}, Free: {acceptedFreeQty})"
             };
             _context.StockMovements.Add(movement);
 
-            // If linked to PO item, update received quantity
+            // Inward Electronics Serial / IMEI Numbers if provided in GRN item
+            if (!string.IsNullOrWhiteSpace(reqItem.AttributesJson) && reqItem.AttributesJson != "{}")
+            {
+                try
+                {
+                    var grnAttrs = JsonSerializer.Deserialize<Dictionary<string, object>>(reqItem.AttributesJson);
+                    if (grnAttrs != null && (grnAttrs.TryGetValue("imeiSerial", out var gImei) || grnAttrs.TryGetValue("serialNumbers", out gImei) || grnAttrs.TryGetValue("imei", out gImei)))
+                    {
+                        var rawImei = gImei?.ToString();
+                        if (!string.IsNullOrWhiteSpace(rawImei))
+                        {
+                            var sList = rawImei.Split(new[] { ',', '\n', '\r', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            foreach (var sNum in sList)
+                            {
+                                var existingSerial = await _context.ItemSerialNumbers
+                                    .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == item.Id && s.SerialNumber.ToLower() == sNum.ToLower() && !s.IsDeleted, cancellationToken);
+                                if (existingSerial == null)
+                                {
+                                    _context.ItemSerialNumbers.Add(new ItemSerialNumber
+                                    {
+                                        TenantId = tenantId,
+                                        ItemId = item.Id,
+                                        BatchId = batch?.Id,
+                                        WarehouseId = request.WarehouseId,
+                                        SerialNumber = sNum,
+                                        Status = "InStock"
+                                    });
+                                }
+                                else
+                                {
+                                    existingSerial.Status = "InStock";
+                                    existingSerial.WarehouseId = request.WarehouseId;
+                                    if (batch != null) existingSerial.BatchId = batch.Id;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // If linked to PO item, update received quantity (both paid + free)
             if (po != null && reqItem.PurchaseOrderItemId.HasValue)
             {
                 var poItem = po.Items.FirstOrDefault(pi => pi.Id == reqItem.PurchaseOrderItemId.Value);
                 if (poItem != null)
                 {
-                    poItem.ReceivedQuantity += acceptedQty;
+                    poItem.ReceivedQuantity += totalInwardQty;
                 }
             }
 
@@ -865,7 +923,9 @@ public class PurchaseService : IPurchaseService
                 ManufacturingDate = reqItem.ManufacturingDate.HasValue ? DateTime.SpecifyKind(reqItem.ManufacturingDate.Value, DateTimeKind.Utc) : null,
                 ExpiryDate = reqItem.ExpiryDate.HasValue ? DateTime.SpecifyKind(reqItem.ExpiryDate.Value, DateTimeKind.Utc) : null,
                 ReceivedQuantity = reqItem.ReceivedQuantity,
+                ReceivedFreeQuantity = reqItem.ReceivedFreeQuantity,
                 AcceptedQuantity = reqItem.AcceptedQuantity,
+                AcceptedFreeQuantity = reqItem.AcceptedFreeQuantity,
                 RejectedQuantity = reqItem.RejectedQuantity,
                 UomId = reqItem.UomId,
                 UomCode = uomCode,
@@ -1108,10 +1168,13 @@ public class PurchaseService : IPurchaseService
                 i.BatchId,
                 i.BatchNumber,
                 i.Quantity,
+                i.FreeQuantity,
                 i.UomId,
                 i.UomCode,
                 i.UnitPrice,
                 i.DiscountPercent,
+                i.SchemeDiscountPercent,
+                i.CashDiscountPercent,
                 i.DiscountAmount,
                 i.TaxableAmount,
                 i.GstRate,
@@ -1401,10 +1464,13 @@ public class PurchaseService : IPurchaseService
                     BatchNumber = reqItem.BatchNumber,
                     VariantId = reqItem.VariantId,
                     Quantity = reqItem.Quantity,
+                    FreeQuantity = reqItem.FreeQuantity,
                     UomId = reqItem.UomId,
                     UomCode = uomCode,
                     UnitPrice = reqItem.UnitPrice,
                     DiscountPercent = reqItem.DiscountPercent,
+                    SchemeDiscountPercent = reqItem.SchemeDiscountPercent,
+                    CashDiscountPercent = reqItem.CashDiscountPercent,
                     DiscountAmount = lineCalc.ItemDiscountAmount,
                     TaxableAmount = lineCalc.TaxableAmount,
                     GstRate = lineCalc.GstRate,
@@ -1595,6 +1661,61 @@ public class PurchaseService : IPurchaseService
                         ReferenceDocumentNumber = billNumber,
                         Notes = $"Direct stock inward from Purchase Bill {billNumber} (Net physical units: {physicalUnits})"
                     });
+
+                    // Inward Electronics Serial / IMEI Numbers into register
+                    var itemAttrs = new Dictionary<string, object>();
+                    if (!string.IsNullOrWhiteSpace(bItem.AttributesJson))
+                    {
+                        try
+                        {
+                            var parsed = JsonSerializer.Deserialize<Dictionary<string, object>>(bItem.AttributesJson);
+                            if (parsed != null) foreach (var kvp in parsed) itemAttrs[kvp.Key] = kvp.Value;
+                        }
+                        catch { }
+                    }
+                    if (!string.IsNullOrWhiteSpace(reqItem.AttributesJson))
+                    {
+                        try
+                        {
+                            var parsed = JsonSerializer.Deserialize<Dictionary<string, object>>(reqItem.AttributesJson);
+                            if (parsed != null) foreach (var kvp in parsed) itemAttrs[kvp.Key] = kvp.Value;
+                        }
+                        catch { }
+                    }
+
+                    if (itemAttrs.TryGetValue("imeiSerial", out var imeiVal) ||
+                        itemAttrs.TryGetValue("serialNumbers", out imeiVal) ||
+                        itemAttrs.TryGetValue("imei", out imeiVal))
+                    {
+                        var rawImeiStr = imeiVal?.ToString();
+                        if (!string.IsNullOrWhiteSpace(rawImeiStr))
+                        {
+                            var serials = rawImeiStr.Split(new[] { ',', '\n', '\r', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            foreach (var sNum in serials)
+                            {
+                                var existingSerial = await _context.ItemSerialNumbers
+                                    .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == bItem.ItemId && s.SerialNumber.ToLower() == sNum.ToLower() && !s.IsDeleted, cancellationToken);
+                                if (existingSerial == null)
+                                {
+                                    _context.ItemSerialNumbers.Add(new ItemSerialNumber
+                                    {
+                                        TenantId = tenantId,
+                                        ItemId = bItem.ItemId,
+                                        BatchId = batch?.Id,
+                                        WarehouseId = request.WarehouseId,
+                                        SerialNumber = sNum,
+                                        Status = "InStock"
+                                    });
+                                }
+                                else
+                                {
+                                    existingSerial.Status = "InStock";
+                                    existingSerial.WarehouseId = request.WarehouseId;
+                                    if (batch != null) existingSerial.BatchId = batch.Id;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -2279,15 +2400,19 @@ public class PurchaseService : IPurchaseService
             };
 
             // Leg 1: Debit Purchase Expense / Inventory
+            decimal expenseAmount = bill.TaxableAmount > 0 
+                ? bill.TaxableAmount 
+                : (bill.TotalAmount - bill.CgstAmount - bill.SgstAmount - bill.IgstAmount - bill.CessAmount - bill.RoundOff);
+
             voucher.Legs.Add(new JournalVoucherLeg
             {
                 TenantId = tenantId,
                 AccountId = expAccount.Id,
-                DebitAmount = bill.TaxableAmount,
+                DebitAmount = expenseAmount,
                 CreditAmount = 0,
                 Narration = $"Purchase expense for bill {bill.BillNumber}"
             });
-            expAccount.CurrentBalance += bill.TaxableAmount;
+            expAccount.CurrentBalance += expenseAmount;
 
             // Leg 2: Debit Input CGST
             if (cgstAccount != null && bill.CgstAmount > 0)
@@ -2386,6 +2511,14 @@ public class PurchaseService : IPurchaseService
             });
             apAccount.CurrentBalance += bill.TotalAmount;
 
+            voucher.TotalDebit = voucher.Legs.Sum(l => l.DebitAmount);
+            voucher.TotalCredit = voucher.Legs.Sum(l => l.CreditAmount);
+
+            if (Math.Abs(voucher.TotalDebit - voucher.TotalCredit) > 0.01m)
+            {
+                throw new InvalidOperationException($"General Ledger voucher for bill {bill.BillNumber} is out of balance. Total Debit: {voucher.TotalDebit:F2}, Total Credit: {voucher.TotalCredit:F2}. Difference: {Math.Abs(voucher.TotalDebit - voucher.TotalCredit):F2}");
+            }
+
             _context.JournalVouchers.Add(voucher);
         }
         catch (Exception ex)
@@ -2433,15 +2566,19 @@ public class PurchaseService : IPurchaseService
             apAccount.CurrentBalance -= bill.TotalAmount;
 
             // Leg 2: Credit Purchase Expense (Reverses COGS/Expense)
+            decimal expenseAmount = bill.TaxableAmount > 0 
+                ? bill.TaxableAmount 
+                : (bill.TotalAmount - bill.CgstAmount - bill.SgstAmount - bill.IgstAmount - bill.CessAmount - bill.RoundOff);
+
             voucher.Legs.Add(new JournalVoucherLeg
             {
                 TenantId = tenantId,
                 AccountId = expAccount.Id,
                 DebitAmount = 0,
-                CreditAmount = bill.TaxableAmount,
+                CreditAmount = expenseAmount,
                 Narration = $"Reverse purchase expense for bill {bill.BillNumber}"
             });
-            expAccount.CurrentBalance -= bill.TaxableAmount;
+            expAccount.CurrentBalance -= expenseAmount;
 
             // Leg 3: Credit Input CGST
             if (cgstAccount != null && bill.CgstAmount > 0)
@@ -2527,6 +2664,14 @@ public class PurchaseService : IPurchaseService
                     });
                     roundOffAccount.CurrentBalance += gain;
                 }
+            }
+
+            voucher.TotalDebit = voucher.Legs.Sum(l => l.DebitAmount);
+            voucher.TotalCredit = voucher.Legs.Sum(l => l.CreditAmount);
+
+            if (Math.Abs(voucher.TotalDebit - voucher.TotalCredit) > 0.01m)
+            {
+                throw new InvalidOperationException($"General Ledger voucher for bill reversal {bill.BillNumber} is out of balance. Total Debit: {voucher.TotalDebit:F2}, Total Credit: {voucher.TotalCredit:F2}. Difference: {Math.Abs(voucher.TotalDebit - voucher.TotalCredit):F2}");
             }
 
             _context.JournalVouchers.Add(voucher);
@@ -2629,6 +2774,14 @@ public class PurchaseService : IPurchaseService
                     });
                     sgstAccount.CurrentBalance -= otherHalf;
                 }
+            }
+
+            voucher.TotalDebit = voucher.Legs.Sum(l => l.DebitAmount);
+            voucher.TotalCredit = voucher.Legs.Sum(l => l.CreditAmount);
+
+            if (Math.Abs(voucher.TotalDebit - voucher.TotalCredit) > 0.01m)
+            {
+                throw new InvalidOperationException($"General Ledger voucher for debit note {purchaseReturn.DebitNoteNumber} is out of balance. Total Debit: {voucher.TotalDebit:F2}, Total Credit: {voucher.TotalCredit:F2}. Difference: {Math.Abs(voucher.TotalDebit - voucher.TotalCredit):F2}");
             }
 
             _context.JournalVouchers.Add(voucher);

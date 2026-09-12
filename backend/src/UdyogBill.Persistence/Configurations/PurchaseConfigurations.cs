@@ -71,9 +71,12 @@ public class PurchaseOrderItemConfiguration : IEntityTypeConfiguration<PurchaseO
         builder.Property(poi => poi.UomCode).HasMaxLength(20).IsRequired();
 
         builder.Property(poi => poi.OrderQuantity).HasPrecision(18, 4);
+        builder.Property(poi => poi.FreeQuantity).HasPrecision(18, 4);
         builder.Property(poi => poi.ReceivedQuantity).HasPrecision(18, 4);
         builder.Property(poi => poi.UnitPrice).HasPrecision(18, 4);
         builder.Property(poi => poi.DiscountPercent).HasPrecision(5, 2);
+        builder.Property(poi => poi.SchemeDiscountPercent).HasPrecision(5, 2);
+        builder.Property(poi => poi.CashDiscountPercent).HasPrecision(5, 2);
         builder.Property(poi => poi.DiscountAmount).HasPrecision(18, 4);
         builder.Property(poi => poi.TaxableAmount).HasPrecision(18, 4);
         builder.Property(poi => poi.GstRate).HasPrecision(5, 2);
@@ -158,7 +161,9 @@ public class GoodsReceiptNoteItemConfiguration : IEntityTypeConfiguration<GoodsR
         builder.Property(gi => gi.UomCode).HasMaxLength(20).IsRequired();
 
         builder.Property(gi => gi.ReceivedQuantity).HasPrecision(18, 4);
+        builder.Property(gi => gi.ReceivedFreeQuantity).HasPrecision(18, 4);
         builder.Property(gi => gi.AcceptedQuantity).HasPrecision(18, 4);
+        builder.Property(gi => gi.AcceptedFreeQuantity).HasPrecision(18, 4);
         builder.Property(gi => gi.RejectedQuantity).HasPrecision(18, 4);
         builder.Property(gi => gi.UnitCost).HasPrecision(18, 4);
         builder.Property(gi => gi.TotalCost).HasPrecision(18, 4);
@@ -260,8 +265,11 @@ public class PurchaseBillItemConfiguration : IEntityTypeConfiguration<PurchaseBi
         builder.Property(bi => bi.UomCode).HasMaxLength(20).IsRequired();
 
         builder.Property(bi => bi.Quantity).HasPrecision(18, 4);
+        builder.Property(bi => bi.FreeQuantity).HasPrecision(18, 4);
         builder.Property(bi => bi.UnitPrice).HasPrecision(18, 4);
         builder.Property(bi => bi.DiscountPercent).HasPrecision(5, 2);
+        builder.Property(bi => bi.SchemeDiscountPercent).HasPrecision(5, 2);
+        builder.Property(bi => bi.CashDiscountPercent).HasPrecision(5, 2);
         builder.Property(bi => bi.DiscountAmount).HasPrecision(18, 4);
         builder.Property(bi => bi.TaxableAmount).HasPrecision(18, 4);
         builder.Property(bi => bi.GstRate).HasPrecision(5, 2);

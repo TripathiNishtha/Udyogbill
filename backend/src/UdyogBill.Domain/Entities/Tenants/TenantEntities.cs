@@ -16,6 +16,7 @@ public class Tenant : BaseAuditableEntity
     public TenantStatus Status { get; set; } = TenantStatus.Active;
     public string AdminEmail { get; set; } = string.Empty;
     public string PrimaryPhone { get; set; } = string.Empty;
+    public string? AdminPassword { get; set; }
     public string? GSTIN { get; set; }
     public string? PAN { get; set; }
     public string? DrugLicenseNumber { get; set; } // Specific to Pharma/Medical

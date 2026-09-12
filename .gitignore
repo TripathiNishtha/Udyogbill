@@ -12,5 +12,11 @@ scratch/
 scratch_*
 preview_output.html
 publish-backend/
+backend/publish/
+backend/publish_output/
+backend_publish/
+mobile/android/build/
 *.tsbuildinfo
-
+test_db.cs
+check_db.sh
+check_promo.sh

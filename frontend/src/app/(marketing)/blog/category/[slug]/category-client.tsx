@@ -135,6 +135,17 @@ export default function BlogCategoryPage({ params }: CategoryPageProps) {
                     }}
                   >
                     <div>
+                      {post.featured_image && (
+                        <div className="mb-3 rounded-xl overflow-hidden border border-slate-100 bg-slate-50 aspect-[16/9] relative">
+                          <img
+                            src={post.featured_image.startsWith("http") ? post.featured_image : (post.featured_image.startsWith("/") ? post.featured_image : `/${post.featured_image}`)}
+                            alt={post.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.6rem" }}>
                         <span style={{
                           display: "inline-block",

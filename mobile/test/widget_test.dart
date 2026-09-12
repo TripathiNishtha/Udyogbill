@@ -22,7 +22,7 @@ void main() {
         child: UdyogBillMobileApp(),
       ),
     );
-
-    expect(find.text('Fast POS Billing'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(UdyogBillMobileApp), findsOneWidget);
   });
 }

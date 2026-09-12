@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/daos/party_dao.dart';
+import '../../../../core/utils/upi_qr_helper.dart';
+import '../../payments/screens/record_payment_screen.dart';
 import 'add_party_dialog.dart';
 
 class PartiesListScreen extends StatefulWidget {
@@ -18,12 +23,56 @@ class _PartiesListScreenState extends State<PartiesListScreen> with SingleTicker
   List<PartyModel> _customers = [];
   List<PartyModel> _suppliers = [];
   bool _isLoading = true;
+  String _storeName = 'UdyogBill Enterprise';
+  String _storeUpiId = 'udyogbill@okaxis';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadStoreInfo();
     _loadParties();
+  }
+
+  Future<void> _loadStoreInfo() async {
+    const storage = FlutterSecureStorage();
+    final name = await storage.read(key: AppConstants.keyTenantName);
+    final upi = await storage.read(key: AppConstants.keyStoreUpiId);
+    if (mounted) {
+      setState(() {
+        if (name != null && name.isNotEmpty) _storeName = name;
+        if (upi != null && upi.isNotEmpty) _storeUpiId = upi;
+      });
+    }
+  }
+
+  void _sendWhatsAppReminder(PartyModel party) {
+    final bal = party.outstandingBalance.abs().toStringAsFixed(2);
+    final upiUri = UpiQrHelper.buildUpiUri(
+      upiId: _storeUpiId,
+      payeeName: _storeName,
+      amount: party.outstandingBalance.abs(),
+      note: 'Dues Settlement',
+    );
+    final text = 'Namaste ${party.name} ji,\n\n'
+        'This is a friendly reminder from *$_storeName* regarding your outstanding balance of *₹$bal*.\n\n'
+        'Kindly settle the payment at your earliest convenience.\n\n'
+        '📲 Instant UPI Payment Link:\n$upiUri\n'
+        'UPI ID: $_storeUpiId\n\n'
+        'Thank you for your business!';
+    Share.share(text, subject: 'Payment Reminder - ₹$bal');
+  }
+
+  Future<void> _recordPaymentForParty(PartyModel party) async {
+    final recorded = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecordPaymentScreen(preselectedParty: party),
+      ),
+    );
+    if (recorded == true) {
+      _loadParties();
+    }
   }
 
   @override
@@ -90,9 +139,11 @@ class _PartiesListScreenState extends State<PartiesListScreen> with SingleTicker
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
             children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               CircleAvatar(
                 radius: 22,
                 backgroundColor: isCustomer ? AppTheme.primaryLight : const Color(0xFFFEF3C7),
@@ -183,15 +234,68 @@ class _PartiesListScreenState extends State<PartiesListScreen> with SingleTicker
                         : isReceivable
                             ? AppTheme.success
                             : AppTheme.danger,
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ],
+          ),
+          if (party.outstandingBalance != 0) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (isReceivable) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _sendWhatsAppReminder(party),
+                      icon: const Icon(Icons.share, size: 14, color: AppTheme.accent),
+                      label: const Text('WhatsApp Reminder', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.accent)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.accent),
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _recordPaymentForParty(party),
+                      icon: const Icon(Icons.add_circle_outline, size: 14),
+                      label: const Text('Collect Cash/UPI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.success,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _recordPaymentForParty(party),
+                      icon: const Icon(Icons.remove_circle_outline, size: 14),
+                      label: const Text('Pay Supplier (Dene Hain)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.danger,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
-        ),
+        ],
       ),
     ),
-  );
+  ),
+);
 }
 
   @override

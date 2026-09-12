@@ -81,6 +81,8 @@ import {
 import { RecentActivityLedgerWidget } from "@/components/dashboard/widgets/recent-activity-ledger";
 import { DashboardCustomizerModal } from "@/components/dashboard/dashboard-customizer-modal";
 import { PharmaDashboardWidgets } from "@/components/dashboard/pharma-dashboard-widgets";
+import { OnboardingTour, LaunchTourButton, TourStep } from "@/components/onboarding/onboarding-tour";
+import { FloatingWhatsAppWidget } from "@/components/common/floating-whatsapp-widget";
 
 export default function TenantDashboardPage() {
   const [currentUser, setCurrentUser] = useState<AuthResponse["user"] | null>(null);
@@ -98,6 +100,25 @@ export default function TenantDashboardPage() {
   const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>("all");
   const [copiedGstin, setCopiedGstin] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
+
+  const dashboardTourSteps: TourStep[] = useMemo(
+    () => [
+      {
+        targetId: "tour-create-invoice-btn",
+        titleHi: "👉 Pehla Bill Banayein (Create Invoice)",
+        titleEn: "Step 1: Create your very first bill",
+        descHi: "UdyogBill me billing karna behad saral hai. Yahan click karke apna pehla GST ya retail bill test karein.",
+        descEn: "Click here to open the smart invoice generator and test your first bill in seconds.",
+        actionLabelHi: "Pehla Bill Banayein",
+        actionLabelEn: "Create Invoice",
+        onAction: () => {
+          window.location.href = "/app/sales/invoices?action=new&tour=1";
+        },
+      },
+    ],
+    []
+  );
 
   // Real Database Data
   const [summaryReport, setSummaryReport] = useState<FinancialSummaryReport | null>(null);
@@ -600,41 +621,41 @@ export default function TenantDashboardPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 py-4 w-full max-w-[1800px] mx-auto space-y-4">
+    <div className="px-2.5 sm:px-4 md:px-6 py-3 sm:py-4 w-full max-w-[1800px] mx-auto space-y-3 sm:space-y-4 overflow-x-hidden">
       {/* ─── Executive Command Header & Period Control ─────────── */}
-      <div className="bg-surface border border-border rounded-xl p-3.5 px-4 shadow-xs space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-surface border border-border rounded-xl p-3 sm:p-3.5 shadow-xs space-y-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
           {/* Left: Greeting & Quick Branch Context */}
-          <div className="flex items-center space-x-3 shrink-0">
-            <div>
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            <div className="min-w-0">
               <div className="flex items-center space-x-2">
-                <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                <h1 className="text-sm sm:text-base md:text-lg font-black text-foreground tracking-tight truncate max-w-[200px] xs:max-w-[280px] sm:max-w-none">
                   {profile?.tradeName || profile?.businessName || currentUser?.businessName || "Executive Dashboard"}
                 </h1>
-                <Badge variant="primary" size="sm" className="font-mono">
+                <Badge variant="primary" size="sm" className="font-mono text-[10px] shrink-0">
                   {profile?.code || currentUser?.tenantCode || "LIVE ERP"}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 hidden xs:block">
                 {isHi ? "व्यापार अवलोकन और वास्तविक समय वित्तीय विश्लेषण" : "Business Overview & Real-Time Financial Intelligence"}
               </p>
             </div>
           </div>
 
           {/* Right: Period Filter Pills + Language + Customize + Refresh */}
-          <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
+          <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
             {/* Period selector */}
-            <div className="flex items-center bg-surface-elevated/60 p-0.5 rounded-lg border border-border text-xs">
+            <div className="flex items-center bg-surface-elevated/60 p-0.5 rounded-lg border border-border text-[11px] sm:text-xs">
               {[
                 { id: "today", labelEn: "Today", labelHi: "आज" },
-                { id: "week", labelEn: "7 Days", labelHi: "7 दिन" },
-                { id: "month", labelEn: "This Month", labelHi: "इस माह" },
-                { id: "year", labelEn: "Full Year", labelHi: "पूरा वर्ष" },
+                { id: "week", labelEn: "7D", labelHi: "7दिन" },
+                { id: "month", labelEn: "Month", labelHi: "माह" },
+                { id: "year", labelEn: "Year", labelHi: "वर्ष" },
               ].map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setTimeFilter(p.id as any)}
-                  className={`px-3 py-1 rounded-md font-bold text-xs transition-all cursor-pointer ${
+                  className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md font-bold text-[11px] sm:text-xs transition-all cursor-pointer ${
                     timeFilter === p.id
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -646,13 +667,13 @@ export default function TenantDashboardPage() {
             </div>
 
             {/* Language Toggle */}
-            <div className="flex items-center bg-surface-elevated/60 p-0.5 rounded-lg border border-border text-xs">
+            <div className="flex items-center bg-surface-elevated/60 p-0.5 rounded-lg border border-border text-[11px] sm:text-xs">
               <button
                 onClick={() => {
                   setLang("en");
                   localStorage.setItem("udyogbill_lang", "en");
                 }}
-                className={`px-2 py-0.5 rounded-md font-bold text-xs transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-bold text-[11px] sm:text-xs transition-all cursor-pointer ${
                   lang === "en" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -663,7 +684,7 @@ export default function TenantDashboardPage() {
                   setLang("hi");
                   localStorage.setItem("udyogbill_lang", "hi");
                 }}
-                className={`px-2 py-0.5 rounded-md font-bold text-xs transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-bold text-[11px] sm:text-xs transition-all cursor-pointer ${
                   lang === "hi" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -681,13 +702,18 @@ export default function TenantDashboardPage() {
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
             </button>
 
+            {/* Tour & Guide button */}
+            <div className="hidden sm:inline-flex">
+              <LaunchTourButton onClick={() => setIsTourOpen(true)} />
+            </div>
+
             {/* Customize Layout button */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsCustomizerOpen(true)}
               icon={<Sliders className="w-3.5 h-3.5 text-muted-foreground" />}
-              className="text-xs"
+              className="text-xs hidden sm:inline-flex"
             >
               <span>{isHi ? "कस्टमाइज़" : "Customize"}</span>
             </Button>
@@ -698,7 +724,8 @@ export default function TenantDashboardPage() {
       {/* ─── 1. Fast-Action Command Ribbon: 1-Click Execution (~38px) ───────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <Link
-          href="/app/sales/invoices"
+          id="tour-create-invoice-btn"
+          href="/app/sales/invoices?action=new&tour=1"
           className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white shadow-xs border border-emerald-600 transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
@@ -943,6 +970,17 @@ export default function TenantDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Onboarding Spotlight Tour */}
+      <OnboardingTour
+        steps={dashboardTourSteps}
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+        tourKey="udyogbill_dashboard_tour"
+      />
+
+      {/* Floating WhatsApp Live Help Widget */}
+      <FloatingWhatsAppWidget />
     </div>
   );
 }

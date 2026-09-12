@@ -10,9 +10,12 @@ import '../../features/billing_pos/screens/billing_pos_screen.dart';
 import '../../features/settings/screens/business_settings_screen.dart';
 import '../../features/ai_purchase_scanner/screens/ai_purchase_scanner_screen.dart';
 import '../../features/pharma_sfa/screens/pharma_sfa_shell_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../constants/app_constants.dart';
 import '../../core/sync/sync_service.dart';
+import '../../core/services/mobile_remote_config_service.dart';
+import '../../core/widgets/in_app_promo_banner_dialog.dart';
 
 class NativeShellScreen extends StatefulWidget {
   const NativeShellScreen({super.key});
@@ -26,14 +29,17 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final SyncService _syncService = SyncService();
 
-  String _tenantName = 'UdyogBill Demo Mart';
-  String _userRole = 'Store Admin';
+  String _tenantName = 'My Business';
+  String _userRole = 'Business Admin';
   bool _isSyncing = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      InAppPromoBannerDialog.showIfEligible(context);
+    });
   }
 
   Future<void> _loadUserInfo() async {
@@ -51,12 +57,13 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
     setState(() => _isSyncing = true);
     try {
       final items = await _syncService.syncCatalogFromWeb();
+      final parties = await _syncService.syncPartiesFromWeb();
       final flushed = await _syncService.flushSyncQueue();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Cloud sync complete ($items items, $flushed bills synced)'),
+            content: Text('Cloud sync complete ($items items, $parties parties, $flushed queued synced)'),
             backgroundColor: AppTheme.success,
           ),
         );
@@ -109,6 +116,8 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
       return const PharmaSfaShellScreen();
     }
 
+    final remoteConfig = MobileRemoteConfigService().config;
+
     final List<Widget> screens = [
       NativeDashboardScreen(onNavigateTab: (tabIdx) => setState(() => _currentIndex = tabIdx)),
       const InvoicesListScreen(),
@@ -123,31 +132,45 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 28,
-                height: 28,
-                fit: BoxFit.cover,
-              ),
+              child: remoteConfig.headerLogoUrl.isNotEmpty
+                  ? Image.network(
+                      remoteConfig.headerLogoUrl,
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Image.asset(
+                        'assets/images/logo.png',
+                        width: 28,
+                        height: 28,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Image.asset(
+                      'assets/images/logo.png',
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.cover,
+                    ),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'UdyogBill',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A)),
+            Text(
+              remoteConfig.appDisplayName,
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A)),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.point_of_sale, color: AppTheme.primary),
-            tooltip: 'Fast Barcode POS',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BillingPosScreen()),
-              );
-            },
-          ),
+          if (remoteConfig.isContinuousBarcodePosEnabled)
+            IconButton(
+              icon: const Icon(Icons.point_of_sale, color: AppTheme.primary),
+              tooltip: 'Fast Barcode POS',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BillingPosScreen()),
+                );
+              },
+            ),
           IconButton(
             icon: _isSyncing
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
@@ -162,9 +185,9 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppTheme.primary, AppTheme.primaryDark],
+                  colors: [remoteConfig.primaryColor, AppTheme.primaryDark],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -182,10 +205,19 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
                 padding: const EdgeInsets.all(4),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    fit: BoxFit.cover,
-                  ),
+                  child: remoteConfig.headerLogoUrl.isNotEmpty
+                      ? Image.network(
+                          remoteConfig.headerLogoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
             ),
@@ -198,14 +230,15 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
                 setState(() => _currentIndex = 0);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.point_of_sale, color: AppTheme.accent),
-              title: const Text('⚡ Fast Barcode POS', style: TextStyle(fontWeight: FontWeight.bold)),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const BillingPosScreen()));
-              },
-            ),
+            if (remoteConfig.isContinuousBarcodePosEnabled)
+              ListTile(
+                leading: const Icon(Icons.point_of_sale, color: AppTheme.accent),
+                title: const Text('⚡ Fast Barcode POS', style: TextStyle(fontWeight: FontWeight.bold)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const BillingPosScreen()));
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.receipt_long_outlined, color: AppTheme.primary),
               title: const Text('Sales Invoices'),
@@ -233,27 +266,28 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
                 setState(() => _currentIndex = 3);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.document_scanner, color: Color(0xFF6366F1)),
-              title: Row(
-                children: [
-                  const Text('AI Purchase Scanner', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+            if (remoteConfig.isAiBillScannerEnabled)
+              ListTile(
+                leading: const Icon(Icons.document_scanner, color: Color(0xFF6366F1)),
+                title: Row(
+                  children: [
+                    const Text('AI Purchase Scanner', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('AI PRO', style: TextStyle(color: Color(0xFF6366F1), fontSize: 9, fontWeight: FontWeight.w900)),
                     ),
-                    child: const Text('AI PRO', style: TextStyle(color: Color(0xFF6366F1), fontSize: 9, fontWeight: FontWeight.w900)),
-                  ),
-                ],
+                  ],
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AiPurchaseScannerScreen()));
+                },
               ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AiPurchaseScannerScreen()));
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.analytics_outlined, color: AppTheme.primary),
               title: const Text('Reports & Analytics'),
@@ -280,6 +314,39 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
                 _triggerSync();
               },
             ),
+            // Helpdesk & Channels
+            ListTile(
+              leading: const Icon(Icons.chat, color: Color(0xFF22C55E)),
+              title: const Text('WhatsApp Helpdesk'),
+              subtitle: const Text('Direct chat with support', style: TextStyle(fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(context);
+                final phone = remoteConfig.supportWhatsAppNumber.replaceAll('+', '').replaceAll(' ', '');
+                final uri = Uri.parse('https://wa.me/$phone?text=Hello%20UdyogBill%20Support');
+                if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_in_talk, color: Color(0xFF0284C7)),
+              title: const Text('Calling Helpline'),
+              subtitle: Text(remoteConfig.supportHelplineNumber, style: const TextStyle(fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(context);
+                final uri = Uri.parse('tel:${remoteConfig.supportHelplineNumber}');
+                if (await canLaunchUrl(uri)) await launchUrl(uri);
+              },
+            ),
+            if (remoteConfig.tutorialYouTubePlaylistUrl.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.play_circle_outline, color: Color(0xFFEF4444)),
+                title: const Text('Video Tutorials'),
+                subtitle: const Text('Watch quick billing guides', style: TextStyle(fontSize: 11)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final uri = Uri.parse(remoteConfig.tutorialYouTubePlaylistUrl);
+                  if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.logout, color: AppTheme.danger),
               title: const Text('Logout', style: TextStyle(color: AppTheme.danger, fontWeight: FontWeight.bold)),

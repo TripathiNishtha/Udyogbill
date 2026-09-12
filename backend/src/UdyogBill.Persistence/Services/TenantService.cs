@@ -159,7 +159,8 @@ public class TenantService : ITenantService
                 t.CurrencyCode,
                 t.IsActive,
                 t.CreatedAtUtc,
-                t.LogoUrl
+                t.LogoUrl,
+                t.AdminPassword
             ))
             .ToListAsync(cancellationToken);
 

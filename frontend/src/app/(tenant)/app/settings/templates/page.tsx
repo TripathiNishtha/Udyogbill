@@ -125,17 +125,33 @@ export default function InvoiceSettingsPage() {
 
     try {
       setSaving(true);
+      const customLabels = JSON.stringify(customConfig);
+      const customCss = customConfig.watermarkEnabled
+        ? `.invoice-watermark { display: flex !important; opacity: ${(customConfig.watermarkOpacity || 12) / 100} !important; }`
+        : `.invoice-watermark { display: none !important; }`;
+
       const updatedTemplate: Partial<PrintTemplate> = {
         ...selectedTemplate,
-        customLabelsJson: JSON.stringify(customConfig),
-        customCss: customConfig.watermarkEnabled
-          ? `.invoice-watermark { display: flex !important; opacity: ${(customConfig.watermarkOpacity || 12) / 100} !important; }`
-          : `.invoice-watermark { display: none !important; }`,
+        customLabelsJson: customLabels,
+        customCss: customCss,
       };
 
       const updated = await printTemplateService.updateTemplate(selectedTemplate.id, updatedTemplate);
       setSelectedTemplate(updated);
-      setNotification(`Invoice settings & "${updated.templateName}" saved successfully!`);
+
+      // Sync watermark & terms across other templates so user settings apply universally
+      const otherTemplates = templates.filter((t) => t.id !== selectedTemplate.id);
+      await Promise.allSettled(
+        otherTemplates.map((t) =>
+          printTemplateService.updateTemplate(t.id, {
+            ...t,
+            customLabelsJson: customLabels,
+            customCss: customCss,
+          })
+        )
+      );
+
+      setNotification(`Invoice settings & watermark saved successfully across all templates!`);
       loadData();
     } catch {
       alert("Failed to save invoice settings.");

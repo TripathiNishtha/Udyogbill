@@ -1,46 +1,146 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CheckCircle, MessageCircle } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle,
+  MessageCircle,
+  Pill,
+  ShieldCheck,
+  FileText,
+  AlertTriangle,
+  Zap,
+  HelpCircle
+} from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Pharma Distributor Billing Software India | Batch & Expiry Tracking | UdyogBill",
-  description: "Pharma distributors ke liye best GST billing software. Batch tracking, expiry alerts, Schedule H1 drug register, CDSCO compliance. India ka no.1 pharma billing solution.",
+  title: "Best Pharma Billing Software in India | Batch & Expiry Management",
+  description: "Specialized GST pharma billing software for wholesale distributors and retail chemists. Automated batch tracking, near-expiry alerts, Schedule H1 registers, and Form 20B/21B compliance.",
   alternates: {
     canonical: "https://udyogbill.com/industries/pharma",
   },
+  openGraph: {
+    title: "Best Pharma Billing Software in India | Batch & Expiry Management",
+    description: "Cloud-based pharma distributor and chemist shop billing software with CDSCO compliance and automated expiry dump claims.",
+    url: "https://udyogbill.com/industries/pharma",
+    siteName: "UdyogBill",
+    type: "website",
+  },
 };
 
-export default function IndustryPage() {
-  const features = [{icon:'🏷️',title:'Batch & Expiry Tracking',desc:'Har item ka batch number aur expiry date track karo. Near-expiry alerts automatically aate hain.'},{icon:'📋',title:'Schedule H1 Register',desc:'CDSCO compliant digital drug register. Prescription details automatically record hoti hain.'},{icon:'🎁',title:'Bonus & Scheme',desc:'Free goods, bonus quantity, cash discount — sab auto-calculate. Koi manual calculation nahi.'},{icon:'👨‍💼',title:'Salesperson Tracking',desc:'Har salesperson ki performance aur area-wise sales dekho.'},{icon:'🔄',title:'Expiry Returns',desc:'Expiry maal ka return process streamlined. Credit note auto-generate.'},{icon:'📊',title:'Party Ledger',desc:'Doctor, chemist, hospital — har party ka poora hisaab ek jagah.'}];
+export default function PharmaIndustryPage() {
+  const painPoints = [
+    {
+      problem: "Manual batch and expiry tracking causing heavy expiry dump losses",
+      solution: "Automated FIFO batch dispensing with 30/60/90-day color-coded near-expiry alerts",
+    },
+    {
+      problem: "Tedious physical record keeping for Schedule H and H1 narcotics",
+      solution: "Automated digital Schedule H1 register logging doctor name, patient details, and Rx number",
+    },
+    {
+      problem: "Complex distributor bonus calculations (e.g. 10+1, 20+2 schemes)",
+      solution: "Automatic free goods calculation and cash discount adjustment with zero manual math",
+    },
+    {
+      problem: "Slow credit note generation for damaged or expired medicine returns",
+      solution: "One-click expiry dump credit notes with automated GST reconciliation",
+    },
+  ];
+
+  const features = [
+    {
+      icon: Pill,
+      title: "Batch & Expiry Date Lifecycle",
+      desc: "Track manufacturer, batch code, manufacturing date, and expiry month. Prevent staff from dispensing expired medicine at POS checkout.",
+    },
+    {
+      icon: FileText,
+      title: "Digital Schedule H & H1 Register",
+      desc: "Maintain strict CDSCO compliance. Log prescribing doctor name, patient contact, batch code, and quantity dispensed automatically.",
+    },
+    {
+      icon: Zap,
+      title: "Pharma Bonus & Trade Scheme Calculator",
+      desc: "Support multi-slab trade schemes (e.g., Buy 10 Get 1 Free, 5% cash discount). Tax is computed automatically on net payable value.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Drug License Printing (Form 20B & 21B)",
+      desc: "Print statutory DL numbers (Form 20B, 21B, 20G) and FSSAI license numbers cleanly on all B2B wholesale invoices and retail receipts.",
+    },
+    {
+      icon: AlertTriangle,
+      title: "Automated Expiry Claim Processing",
+      desc: "Generate company-wise expiry claim statements to return near-expiry medicines to pharmaceutical stockists before cutoff dates.",
+    },
+    {
+      icon: CheckCircle,
+      title: "Chemist & Hospital Ledger Khata",
+      desc: "Monitor credit limits and overdue payment ageing for retail medical stores and nursing homes with instant WhatsApp balance reminders.",
+    },
+  ];
+
+  const relatedIndustries = [
+    { name: "FMCG Distribution", href: "/industries/fmcg" },
+    { name: "Retail & Supermarket", href: "/industries/retail" },
+    { name: "Wholesale & Stockists", href: "/industries/wholesale" },
+    { name: "General Trading", href: "/industries/general-trading" },
+  ];
+
   return (
-    <>
-      <section className="py-20" style={{background:"linear-gradient(135deg,#fff7ed,#f0fdf4)"}}>
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="text-6xl mb-4">💊</div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4" style={{fontFamily:"Poppins,sans-serif"}}>
-                Pharma Distributor <br/>
-                <span style={{color:"#f97316"}}>Ke Liye Billing Software</span>
+    <div className="bg-white text-slate-900 space-y-10 sm:space-y-12">
+      {/* ── Hero Section ── */}
+      <section className="pt-2 pb-6 sm:pb-8 border-b border-slate-200" style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffffff 50%, #fffbf5 100%)" }}>
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+            <div className="lg:col-span-7 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-rose-200 bg-rose-50 text-rose-800 shadow-2xs">
+                <Pill className="w-3.5 h-3.5 text-rose-600" />
+                CDSCO & GST Compliant Pharma Operating System
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl lg:text-[40px] font-black text-slate-950 tracking-tight leading-[1.2]">
+                India&apos;s Most Reliable Billing Software for{" "}
+                <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
+                  Pharma Distributors & Chemists
+                </span>
               </h1>
-              <p className="text-gray-600 text-lg leading-relaxed mb-8">Pharma distributors ke liye best GST billing software. Batch tracking, expiry alerts, Schedule H1 drug register, CDSCO compliance. India ka no.1 pharma billing solution.</p>
-              <div className="flex gap-4 flex-wrap">
-                <Link href="/register" className="inline-flex items-center gap-2 text-white font-bold px-6 py-3 rounded-xl" style={{background:"#f97316"}}>
-                  Free Trial <ArrowRight className="w-4 h-4" />
+
+              <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed">
+                Streamline batch tracking, eliminate expiry losses, maintain digital Schedule H1 drug registers, and calculate multi-slab bonus schemes in seconds with UdyogBill.
+              </p>
+
+              <div className="flex gap-3 flex-wrap pt-2">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm bg-orange-600 hover:bg-orange-700 shadow-sm transition-all"
+                >
+                  Start 14-Day Free Trial <ArrowRight className="w-4 h-4" />
                 </Link>
-                <a href="https://wa.me/919473807622" target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 font-bold px-6 py-3 rounded-xl border-2" style={{borderColor:"#25D366",color:"#16a34a"}}>
-                  <MessageCircle className="w-4 h-4" /> Demo Chahiye
+                <a
+                  href="https://wa.me/919473807622?text=Hi%2C%20I%20want%20a%20demo%20of%20UdyogBill%20Pharma%20Billing%20Software"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 font-bold px-5 py-2.5 rounded-xl text-emerald-800 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-xs sm:text-sm transition-all shadow-2xs"
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-600" /> Live Pharma Demo
                 </a>
               </div>
             </div>
-            <div className="rounded-2xl p-6" style={{background:"linear-gradient(135deg,#16a34a15,#f9731615)"}}>
-              <h3 className="font-bold text-gray-800 mb-4" style={{fontFamily:"Poppins,sans-serif"}}>In Samasyon Ka Solution:</h3>
-              <div className="space-y-3">
-                {[["Batch expiry track karna mushkil tha","Auto batch & expiry tracking, low-stock alerts"],["Schedule H1 register manually banana padta tha","Schedule H1 digital register — ek click mein"],["Bonus scheme ka hisaab lagaana complicated tha","Bonus, scheme, free goods auto-calculate"]].map(([p,s])=>(
-                  <div key={p} className="bg-white rounded-xl p-4">
-                    <div className="text-xs text-red-500 mb-1">❌ {p}</div>
-                    <div className="text-sm font-medium text-gray-700 flex items-start gap-2"><CheckCircle className="w-4 h-4 shrink-0 mt-0.5" style={{color:"#16a34a"}} />{s}</div>
+
+            {/* Pain Point vs Solution Card */}
+            <div className="lg:col-span-5 rounded-2xl p-5 border-2 border-orange-200 bg-orange-50/40">
+              <h3 className="font-black text-slate-950 mb-3 text-sm sm:text-base">
+                Operational Challenges Solved by UdyogBill:
+              </h3>
+              <div className="space-y-2.5">
+                {painPoints.map((item) => (
+                  <div key={item.problem} className="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs">
+                    <div className="text-[11px] text-red-600 font-bold mb-0.5">⚠️ {item.problem}</div>
+                    <div className="text-xs font-semibold text-slate-800 flex items-start gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
+                      <span>{item.solution}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -49,34 +149,65 @@ export default function IndustryPage() {
         </div>
       </section>
 
-      <section className="py-14 bg-white">
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8" style={{fontFamily:"Poppins,sans-serif"}}>Khas Features — Sirf Aapke Liye</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {features.map((f) => (
-              <div key={f.title} className="flex items-start gap-4 p-5 rounded-xl border border-gray-100 bg-white hover:shadow-md transition-all">
-                <div className="text-2xl shrink-0">{f.icon}</div>
-                <div>
-                  <h3 className="font-bold text-gray-800 text-sm mb-1" style={{fontFamily:"Poppins,sans-serif"}}>{f.title}</h3>
-                  <p className="text-gray-500 text-xs leading-relaxed">{f.desc}</p>
+      {/* ── Specialized Capabilities ── */}
+      <section className="py-4 sm:py-6">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+          <div className="max-w-2xl mb-6">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-950 mb-1.5">
+              Built Specifically for Medicine Wholesalers & Retail Stores
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600">
+              Every pharmaceutical compliance requirement is integrated directly into your checkout workflow.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div key={f.title} className="flex items-start gap-3.5 p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-orange-300 hover:shadow-sm transition-all">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-orange-200 bg-orange-50 text-orange-600">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-950 text-sm sm:text-base mb-1">{f.title}</h3>
+                    <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">{f.desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="py-14" style={{background:"linear-gradient(135deg,#f97316,#16a34a)"}}>
-        <div className="max-w-2xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-extrabold text-white mb-4" style={{fontFamily:"Poppins,sans-serif"}}>Aaj Hi Try Karo — Free!</h2>
-          <p className="text-white/80 mb-8">5 minute mein setup. No credit card. Full support.</p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link href="/register" className="bg-white font-bold px-7 py-3.5 rounded-xl text-sm hover:scale-105 transition-all" style={{color:"#f97316"}}>Free Trial Shuru Karo</Link>
-            <a href="https://wa.me/919473807622" target="_blank" rel="noopener noreferrer" className="border-2 border-white font-bold px-7 py-3.5 rounded-xl text-sm text-white hover:bg-white/10 transition-all">WhatsApp Demo</a>
+      {/* ── Internal Linking & Related Verticals ── */}
+      <section className="py-6 sm:pb-8 border-t border-slate-200 bg-slate-50/50">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-black text-slate-950">Explore Other Industry Modules:</h4>
+              <p className="text-xs text-slate-600">Tailored ERP solutions for retail and wholesale sectors.</p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {relatedIndustries.map((ind) => (
+                <Link
+                  key={ind.name}
+                  href={ind.href}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-xs hover:border-orange-400 hover:text-orange-600 transition-all shadow-2xs"
+                >
+                  {ind.name}
+                </Link>
+              ))}
+              <Link
+                href="/pricing"
+                className="px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-300 text-orange-800 font-bold text-xs hover:bg-orange-100 transition-all"
+              >
+                View Pricing Plans →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
-

@@ -150,3 +150,73 @@ public class PartyLedgerEntry : BaseTenantAuditableEntity
     public string? PaymentMode { get; set; } // "Cash", "BankTransfer", "Cheque", "UPI", "CreditCard"
     public string? Description { get; set; }
 }
+
+public enum CommissionBasis
+{
+    PercentageOfTaxable = 1,
+    PercentageOfTotalInvoice = 2,
+    FixedPerUnit = 3,
+    PerBagOrQuintal = 4
+}
+
+public enum CommissionAccrualTrigger
+{
+    OnInvoiceIssuance = 1,
+    OnPaymentRealization = 2
+}
+
+public enum BrokerCommissionStatus
+{
+    Accrued = 1,
+    Approved = 2,
+    Paid = 3,
+    AdjustedOnReturn = 4,
+    Cancelled = 5
+}
+
+public class Broker : BaseTenantAuditableEntity
+{
+    public string BrokerCode { get; set; } = string.Empty; // e.g. "BRK-001"
+    public string FullName { get; set; } = string.Empty;
+    public string? Mobile { get; set; }
+    public string? Email { get; set; }
+    public string? Address { get; set; }
+    public string? PAN { get; set; }
+    public string? GSTIN { get; set; }
+
+    public CommissionBasis CommissionBasis { get; set; } = CommissionBasis.PercentageOfTaxable;
+    public decimal DefaultCommissionRate { get; set; } = 2.0m; // e.g. 2.00% or ₹2.00/unit
+    public decimal TdsPercent { get; set; } = 5.0m;            // Section 194H TDS Rate (5%)
+    public CommissionAccrualTrigger AccrualTrigger { get; set; } = CommissionAccrualTrigger.OnInvoiceIssuance;
+
+    public decimal CurrentPayableBalance { get; set; } = 0m;
+    public bool IsActive { get; set; } = true;
+    public string? Notes { get; set; }
+
+    public ICollection<BrokerCommissionEntry> CommissionEntries { get; set; } = new List<BrokerCommissionEntry>();
+}
+
+public class BrokerCommissionEntry : BaseTenantAuditableEntity
+{
+    public Guid BrokerId { get; set; }
+    public Broker Broker { get; set; } = null!;
+
+    public Guid? SalesInvoiceId { get; set; }
+    public string? SalesInvoiceNumber { get; set; }
+    public DateTime TransactionDate { get; set; } = DateTime.UtcNow.Date;
+
+    public Guid? PartyId { get; set; } // Tagged Customer / Trader
+    public string? PartyName { get; set; }
+
+    public decimal BaseAmount { get; set; } = 0m;             // Taxable base or Total Units
+    public decimal CommissionRate { get; set; } = 0m;         // % or ₹/unit applied
+    public decimal GrossCommissionAmount { get; set; } = 0m;  // Computed commission
+    public decimal TdsAmount { get; set; } = 0m;              // TDS deducted
+    public decimal NetCommissionPayable { get; set; } = 0m;   // Gross - TDS
+
+    public BrokerCommissionStatus Status { get; set; } = BrokerCommissionStatus.Accrued;
+    public DateTime? PaidDate { get; set; }
+    public string? PaymentReference { get; set; }
+    public string? Notes { get; set; }
+}
+

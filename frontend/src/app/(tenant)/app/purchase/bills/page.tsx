@@ -52,9 +52,23 @@ import {
 export default function PurchaseBillsPage() {
   const [bills, setBills] = useState<PurchaseBillList[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isAddonActive, isFeatureActive } = useAddons();
-  const hasPharmaAddon = isAddonActive("pharma");
-  const hasBatchTracking = hasPharmaAddon || isFeatureActive("enableBatchTracking");
+  const { isAddonActive, isFeatureActive, activePack, industryCode: contextIndustryCode } = useAddons();
+  const activeIndustry = (
+    contextIndustryCode ||
+    activePack?.activeIndustryModule ||
+    activePack?.industryTypeCode ||
+    (isAddonActive("pharma") ? "PHARMA" : isAddonActive("fmcg") ? "FMCG" : isAddonActive("garments") ? "GARMENTS" : isAddonActive("electronics") ? "ELECTRONICS" : isAddonActive("hardware") ? "HARDWARE" : isAddonActive("service_sector") ? "SERVICE_SECTOR" : "OTHER")
+  ).toUpperCase();
+
+  const isPharma = activeIndustry === "PHARMA" || isAddonActive("pharma");
+  const isFmcg = activeIndustry === "FMCG" || isAddonActive("fmcg");
+  const isElectronics = activeIndustry === "ELECTRONICS" || isAddonActive("electronics");
+  const isGarments = activeIndustry === "GARMENTS" || isAddonActive("garments");
+  const isHardware = activeIndustry === "HARDWARE" || isAddonActive("hardware");
+
+  const hasPharmaAddon = isPharma;
+  const hasBatchTracking = isPharma || isFmcg || isFeatureActive("enableBatchTracking");
+  const hasPackingFreeQty = isPharma || isFmcg || isFeatureActive("enableMultiUnitConversion");
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
@@ -132,6 +146,9 @@ export default function PurchaseBillsPage() {
       expiryDate?: string;
       packing?: string;
       hsnCode?: string;
+      imeiSerial?: string;
+      size?: string;
+      color?: string;
       quantity: number;
       freeQuantity: number;
       uomId: string;
@@ -272,6 +289,9 @@ export default function PurchaseBillsPage() {
         expiryDate: `${String(new Date().getMonth() + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 2).slice(2)}`,
         packing: packing || "10x10",
         hsnCode: itm.hsnCode || "3004",
+        imeiSerial: "",
+        size: "",
+        color: "",
         quantity: 10,
         freeQuantity: 0,
         uomId: itm.primaryUomId,
@@ -674,7 +694,10 @@ export default function PurchaseBillsPage() {
             freeQuantity: i.freeQuantity,
             expiryFormatted: i.expiryDate,
             mrp: i.mrp,
-            overallDiscount: totals.overallDiscount
+            overallDiscount: totals.overallDiscount,
+            imeiSerial: i.imeiSerial || undefined,
+            size: i.size || undefined,
+            color: i.color || undefined
           })
         }))
       };
@@ -875,29 +898,45 @@ export default function PurchaseBillsPage() {
 
       {/* Create Purchase Bill Fullscreen Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col">
-          <div className="w-full h-full bg-surface overflow-y-auto p-6 sm:p-8 flex flex-col justify-between shadow-2xl border border-border">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-border">
-                <div className="flex items-center space-x-2 text-foreground font-bold text-lg">
-                  <Receipt className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Record Vendor Invoice (Purchase Bill)</span>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 overflow-hidden">
+          <div className="record-vendor-bill-modal w-full h-full sm:h-[96vh] max-w-7xl bg-surface border-0 sm:border border-border rounded-none sm:rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-border bg-surface-muted/60 flex items-center justify-between shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Receipt className="w-5 h-5" />
                 </div>
-                <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted">
-                  <X className="w-5 h-5" />
-                </button>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight flex items-center space-x-2">
+                    <span>Record Vendor Invoice</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      Purchase Bill
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground">Enter vendor bill metadata, verified items, schemes, and tax breakdown</p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(false)}
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors border border-transparent hover:border-border"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <form className="mt-6 space-y-4">
+            {/* Modal Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-background/50">
+              <form className="space-y-5">
                 {/* Link GRN Option */}
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-                  <label className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block mb-1.5">
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl shadow-xs">
+                  <label className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block mb-1.5">
                     Link Verified GRN (Optional)
                   </label>
                   <select
                     value={selectedGrnId || ""}
                     onChange={(e) => handleGrnSelect(e.target.value)}
-                    className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3.5 py-2.5 bg-surface border-2 border-emerald-500/40 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   >
                     <option value="">-- Direct Bill (No GRN Reference) --</option>
                     {grns.map((g) => (
@@ -907,122 +946,128 @@ export default function PurchaseBillsPage() {
                     ))}
                   </select>
                   {selectedGrnId && (
-                    <div className="mt-2.5 p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-lg flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 font-sans">
-                      <div className="flex items-center space-x-1.5 font-bold">
-                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className="mt-2.5 p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-lg flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200 font-sans">
+                      <div className="flex items-center space-x-2 font-bold">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>3-Way Match Verified: PO Rates = Inspected GRN Quantities = Vendor Bill</span>
                       </div>
-                      <span className="font-mono text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                      <span className="font-mono text-[11px] bg-emerald-500/20 px-2.5 py-0.5 rounded font-bold text-emerald-800 dark:text-emerald-200 border border-emerald-500/40">
                         Zero Rate/Qty Variance
                       </span>
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Branch</label>
-                    <select
-                      value={selectedBranchId}
-                      onChange={(e) => handleBranchChange(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.branchName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Receiving Warehouse</label>
-                    <select
-                      value={selectedWarehouseId}
-                      onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      {warehouses.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.warehouseName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Supplier (Creditor) *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setIsQuickSupplierOpen(true)}
-                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center space-x-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Quick Add</span>
-                      </button>
-                    </div>
-                    <select
-                      value={selectedPartyId}
-                      onChange={(e) => setSelectedPartyId(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">-- Select Supplier --</option>
-                      {suppliers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.legalName} {(s as any).gstin ? `(${s.gstin})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Vendor Invoice #</label>
-                    <input
-                      type="text"
-                      placeholder="INV-SUP-99182"
-                      value={vendorInvNum}
-                      onChange={(e) => setVendorInvNum(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Invoice Date</label>
-                    <input
-                      type="date"
-                      value={billDate}
-                      onChange={(e) => setBillDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Payment Due Date</label>
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                {/* Line Items */}
-                <div className="pt-4 border-t border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between">
+                {/* Vendor & Logistics Section Card */}
+                <div className="bg-surface p-4 sm:p-5 rounded-2xl border border-border shadow-xs space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                        Purchase Line Items
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-1.5">Branch *</label>
+                      <select
+                        value={selectedBranchId}
+                        onChange={(e) => handleBranchChange(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-surface border-2 border-border/80 hover:border-primary/50 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
+                      >
+                        {branches.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.branchName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-1.5">Receiving Warehouse *</label>
+                      <select
+                        value={selectedWarehouseId}
+                        onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-surface border-2 border-border/80 hover:border-primary/50 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
+                      >
+                        {warehouses.map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.warehouseName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                          Supplier (Creditor) *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setIsQuickSupplierOpen(true)}
+                          className="text-xs font-black text-emerald-600 dark:text-emerald-400 hover:underline flex items-center space-x-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Quick Add</span>
+                        </button>
+                      </div>
+                      <select
+                        value={selectedPartyId}
+                        onChange={(e) => setSelectedPartyId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-surface border-2 border-border/80 hover:border-primary/50 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
+                      >
+                        <option value="">-- Select Supplier --</option>
+                        {suppliers.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.legalName} {(s as any).gstin ? `(${s.gstin})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-border/60">
+                    <div>
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-1.5">Vendor Invoice # *</label>
+                      <input
+                        type="text"
+                        placeholder="INV-SUP-99182"
+                        value={vendorInvNum}
+                        onChange={(e) => setVendorInvNum(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-surface border-2 border-border/80 hover:border-primary/50 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all font-mono shadow-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-1.5">Invoice Date *</label>
+                      <input
+                        type="date"
+                        value={billDate}
+                        onChange={(e) => setBillDate(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-surface border-2 border-border/80 hover:border-primary/50 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-1.5">Payment Due Date *</label>
+                      <input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-surface border-2 border-border/80 hover:border-primary/50 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Line Items Card */}
+                <div className="bg-surface p-4 sm:p-5 rounded-2xl border border-border shadow-xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <div>
+                      <label className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-2">
+                        <span>Purchase Line Items</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                          {billItems.length} {billItems.length === 1 ? "item" : "items"}
+                        </span>
                       </label>
-                      <span className="text-[10px] text-muted-foreground ml-2">
+                      <span className="text-[11px] text-muted-foreground font-medium">
                         {hasBatchTracking
-                          ? "(Includes Batch, Expiry, Free Scheme, Packing, MRP, Disc %, GST)"
-                          : "(Includes HSN, Qty, Unit, Purchase Rate, Disc %, GST)"}
+                          ? "Includes Batch, Expiry, Free Scheme, Packing, MRP, Disc %, GST"
+                          : "Includes HSN, Qty, Unit, Purchase Rate, Disc %, GST"}
                       </span>
                     </div>
                     {!selectedGrnId && (
@@ -1030,7 +1075,7 @@ export default function PurchaseBillsPage() {
                         <button
                           type="button"
                           onClick={() => setIsQuickProductOpen(true)}
-                          className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-xs"
+                          className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-bold flex items-center space-x-1.5 transition shadow-sm cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>+ Quick Add Product</span>
@@ -1042,7 +1087,7 @@ export default function PurchaseBillsPage() {
                               e.target.value = "";
                             }
                           }}
-                          className="px-3 py-1.5 bg-surface border border-input text-foreground rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="px-3 py-2 bg-surface border-2 border-border hover:border-primary/50 text-foreground rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary shadow-xs transition-colors"
                         >
                           <option value="">+ Add Line From Catalog...</option>
                           {items.map((i) => (
@@ -1056,36 +1101,41 @@ export default function PurchaseBillsPage() {
                   </div>
 
                   {billItems.length === 0 ? (
-                    <div className="p-6 text-center text-muted-foreground text-xs border border-dashed border-border rounded-xl">
-                      No items in this purchase bill. Select a GRN or add products manually.
+                    <div className="p-10 text-center text-muted-foreground text-xs border-2 border-dashed border-border rounded-2xl bg-surface-muted/30 flex flex-col items-center justify-center space-y-2">
+                      <Receipt className="w-8 h-8 text-muted-foreground/50" />
+                      <p className="font-semibold text-foreground">No items in this purchase bill yet.</p>
+                      <p className="text-[11px] text-muted-foreground">Select a verified GRN from above or add products manually via catalog or Quick Add.</p>
                     </div>
                   ) : (
-                    <div className="border border-border rounded-xl overflow-x-auto bg-surface">
+                    <div className="border-2 border-border rounded-xl overflow-x-auto bg-surface shadow-xs">
                       <table className="w-full text-left text-xs min-w-[900px]">
-                        <thead className="bg-table-header text-table-header-foreground border-b border-table-border text-[11px]">
+                        <thead className="bg-surface-muted text-foreground border-b-2 border-border text-[11px] font-bold">
                           <tr>
-                            <th className="px-2.5 py-2 min-w-[180px]">Product / Item</th>
-                            {hasBatchTracking && <th className="px-2 py-2 w-28">Batch / Lot</th>}
-                            {hasBatchTracking && <th className="px-2 py-2 w-20">Expiry</th>}
-                            {hasPharmaAddon && <th className="px-2 py-2 w-20">Packing</th>}
-                            <th className="px-2 py-2 w-20">HSN</th>
-                            <th className="px-2 py-2 w-16 text-center">Qty</th>
-                            {hasPharmaAddon && <th className="px-2 py-2 w-14 text-center">Free</th>}
-                            <th className="px-2 py-2 w-20">MRP (₹)</th>
-                            <th className="px-2 py-2 w-16 text-center">Unit</th>
-                            <th className="px-2.5 py-2 w-24">Rate (₹)</th>
-                            <th className="px-2 py-2 w-24">Disc % / ₹</th>
-                            <th className="px-2.5 py-2 w-24 text-right">Taxable</th>
-                            <th className="px-2 py-2 w-16 text-center">GST %</th>
-                            <th className="px-2.5 py-2 w-24 text-right">Amount (₹)</th>
-                            <th className="px-2 py-2 w-8"></th>
+                            <th className="px-2.5 py-2.5 min-w-[180px]">Product / Item</th>
+                            {hasBatchTracking && <th className="px-2 py-2.5 w-28">Batch / Lot</th>}
+                            {hasBatchTracking && <th className="px-2 py-2.5 w-20">Expiry</th>}
+                            {hasPharmaAddon && <th className="px-2 py-2.5 w-20">Packing</th>}
+                            {isElectronics && <th className="px-2 py-2.5 min-w-[130px] text-cyan-600 dark:text-cyan-400">IMEI / Serial</th>}
+                            {isGarments && <th className="px-2 py-2.5 w-16 text-rose-600 dark:text-rose-400 text-center">Size</th>}
+                            {isGarments && <th className="px-2 py-2.5 w-16 text-rose-600 dark:text-rose-400 text-center">Color</th>}
+                            <th className="px-2 py-2.5 w-20">HSN</th>
+                            <th className="px-2 py-2.5 w-16 text-center">Qty</th>
+                            {hasPharmaAddon && <th className="px-2 py-2.5 w-14 text-center">Free</th>}
+                            <th className="px-2 py-2.5 w-20">MRP (₹)</th>
+                            <th className="px-2 py-2.5 w-16 text-center">Unit</th>
+                            <th className="px-2.5 py-2.5 w-24">Rate (₹)</th>
+                            <th className="px-2 py-2.5 w-24">Disc % / ₹</th>
+                            <th className="px-2.5 py-2.5 w-24 text-right">Taxable</th>
+                            <th className="px-2 py-2.5 w-16 text-center">GST %</th>
+                            <th className="px-2.5 py-2.5 w-24 text-right">Amount (₹)</th>
+                            <th className="px-2 py-2.5 w-8"></th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-table-border bg-surface">
+                        <tbody className="divide-y divide-border bg-surface">
                           {billItems.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-table-row-hover">
+                            <tr key={idx} className="hover:bg-surface-muted/60 transition-colors">
                               <td className="p-1.5">
-                                <div className="font-semibold text-foreground truncate">{item.itemName}</div>
+                                <div className="font-bold text-foreground truncate">{item.itemName}</div>
                                 <div className="text-[10px] text-muted-foreground font-mono">{item.sku}</div>
                               </td>
                               {hasBatchTracking && (
@@ -1095,7 +1145,7 @@ export default function PurchaseBillsPage() {
                                     placeholder="Batch"
                                     value={item.batchNumber || ""}
                                     onChange={(e) => updateBillLineField(idx, "batchNumber", e.target.value)}
-                                    className="w-full px-1.5 py-1 bg-surface border border-input rounded text-xs text-primary font-mono focus:ring-2 focus:ring-primary"
+                                    className="w-full px-1.5 py-1 bg-surface border border-border rounded text-xs text-primary font-mono font-bold focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
                               )}
@@ -1106,7 +1156,7 @@ export default function PurchaseBillsPage() {
                                     placeholder="MM/YY"
                                     value={item.expiryDate || ""}
                                     onChange={(e) => updateBillLineField(idx, "expiryDate", e.target.value)}
-                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono text-center focus:ring-2 focus:ring-primary"
+                                    className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-foreground font-mono text-center font-bold focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
                               )}
@@ -1117,9 +1167,42 @@ export default function PurchaseBillsPage() {
                                     placeholder="10x10"
                                     value={item.packing || ""}
                                     onChange={(e) => updateBillLineField(idx, "packing", e.target.value)}
-                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground text-center focus:ring-2 focus:ring-primary"
+                                    className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-foreground text-center font-semibold focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
+                              )}
+                              {isElectronics && (
+                                <td className="p-1.5">
+                                  <input
+                                    type="text"
+                                    placeholder="Scan/Type IMEI"
+                                    value={item.imeiSerial || ""}
+                                    onChange={(e) => updateBillLineField(idx, "imeiSerial", e.target.value)}
+                                    className="w-full px-1.5 py-1 bg-surface border border-border rounded text-xs text-cyan-600 dark:text-cyan-400 font-mono font-bold focus:ring-2 focus:ring-cyan-500"
+                                  />
+                                </td>
+                              )}
+                              {isGarments && (
+                                <>
+                                  <td className="p-1.5">
+                                    <input
+                                      type="text"
+                                      placeholder="Size"
+                                      value={item.size || ""}
+                                      onChange={(e) => updateBillLineField(idx, "size", e.target.value)}
+                                      className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-rose-600 dark:text-rose-400 text-center font-bold focus:ring-2 focus:ring-rose-500"
+                                    />
+                                  </td>
+                                  <td className="p-1.5">
+                                    <input
+                                      type="text"
+                                      placeholder="Color"
+                                      value={item.color || ""}
+                                      onChange={(e) => updateBillLineField(idx, "color", e.target.value)}
+                                      className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-rose-600 dark:text-rose-400 text-center font-bold focus:ring-2 focus:ring-rose-500"
+                                    />
+                                  </td>
+                                </>
                               )}
                               <td className="p-1.5">
                                 <input
@@ -1127,7 +1210,7 @@ export default function PurchaseBillsPage() {
                                   placeholder="HSN"
                                   value={item.hsnCode || ""}
                                   onChange={(e) => updateBillLineField(idx, "hsnCode", e.target.value)}
-                                  className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono text-center focus:ring-2 focus:ring-primary"
+                                  className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-foreground font-mono text-center font-bold focus:ring-2 focus:ring-primary"
                                 />
                               </td>
                               <td className="p-1.5">
@@ -1136,7 +1219,7 @@ export default function PurchaseBillsPage() {
                                   min="1"
                                   value={item.quantity}
                                   onChange={(e) => updateBillLineField(idx, "quantity", parseFloat(e.target.value) || 0)}
-                                  className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono text-center font-bold focus:ring-2 focus:ring-primary"
+                                  className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-foreground font-mono text-center font-bold focus:ring-2 focus:ring-primary"
                                 />
                               </td>
                               {hasPharmaAddon && (
@@ -1147,7 +1230,7 @@ export default function PurchaseBillsPage() {
                                     placeholder="0"
                                     value={item.freeQuantity || ""}
                                     onChange={(e) => updateBillLineField(idx, "freeQuantity", parseFloat(e.target.value) || 0)}
-                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-emerald-600 dark:text-emerald-400 font-mono text-center focus:ring-2 focus:ring-primary"
+                                    className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-emerald-600 dark:text-emerald-400 font-mono text-center font-bold focus:ring-2 focus:ring-primary"
                                   />
                                 </td>
                               )}
@@ -1158,10 +1241,10 @@ export default function PurchaseBillsPage() {
                                   placeholder="0.00"
                                   value={item.mrp || ""}
                                   onChange={(e) => updateBillLineField(idx, "mrp", parseFloat(e.target.value) || 0)}
-                                  className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono focus:ring-2 focus:ring-primary"
+                                  className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-foreground font-mono font-bold focus:ring-2 focus:ring-primary"
                                 />
                               </td>
-                              <td className="p-1.5 text-center text-muted-foreground text-[11px] font-semibold">
+                              <td className="p-1.5 text-center text-foreground text-[11px] font-bold">
                                 {item.uomCode}
                               </td>
                               <td className="p-1.5">
@@ -1170,7 +1253,7 @@ export default function PurchaseBillsPage() {
                                   step="0.01"
                                   value={item.unitPrice}
                                   onChange={(e) => updateBillLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
-                                  className="w-full px-1.5 py-1 bg-surface border border-input rounded text-xs text-foreground font-mono font-bold focus:ring-2 focus:ring-primary"
+                                  className="w-full px-1.5 py-1 bg-surface border border-border rounded text-xs text-foreground font-mono font-bold focus:ring-2 focus:ring-primary"
                                 />
                               </td>
                               <td className="p-1.5">
@@ -1181,25 +1264,25 @@ export default function PurchaseBillsPage() {
                                     placeholder="0"
                                     value={item.discountValue || ""}
                                     onChange={(e) => updateBillLineField(idx, "discountValue", parseFloat(e.target.value) || 0)}
-                                    className="w-full px-1 py-1 bg-surface border border-input rounded text-xs text-amber-600 dark:text-amber-400 font-mono focus:ring-2 focus:ring-primary"
+                                    className="w-full px-1 py-1 bg-surface border border-border rounded text-xs text-amber-600 dark:text-amber-400 font-mono font-bold focus:ring-2 focus:ring-primary"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => updateBillLineField(idx, "discountType", item.discountType === "percent" ? "fixed" : "percent")}
-                                    className="px-1 py-0.5 rounded bg-surface-muted text-[10px] font-bold text-foreground hover:bg-surface-muted/80 border border-border"
+                                    className="px-1.5 py-0.5 rounded bg-surface-muted text-[10px] font-black text-foreground hover:bg-surface-muted/80 border border-border cursor-pointer"
                                   >
                                     {item.discountType === "percent" ? "%" : "₹"}
                                   </button>
                                 </div>
                               </td>
-                              <td className="p-1.5 text-right font-mono font-semibold text-foreground">
+                              <td className="p-1.5 text-right font-mono font-bold text-foreground">
                                 ₹{item.taxableAmount.toFixed(2)}
                               </td>
                               <td className="p-1.5 text-center font-mono">
                                 <select
                                   value={item.taxRate}
                                   onChange={(e) => updateBillLineField(idx, "taxRate", parseFloat(e.target.value) || 0)}
-                                  className="px-1 py-1 bg-surface border border-input rounded text-xs text-foreground focus:ring-2 focus:ring-primary"
+                                  className="px-1.5 py-1 bg-surface border border-border rounded text-xs font-bold text-foreground focus:ring-2 focus:ring-primary"
                                 >
                                   <option value="0">0%</option>
                                   <option value="5">5%</option>
@@ -1208,16 +1291,17 @@ export default function PurchaseBillsPage() {
                                   <option value="28">28%</option>
                                 </select>
                               </td>
-                              <td className="p-1.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              <td className="p-1.5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
                                 ₹{item.totalAmount.toFixed(2)}
                               </td>
                               <td className="p-1.5 text-center">
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveItem(idx)}
-                                  className="p-1 rounded text-muted-foreground hover:text-rose-500"
+                                  className="p-1 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                                  title="Remove item"
                                 >
-                                  <X className="w-3.5 h-3.5" />
+                                  <X className="w-4 h-4" />
                                 </button>
                               </td>
                             </tr>
@@ -1228,11 +1312,11 @@ export default function PurchaseBillsPage() {
                   )}
                 </div>
 
-                {/* Overall Bill Discount & Summary */}
-                <div className="p-4 bg-surface-muted rounded-xl border border-border grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                  <div className="space-y-3">
+                {/* Overall Bill Discount & Summary Card */}
+                <div className="p-5 bg-surface rounded-2xl border-2 border-border shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-1.5">
                         Bill-Level Cash / Special Discount
                       </label>
                       <div className="flex items-center space-x-2">
@@ -1242,20 +1326,20 @@ export default function PurchaseBillsPage() {
                           placeholder="0.00"
                           value={overallDiscountValue || ""}
                           onChange={(e) => setOverallDiscountValue(parseFloat(e.target.value) || 0)}
-                          className="w-40 px-3 py-1.5 bg-surface border border-input rounded-xl text-sm text-amber-600 dark:text-amber-400 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="w-44 px-3.5 py-2 bg-surface border-2 border-border rounded-xl text-sm text-amber-600 dark:text-amber-400 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-primary shadow-xs"
                         />
-                        <div className="flex bg-surface p-0.5 rounded-lg border border-border">
+                        <div className="flex bg-surface-muted p-1 rounded-xl border border-border">
                           <button
                             type="button"
                             onClick={() => setOverallDiscountType("fixed")}
-                            className={`px-2 py-1 rounded text-xs font-bold ${overallDiscountType === "fixed" ? "bg-amber-600 text-white" : "text-muted-foreground"}`}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${overallDiscountType === "fixed" ? "bg-amber-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"}`}
                           >
                             ₹ Fixed
                           </button>
                           <button
                             type="button"
                             onClick={() => setOverallDiscountType("percent")}
-                            className={`px-2 py-1 rounded text-xs font-bold ${overallDiscountType === "percent" ? "bg-amber-600 text-white" : "text-muted-foreground"}`}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${overallDiscountType === "percent" ? "bg-amber-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"}`}
                           >
                             % Percent
                           </button>
@@ -1264,7 +1348,7 @@ export default function PurchaseBillsPage() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                      <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-1.5">
                         Immediate Payment Tendered (₹)
                       </label>
                       <div className="flex space-x-2">
@@ -1274,12 +1358,12 @@ export default function PurchaseBillsPage() {
                           max={totals.total}
                           value={paidAmount}
                           onChange={(e) => setPaidAmount(Number(e.target.value))}
-                          className="w-40 px-3 py-1.5 bg-surface border border-input rounded-xl text-sm text-emerald-600 dark:text-emerald-400 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="w-44 px-3.5 py-2 bg-surface border-2 border-border rounded-xl text-sm text-emerald-600 dark:text-emerald-400 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-primary shadow-xs"
                         />
                         <select
                           value={paymentMode}
                           onChange={(e) => setPaymentMode(Number(e.target.value))}
-                          className="px-3 py-1.5 bg-surface border border-input rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="px-3.5 py-2 bg-surface border-2 border-border rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-xs"
                         >
                           <option value="1">Cash</option>
                           <option value="2">UPI</option>
@@ -1290,27 +1374,27 @@ export default function PurchaseBillsPage() {
                     </div>
                   </div>
 
-                  <div className="text-right space-y-1 bg-surface p-3 rounded-xl border border-border shadow-xs">
+                  <div className="text-right space-y-2 bg-surface-muted/60 p-4 rounded-xl border-2 border-border shadow-xs">
                     <div className="text-xs text-muted-foreground flex justify-between">
-                      <span>Items Subtotal:</span>
-                      <span className="font-mono text-foreground font-semibold">₹{totals.taxable.toFixed(2)}</span>
+                      <span className="font-semibold">Items Subtotal:</span>
+                      <span className="font-mono text-foreground font-bold text-sm">₹{totals.taxable.toFixed(2)}</span>
                     </div>
                     {totals.overallDiscount > 0 && (
-                      <div className="text-xs text-amber-600 dark:text-amber-400 flex justify-between">
+                      <div className="text-xs text-amber-600 dark:text-amber-400 flex justify-between font-semibold">
                         <span>Overall Bill Discount:</span>
                         <span className="font-mono font-bold">-₹{totals.overallDiscount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="text-xs text-muted-foreground flex justify-between">
-                      <span>Net GST:</span>
-                      <span className="font-mono text-foreground font-semibold">₹{totals.tax.toFixed(2)}</span>
+                      <span className="font-semibold">Net GST:</span>
+                      <span className="font-mono text-foreground font-bold text-sm">₹{totals.tax.toFixed(2)}</span>
                     </div>
-                    <div className="text-sm font-black text-foreground font-mono flex justify-between pt-1 border-t border-border">
-                      <span>Grand Total:</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 text-base">₹{totals.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                    <div className="text-base font-black text-foreground font-mono flex justify-between pt-2 border-t-2 border-border">
+                      <span className="text-foreground">Grand Total:</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 text-lg font-black">₹{totals.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                     </div>
                     {paidAmount > 0 && (
-                      <div className="text-xs text-rose-600 dark:text-rose-400 font-mono flex justify-between pt-0.5">
+                      <div className="text-xs text-rose-600 dark:text-rose-400 font-mono flex justify-between pt-1 font-bold">
                         <span>Balance Due:</span>
                         <span>₹{(totals.total - Math.min(paidAmount, totals.total)).toFixed(2)}</span>
                       </div>
@@ -1320,22 +1404,29 @@ export default function PurchaseBillsPage() {
               </form>
             </div>
 
-            <div className="pt-4 border-t border-border flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(false)}
-                className="px-4 py-2 bg-surface-muted hover:bg-surface-muted/80 text-foreground border border-border rounded-xl text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateBill}
-                disabled={submitting || billItems.length === 0}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold shadow-sm disabled:opacity-50 transition-colors"
-              >
-                {submitting ? "Recording..." : "Confirm & Save Bill"}
-              </button>
+            {/* Docked Action Footer */}
+            <div className="px-6 py-3.5 border-t border-border bg-surface-muted/80 flex items-center justify-between shrink-0 shadow-lg">
+              <div className="text-xs text-muted-foreground hidden sm:block">
+                <span>All amounts are dynamically computed with exact tax and discount rules.</span>
+              </div>
+              <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="px-5 py-2.5 bg-surface hover:bg-surface-muted text-foreground border-2 border-border rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateBill}
+                  disabled={submitting || billItems.length === 0}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-md disabled:opacity-50 transition-all cursor-pointer flex items-center space-x-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{submitting ? "Recording..." : "Confirm & Save Bill"}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

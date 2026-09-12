@@ -12,6 +12,8 @@ export interface BulkProductImportRow {
   cessRate: number;
   purchasePrice: number;
   salePrice: number;
+  retailPrice?: number;
+  wholesalePrice?: number;
   mrp: number;
   minimumStockAlert: number;
   reorderQuantity: number;

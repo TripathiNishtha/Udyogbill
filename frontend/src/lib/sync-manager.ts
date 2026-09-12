@@ -26,12 +26,12 @@ class SyncManager {
       window.addEventListener("online", () => this.handleNetworkChange(true));
       window.addEventListener("offline", () => this.handleNetworkChange(false));
 
-      // Periodic auto-sync worker every 30 seconds when online
+      // Periodic auto-sync worker every 3 minutes when online
       this.syncIntervalId = setInterval(() => {
-        if (this.isOnline && this.syncState !== "syncing") {
+        if (this.isOnline && this.syncState !== "syncing" && typeof document !== "undefined" && !document.hidden) {
           this.triggerSync();
         }
-      }, 30000);
+      }, 180000);
 
       this.refreshPendingCount();
     }
@@ -104,6 +104,27 @@ class SyncManager {
       return null;
     }
 
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("udyogbill_token");
+      const userStr = localStorage.getItem("udyogbill_user");
+      if (!token || !userStr) {
+        return null;
+      }
+      try {
+        const user = JSON.parse(userStr);
+        const isImpersonating = !!localStorage.getItem("udyogbill_impersonating");
+        // Only run tenant offline-sync for tenant stores (or active store impersonations)
+        if (user.isSuperAdmin && !isImpersonating) {
+          return null;
+        }
+        if (!user.tenantId && !isImpersonating) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    }
+
     try {
       this.syncState = "syncing";
       this.notify();
@@ -163,6 +184,7 @@ class SyncManager {
    */
   async seedLocalCache(): Promise<{ itemsCount: number; customersCount: number }> {
     try {
+      await offlineDb.clearCatalogCache();
       const pullResult = await syncService.pullDeltaData();
       if (pullResult.updatedItems) {
         await offlineDb.saveCatalogItems(pullResult.updatedItems);

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { partyService, RecordPaymentInput } from "@/services/party-services";
 import { PartyStatement, PartyDetails } from "@/types";
+import { parseLicensesFromParty, LICENSE_PRESETS } from "@/components/parties/party-license-editor";
 
 export default function PartyLedgerStatementPage({
   params,
@@ -167,6 +168,30 @@ export default function PartyLedgerStatementPage({
                 </span>
               )}
             </div>
+
+            {/* Business Licenses (DL, FSSAI, ISO, IEC, etc.) */}
+            {(() => {
+              const licList = parseLicensesFromParty(party);
+              if (licList.length === 0) return null;
+              return (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {licList.map((lic, i) => {
+                    const preset = LICENSE_PRESETS.find((p) => p.value === lic.type);
+                    const label = lic.customName || preset?.defaultName || lic.type.toUpperCase();
+                    return (
+                      <span
+                        key={i}
+                        className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[11px] text-slate-300"
+                      >
+                        <ShieldCheck className="w-3 h-3 text-indigo-400" />
+                        <span className="font-medium text-slate-400">{label}:</span>
+                        <span className="font-mono text-indigo-200 font-semibold">{lic.number}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="text-right font-mono">

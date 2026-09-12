@@ -90,8 +90,12 @@ export default function AiSeoStudioPage() {
 
       const cityObj = CITIES_DATA[selectedCity.toLowerCase()] || { name: selectedCity, state: "" };
 
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL ||
+        (typeof window !== "undefined" ? window.location.origin : "");
+
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050"}/api/v1/superadmin/growth/seo/generate-content`,
+        `${apiBase}/api/v1/superadmin/growth/seo/generate-content`,
         {
           method: "POST",
           headers: {
@@ -127,8 +131,12 @@ export default function AiSeoStudioPage() {
           ? localStorage.getItem("udyogbill_token") || localStorage.getItem("udyog_access_token")
           : null;
 
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL ||
+        (typeof window !== "undefined" ? window.location.origin : "");
+
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050"}/api/v1/superadmin/growth/seo/keywords/suggest?query=${encodeURIComponent(
+        `${apiBase}/api/v1/superadmin/growth/seo/keywords/suggest?query=${encodeURIComponent(
           suggestQuery.trim()
         )}`,
         {
@@ -155,8 +163,12 @@ export default function AiSeoStudioPage() {
           ? localStorage.getItem("udyogbill_token") || localStorage.getItem("udyog_access_token")
           : null;
 
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL ||
+        (typeof window !== "undefined" ? window.location.origin : "");
+
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050"}/api/v1/superadmin/growth/seo/ping-sitemap`,
+        `${apiBase}/api/v1/superadmin/growth/seo/ping-sitemap`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },

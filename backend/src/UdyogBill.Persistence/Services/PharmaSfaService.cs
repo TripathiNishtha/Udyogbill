@@ -2091,20 +2091,58 @@ public class PharmaSfaService : IPharmaSfaService
             return Result<Guid>.Failure("No active branch found for tenant.", "BRANCH_NOT_FOUND");
 
         // Convert POB order to standard UdyogBill SalesInvoice using official SalesService
+        var invoiceItems = new List<CreateSalesInvoiceItemRequest>();
+        foreach (var pi in pob.Items)
+        {
+            var itemEntity = pi.Item ?? await _context.Items
+                .Include(i => i.PrimaryUom)
+                .FirstOrDefaultAsync(x => x.Id == pi.ItemId && x.TenantId == tenantId, cancellationToken);
+            if (itemEntity == null) continue;
+
+            // FEFO (First Expiry, First Out) Batch lookup
+            var batch = await _context.ItemBatches
+                .Where(b => b.TenantId == tenantId && b.ItemId == pi.ItemId && b.IsActive && b.ExpiryDate >= DateTime.UtcNow.Date)
+                .OrderBy(b => b.ExpiryDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            invoiceItems.Add(new CreateSalesInvoiceItemRequest
+            {
+                ItemId = pi.ItemId,
+                BatchId = batch?.Id,
+                BatchNumber = batch?.BatchNumber,
+                ExpiryDate = batch?.ExpiryDate,
+                Quantity = pi.Quantity,
+                FreeQuantity = pi.FreeQuantity,
+                UomId = itemEntity.PrimaryUomId,
+                UnitPrice = pi.UnitPrice > 0 ? pi.UnitPrice : (batch?.SaleRate > 0 ? batch.SaleRate : itemEntity.SellingPrice),
+                DiscountPercent = pi.DiscountPercent,
+                Mrp = batch?.MRP > 0 ? batch.MRP : itemEntity.MRP,
+                Ptr = batch?.Ptr > 0 ? batch.Ptr : 0m,
+                Pts = batch?.Pts > 0 ? batch.Pts : 0m,
+                Packing = itemEntity.AttributesJson?.Contains("packing") == true ? null : "Standard"
+            });
+        }
+
+        if (invoiceItems.Count == 0)
+        {
+            return Result<Guid>.Failure("Cannot convert POB Order: No valid items found in order.", "EMPTY_ITEMS");
+        }
+
         var invoiceReq = new CreateSalesInvoiceRequest
         {
             InvoiceType = InvoiceType.TaxInvoice,
             BranchId = defaultBranch.Id,
             WarehouseId = warehouseId,
             PartyId = pob.TargetStockistPartyId ?? pob.CustomerPartyId,
-            CustomerName = pob.CustomerParty.LegalName,
-            CustomerPhone = pob.CustomerParty.PrimaryPhone ?? pob.CustomerParty.Mobile,
-            CustomerGSTIN = pob.CustomerParty.GSTIN,
-            BillingAddress = pob.CustomerParty.TradeName ?? pob.CustomerParty.LegalName,
-            BillingStateCode = pob.CustomerParty.StateCode ?? "07",
-            PlaceOfSupply = pob.CustomerParty.StateCode ?? "Delhi",
+            CustomerName = pob.CustomerParty?.LegalName ?? "Medical Chemist",
+            CustomerPhone = pob.CustomerParty?.PrimaryPhone ?? pob.CustomerParty?.Mobile,
+            CustomerGSTIN = pob.CustomerParty?.GSTIN,
+            BillingAddress = pob.CustomerParty?.TradeName ?? pob.CustomerParty?.LegalName,
+            BillingStateCode = pob.CustomerParty?.StateCode ?? defaultBranch.StateCode ?? "27",
+            PlaceOfSupply = defaultBranch.State ?? "Maharashtra",
             InvoiceDate = DateTime.UtcNow,
-            Notes = $"Generated from Pharma SFA POB Order {pob.OrderNumber}"
+            Notes = $"Generated from Pharma SFA POB Order {pob.OrderNumber}",
+            Items = invoiceItems
         };
 
         var invoiceResult = await _salesService.CreateInvoiceAsync(invoiceReq, null, cancellationToken);

@@ -63,20 +63,67 @@ export interface OfflineInvoice {
   createdAtUtc: string;
 }
 
-const DB_NAME = "UdyogBill_Offline_DB";
+export function getActiveTenantOfflineId(): string {
+  if (typeof window === "undefined") return "default";
+  try {
+    const impStr = localStorage.getItem("udyogbill_impersonating");
+    if (impStr) {
+      const imp = JSON.parse(impStr);
+      const tid = imp.tenantId || imp.id;
+      if (tid) return String(tid);
+    }
+    const userStr = localStorage.getItem("udyogbill_user");
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      const tid = u.tenantId;
+      if (tid) return String(tid);
+    }
+  } catch {}
+  return "default";
+}
+
+function getTenantDbName(): string {
+  const tid = getActiveTenantOfflineId();
+  return `UdyogBill_Offline_DB_${tid}`;
+}
+
 const DB_VERSION = 1;
 
 class OfflineDatabase {
   private db: IDBDatabase | null = null;
+  private currentDbName: string | null = null;
 
   async init(): Promise<IDBDatabase> {
-    if (this.db) return this.db;
+    const targetDbName = getTenantDbName();
+
+    if (this.db && this.currentDbName === targetDbName) {
+      return this.db;
+    }
+
+    if (this.db && this.currentDbName !== targetDbName) {
+      try {
+        this.db.close();
+      } catch {}
+      this.db = null;
+    }
+
     if (typeof window === "undefined" || !window.indexedDB) {
       throw new Error("IndexedDB is not supported in this environment.");
     }
 
+    // Try deleting obsolete non-isolated database if present
+    try {
+      if (typeof window !== "undefined" && window.indexedDB && (indexedDB as any).databases) {
+        (indexedDB as any).databases().then((dbs: any[]) => {
+          if (dbs && dbs.some((d) => d.name === "UdyogBill_Offline_DB")) {
+            indexedDB.deleteDatabase("UdyogBill_Offline_DB");
+          }
+        }).catch(() => {});
+      }
+    } catch {}
+
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const request = indexedDB.open(targetDbName, DB_VERSION);
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
@@ -111,6 +158,7 @@ class OfflineDatabase {
 
       request.onsuccess = (event) => {
         this.db = (event.target as IDBOpenDBRequest).result;
+        this.currentDbName = targetDbName;
         resolve(this.db);
       };
 
@@ -243,6 +291,31 @@ class OfflineDatabase {
       const req = store.get(key);
       req.onsuccess = () => resolve(req.result ? req.result.value : null);
       req.onerror = () => reject(req.error);
+    });
+  }
+
+  async clearAllLocalData(): Promise<void> {
+    const db = await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(["catalog_items", "parties", "outbox_invoices", "sync_meta"], "readwrite");
+      tx.objectStore("catalog_items").clear();
+      tx.objectStore("parties").clear();
+      tx.objectStore("outbox_invoices").clear();
+      tx.objectStore("sync_meta").clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async clearCatalogCache(): Promise<void> {
+    const db = await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(["catalog_items", "parties", "sync_meta"], "readwrite");
+      tx.objectStore("catalog_items").clear();
+      tx.objectStore("parties").clear();
+      tx.objectStore("sync_meta").clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
     });
   }
 }

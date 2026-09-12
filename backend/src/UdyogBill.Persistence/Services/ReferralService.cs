@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Referrals;
+using UdyogBill.Domain.Enums;
 using UdyogBill.Shared;
 
 namespace UdyogBill.Persistence.Services;
@@ -87,11 +88,46 @@ public class ReferralService : IReferralService
 
     public async Task<Result<TenantReferralSummaryDto>> GetTenantReferralSummaryAsync(Guid tenantId, string? baseUrl = null, CancellationToken cancellationToken = default)
     {
-        var profile = await EnsureTenantProfileAsync(tenantId, cancellationToken);
-        var configRes = await GetReferralConfigAsync(cancellationToken);
-        decimal effectiveReward = profile.CustomRewardAmount ?? (configRes.Data?.DefaultRewardAmount ?? 500m);
+        // Business Rule: Referral code generation requires an active paid subscription plan
+        var activeSub = await _context.TenantSubscriptions
+            .IgnoreQueryFilters()
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId &&
+                                      !s.IsDeleted &&
+                                      s.Status == SubscriptionStatus.Active &&
+                                      s.EndsAtUtc > DateTimeOffset.UtcNow, cancellationToken);
 
+        bool hasActiveSubscription = activeSub != null;
+
+        var configRes = await GetReferralConfigAsync(cancellationToken);
+        decimal effectiveReward = configRes.Data?.DefaultRewardAmount ?? 500m;
         string cleanBaseUrl = (baseUrl ?? "http://localhost:3000").TrimEnd('/');
+
+        if (!hasActiveSubscription)
+        {
+            // If tenant is on trial or does not have an active paid plan, do not generate/expose referral code
+            return Result<TenantReferralSummaryDto>.Success(new TenantReferralSummaryDto(
+                ReferralCode: string.Empty,
+                ReferralLink: string.Empty,
+                RewardAmount: effectiveReward,
+                TotalReferralsCount: 0,
+                PaidConversionsCount: 0,
+                TotalEarnedAmount: 0m,
+                TotalPaidOutAmount: 0m,
+                PendingBalanceAmount: 0m,
+                UpiId: null,
+                BankName: null,
+                BankAccountNumber: null,
+                BankIfsc: null,
+                AccountHolderName: null,
+                Referrals: new List<TenantReferralItemDto>(),
+                HasActiveSubscription: false,
+                IneligibilityReason: "To unlock your referral code and earn ₹500 per referral, please activate any paid subscription plan."
+            ));
+        }
+
+        var profile = await EnsureTenantProfileAsync(tenantId, cancellationToken);
+        effectiveReward = profile.CustomRewardAmount ?? (configRes.Data?.DefaultRewardAmount ?? 500m);
         string referralLink = $"{cleanBaseUrl}/register?ref={profile.ReferralCode}";
 
         var conversions = await _context.TenantReferralConversions
@@ -127,7 +163,9 @@ public class ReferralService : IReferralService
             profile.BankAccountNumber,
             profile.BankIfsc,
             profile.AccountHolderName,
-            referralItems
+            referralItems,
+            HasActiveSubscription: true,
+            IneligibilityReason: null
         );
 
         return Result<TenantReferralSummaryDto>.Success(summary);

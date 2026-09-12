@@ -95,8 +95,9 @@ public class PurchaseOrderItem : BaseTenantAuditableEntity
     public string? HsnCode { get; set; }
 
     public decimal OrderQuantity { get; set; }
+    public decimal FreeQuantity { get; set; } = 0m;
     public decimal ReceivedQuantity { get; set; }
-    public decimal RemainingQuantity => OrderQuantity - ReceivedQuantity;
+    public decimal RemainingQuantity => (OrderQuantity + FreeQuantity) - ReceivedQuantity;
 
     public Guid UomId { get; set; }
     public UnitOfMeasure Uom { get; set; } = null!;
@@ -104,6 +105,8 @@ public class PurchaseOrderItem : BaseTenantAuditableEntity
 
     public decimal UnitPrice { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal SchemeDiscountPercent { get; set; } = 0m;
+    public decimal CashDiscountPercent { get; set; } = 0m;
     public decimal DiscountAmount { get; set; }
     public decimal TaxableAmount { get; set; }
 
@@ -174,7 +177,9 @@ public class GoodsReceiptNoteItem : BaseTenantAuditableEntity
     public DateTime? ExpiryDate { get; set; }
 
     public decimal ReceivedQuantity { get; set; }
+    public decimal ReceivedFreeQuantity { get; set; } = 0m;
     public decimal AcceptedQuantity { get; set; }
+    public decimal AcceptedFreeQuantity { get; set; } = 0m;
     public decimal RejectedQuantity { get; set; }
 
     public Guid UomId { get; set; }
@@ -266,12 +271,15 @@ public class PurchaseBillItem : BaseTenantAuditableEntity
     public ItemVariant? Variant { get; set; }
 
     public decimal Quantity { get; set; }
+    public decimal FreeQuantity { get; set; } = 0m;
     public Guid UomId { get; set; }
     public UnitOfMeasure Uom { get; set; } = null!;
     public string UomCode { get; set; } = string.Empty;
 
     public decimal UnitPrice { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal SchemeDiscountPercent { get; set; } = 0m;
+    public decimal CashDiscountPercent { get; set; } = 0m;
     public decimal DiscountAmount { get; set; }
     public decimal TaxableAmount { get; set; }
 

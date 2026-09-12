@@ -1,0 +1,1216 @@
+[
+  {
+    "id": "vol-1-setup",
+    "volumeNumber": 1,
+    "title": "Onboarding, Setup & Global Navigation",
+    "titleHindi": "शुरुआती सेटअप और नेविगेशन",
+    "iconName": "LayoutDashboard",
+    "description": "Login, registration, business profile setup, 1-click migration, and master sidebar navigation.",
+    "topics": [
+      {
+        "id": "global-navigation",
+        "title": "Master Navigation, Sidebar & UI Theme",
+        "titleHindi": "मास्टर नेविगेशन, साइडबार और थीम",
+        "volumeId": "vol-1-setup",
+        "navigationPath": "Top Navbar & Left Sidebar (Keyboard: Ctrl + B)",
+        "keyboardShortcuts": [
+          {
+            "key": "Ctrl + B",
+            "action": "Sidebar को Hide / Show (संक्षिप्त/विस्तार) करें"
+          },
+          {
+            "key": "Ctrl + K",
+            "action": "Global Search (बिल, ग्राहक, सामान तुरंत खोजें)"
+          },
+          {
+            "key": "F2",
+            "action": "Direct Create Sale Bill (नया सेल बिल बनाएं)"
+          }
+        ],
+        "overview": "Master navigation bar allows rapid access to all ERP modules with instant filter search, light/dark mode switcher, active branch switch, and live network status.",
+        "overviewHindi": "UdyogBill का नेविगेशन बार आपको किसी भी मॉड्यूल तक 1 सेकंड में पहुंचने की सुविधा देता है। आप साइडबार सर्च बार में कोई भी मेन्यू टाइप करके सीधे वहां पहुंच सकते हैं।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Quick Menu Search",
+            "fieldType": "input",
+            "purpose": "Instant search across 50+ modules and tools",
+            "hindiExplanation": "साइडबार में सबसे ऊपर दिए सर्च बॉक्स में कोई भी नाम लिखें (जैसे GST, POS, PO) तो तुरंत वही ऑप्शन आ जाएगा।",
+            "formulaOrLogic": "Realtime text match across title and labels"
+          },
+          {
+            "fieldName": "Branch / Warehouse Switcher",
+            "fieldType": "select",
+            "purpose": "Switch between Head Office and Godown/Branch",
+            "hindiExplanation": "यदि आपके एक से अधिक आउटलेट या गोदाम हैं, तो यहाँ से एक्टिव ब्रांच बदल सकते हैं। सारा बिलिंग उसी ब्रांच के अंतर्गत होगा।",
+            "formulaOrLogic": "Multi-tenant branch ID context"
+          },
+          {
+            "fieldName": "Theme Switcher",
+            "fieldType": "button",
+            "purpose": "Toggle between Professional Dark Mode and High-Contrast Light Mode",
+            "hindiExplanation": "रात के समय आँखों के आराम के लिए डार्क मोड और दिन में प्रिंटिंग या साफ़ दिखने के लिए लाइट मोड चुनें।"
+          },
+          {
+            "fieldName": "Network Status Badge",
+            "fieldType": "display",
+            "purpose": "Shows Online (Cloud Synced) vs Offline status",
+            "hindiExplanation": "हरा बिंदु दर्शाता है कि इंटरनेट चालू है और क्लाउड सुरक्षित है। इंटरनेट जाने पर भी लोकल बिलिंग निर्बाध चलती है।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Expand or Collapse Sidebar",
+            "actionInstruction": "Click the menu icon on top-left or press Ctrl+B to maximize your screen workspace.",
+            "hindiInstruction": "स्क्रीन पर अधिक जगह पाने के लिए Ctrl+B दबाएं या मेन्यू आइकन पर क्लिक करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Locate Any Feature in 1 Second",
+            "actionInstruction": "Use Quick Search or Ctrl+K to jump directly into any screen.",
+            "hindiInstruction": "Ctrl+K दबाएं और जो भी बिल या रिपोर्ट चाहिए उसका नाम लिखें।"
+          }
+        ],
+        "proTips": [
+          "Use Ctrl+B during busy counter hours to maximize billing screen width.",
+          "Always verify active branch name on top header before creating purchase orders or invoices."
+        ],
+        "proTipsHindi": [
+          "काउंटर पर भीड़ के समय Ctrl+B दबाकर साइडबार छुपाएं ताकि बिलिंग टेबल बड़ी दिखे।",
+          "बिल बनाने से पहले ऊपर टॉप हेडर में एक्टिव ब्रांच का नाम अवश्य देख लें।"
+        ],
+        "faqs": [
+          {
+            "question": "What happens if internet disconnects during billing?",
+            "questionHindi": "बिलिंग करते समय इंटरनेट कट जाए तो क्या होगा?",
+            "answer": "UdyogBill uses progressive offline caching. The network badge turns amber, but you can continue issuing bills. Once reconnected, it auto-syncs with NeonDB cloud.",
+            "solutionHindi": "बिलिंग नहीं रुकेगी। स्टेटस एम्बर हो जाएगा और इंटरनेट वापस आते ही सभी बिल क्लाउड पर अपने आप सुरक्षित अपलोड हो जाएंगे।"
+          }
+        ]
+      },
+      {
+        "id": "migration-import",
+        "title": "1-Click Data Migration from Tally, Marg, Vyapar & Excel",
+        "titleHindi": "टैली, मार्ग, व्यापार और एक्सेल से 1-क्लिक डेटा माइग्रेशन",
+        "volumeId": "vol-1-setup",
+        "navigationPath": "Sidebar -> Settings & System -> ⚡ 1-Click Data Migration (/app/settings/migration/universal)",
+        "overview": "Switching from another accounting software to UdyogBill takes less than 2 minutes without re-entering old ledger accounts or inventory items.",
+        "overviewHindi": "पुराने सॉफ्टवेयर (Marg, Tally, Vyapar, Busy) से अपने सभी ग्राहकों, सप्लायर्स और सामानों को एक्सेल के ज़रिये 2 मिनट में UdyogBill में शिफ्ट करें।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Source Software Selector",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Identifies spreadsheet column formats",
+            "hindiExplanation": "चुनें कि आप डेटा कहाँ से ला रहे हैं: Marg ERP, Tally Prime, Vyapar, Busy या Custom Excel।"
+          },
+          {
+            "fieldName": "Download Sample Template",
+            "fieldType": "button",
+            "purpose": "Provides pre-formatted CSV/Excel template with right column headers",
+            "hindiExplanation": "अगर आपके पास कस्टम फाइल है, तो यह बटन दबाकर सैंपल फॉर्मेट डाउनलोड करें और उसमें अपना डेटा भरें।"
+          },
+          {
+            "fieldName": "Drag & Drop File Upload",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Upload .xlsx or .csv data file",
+            "hindiExplanation": "अपनी एक्सेल या सीएसवी फाइल यहाँ अपलोड करें। सिस्टम अपने आप कॉलम्स को मैप कर लेगा।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Export from Old Software",
+            "actionInstruction": "Export your Item Master and Party Master as Excel/CSV from Marg or Tally.",
+            "hindiInstruction": "अपने पुराने सॉफ्टवेयर से आइटम लिस्ट और पार्टी लिस्ट एक्सेल में एक्सपोर्ट करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Upload & Auto-Map Columns",
+            "actionInstruction": "Select the file in UdyogBill. Review the preview table to ensure GSTIN, Item Names, and Opening Balances match.",
+            "hindiInstruction": "फाइल अपलोड करें। स्क्रीन पर प्रीव्यू देखकर कन्फर्म करें कि नाम, जीएसटी और स्टॉक सही दिख रहा है।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Click Import & Validate",
+            "actionInstruction": "Click the green Import button. System validates duplicate barcodes and creates records instantly.",
+            "hindiInstruction": "इम्पोर्ट बटन दबाएं। डुप्लीकेट चेक होने के बाद सभी रिकॉर्ड्स कुछ ही सेकंड में सेव हो जाएंगे।"
+          }
+        ],
+        "proTips": [
+          "Ensure phone numbers are 10 digits and GSTINs are valid 15-character strings to prevent validation errors."
+        ],
+        "proTipsHindi": [
+          "फोन नंबर 10 अंकों का और जीएसटी नंबर 15 अंकों का होना चाहिए ताकि इम्पोर्ट में कोई एरर न आए।"
+        ],
+        "faqs": [
+          {
+            "question": "Will duplicate items be overwritten?",
+            "questionHindi": "क्या पहले से मौजूद आइटम दोबारा अपलोड करने पर डुप्लीकेट हो जाएंगे?",
+            "answer": "No, UdyogBill matches existing records by Barcode / Item Code and updates the stock rather than duplicating.",
+            "solutionHindi": "नहीं, सॉफ्टवेयर बारकोड और आइटम कोड से पहचान कर सिर्फ स्टॉक और रेट अपडेट करता है, डुप्लीकेट नहीं बनाता।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-2-business-settings",
+    "volumeNumber": 2,
+    "title": "Business Profile, Print Templates & Settings",
+    "titleHindi": "व्यापार प्रोफाइल, प्रिंट टेम्पलेट्स और सेटिंग्स",
+    "iconName": "Settings2",
+    "description": "Company details, GSTIN, Drug License, Invoice Theme customizer, Staff permissions, and Cloud backups.",
+    "topics": [
+      {
+        "id": "business-profile",
+        "title": "Business Profile & Tax Registration Details",
+        "titleHindi": "व्यापार प्रोफाइल और टैक्स पंजीकरण विवरण",
+        "volumeId": "vol-2-business-settings",
+        "navigationPath": "Sidebar -> Settings & System -> Business Settings (/app/settings)",
+        "overview": "Set up company legal name, trade name, logo, signature image, GSTIN, Drug license (20B/21B), FSSAI, and billing terms.",
+        "overviewHindi": "अपनी फर्म का कानूनी नाम, लोगो, डिजिटल हस्ताक्षर, जीएसटी नंबर, ड्रग लाइसेंस नंबर और डिफॉल्ट बैंक डिटेल्स यहाँ सेट करें। यही जानकारी इनवॉइस पर प्रिंट होती है।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Legal Name & Trade Name",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Official registered name for tax invoices",
+            "hindiExplanation": "अपनी फर्म या कंपनी का पूरा नाम लिखें जो जीएसटी प्रमाणपत्र या बैंक खाते में दर्ज है।"
+          },
+          {
+            "fieldName": "GSTIN",
+            "fieldType": "input",
+            "purpose": "15-digit Goods and Services Tax Identification Number",
+            "hindiExplanation": "15 अंकों का जीएसटी नंबर दर्ज करें। यह बिल पर ग्राहक के इनपुट क्रेडिट (ITC) क्लेम के लिए जरूरी है।"
+          },
+          {
+            "fieldName": "Drug License 1 & 2 (Form 20B / 21B)",
+            "fieldType": "input",
+            "purpose": "Mandatory for Pharma Chemist / Wholesaler Invoicing",
+            "hindiExplanation": "दवा विक्रेताओं के लिए ड्रग लाइसेंस नंबर 20B और 21B यहाँ दर्ज करें।"
+          },
+          {
+            "fieldName": "FSSAI License No.",
+            "fieldType": "input",
+            "purpose": "Food Safety and Standards Authority of India Registration",
+            "hindiExplanation": "किराना, रेस्टोरेंट, बेकरी या खाद्य सामग्री विक्रेताओं के लिए 14 अंकों का FSSAI नंबर।"
+          },
+          {
+            "fieldName": "Default Bank Account & UPI ID",
+            "fieldType": "select",
+            "purpose": "Appears on invoice print with Dynamic QR Code",
+            "hindiExplanation": "वह बैंक खाता चुनें जिसकी डिटेल्स और क्यूआर कोड (UPI QR) आप बिल के नीचे प्रिंट कराना चाहते हैं।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Open Business Settings",
+            "actionInstruction": "Go to Settings -> Business Profile.",
+            "hindiInstruction": "सेटिंग्स में जाएं और बिजनेस प्रोफाइल पर क्लिक करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Upload High-Resolution Logo & Stamp",
+            "actionInstruction": "Upload a PNG or JPG logo and your signature stamp.",
+            "hindiInstruction": "अपनी दुकान का साफ लोगो और हस्ताक्षर अपलोड करें।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Save & Verify on Preview",
+            "actionInstruction": "Click Save Changes. The details will immediately reflect across all new invoices.",
+            "hindiInstruction": "सेव बटन दबाएं। यह तुरंत सभी नए बिलों पर लागू हो जाएगा।"
+          }
+        ],
+        "proTips": [
+          "Upload transparent PNG signature so it blends seamlessly into the signature box without white background."
+        ],
+        "proTipsHindi": [
+          "हस्ताक्षर के लिए ट्रांसपेरेंट PNG इमेज अपलोड करें ताकि बिल पर सफ़ेद बैकग्राउंड न दिखे और प्रिंट साफ़ आए।"
+        ],
+        "faqs": [
+          {
+            "question": "Can I change my GSTIN after issuing invoices?",
+            "questionHindi": "क्या कुछ बिल बनाने के बाद मैं अपना जीएसटी नंबर बदल सकता हूँ?",
+            "answer": "Yes, but changing it will apply to all subsequent invoices. Past filed invoices remain archived with their original timestamped data.",
+            "solutionHindi": "हाँ, लेकिन नया जीएसटी नंबर केवल आगे बनने वाले बिलों पर लागू होगा। पुराने बिल सुरक्षित रहेंगे।"
+          }
+        ]
+      },
+      {
+        "id": "print-template-studio",
+        "title": "Invoice Print Templates & Color Customizer",
+        "titleHindi": "इनवॉइस प्रिंट टेम्पलेट और कलर कस्टमाइज़र",
+        "volumeId": "vol-2-business-settings",
+        "navigationPath": "Sidebar -> Settings & System -> Invoice Settings (/app/settings/templates)",
+        "overview": "Choose from 10+ executive print layouts (Tally Prime, Marg ERP, Enterprise B2B, Cash Memo, Thermal Slip, Pharma Rx, CBO ERP, MyBillBook) and customize colors, header badges, and terms.",
+        "overviewHindi": "अपनी पसंद का इनवॉइस स्टाइल चुनें: टैली प्राइम, मार्ग ईआरपी, मॉडर्न B2B, कैश मेमो, या थर्मल स्लिप। आप बिल का थीम कलर, फॉन्ट और टर्म्स भी बदल सकते हैं।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Template Layout Selector",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Switches the document rendering engine",
+            "hindiExplanation": "चुनें कि आपको किस तरह का बिल पसंद है: क्लासिक टैली ग्रिड, मार्ग ईआरपी स्टाइल, या मॉडर्न कॉर्पोरेट ब्लू।"
+          },
+          {
+            "fieldName": "Primary Accent Color Picker",
+            "fieldType": "input",
+            "purpose": "Customizes table headers, badges, and total highlight boxes",
+            "hindiExplanation": "बिल के हेडर, लाइन्स और टोटल बॉक्स का रंग (जैसे गहरा नीला, हरा, या क्लासिक ब्लैक) चुनें।"
+          },
+          {
+            "fieldName": "Show Dynamic UPI QR Code",
+            "fieldType": "checkbox",
+            "purpose": "Prints scannable PhonePe/GPay UPI QR for instant payment on invoice total",
+            "hindiExplanation": "इस चेकबॉक्स को ऑन करने पर बिल के नीचे ऑटोमैटिक क्यूआर कोड प्रिंट होगा, जिसे स्कैन करके ग्राहक तुरंत पेमेंट कर सकता है।"
+          },
+          {
+            "fieldName": "Custom Terms & Conditions Box",
+            "fieldType": "input",
+            "purpose": "Tenant-defined trade terms (No default legal jargon)",
+            "hindiExplanation": "यहाँ आप अपनी दुकान की शर्तें लिख सकते हैं (जैसे: माल वापस 3 दिन में होगा)। अगर यह खाली है तो कोई भी फालतू कानूनी नियम बिल पर नहीं छपेगा।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Select Desired Template",
+            "actionInstruction": "Click on any template card (e.g. Enterprise Classic or Marg ERP).",
+            "hindiInstruction": "टेम्पलेट कार्ड पर क्लिक करें और लाइव प्रीव्यू देखें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Pick Your Brand Color",
+            "actionInstruction": "Select an accent color that matches your letterhead or brand theme.",
+            "hindiInstruction": "अपनी कंपनी के लोगो से मेल खाता हुआ कलर चुनें।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Click Set as Default",
+            "actionInstruction": "Click Save & Set as Default. Every print command will now use this design.",
+            "hindiInstruction": "डिफ़ॉल्ट सेट करें बटन दबाएं। अब हर प्रिंट इसी लेआउट में निकलेगा।"
+          }
+        ],
+        "proTips": [
+          "For fast counter billing with thermal printers (2-inch / 3-inch), set Thermal Slip as default.",
+          "For B2B distributors with GST credit, Enterprise Classic Dynamic or Tally Prime layout is recommended."
+        ],
+        "proTipsHindi": [
+          "थर्मल प्रिंटर (कागज रोल) के लिए Thermal Slip टेम्पलेट चुनें।",
+          "थोक व्यापारियों और जीएसटी इनवॉइस के लिए Enterprise Classic या Tally Prime सबसे बेहतरीन है।"
+        ],
+        "faqs": [
+          {
+            "question": "Are there any forced legal rules or Section 34 notices printed on bills?",
+            "questionHindi": "क्या बिल पर कोई जबरन कानूनी नियम या सेक्शन 34 की धारा छपती है?",
+            "answer": "No. As per latest clean design, all statutory provisos and dummy data have been permanently eliminated. Only terms you type in the settings box will ever print.",
+            "solutionHindi": "बिल्कुल नहीं! सभी फालतू नियम और धाराएं हमेशा के लिए हटा दी गई हैं। केवल वही शर्तें प्रिंट होंगी जो आप खुद यहाँ टाइप करेंगे।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-3-parties",
+    "volumeNumber": 3,
+    "title": "Parties & Contact Directory (Customers & Suppliers)",
+    "titleHindi": "पार्टी और संपर्क डायरेक्टरी (ग्राहक और सप्लायर)",
+    "iconName": "Users2",
+    "description": "Customer credit limits, vendor ledger statements, broker commission tracking, and Excel party import.",
+    "topics": [
+      {
+        "id": "customers-debtors",
+        "title": "Customers Master & Credit Control",
+        "titleHindi": "ग्राहक (कस्टमर मास्टर) और उधारी नियंत्रण",
+        "volumeId": "vol-3-parties",
+        "navigationPath": "Sidebar -> Order-to-Cash (Sales) -> Customers (Debtors) (/app/parties/customers)",
+        "overview": "Maintain comprehensive customer profiles with GSTIN verification, credit limits, credit days, ledger statement, and opening balance.",
+        "overviewHindi": "अपने सभी ग्राहकों का खाता यहाँ संभालें। ग्राहक की उधारी सीमा (Credit Limit), उधारी के दिन (Credit Days), लेजर स्टेटमेंट और पिछला बकाया (Opening Balance) एक जगह देखें।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Business / Customer Name",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Identifies the customer account",
+            "hindiExplanation": "ग्राहक का नाम या उसकी फर्म का नाम लिखें।"
+          },
+          {
+            "fieldName": "Mobile & WhatsApp Number",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Direct PDF invoice dispatch and automated payment reminders",
+            "hindiExplanation": "ग्राहक का 10 अंकों का मोबाइल नंबर। बिल बनते ही इसी नंबर पर व्हाट्सएप से पीडीएफ भेजा जा सकता है।"
+          },
+          {
+            "fieldName": "GSTIN & Place of Supply",
+            "fieldType": "input",
+            "purpose": "Determines whether CGST+SGST or IGST is applied",
+            "hindiExplanation": "अगर ग्राहक जीएसटी रजिस्टर्ड है तो उसका जीएसटी नंबर डालें। राज्य के आधार पर टैक्स (CGST/SGST या IGST) अपने आप तय होगा।"
+          },
+          {
+            "fieldName": "Credit Limit (₹) & Credit Days",
+            "fieldType": "input",
+            "purpose": "Safety guard against bad debt and overdue receivables",
+            "hindiExplanation": "उधारी की अधिकतम सीमा (जैसे ₹50,000) और भुगतान के दिन (जैसे 30 दिन) सेट करें। सीमा पार होने पर बिलिंग के समय वार्निंग मिलेगी।"
+          },
+          {
+            "fieldName": "Opening Balance (Dr / Cr)",
+            "fieldType": "input",
+            "purpose": "Previous balance carried forward from old software",
+            "hindiExplanation": "पुराना बाकी रुपया (डेबिट = ग्राहक से लेना है, क्रेडिट = ग्राहक का एडवांस जमा है)।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Click + Add Customer",
+            "actionInstruction": "Click the button on the top-right corner of the customers table.",
+            "hindiInstruction": "स्क्रीन के दाईं ओर ऊपर + Add Customer पर क्लिक करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Fill Details & Set Credit Rules",
+            "actionInstruction": "Enter Name, Mobile, and GSTIN. Specify credit days (e.g. 15 or 30 days).",
+            "hindiInstruction": "नाम, मोबाइल और जीएसटी नंबर भरें। उधारी के दिन दर्ज करें।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Save & View Statement",
+            "actionInstruction": "Save customer. You can click on the customer row at any time to view their live running ledger.",
+            "hindiInstruction": "सेव करें। किसी भी समय ग्राहक के नाम पर क्लिक करके पूरा खाता (लेजर) देख सकते हैं।"
+          }
+        ],
+        "proTips": [
+          "Enable WhatsApp payment reminder notifications in notification settings to automatically follow up on bills past due date."
+        ],
+        "proTipsHindi": [
+          "व्हाट्सएप ऑटोमेशन चालू रखें ताकि पेमेंट की तारीख बीतने पर ग्राहक को अपने आप विनम्रतापूर्वक रिमाइंडर चला जाए।"
+        ],
+        "faqs": [
+          {
+            "question": "Can I sell to a customer if their credit limit is exceeded?",
+            "questionHindi": "अगर किसी ग्राहक की क्रेडिट लिमिट पूरी हो चुकी है, तो क्या बिल बन सकता है?",
+            "answer": "Yes, the software will pop up an audible Warning Alert. Admin users can override and approve, or restrict cashier staff depending on role permissions.",
+            "solutionHindi": "हाँ, सॉफ्टवेयर तुरंत चेतावनी (Alert) दिखाएगा। एडमिन चाहें तो पास कर सकते हैं या कैशियर के लिए रोक लगा सकते हैं।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-4-inventory",
+    "volumeNumber": 4,
+    "title": "Product Catalog, Items & Inventory Ledger",
+    "titleHindi": "प्रोडक्ट कैटलॉग, आइटम और इन्वेंट्री लेजर",
+    "iconName": "Boxes",
+    "description": "Product master, HSN codes, multi-pricing (MRP, Retail, Wholesale), stock ledger, and low-stock alerts.",
+    "topics": [
+      {
+        "id": "product-catalog",
+        "title": "Product Master Creation & Multi-Pricing Rules",
+        "titleHindi": "नया सामान (प्रोडक्ट) जोड़ना और मल्टी-प्राइसिंग रेट्स",
+        "volumeId": "vol-4-inventory",
+        "navigationPath": "Sidebar -> Catalog & Stock -> Product Catalog (/app/inventory/items)",
+        "overview": "Create products with Barcode/EAN-13, HSN code, GST rate, Units (Pcs, Box, Kg), Wholesale rate, Retail rate, and Minimum Selling Price protection.",
+        "overviewHindi": "अपने सभी सामानों की मास्टर लिस्ट बनाएं: बारकोड, HSN कोड, जीएसटी दर (0%, 5%, 12%, 18%, 28%), खरीद रेट, थोक रेट, और खुदरा (MRP) रेट तय करें।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Product Name & Item Code / SKU",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Unique identifier for billing and search",
+            "hindiExplanation": "प्रोडक्ट का साफ़ नाम और उसका कोड या बारकोड।"
+          },
+          {
+            "fieldName": "HSN / SAC Code & GST Rate (%)",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Tax slab calculation for GST compliance",
+            "hindiExplanation": "सामान का HSN कोड और उस पर लगने वाला जीएसटी प्रतिशत (जैसे 18%) चुनें।"
+          },
+          {
+            "fieldName": "Unit of Measurement (UOM)",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Defines how the item is quantified (Pcs, Box, Kg, Ltr, Strip)",
+            "hindiExplanation": "इकाई चुनें कि सामान पीस, किलो, लीटर या बॉक्स में बिकता है।"
+          },
+          {
+            "fieldName": "Purchase Price & Landing Cost",
+            "fieldType": "input",
+            "purpose": "Cost tracking for real-time Profit & Loss calculation",
+            "hindiExplanation": "सामान की खरीद कीमत। इससे सॉफ्टवेयर आपके हर बिल पर सही मुनाफा (Gross Profit) निकालता है।"
+          },
+          {
+            "fieldName": "Wholesale Price, Retail Price & MRP",
+            "fieldType": "input",
+            "purpose": "Auto-applies correct price based on customer type during billing",
+            "hindiExplanation": "थोक ग्राहक के लिए होलसेल रेट और आम ग्राहक के लिए रिटेल रेट या एमआरपी सेट करें।"
+          },
+          {
+            "fieldName": "Minimum Reorder Level (Low Stock Warning)",
+            "fieldType": "input",
+            "purpose": "Alerts when inventory drops below safety threshold",
+            "hindiExplanation": "न्यूनतम स्टॉक सीमा (जैसे 10 पीस)। स्टॉक इससे कम होते ही लाल रंग की चेतावनी आ जाएगी।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Click + New Product",
+            "actionInstruction": "Open Product Catalog and click + New Item (or press F3).",
+            "hindiInstruction": "+ New Item बटन दबाएं या कीबोर्ड से F3 दबाएं।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Scan Barcode or Enter Name",
+            "actionInstruction": "Scan the item barcode with a USB/Wireless scanner. If no barcode exists, click Auto-generate.",
+            "hindiInstruction": "बारकोड स्कैनर से बारकोड स्कैन करें या नया बारकोड अपने आप बनाने के लिए Auto-generate दबाएं।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Set Tax & Rates and Save",
+            "actionInstruction": "Enter GST slab, Purchase Price, and Sale Price. Click Save.",
+            "hindiInstruction": "टैक्स प्रतिशत, खरीद रेट और बिक्री रेट भरकर सेव करें।"
+          }
+        ],
+        "proTips": [
+          "Set Minimum Selling Price (MSP) so staff members cannot accidentally discount an item below its landing cost."
+        ],
+        "proTipsHindi": [
+          "Minimum Selling Price (MSP) जरूर सेट करें ताकि कोई भी कर्मचारी गलती से लागत से कम दाम पर माल न बेच सके।"
+        ],
+        "faqs": [
+          {
+            "question": "Can I sell in decimals (e.g. 1.5 Kg)?",
+            "questionHindi": "क्या मैं दशमलव में सामान बेच सकता हूँ (जैसे 1.5 किलो)?",
+            "answer": "Yes. For units like KG, MTR, LTR, fractional quantities are fully supported up to 3 decimal places.",
+            "solutionHindi": "हाँ! किलोग्राम, मीटर या लीटर जैसी इकाइयों में 1.250 या 0.750 जैसी मात्रा आसानी से बेची जा सकती है।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-5-sales-pos",
+    "volumeNumber": 5,
+    "title": "Order-to-Cash (Sales Invoices & Rapid POS)",
+    "titleHindi": "बिक्री प्रबंधन (टैक्स इनवॉइस और रैपिड पीओएस)",
+    "iconName": "ShoppingCart",
+    "description": "Step-by-step invoice creation, barcode counter POS, split payments, credit notes, and delivery challans.",
+    "topics": [
+      {
+        "id": "tax-invoices",
+        "title": "Creating GST Tax Invoices (B2B & B2C)",
+        "titleHindi": "जीएसटी टैक्स इनवॉइस बनाना (B2B और B2C)",
+        "volumeId": "vol-5-sales-pos",
+        "navigationPath": "Sidebar -> Order-to-Cash (Sales) -> Tax Invoices -> Click + New Invoice (Shortcut: F2)",
+        "keyboardShortcuts": [
+          {
+            "key": "F2",
+            "action": "Direct Open New Invoice Form"
+          },
+          {
+            "key": "Ctrl + Enter",
+            "action": "Quick Save & Print Invoice"
+          },
+          {
+            "key": "F8",
+            "action": "Focus Item Discount Field"
+          },
+          {
+            "key": "Esc",
+            "action": "Cancel or Close Dialog"
+          }
+        ],
+        "overview": "Generate GST-compliant tax invoices with automatic CGST+SGST or IGST calculation, batch selection, trade discount, round-off, and instant WhatsApp/Print dispatch.",
+        "overviewHindi": "पूरा जीएसटी टैक्स इनवॉइस बनाएं: ग्राहक चुनें, बारकोड स्कैन करें, डिस्काउंट दें, और Ctrl+Enter दबाकर तुरंत प्रिंट और व्हाट्सएप पर बिल भेजें।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Customer Selector",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Links sale to customer balance and tax location",
+            "hindiExplanation": "ग्राहक का नाम या मोबाइल नंबर टाइप करें। नया ग्राहक होने पर तुरंत + Add Customer पर क्लिक करें।"
+          },
+          {
+            "fieldName": "Invoice Date & Due Date",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Establishes tax liability period and credit aging",
+            "hindiExplanation": "बिल की तारीख और भुगतान की अंतिम तारीख (ड्यू डेट)।"
+          },
+          {
+            "fieldName": "Item / Barcode Scanner Input",
+            "fieldType": "scanner",
+            "isRequired": true,
+            "purpose": "Pulls product details, available batch, and price into the active row",
+            "hindiExplanation": "बारकोड स्कैन करें या प्रोडक्ट का नाम लिखें। आइटम चुनते ही उसका उपलब्ध स्टॉक और रेट अपने आप आ जाएगा।"
+          },
+          {
+            "fieldName": "Quantity & Free Scheme (Bonus)",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Billed quantity vs bonus goods (e.g. 10 + 1 free)",
+            "hindiExplanation": "बेची जा रही मात्रा। अगर कोई स्कीम है (जैसे 10 पर 1 फ्री) तो फ्री बॉक्स में 1 लिखें।"
+          },
+          {
+            "fieldName": "Discount (% or ₹)",
+            "fieldType": "input",
+            "purpose": "Item-level trade discount deducted before GST calculation",
+            "hindiExplanation": "आइटम पर मिलने वाला डिस्काउंट (प्रतिशत में या सीधे रुपए में)। टैक्स हमेशा डिस्काउंट के बाद बची रकम पर लगता है।"
+          },
+          {
+            "fieldName": "Payment Mode (Cash / Bank / UPI / Credit)",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Posts settlement directly to cash drawer or customer debt ledger",
+            "hindiExplanation": "भुगतान का तरीका: नकद (Cash), बैंक (UPI/Card), या उधारी (Credit/Unpaid)।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Open Invoice Screen",
+            "actionInstruction": "Press F2 from any screen or click \"+ Sale Bill\" on the top header.",
+            "hindiInstruction": "कीबोर्ड से F2 दबाएं या ऊपर हेडर में हरे बटन + Sale Bill पर क्लिक करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Select Customer & Scan Products",
+            "actionInstruction": "Select customer name. Scan each product with your barcode gun.",
+            "hindiInstruction": "ग्राहक का नाम चुनें और एक-एक करके सामान का बारकोड स्कैन करें।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Review Tax Summary & Save",
+            "actionInstruction": "Check Subtotal, CGST, SGST, and Grand Total. Press Ctrl+Enter to save and print instantly.",
+            "hindiInstruction": "टोटल और टैक्स जांचें और Ctrl+Enter दबाकर तुरंत बिल प्रिंट करें।"
+          }
+        ],
+        "proTips": [
+          "Press Ctrl+Enter to save and print in a single keypress without touching the mouse.",
+          "If selling to an out-of-state customer, UdyogBill automatically converts CGST/SGST into IGST based on customer State Code."
+        ],
+        "proTipsHindi": [
+          "माउस छुए बिना बिल सेव और प्रिंट करने के लिए सीधे Ctrl+Enter दबाएं।",
+          "यदि ग्राहक दूसरे राज्य का है, तो सॉफ्टवेयर अपने आप IGST लागू कर देता है।"
+        ],
+        "faqs": [
+          {
+            "question": "How does Round-off work?",
+            "questionHindi": "राउंड-ऑफ (Round-off) कैसे काम करता है?",
+            "answer": "UdyogBill automatically rounds off the decimal portion adhering to Indian accounting norms.",
+            "solutionHindi": "सॉफ्टवेयर दशमलव के पैसों को अपने आप निकटतम 1 रुपये पर राउंड-ऑफ कर देता है।"
+          }
+        ]
+      },
+      {
+        "id": "rapid-pos",
+        "title": "Point of Sale (POS) High-Speed Counter Billing",
+        "titleHindi": "प्वाइंट ऑफ सेल (पीओएस) सुपरफास्ट काउंटर बिलिंग",
+        "volumeId": "vol-5-sales-pos",
+        "navigationPath": "Sidebar -> Order-to-Cash (Sales) -> Point of Sale (POS) (/app/pos)",
+        "keyboardShortcuts": [
+          {
+            "key": "F4",
+            "action": "Focus Barcode Scanner Search"
+          },
+          {
+            "key": "F9",
+            "action": "Split Payment Window (Cash + UPI)"
+          },
+          {
+            "key": "F10",
+            "action": "Hold Current Cart / Recall Bill"
+          }
+        ],
+        "overview": "Engineered for high-volume retail counters with 1-second barcode scan, instant change calculator, hold-and-recall cart, and split payment modes.",
+        "overviewHindi": "भीड़भाड़ वाले रीटेल काउंटर के लिए खास पीओएस: 1 सेकंड में बारकोड स्कैनिंग, छुट्टे पैसे (Change) कैलकुलेटर, बिल होल्ड/रिकॉल और थर्मल प्रिंटिंग।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Cash Tendered & Change Return",
+            "fieldType": "input",
+            "purpose": "Instant calculation of balance money to hand back to customer",
+            "hindiExplanation": "ग्राहक ने जितने रुपये दिए (जैसे ₹500 का नोट) वो दर्ज करें; सॉफ्टवेयर तुरंत बताएगा कि ग्राहक को कितने रुपये वापस करने हैं।"
+          },
+          {
+            "fieldName": "Hold Bill & Recall Bill",
+            "fieldType": "button",
+            "purpose": "Parks the current cart if a customer forgot their wallet, without delaying the queue",
+            "hindiExplanation": "अगर कोई ग्राहक सामान लेने के बाद पैसे ढूंढने में समय लगा रहा है, तो Hold दबाकर अगले ग्राहक का बिल बनाएं। बाद में Recall से पुराना बिल वापस ले आएं।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Scan Items Continuously",
+            "actionInstruction": "Scan barcodes one after another. Quantity increments automatically.",
+            "hindiInstruction": "बारकोड स्कैनर से लगातार स्कैन करें, क्वांटिटी अपने आप जुड़ती जाएगी।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Collect Cash & Complete",
+            "actionInstruction": "Enter amount received. Press Enter. Cash drawer opens and receipt prints.",
+            "hindiInstruction": "रुपये दर्ज करें और Enter दबाएं। रसीद तुरंत प्रिंट होकर बाहर आ जाएगी।"
+          }
+        ],
+        "proTips": [
+          "Enable 80mm thermal receipt format in invoice settings for super-economical paper roll printing."
+        ],
+        "proTipsHindi": [
+          "सस्ते पेपर रोल पर सुपरफास्ट प्रिंटिंग के लिए 80mm थर्मल स्लिप फॉर्मेट चुनें।"
+        ],
+        "faqs": [
+          {
+            "question": "Can I do partial payment in Cash and rest via UPI?",
+            "questionHindi": "क्या आधा पेमेंट कैश और बाकी गूगल पे / फोनपे से लिया जा सकता है?",
+            "answer": "Yes! Use the Split Payment button (or F9) and allocate money to Cash and remaining to UPI/QR.",
+            "solutionHindi": "हाँ! Split Payment पर क्लिक करें और नकद व यूपीआई की रकम अलग-अलग दर्ज करें।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-6-purchases",
+    "volumeNumber": 6,
+    "title": "Procure-to-Pay (Purchases, PO & AI Scanner)",
+    "titleHindi": "खरीद प्रबंधन (परचेज बिल, पीओ और एआई स्कैनर)",
+    "iconName": "Receipt",
+    "description": "Vendor bills, Purchase Orders, Goods Receipt Note (GRN), AI invoice scanner, and purchase returns.",
+    "topics": [
+      {
+        "id": "vendor-bills",
+        "title": "Vendor Purchase Bills Entry & Landing Cost Calculation",
+        "titleHindi": "सप्लायर खरीद बिल (Purchase Bill) चढ़ाना और लैंडिंग कॉस्ट",
+        "volumeId": "vol-6-purchases",
+        "navigationPath": "Sidebar -> Procure-to-Pay (Purchases) -> Vendor Purchase Bills (/app/purchase/bills)",
+        "overview": "Record vendor purchase invoices, claim Input Tax Credit (ITC), track extra expenses (Freight, Transport) added to landing cost, and update stock.",
+        "overviewHindi": "अपने सप्लायर से आया हुआ खरीद बिल चढ़ाएं। माल का स्टॉक अपने आप बढ़ जाएगा और भाड़ा/ट्रांसपोर्ट खर्च जुड़कर सामान की असली लागत (Landing Cost) निकल आएगी।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Supplier (Vendor) Selector",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Links purchase to vendor account and ITC reconciliation",
+            "hindiExplanation": "सप्लायर चुनें जिससे माल खरीदा है।"
+          },
+          {
+            "fieldName": "Vendor Invoice No. & Date",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Official vendor bill number for GST GSTR-2B matching",
+            "hindiExplanation": "सप्लायर के बिल पर लिखा बिल नंबर और तारीख दर्ज करें ताकि जीएसटी रिटर्न मिलाते समय कोई मिसमैच न हो।"
+          },
+          {
+            "fieldName": "Freight & Extra Expenses Allocation",
+            "fieldType": "input",
+            "purpose": "Distributes transport freight proportionally across items",
+            "hindiExplanation": "माल मंगाने में लगा भाड़ा या कुली खर्च यहाँ लिखें। यह खर्च खरीदे गए सामानों की प्रति पीस लागत में जुड़ जाता है।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Open + New Purchase Bill",
+            "actionInstruction": "Click Vendor Purchase Bills -> + New Bill.",
+            "hindiInstruction": "परचेज बिल में जाएं और + New Bill पर क्लिक करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Enter Items & Batches",
+            "actionInstruction": "Add items, received quantities, purchase rates, and batch/expiry dates.",
+            "hindiInstruction": "सामान, बैच नंबर, एक्सपायरी और खरीद रेट दर्ज करें।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Save & Verify Stock Ledger",
+            "actionInstruction": "Save bill. Stock quantities will update in real-time across your warehouse.",
+            "hindiInstruction": "बिल सेव करें। आपके गोदाम में तुरंत स्टॉक बढ़ जाएगा।"
+          }
+        ],
+        "proTips": [
+          "Use the built-in AI Invoice Scanner to photograph paper bills and auto-fill line items in 5 seconds."
+        ],
+        "proTipsHindi": [
+          "कागजी बिल को टाइप करने के बजाय AI Invoice Scanner से फोटो खींचें, बिल 5 सेकंड में अपने आप भर जाएगा।"
+        ],
+        "faqs": [
+          {
+            "question": "What if purchase rate changed from last time?",
+            "questionHindi": "अगर सप्लायर ने इस बार रेट बढ़ा दिया हो तो क्या करें?",
+            "answer": "UdyogBill highlights the rate difference and gives you a 1-click option to update the Master Purchase Price.",
+            "solutionHindi": "सॉफ्टवेयर रेट में अंतर को पीले रंग में दिखाएगा और पूछेगा कि क्या आप नया रेट मास्टर में अपडेट करना चाहते हैं।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-7-reports-gst",
+    "volumeNumber": 7,
+    "title": "Reports, Business Intelligence & GST Compliance",
+    "titleHindi": "रिपोर्ट्स, बिजनेस इंटेलिजेंस और जीएसटी रिटर्न",
+    "iconName": "FileSpreadsheet",
+    "description": "Master Report Center, Sales/Purchase registers, True P&L, GSTR-1, GSTR-3B, and CA Audit Pack.",
+    "topics": [
+      {
+        "id": "gst-returns",
+        "title": "GST Filing & GSTR-1 JSON Generator",
+        "titleHindi": "जीएसटी फाइलिंग और GSTR-1 JSON जनरेटर",
+        "volumeId": "vol-7-reports-gst",
+        "navigationPath": "Sidebar -> Reports & Intelligence -> GST Returns & Filing (/app/reports/gst)",
+        "overview": "Generate 100% government-compliant GSTR-1 JSON files ready for 1-click upload to the GST Portal (B2B, B2C Large, B2C Small, Credit Notes, HSN Summary).",
+        "overviewHindi": "जीएसटी पोर्टल पर सीधे अपलोड करने के लिए GSTR-1 JSON फाइल 1-क्लिक में डाउनलोड करें। इसमें B2B, B2C, क्रेडिट नोट और HSN समरी पूरी तरह सरकार के नियमों अनुसार तैयार होती है।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Return Filing Period (Month / Quarter)",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Filters invoices within the statutory tax period",
+            "hindiExplanation": "वह महीना या तिमाही चुनें जिसका जीएसटी रिटर्न आपको भरना है।"
+          },
+          {
+            "fieldName": "B2B vs B2C Split Cards",
+            "fieldType": "display",
+            "purpose": "Separates registered business sales from consumer retail counter sales",
+            "hindiExplanation": "यह स्क्रीन आपको दिखाती है कि रजिस्टर्ड व्यापारियों को कितना माल बिका (B2B) और बिना जीएसटी वाले ग्राहकों को कितना बिका (B2C)।"
+          },
+          {
+            "fieldName": "Download Government Portal JSON",
+            "fieldType": "button",
+            "purpose": "Direct upload file for gst.gov.in offline utility",
+            "hindiExplanation": "यह बटन दबाते ही सरकारी जीएसटी पोर्टल पर अपलोड होने वाली .json फाइल डाउनलोड हो जाती है।"
+          },
+          {
+            "fieldName": "Download CA Pack (1-Click ZIP)",
+            "fieldType": "button",
+            "purpose": "Bundles all sales, purchase, bank books, and trial balance in CA format",
+            "hindiExplanation": "अपने सीए (Chartered Accountant) को भेजने के लिए यह बटन दबाएं; सारे बिल, खरीद और बैंक खाते एक जिप फाइल में एक्सेल शीट बनकर डाउनलोड हो जाएंगे।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Select Tax Month",
+            "actionInstruction": "Choose the month (e.g. August 2026) and verify Total Taxable & Tax collected.",
+            "hindiInstruction": "महीना चुनें और कुल टैक्स की राशि जांचें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Check Validation Errors",
+            "actionInstruction": "If any invoice has an invalid GSTIN or missing HSN, UdyogBill flags it in red before filing.",
+            "hindiInstruction": "अगर किसी बिल में जीएसटी नंबर गलत होगा तो सॉफ्टवेयर लाल रंग में दिखाएगा ताकि फाइलिंग रिजेक्ट न हो।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Download JSON and Upload",
+            "actionInstruction": "Click Download GSTR-1 JSON. Log in to gst.gov.in -> Returns Dashboard -> Upload JSON.",
+            "hindiInstruction": "JSON फाइल डाउनलोड करें और सरकारी जीएसटी पोर्टल पर जाकर अपलोड कर दें।"
+          }
+        ],
+        "proTips": [
+          "Send the CA Pack directly via WhatsApp to your Chartered Accountant at month-end to save accounting fees and time."
+        ],
+        "proTipsHindi": [
+          "महीने के अंत में 1-Click CA Pack डाउनलोड करके अपने सीए को व्हाट्सएप कर दें, अलग-अलग फाइलें ढूंढने का झंझट खत्म।"
+        ],
+        "faqs": [
+          {
+            "question": "Are there any extra charges for generating GST JSON?",
+            "questionHindi": "क्या जीएसटी JSON फाइल बनाने का कोई अलग चार्ज लगता है?",
+            "answer": "Zero extra charge. Unlimited GST JSON and CA pack generation is included in all UdyogBill active subscriptions.",
+            "solutionHindi": "बिल्कुल मुफ्त! UdyogBill में अनलिमिटेड जीएसटी फाइलें और सीए पैक बिना किसी अतिरिक्त चार्ज के शामिल हैं।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-8-pharma-suite",
+    "volumeNumber": 8,
+    "title": "Pharma Chemist & Healthcare Suite",
+    "titleHindi": "दवा दुकान और मेडिकल स्टोर पैक",
+    "iconName": "Activity",
+    "description": "FEFO batch routing, F8 salt substitutes, Schedule H1 statutory register, loose tablet strip ratio, and expiry returns.",
+    "topics": [
+      {
+        "id": "pharma-pos-fefo",
+        "title": "Chemist Rapid POS & Automatic FEFO Batch Routing",
+        "titleHindi": "केमिस्ट रैपिड बिलिंग और ऑटोमैटिक FEFO एक्सपायरी बैच",
+        "volumeId": "vol-8-pharma-suite",
+        "navigationPath": "Sidebar -> Pharma & Healthcare -> Chemist Rapid POS (/app/pharma/pos)",
+        "keyboardShortcuts": [
+          {
+            "key": "F8",
+            "action": "Generic Salt Substitute Finder (Same composition medicine)"
+          },
+          {
+            "key": "Tab",
+            "action": "Switch between Strip and Loose Tablets"
+          }
+        ],
+        "overview": "Specialized for retail medical pharmacies. Automatically selects First-Expiry First-Out (FEFO) batches to prevent medicine loss and expiry damage.",
+        "overviewHindi": "मेडिकल स्टोर के लिए खास काउंटर बिलिंग: जो बैच पहले एक्सपायर होने वाला है, सॉफ्टवेयर उसे बिल में सबसे पहले उठाता है (FEFO) ताकि दवा बेकार न हो।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "FEFO Batch Priority Selector",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Prioritizes nearest expiry batch first",
+            "hindiExplanation": "दवा का जो बैच सबसे पहले एक्सपायर हो रहा है, वो लिस्ट में सबसे ऊपर आएगा।"
+          },
+          {
+            "fieldName": "Strip vs Loose Tablets Ratio",
+            "fieldType": "input",
+            "purpose": "Auto-calculates loose tablet price (e.g. 1 Strip = 10 Tablets)",
+            "hindiExplanation": "अगर ग्राहक पूरी पत्ती नहीं बल्कि 3 गोली मांगता है, तो सॉफ्टवेयर पत्ती की कीमत से 3 गोली का सही दाम अपने आप निकाल लेता है।"
+          },
+          {
+            "fieldName": "F8 Generic Salt Substitute Finder",
+            "fieldType": "button",
+            "purpose": "Instant suggestion of alternative brands with identical chemical formula",
+            "hindiExplanation": "अगर डॉक्टर द्वारा लिखी दवा दुकान में नहीं है, तो F8 दबाएं; उसी साल्ट (फार्मूले) की दूसरी कंपनी की उपलब्ध दवा तुरंत स्क्रीन पर आ जाएगी।"
+          },
+          {
+            "fieldName": "Schedule H1 Warning & Patient Register",
+            "fieldType": "checkbox",
+            "purpose": "Mandatory record keeping for restricted antibiotics under CDSCO rules",
+            "hindiExplanation": "एंटीबायोटिक या नींद की दवाओं (H1 ड्रग्स) के लिए मरीज का नाम, पता और डॉक्टर का नाम दर्ज करने वाला कानूनी रजिस्टर।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Search Medicine Name",
+            "actionInstruction": "Type brand name (e.g. Augmentin 625) or chemical salt.",
+            "hindiInstruction": "दवा का नाम टाइप करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Auto FEFO Batch Pick",
+            "actionInstruction": "System auto-selects the oldest active batch. Enter quantity (Strips or Loose).",
+            "hindiInstruction": "सिस्टम सबसे नजदीकी एक्सपायरी वाला बैच चुन लेगा। पत्ती या गोली की संख्या दर्ज करें।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Complete Bill",
+            "actionInstruction": "Press Ctrl+Enter. If Schedule H1 medicine is included, doctor name prompt appears automatically.",
+            "hindiInstruction": "Ctrl+Enter दबाकर बिल बनाएं। अगर H1 दवा है तो डॉक्टर का नाम पूछकर रजिस्टर में दर्ज हो जाएगा।"
+          }
+        ],
+        "proTips": [
+          "Always keep Near-Expiry Alert set to 90 days so you can return unsold medicines to wholesalers before expiry date."
+        ],
+        "proTipsHindi": [
+          "एक्सपायरी अलर्ट को 90 दिन पर रखें ताकि दवा एक्सपायर होने से 3 महीने पहले ही आप उसे सप्लायर को वापस (Expiry Return) कर सकें।"
+        ],
+        "faqs": [
+          {
+            "question": "Can I print Doctor Name and Patient Name on the pharmacy bill?",
+            "questionHindi": "क्या मेडिकल बिल पर डॉक्टर और मरीज का नाम प्रिंट किया जा सकता है?",
+            "answer": "Yes, select the Pharma Rx Bill template in invoice settings, and doctor/patient details print prominently at the top.",
+            "solutionHindi": "हाँ! Pharma Rx Bill टेम्पलेट चुनने पर डॉक्टर और मरीज का नाम बिल के ऊपर साफ प्रिंट होता है।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-9-pharma-sfa",
+    "volumeNumber": 9,
+    "title": "Pharma SFA & Field Force Suite",
+    "titleHindi": "फार्मा फील्ड फोर्स (MR) और एसएफए सुइट",
+    "iconName": "Users",
+    "description": "MR staffing roster, doctor prescribers, calling beats, stockist allocation, trade schemes, tour plans, and POB orders.",
+    "topics": [
+      {
+        "id": "sfa-overview",
+        "title": "MR Field Force, Daily Calling Reports (DCR) & POB Orders",
+        "titleHindi": "एमआर फील्ड फोर्स, डॉक्टर कॉलिंग रिपोर्ट (DCR) और ऑर्डर बुकिंग",
+        "volumeId": "vol-9-pharma-sfa",
+        "navigationPath": "Sidebar -> Pharma SFA & Field Force (/app/pharma/sfa)",
+        "overview": "Complete field force automation for pharma marketing companies: MR attendance, doctor call logs, sample inventory, and secondary order booking.",
+        "overviewHindi": "फार्मा कंपनियों के मेडिकल रिप्रेजेंटेटिव (MR) का पूरा मैनेजमेंट: डॉक्टर विजिट रिपोर्ट (DCR), सैंपल बैग हिसाब, और केमिस्ट से लिए गए ऑर्डर्स (POB) को सीधे बिल में बदलना।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Doctor / Prescriber Master",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Tagged specialist doctors with visiting days",
+            "hindiExplanation": "डॉक्टरों की लिस्ट (विशेषज्ञता, क्लिनिक का पता और मिलने का समय)।"
+          },
+          {
+            "fieldName": "POB (Person Order Booking) to Invoice",
+            "fieldType": "button",
+            "purpose": "Converts MR field orders into final stockist dispatch bills in 1 click",
+            "hindiExplanation": "एमआर द्वारा फील्ड से बुक किए गए ऑर्डर को सीधे 1-क्लिक में सेल बिल में बदलें।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Setup MR Roster & Calling Beats",
+            "actionInstruction": "Add MR staff profiles and assign weekly route beats.",
+            "hindiInstruction": "अपने एमआर कर्मचारियों को जोड़ें और उनका रूट बीट तय करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Review Daily Calling & Orders",
+            "actionInstruction": "Monitor live doctor visits and incoming chemist orders.",
+            "hindiInstruction": "एमआर की डॉक्टर विजिट रिपोर्ट और आए हुए ऑर्डर्स देखें।"
+          }
+        ],
+        "proTips": [
+          "Reconcile secondary sales attribution monthly to reward top-performing field executives."
+        ],
+        "proTipsHindi": [
+          "महीने के अंत में सेकेंडरी सेल्स एट्रिब्यूशन देखकर बेहतरीन काम करने वाले एमआर को इंसेंटिव दें।"
+        ],
+        "faqs": [
+          {
+            "question": "Can MRs place orders from mobile phones?",
+            "questionHindi": "क्या एमआर अपने मोबाइल फोन से ऑर्डर बुक कर सकते हैं?",
+            "answer": "Yes, UdyogBill responsive web app works on Android and iOS smartphones with offline order booking.",
+            "solutionHindi": "हाँ! UdyogBill मोबाइल पर आसानी से खुलता है और एमआर फील्ड से ही तुरंत ऑर्डर दर्ज कर सकते हैं।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-10-apparel-manufacturing",
+    "volumeNumber": 10,
+    "title": "Apparel Matrix & Manufacturing BOM Suite",
+    "titleHindi": "कपड़ा (साइज-कलर मैट्रिक्स) और मैन्युफैक्चरिंग (BOM) सुइट",
+    "iconName": "Factory",
+    "description": "2D Size x Color SKU Matrix, Hang-tag barcode printing, Recipe BOM, raw material auto-consumption, and production batches.",
+    "topics": [
+      {
+        "id": "garments-matrix",
+        "title": "Apparel 2D Size x Color Matrix & Hang-Tag Studio",
+        "titleHindi": "कपड़ा व फुटवियर साइज x कलर मैट्रिक्स और बारकोड टैग",
+        "volumeId": "vol-10-apparel-manufacturing",
+        "navigationPath": "Sidebar -> Apparel & Garments -> Apparel Matrix SKUs (/app/industry/matrix)",
+        "overview": "Generate all size and color variants (e.g. S, M, L, XL in Red, Blue, Black) in 5 seconds and print professional garment hang-tags.",
+        "overviewHindi": "कपड़े और जूते के व्यापारियों के लिए: एक ही डिजाइन के सभी साइज और रंगों के बारकोड 5 सेकंड में बनाएं और कपड़ों पर लगाने वाले हैंग-टैग बारकोड प्रिंट करें।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Size Attributes & Color Matrix Grid",
+            "fieldType": "input",
+            "purpose": "Cross-multiplies sizes and colors to generate unique barcodes",
+            "hindiExplanation": "साइज (जैसे 38, 40, 42) और कलर (जैसे ब्लैक, ब्लू) चुनें; सॉफ्टवेयर हर साइज-कलर का अलग बारकोड अपने आप बना देगा।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Enter Style Code & Select Sizes",
+            "actionInstruction": "Type Style Code (e.g. DENIM-JEANS-01), tick sizes S, M, L, XL and colors.",
+            "hindiInstruction": "स्टाइल कोड लिखें और साइज व कलर के बॉक्स टिक करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Generate & Print Tags",
+            "actionInstruction": "Click Generate Matrix. Open Barcode Studio to print hang tags with MRP.",
+            "hindiInstruction": "जेनरेट मैट्रिक्स दबाएं और एमआरपी वाले बारकोड स्टिकर प्रिंट करके कपड़ों पर लगाएं।"
+          }
+        ],
+        "proTips": [
+          "Use fast matrix billing at counter to select Size and Color from a 2D grid in 1 click."
+        ],
+        "proTipsHindi": [
+          "काउंटर पर बिलिंग करते समय ग्रिड से सीधे साइज और कलर चुनकर 1 सेकंड में बिल बनाएं।"
+        ],
+        "faqs": [
+          {
+            "question": "Can I print custom brand logo on the barcode tag?",
+            "questionHindi": "क्या बारकोड टैग पर दुकान का लोगो छप सकता है?",
+            "answer": "Yes, the Barcode Tag Studio allows custom header branding, MRP, and washing care symbols.",
+            "solutionHindi": "हाँ! बारकोड स्टूडियो में दुकान का नाम, लोगो और एमआरपी साफ़ प्रिंट होती है।"
+          }
+        ]
+      },
+      {
+        "id": "manufacturing-bom",
+        "title": "Bill of Materials (BOM) & Recipe Auto-Consumption",
+        "titleHindi": "रेसिपी/फार्मूला (BOM) और कच्चा माल ऑटो-खपत",
+        "volumeId": "vol-10-apparel-manufacturing",
+        "navigationPath": "Sidebar -> Manufacturing & BOM -> Recipe BOM & Assembly (/app/industry/manufacturing)",
+        "overview": "Formulate production recipes. When finished goods are manufactured, the raw materials are automatically deducted from stock ledger.",
+        "overviewHindi": "उत्पादन और बेकरी के लिए: एक बार फार्मूला (Recipe) बना दें। जब भी तैयार माल बनेगा, उसमें लगा कच्चा माल (जैसे मैदा, चीनी, पैकेजिंग) स्टॉक से अपने आप घट जाएगा।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Finished Good & Yield Quantity",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Final product to be produced (e.g. 100 Packets Bread)",
+            "hindiExplanation": "तैयार होने वाला उत्पाद और उसकी कुल मात्रा।"
+          },
+          {
+            "fieldName": "Raw Material Ingredients Table",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "List of raw materials and exact consumption ratios",
+            "hindiExplanation": "कच्चे माल की सूची और लगने वाली मात्रा।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Create Recipe BOM",
+            "actionInstruction": "Define Finished Good and list raw materials required per unit.",
+            "hindiInstruction": "रेसिपी बनाएं और बताएं कि 1 यूनिट बनाने में कितना कच्चा माल लगता है।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Run Production Batch",
+            "actionInstruction": "Enter batch quantity produced. Raw materials are auto-deducted and finished goods stock increases.",
+            "hindiInstruction": "प्रोडक्शन बैच चलाएं। कच्चा माल कट जाएगा और तैयार माल का स्टॉक बढ़ जाएगा।"
+          }
+        ],
+        "proTips": [
+          "Track wastage percentage during production runs to calculate true landing cost per unit."
+        ],
+        "proTipsHindi": [
+          "उत्पादन के समय होने वाली टूट-फूट या वेस्टेज को दर्ज करें ताकि सामान की सही लागत निकल सके।"
+        ],
+        "faqs": [
+          {
+            "question": "What if raw material stock is insufficient?",
+            "questionHindi": "अगर कच्चा माल पर्याप्त न हो तो क्या होगा?",
+            "answer": "UdyogBill alerts you with the exact missing quantity required before launching the production run.",
+            "solutionHindi": "सॉफ्टवेयर तुरंत चेतावनी देगा कि कौन सा कच्चा माल कितना कम पड़ रहा है।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-11-accounting-dual",
+    "volumeNumber": 11,
+    "title": "Dual-Entry Financial Accounting & Banking",
+    "titleHindi": "वित्तीय मुनीमी, जर्नल वाउचर और बैंक BRS",
+    "iconName": "Landmark",
+    "description": "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and Trial Balance / Balance Sheet.",
+    "topics": [
+      {
+        "id": "dual-accounting",
+        "title": "Chart of Accounts (COA) & Journal / Contra Vouchers",
+        "titleHindi": "खाता बही (COA), जर्नल वाउचर और बैंक समाधान (BRS)",
+        "volumeId": "vol-11-accounting-dual",
+        "navigationPath": "Sidebar -> Dual-Entry Accounting -> Chart of Accounts (/app/accounting/coa)",
+        "overview": "Full double-entry accounting engine with standard 5-tier classification (Assets, Liabilities, Equity, Income, Expenses), auto-posting from invoices, and bank reconciliation.",
+        "overviewHindi": "सीए और एकाउंटेंट के लिए सम्पूर्ण डबल-एंट्री मुनीमी: लेजर खाते, जर्नल वाउचर, बैंक से कैश निकालने/जमा करने का कॉन्ट्रा वाउचर, और बैंक समाधान (BRS)।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Debit (Dr) vs Credit (Cr) Balancing",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Ensures fundamental accounting equation holds (Total Dr = Total Cr)",
+            "hindiExplanation": "डेबिट और क्रेडिट का मिलान। दोनों तरफ की रकम बराबर होने पर ही वाउचर सेव होगा।"
+          },
+          {
+            "fieldName": "Bank Reconciliation Statement (BRS)",
+            "fieldType": "button",
+            "purpose": "Matches software bank balance with actual bank statement passbook",
+            "hindiExplanation": "सॉफ्टवेयर के बैंक खाते को असली बैंक पासबुक से मिलाने की सुविधा ताकि कोई चेक या पेमेंट छूटे नहीं।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Create / View Ledger Account",
+            "actionInstruction": "Open Chart of Accounts. Create custom ledgers under Assets, Liabilities, or Expenses.",
+            "hindiInstruction": "चार्ट ऑफ एकाउंट्स खोलें और नया खाता (जैसे बिजली खर्च, किराया) बनाएं।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Post Journal or Contra Voucher",
+            "actionInstruction": "For cash deposits to bank, select Contra. For adjustments, select Journal.",
+            "hindiInstruction": "बैंक में नकद जमा करने पर कॉन्ट्रा वाउचर और खर्चों के लिए जर्नल वाउचर बनाएं।"
+          }
+        ],
+        "proTips": [
+          "Invoices and purchase bills automatically post Dr/Cr entries in real-time without manual journal entries."
+        ],
+        "proTipsHindi": [
+          "सेल बिल और खरीद बिल बनने पर लेजर एंट्री अपने आप हो जाती है, अलग से वाउचर बनाने की जरूरत नहीं होती।"
+        ],
+        "faqs": [
+          {
+            "question": "Can my Chartered Accountant directly review Trial Balance and Balance Sheet?",
+            "questionHindi": "क्या मेरे सीए सीधे ट्रायल बैलेंस और बैलेंस शीट देख सकते हैं?",
+            "answer": "Yes, you can grant your CA read-only Auditor role or export the complete CA Pack in 1 click.",
+            "solutionHindi": "हाँ! आप अपने सीए को ऑडिटर का लॉगिन दे सकते हैं या 1-क्लिक में ट्रायल बैलेंस डाउनलोड करके भेज सकते हैं।"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vol-12-whatsapp-automation",
+    "volumeNumber": 12,
+    "title": "WhatsApp Cloud Automation & Customer Engagement",
+    "titleHindi": "व्हाट्सएप ऑटोमेशन और ग्राहक फॉलो-अप",
+    "iconName": "MessageSquare",
+    "description": "Meta official WhatsApp Cloud API, automated PDF invoice dispatch, overdue payment reminders, and broadcast campaigns.",
+    "topics": [
+      {
+        "id": "whatsapp-automation",
+        "title": "Instant PDF Invoice Dispatch & Overdue Payment Reminders",
+        "titleHindi": "व्हाट्सएप पर तुरंत पीडीएफ बिल और बकाया उधारी रिमाइंडर",
+        "volumeId": "vol-12-whatsapp-automation",
+        "navigationPath": "Sidebar -> WhatsApp Automation -> WhatsApp & SMS Gateway (/app/notifications)",
+        "overview": "Direct official Meta WhatsApp Cloud API integration. Send clean PDF invoices directly to customer WhatsApp, and configure polite automated payment reminder alerts.",
+        "overviewHindi": "बिल बनते ही ग्राहक के मोबाइल पर व्हाट्सएप से सुंदर पीडीएफ बिल भेजें। उधारी की तारीख बीतने पर ग्राहक को अपने आप विनम्रता से पेमेंट रिमाइंडर भेजें।",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Auto Send PDF on Invoice Save",
+            "fieldType": "checkbox",
+            "purpose": "Dispatches invoice PDF link to buyer WhatsApp automatically",
+            "hindiExplanation": "बिल सेव होते ही बिना किसी अतिरिक्त क्लिक के ग्राहक को व्हाट्सएप पर बिल चला जाएगा।"
+          },
+          {
+            "fieldName": "Overdue Reminder Frequency (Days)",
+            "fieldType": "select",
+            "purpose": "Sends polite payment reminders on Day 0, Day 7, and Day 15 after due date",
+            "hindiExplanation": "पेमेंट की अंतिम तारीख के बाद कितने दिनों पर ग्राहक को रिमाइंडर भेजना है, यहाँ सेट करें।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Connect WhatsApp Gateway",
+            "actionInstruction": "Enter Meta WhatsApp Cloud API token or use UdyogBill Shared Cloud Gateway.",
+            "hindiInstruction": "व्हाट्सएप गेटवे को कनेक्ट करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Enable Automatic Triggers",
+            "actionInstruction": "Turn on Invoice Dispatch and Payment Reminder toggles.",
+            "hindiInstruction": "ऑटोमैटिक बिल सेंड और पेमेंट रिमाइंडर ऑन करें।"
+          }
+        ],
+        "proTips": [
+          "Businesses using automated WhatsApp reminders recover overdue customer payments 40% faster."
+        ],
+        "proTipsHindi": [
+          "व्हाट्सएप पर ऑटोमैटिक रिमाइंडर भेजने वाले व्यापारियों की उधारी 40% तेजी से वापस आ जाती है।"
+        ],
+        "faqs": [
+          {
+            "question": "Does the customer need to save my number to receive the bill?",
+            "questionHindi": "क्या ग्राहक को बिल पाने के लिए मेरा नंबर सेव करना जरूरी है?",
+            "answer": "No. Using the official WhatsApp Business Cloud API, verified messages and PDFs deliver directly into their chat without needing number save.",
+            "solutionHindi": "नहीं! ऑफिशियल बिजनेस एपीआई के कारण ग्राहक का नंबर सेव न होने पर भी बिल सीधे चैट में पहुंच जाता है।"
+          }
+        ]
+      }
+    ]
+  }
+]

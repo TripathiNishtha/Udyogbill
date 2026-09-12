@@ -161,3 +161,125 @@ export const partyService = {
     return response.data;
   }
 };
+
+export interface BrokerItem {
+  id: string;
+  brokerCode: string;
+  fullName: string;
+  mobile?: string;
+  email?: string;
+  address?: string;
+  pan?: string;
+  gstin?: string;
+  commissionBasis: number; // 1: % of Taxable, 2: % of Total, 3: Fixed/Unit, 4: Per Bag/Quintal
+  defaultCommissionRate: number;
+  tdsPercent: number;
+  accrualTrigger: number;
+  currentPayableBalance: number;
+  isActive: boolean;
+  notes?: string;
+  createdAtUtc: string;
+}
+
+export interface BrokerCommissionEntry {
+  id: string;
+  brokerId: string;
+  brokerName: string;
+  salesInvoiceId?: string;
+  salesInvoiceNumber?: string;
+  transactionDate: string;
+  partyId?: string;
+  partyName?: string;
+  baseAmount: number;
+  commissionRate: number;
+  grossCommissionAmount: number;
+  tdsAmount: number;
+  netCommissionPayable: number;
+  status: number; // 1: Accrued, 2: Approved, 3: Paid, 4: AdjustedOnReturn, 5: Cancelled
+  paidDate?: string;
+  paymentReference?: string;
+  notes?: string;
+  createdAtUtc: string;
+}
+
+export interface BrokerSummary {
+  brokerId: string;
+  brokerCode: string;
+  fullName: string;
+  mobile?: string;
+  totalAccrued: number;
+  totalPaid: number;
+  currentPayableBalance: number;
+  totalInvoicesBrokered: number;
+}
+
+export const brokerService = {
+  async getBrokers(params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    searchTerm?: string;
+    activeOnly?: boolean;
+  }) {
+    const response = await apiClient.get<{ items: BrokerItem[]; totalCount: number }>("/tenant/brokers", { params });
+    return response.data;
+  },
+
+  async getSummaries(): Promise<BrokerSummary[]> {
+    const response = await apiClient.get<BrokerSummary[]>("/tenant/brokers/summaries");
+    return response.data;
+  },
+
+  async getBrokerById(id: string): Promise<BrokerItem> {
+    const response = await apiClient.get<BrokerItem>(`/tenant/brokers/${id}`);
+    return response.data;
+  },
+
+  async createBroker(data: {
+    brokerCode: string;
+    fullName: string;
+    mobile?: string;
+    email?: string;
+    address?: string;
+    pan?: string;
+    gstin?: string;
+    commissionBasis?: number;
+    defaultCommissionRate?: number;
+    tdsPercent?: number;
+    notes?: string;
+  }): Promise<string> {
+    const response = await apiClient.post<string>("/tenant/brokers", data);
+    return response.data;
+  },
+
+  async updateBroker(id: string, data: any): Promise<void> {
+    await apiClient.put(`/tenant/brokers/${id}`, data);
+  },
+
+  async deleteBroker(id: string): Promise<void> {
+    await apiClient.delete(`/tenant/brokers/${id}`);
+  },
+
+  async getCommissions(params?: {
+    brokerId?: string;
+    pageNumber?: number;
+    pageSize?: number;
+    fromDate?: string;
+    toDate?: string;
+  }) {
+    const response = await apiClient.get<{ items: BrokerCommissionEntry[]; totalCount: number }>("/tenant/brokers/commissions", { params });
+    return response.data;
+  },
+
+  async payCommission(data: {
+    brokerId: string;
+    amount: number;
+    paymentMode: string;
+    bankAccountId?: string;
+    referenceNumber?: string;
+    notes?: string;
+  }): Promise<string> {
+    const response = await apiClient.post<string>("/tenant/brokers/payout", data);
+    return response.data;
+  }
+};
+

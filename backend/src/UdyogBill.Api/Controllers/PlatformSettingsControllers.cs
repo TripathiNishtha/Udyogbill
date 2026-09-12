@@ -14,10 +14,14 @@ namespace UdyogBill.Api.Controllers;
 public class PlatformSettingsController : BaseApiController
 {
     private readonly IPlatformSettingsService _settingsService;
+    private readonly ISandboxGstService _sandboxGstService;
 
-    public PlatformSettingsController(IPlatformSettingsService settingsService)
+    public PlatformSettingsController(
+        IPlatformSettingsService settingsService,
+        ISandboxGstService sandboxGstService)
     {
         _settingsService = settingsService;
+        _sandboxGstService = sandboxGstService;
     }
 
     #region Company Profile
@@ -38,6 +42,17 @@ public class PlatformSettingsController : BaseApiController
         CancellationToken cancellationToken)
     {
         var result = await _settingsService.UpdateCompanyProfileAsync(request, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("company-profile/test-sandbox-gst")]
+    [ProducesResponseType(typeof(GstLookupResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> TestSandboxGst(
+        [FromBody] TestSandboxGstRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sandboxGstService.TestConnectionAsync(request, cancellationToken);
         return HandleResult(result);
     }
 

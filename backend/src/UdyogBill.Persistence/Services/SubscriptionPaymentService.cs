@@ -109,6 +109,76 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             return Result<CreateSubscriptionOrderResponse>.Failure("Must provide either PlanCode or AddonCode.", "VALIDATION_FAILED");
         }
 
+        decimal rawAmount = amount;
+        decimal discountAmount = 0;
+        string? appliedCouponCode = null;
+
+        if (!string.IsNullOrWhiteSpace(request.CouponCode))
+        {
+            var code = request.CouponCode.Trim().ToUpperInvariant();
+            var coupon = await _context.Coupons
+                .FirstOrDefaultAsync(c => c.Code == code && !c.IsDeleted, cancellationToken);
+
+            if (coupon == null)
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure("Invalid coupon code.", "COUPON_INVALID");
+            }
+
+            if (!coupon.IsActive)
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure("This coupon is currently inactive.", "COUPON_INACTIVE");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            if (coupon.ValidFromUtc.HasValue && now < coupon.ValidFromUtc.Value)
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure("This coupon has not started yet.", "COUPON_NOT_STARTED");
+            }
+
+            if (coupon.ValidUntilUtc.HasValue && now > coupon.ValidUntilUtc.Value)
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure("This coupon has expired.", "COUPON_EXPIRED");
+            }
+
+            if (coupon.MaxRedemptions.HasValue && coupon.TimesRedeemed >= coupon.MaxRedemptions.Value)
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure("This coupon has reached its maximum redemption limit.", "COUPON_MAX_REDEEMED");
+            }
+
+            if (coupon.MinOrderAmount.HasValue && rawAmount < coupon.MinOrderAmount.Value)
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure($"Minimum order amount of ₹{coupon.MinOrderAmount.Value:F0} required for this coupon.", "COUPON_MIN_ORDER");
+            }
+
+            string orderType = !string.IsNullOrWhiteSpace(request.AddonCode) ? "Addon" : "Plan";
+            if (coupon.ApplicableType == CouponApplicableType.PlansOnly && orderType != "Plan")
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure("This coupon is only valid for core subscription plans.", "COUPON_NOT_APPLICABLE");
+            }
+
+            if (coupon.ApplicableType == CouponApplicableType.AddOnsOnly && orderType != "Addon")
+            {
+                return Result<CreateSubscriptionOrderResponse>.Failure("This coupon is only valid for add-ons.", "COUPON_NOT_APPLICABLE");
+            }
+
+            if (coupon.DiscountType == DiscountType.Percentage)
+            {
+                discountAmount = Math.Round((rawAmount * coupon.DiscountValue) / 100m, 2);
+                if (coupon.MaxDiscountAmount.HasValue && discountAmount > coupon.MaxDiscountAmount.Value)
+                {
+                    discountAmount = coupon.MaxDiscountAmount.Value;
+                }
+            }
+            else
+            {
+                discountAmount = Math.Min(coupon.DiscountValue, rawAmount);
+            }
+
+            appliedCouponCode = coupon.Code;
+            amount = Math.Max(0, rawAmount - discountAmount);
+            itemDesc = $"{itemName} Subscription ({request.BillingCycle}) [Coupon {coupon.Code} applied: -₹{discountAmount:F2}]";
+        }
+
         // Calculate 18% GST (Total inclusive)
         decimal taxAmount = Math.Round(amount * 0.18m, 2);
         decimal totalAmount = amount + taxAmount;
@@ -143,7 +213,9 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                         { "tenant_id", tenantId.ToString() },
                         { "item_name", itemName },
                         { "plan_code", request.PlanCode ?? "" },
-                        { "addon_code", request.AddonCode ?? "" }
+                        { "addon_code", request.AddonCode ?? "" },
+                        { "coupon_code", appliedCouponCode ?? "" },
+                        { "discount_amount", discountAmount.ToString("F2") }
                     }
                 };
 
@@ -175,7 +247,9 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             Description: itemDesc,
             ItemName: itemName,
             CustomerEmail: tenant.AdminEmail,
-            CustomerPhone: tenant.PrimaryPhone
+            CustomerPhone: tenant.PrimaryPhone,
+            DiscountAmount: discountAmount,
+            CouponCode: appliedCouponCode
         );
 
         return Result<CreateSubscriptionOrderResponse>.Success(result);
@@ -275,11 +349,77 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             }
         }
 
+        decimal rawBasePrice = basePrice;
+        decimal couponDiscount = 0;
+        Coupon? appliedCoupon = null;
+
+        if (!string.IsNullOrWhiteSpace(request.CouponCode))
+        {
+            var code = request.CouponCode.Trim().ToUpperInvariant();
+            appliedCoupon = await _context.Coupons
+                .FirstOrDefaultAsync(c => c.Code == code && !c.IsDeleted && c.IsActive, cancellationToken);
+
+            if (appliedCoupon != null)
+            {
+                var now = DateTimeOffset.UtcNow;
+                bool isTimeValid = (!appliedCoupon.ValidFromUtc.HasValue || now >= appliedCoupon.ValidFromUtc.Value) &&
+                                   (!appliedCoupon.ValidUntilUtc.HasValue || now <= appliedCoupon.ValidUntilUtc.Value);
+                bool isCountValid = !appliedCoupon.MaxRedemptions.HasValue || appliedCoupon.TimesRedeemed < appliedCoupon.MaxRedemptions.Value;
+                bool isMinValid = !appliedCoupon.MinOrderAmount.HasValue || rawBasePrice >= appliedCoupon.MinOrderAmount.Value;
+
+                if (isTimeValid && isCountValid && isMinValid)
+                {
+                    if (appliedCoupon.DiscountType == DiscountType.Percentage)
+                    {
+                        couponDiscount = Math.Round((rawBasePrice * appliedCoupon.DiscountValue) / 100m, 2);
+                        if (appliedCoupon.MaxDiscountAmount.HasValue && couponDiscount > appliedCoupon.MaxDiscountAmount.Value)
+                        {
+                            couponDiscount = appliedCoupon.MaxDiscountAmount.Value;
+                        }
+                    }
+                    else
+                    {
+                        couponDiscount = Math.Min(appliedCoupon.DiscountValue, rawBasePrice);
+                    }
+
+                    basePrice = Math.Max(0, rawBasePrice - couponDiscount);
+                    appliedCoupon.TimesRedeemed += 1;
+
+                    _context.CouponRedemptions.Add(new CouponRedemption
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenant.Id,
+                        CouponId = appliedCoupon.Id,
+                        OrderReference = request.RazorpayOrderId,
+                        OrderAmount = rawBasePrice,
+                        DiscountAmount = couponDiscount,
+                        RedeemedAtUtc = DateTimeOffset.UtcNow
+                    });
+                }
+            }
+        }
+
         // 2. Generate Automated Indian GST Subscription Invoice (CGST+SGST vs IGST)
         var gst = await CalculateGstAsync(tenant, basePrice, cancellationToken);
         decimal taxAmount = gst.isInterState ? gst.igstAmt : (gst.cgstAmt + gst.sgstAmt);
         decimal totalAmount = basePrice + taxAmount;
-        string invoiceNumber = $"INV-SUB-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+
+        var profile = await _context.PlatformCompanyProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(cancellationToken);
+        string prefix = !string.IsNullOrWhiteSpace(profile?.InvoicePrefix) ? profile.InvoicePrefix.Trim() : "UB/SUB/26-27/";
+        int seq = profile != null && profile.NextInvoiceSequence > 0 ? profile.NextInvoiceSequence : 1;
+        string invoiceNumber = $"{prefix}{seq.ToString().PadLeft(4, '0')}";
+        if (profile != null)
+        {
+            profile.NextInvoiceSequence = seq + 1;
+        }
+
+        string invoiceItemDesc = appliedCoupon != null
+            ? $"{itemDesc} [Coupon {appliedCoupon.Code} applied: -₹{couponDiscount:F2}]"
+            : itemDesc;
+
+        string invoiceNotes = appliedCoupon != null
+            ? $"Automated Online Payment via Razorpay. Coupon '{appliedCoupon.Code}' applied (Original: ₹{rawBasePrice:F2}, Discount: -₹{couponDiscount:F2})"
+            : "Automated Online Payment via Razorpay";
 
         var invoice = new SubscriptionInvoice
         {
@@ -292,7 +432,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             TenantBillingAddress = $"{tenant.TradeName}, {tenant.PrimaryPhone}",
             TenantEmail = tenant.AdminEmail,
             TenantPhone = tenant.PrimaryPhone,
-            ItemDescription = itemDesc,
+            ItemDescription = invoiceItemDesc,
             PlanCode = request.PlanCode,
             AddonCode = request.AddonCode,
             BillingCycle = request.BillingCycle,
@@ -331,7 +471,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             GatewaySignature = request.RazorpaySignature,
             PaymentStatus = "Paid",
             PaidAtUtc = DateTimeOffset.UtcNow,
-            Notes = "Automated Online Payment via Razorpay"
+            Notes = invoiceNotes
         };
 
         _context.SubscriptionInvoices.Add(invoice);
@@ -711,7 +851,15 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
         var gst = await CalculateGstAsync(tenant, addon.Price, cancellationToken);
         decimal taxAmount = gst.isInterState ? gst.igstAmt : (gst.cgstAmt + gst.sgstAmt);
         decimal totalAmount = addon.Price + taxAmount;
-        string invoiceNumber = $"INV-GRANT-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+
+        var profile = await _context.PlatformCompanyProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(cancellationToken);
+        string prefix = !string.IsNullOrWhiteSpace(profile?.InvoicePrefix) ? profile.InvoicePrefix.Trim() : "UB/SUB/26-27/";
+        int seq = profile != null && profile.NextInvoiceSequence > 0 ? profile.NextInvoiceSequence : 1;
+        string invoiceNumber = $"{prefix}{seq.ToString().PadLeft(4, '0')}";
+        if (profile != null)
+        {
+            profile.NextInvoiceSequence = seq + 1;
+        }
 
         var invoice = new SubscriptionInvoice
         {
@@ -958,18 +1106,15 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(cancellationToken);
 
-        string supplierLegalName = profile?.LegalCompanyName ?? "Udyog Software Technologies Private Limited";
-        string supplierGstin = profile?.Gstin ?? "09AAACU9876A1Z5";
-        string supplierAddress = $"{profile?.AddressLine1}, {profile?.City}, {profile?.State} - {profile?.Pincode}";
-        string supplierStateCode = profile?.StateCode ?? (!string.IsNullOrWhiteSpace(supplierGstin) && supplierGstin.Length >= 2 ? supplierGstin[..2] : "09");
+        string supplierLegalName = !string.IsNullOrWhiteSpace(profile?.LegalCompanyName) ? profile.LegalCompanyName : "DIGIOPERA PRIVATE LIMITED";
+        string supplierGstin = profile?.Gstin ?? "";
+        string supplierAddress = profile != null && !string.IsNullOrWhiteSpace(profile.AddressLine1)
+            ? $"{profile.AddressLine1}, {profile.City}, {profile.State} - {profile.Pincode}"
+            : "";
+        string supplierStateCode = profile?.StateCode ?? (!string.IsNullOrWhiteSpace(supplierGstin) && supplierGstin.Length >= 2 ? supplierGstin[..2] : "06");
 
-        // Determine subscriber state code (first 2 digits of GSTIN or fallback to supplier state)
-        string subscriberStateCode = supplierStateCode;
-        if (!string.IsNullOrWhiteSpace(tenant.GSTIN) && tenant.GSTIN.Length >= 2 && char.IsDigit(tenant.GSTIN[0]) && char.IsDigit(tenant.GSTIN[1]))
-        {
-            subscriberStateCode = tenant.GSTIN[..2];
-        }
-
+        // Determine subscriber state code (first 2 digits of GSTIN, tenant StateCode, or tenant State)
+        string subscriberStateCode = ResolveSubscriberStateCode(tenant);
         bool isInterState = !string.Equals(subscriberStateCode, supplierStateCode, StringComparison.OrdinalIgnoreCase);
 
         decimal cgstRate = isInterState ? 0 : 9m;
@@ -1050,6 +1195,60 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             PaidAtUtc: i.PaidAtUtc,
             Notes: i.Notes
         );
+    }
+
+    private static string ResolveSubscriberStateCode(Tenant tenant)
+    {
+        // 1. First 2 digits of GSTIN if valid numeric code
+        if (!string.IsNullOrWhiteSpace(tenant.GSTIN) && tenant.GSTIN.Length >= 2 && char.IsDigit(tenant.GSTIN[0]) && char.IsDigit(tenant.GSTIN[1]))
+        {
+            return tenant.GSTIN[..2];
+        }
+
+        // 2. Tenant.StateCode if present
+        if (!string.IsNullOrWhiteSpace(tenant.StateCode))
+        {
+            var code = tenant.StateCode.Trim();
+            if (code.Length == 1 && char.IsDigit(code[0])) code = "0" + code;
+            if (code.Length == 2 && char.IsDigit(code[0]) && char.IsDigit(code[1]))
+            {
+                return code;
+            }
+        }
+
+        // 3. Resolve by Tenant.State name
+        if (!string.IsNullOrWhiteSpace(tenant.State))
+        {
+            var st = tenant.State.Trim().ToLowerInvariant();
+            if (st.Contains("haryana")) return "06";
+            if (st.Contains("delhi")) return "07";
+            if (st.Contains("uttar pradesh") || st == "up") return "09";
+            if (st.Contains("rajasthan")) return "08";
+            if (st.Contains("punjab")) return "03";
+            if (st.Contains("maharashtra")) return "27";
+            if (st.Contains("gujarat")) return "24";
+            if (st.Contains("bihar")) return "10";
+            if (st.Contains("madhya pradesh") || st == "mp") return "23";
+            if (st.Contains("karnataka")) return "29";
+            if (st.Contains("tamil nadu") || st.Contains("tamilnadu")) return "33";
+            if (st.Contains("west bengal")) return "19";
+            if (st.Contains("telangana")) return "36";
+            if (st.Contains("andhra")) return "37";
+            if (st.Contains("kerala")) return "32";
+            if (st.Contains("odisha") || st.Contains("orissa")) return "21";
+            if (st.Contains("jharkhand")) return "20";
+            if (st.Contains("chhattisgarh")) return "22";
+            if (st.Contains("uttarakhand") || st.Contains("uttaranchal")) return "05";
+            if (st.Contains("himachal")) return "02";
+            if (st.Contains("jammu") || st.Contains("kashmir")) return "01";
+            if (st.Contains("chandigarh")) return "04";
+            if (st.Contains("goa")) return "30";
+            if (st.Contains("assam")) return "18";
+        }
+
+        // If unknown or not specified, return empty string so it defaults to inter-state (IGST 18%)
+        // Only if tenant is explicitly Haryana (06) will it match supplierStateCode ("06") and charge CGST+SGST.
+        return "";
     }
 
     #endregion

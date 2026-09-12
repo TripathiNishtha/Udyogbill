@@ -63,7 +63,8 @@ public record TenantDto(
     string CurrencyCode,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
-    string? LogoUrl = null
+    string? LogoUrl = null,
+    string? AdminPassword = null
 );
 
 public record TenantDetailsDto(
@@ -107,7 +108,8 @@ public record TenantDetailsDto(
     string? SmtpPassword = null,
     string? SmtpFromEmail = null,
     string? SmtpFromName = null,
-    bool? SmtpEnableSsl = null
+    bool? SmtpEnableSsl = null,
+    string? AdminPassword = null
 );
 
 public record TenantIndustryConfigDto(

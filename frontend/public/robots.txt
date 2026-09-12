@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /industries
+Allow: /city
+Allow: /blog
+Allow: /terms
+Allow: /privacy
+Disallow: /app/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://udyogbill.com/sitemap.xml

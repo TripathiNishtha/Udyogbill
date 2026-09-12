@@ -205,6 +205,7 @@ public class ItemWarehouseStockConfiguration : IEntityTypeConfiguration<ItemWare
         builder.Property(s => s.CurrentQuantity).HasPrecision(18, 4);
         builder.Property(s => s.ReservedQuantity).HasPrecision(18, 4);
         builder.Property(s => s.ReorderLevel).HasPrecision(18, 4);
+        builder.Property<uint>("xmin").HasColumnType("xid").ValueGeneratedOnAddOrUpdate().IsConcurrencyToken();
 
         builder.HasIndex(s => new { s.TenantId, s.ItemId, s.VariantId, s.WarehouseId, s.BatchId }).IsUnique();
 

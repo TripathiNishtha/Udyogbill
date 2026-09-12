@@ -114,48 +114,48 @@ export default function TenantStockExplorerPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
-            <WarehouseIcon className="w-6 h-6 text-indigo-400" />
-            <span>Multi-Warehouse Stock Ledger & Explorer</span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center space-x-2.5">
+            <WarehouseIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <span>Multi-Warehouse Stock Ledger &amp; Explorer</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Real-time physical inventory balances across storage godowns and immutable stock movements ledger.
           </p>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setIsAdjModalOpen(true)}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-colors"
+            className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-colors cursor-pointer"
           >
-            <Sliders className="w-4 h-4" />
+            <Sliders className="w-4 h-4 stroke-[2.5]" />
             <span>Adjust Stock / Audit</span>
           </button>
         </div>
       </div>
 
       {/* Tabs and Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-xl bg-surface border border-border shadow-xs">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setActiveTab("balances")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeTab === "balances"
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-900 text-slate-400 hover:text-white"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "bg-surface-muted text-muted-foreground hover:text-foreground"
             }`}
           >
             Stock Balances ({balances.length})
           </button>
           <button
             onClick={() => setActiveTab("ledger")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeTab === "ledger"
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-900 text-slate-400 hover:text-white"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "bg-surface-muted text-muted-foreground hover:text-foreground"
             }`}
           >
             Movement Ledger ({movements.length})
@@ -163,11 +163,11 @@ export default function TenantStockExplorerPage() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <label className="text-xs text-slate-400">Filter Warehouse:</label>
+          <label className="text-xs text-muted-foreground font-semibold">Filter Warehouse:</label>
           <select
             value={selectedWarehouse}
             onChange={(e) => setSelectedWarehouse(e.target.value)}
-            className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+            className="px-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
           >
             <option value="">All Storage Locations</option>
             {allWarehouses.map((w) => (
@@ -181,50 +181,51 @@ export default function TenantStockExplorerPage() {
 
       {/* Tab 1: Stock Balances Table */}
       {activeTab === "balances" && (
-        <div className="rounded-2xl bg-slate-950/60 border border-slate-800 overflow-hidden">
+        <div className="rounded-2xl bg-surface border border-border overflow-hidden shadow-xs">
           <table className="w-full text-left text-xs">
-            <thead className="text-slate-400 uppercase tracking-wider bg-slate-900/50 border-b border-slate-800">
+            <thead className="text-muted-foreground uppercase tracking-wider bg-surface-muted border-b border-border font-bold">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Warehouse / Branch</th>
-                <th className="px-5 py-3.5 font-semibold">Batch Number</th>
-                <th className="px-5 py-3.5 font-semibold">Expiry Date</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Current Stock</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Available</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Warehouse / Branch</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Batch Number</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Expiry Date</th>
+                <th className="px-5 py-3.5 font-bold text-foreground text-right">Current Stock</th>
+                <th className="px-5 py-3.5 font-bold text-foreground text-right">Available</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-850">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
-                    Loading stock balances...
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mb-1"></div>
+                    <div>Loading stock balances...</div>
                   </td>
                 </tr>
               ) : balances.length > 0 ? (
                 balances.map((b, idx) => (
-                  <tr key={`${b.warehouseId}-${b.batchId || idx}`} className="hover:bg-slate-900/40">
+                  <tr key={`${b.warehouseId}-${b.batchId || idx}`} className="hover:bg-surface-muted/60 transition">
                     <td className="px-5 py-3.5">
-                      <div className="font-bold text-white">{b.warehouseName}</div>
-                      <div className="text-[11px] text-slate-400">
-                        {b.branchName} <span className="font-mono text-indigo-400">({b.warehouseCode})</span>
+                      <div className="font-bold text-foreground">{b.warehouseName}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {b.branchName} <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">({b.warehouseCode})</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-indigo-300 font-semibold">
+                    <td className="px-5 py-3.5 font-mono text-indigo-600 dark:text-indigo-400 font-bold">
                       {b.batchNumber || "— (Non-Batch)"}
                     </td>
-                    <td className="px-5 py-3.5 text-slate-300 font-mono">
+                    <td className="px-5 py-3.5 text-muted-foreground font-mono font-medium">
                       {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : "—"}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-bold text-sm text-emerald-400">
+                    <td className="px-5 py-3.5 text-right font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
                       {b.currentQuantity}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-bold text-sm text-white">
+                    <td className="px-5 py-3.5 text-right font-mono font-bold text-sm text-foreground">
                       {b.availableQuantity}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
                     No active stock records in this warehouse.
                   </td>
                 </tr>
@@ -236,66 +237,67 @@ export default function TenantStockExplorerPage() {
 
       {/* Tab 2: Movement Ledger Table */}
       {activeTab === "ledger" && (
-        <div className="rounded-2xl bg-slate-950/60 border border-slate-800 overflow-hidden">
+        <div className="rounded-2xl bg-surface border border-border overflow-hidden shadow-xs">
           <table className="w-full text-left text-xs">
-            <thead className="text-slate-400 uppercase tracking-wider bg-slate-900/50 border-b border-slate-800">
+            <thead className="text-muted-foreground uppercase tracking-wider bg-surface-muted border-b border-border font-bold">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Date & Type</th>
-                <th className="px-5 py-3.5 font-semibold">Item & SKU</th>
-                <th className="px-5 py-3.5 font-semibold">Warehouse / Batch</th>
-                <th className="px-5 py-3.5 font-semibold">Movement Qty</th>
-                <th className="px-5 py-3.5 font-semibold">Balance Before $\rightarrow$ After</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Notes</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Date &amp; Type</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Item &amp; SKU</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Warehouse / Batch</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Movement Qty</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Balance Before &rarr; After</th>
+                <th className="px-5 py-3.5 font-bold text-foreground text-right">Notes</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-850">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
-                    Loading stock movements...
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mb-1"></div>
+                    <div>Loading stock movements...</div>
                   </td>
                 </tr>
               ) : movements.length > 0 ? (
                 movements.map((m) => {
                   const isPositive = m.quantity > 0;
                   return (
-                    <tr key={m.id} className="hover:bg-slate-900/40">
+                    <tr key={m.id} className="hover:bg-surface-muted/60 transition">
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center space-x-1.5 font-semibold text-white">
+                        <div className="flex items-center space-x-1.5 font-bold text-foreground">
                           {isPositive ? (
-                            <ArrowDownRight className="w-4 h-4 text-emerald-400" />
+                            <ArrowDownRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                           ) : (
-                            <ArrowUpRight className="w-4 h-4 text-rose-400" />
+                            <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                           )}
                           <span>{m.movementTypeName}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
                           {new Date(m.createdAtUtc).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <div className="font-bold text-white">{m.itemName}</div>
-                        <div className="font-mono text-[11px] text-indigo-400">{m.itemSku}</div>
+                        <div className="font-bold text-foreground">{m.itemName}</div>
+                        <div className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400 font-bold">{m.itemSku}</div>
                       </td>
-                      <td className="px-5 py-3.5 text-slate-300">
+                      <td className="px-5 py-3.5 text-foreground">
                         <div>{m.warehouseName}</div>
                         {m.batchNumber && (
-                          <div className="text-[10px] font-mono text-purple-400">
+                          <div className="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
                             Batch: {m.batchNumber}
                           </div>
                         )}
                       </td>
                       <td className="px-5 py-3.5 font-mono font-bold">
-                        <span className={isPositive ? "text-emerald-400" : "text-rose-400"}>
+                        <span className={isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
                           {isPositive ? `+${m.quantity}` : m.quantity}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-slate-400">
+                      <td className="px-5 py-3.5 font-mono text-muted-foreground">
                         <span>{m.quantityBefore}</span>
-                        <span className="mx-1 text-slate-600">→</span>
-                        <span className="text-white font-bold">{m.quantityAfter}</span>
+                        <span className="mx-1 text-muted-foreground/60">&rarr;</span>
+                        <span className="text-foreground font-bold">{m.quantityAfter}</span>
                       </td>
-                      <td className="px-5 py-3.5 text-right text-slate-400 italic">
+                      <td className="px-5 py-3.5 text-right text-muted-foreground italic">
                         {m.notes || "—"}
                       </td>
                     </tr>
@@ -303,7 +305,7 @@ export default function TenantStockExplorerPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     No stock transaction movements recorded.
                   </td>
                 </tr>
@@ -315,28 +317,28 @@ export default function TenantStockExplorerPage() {
 
       {/* Adjust Stock Modal */}
       {isAdjModalOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-surface border border-border rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
             <button
               onClick={() => setIsAdjModalOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg"
+              className="absolute top-5 right-5 text-muted-foreground hover:text-foreground p-1 rounded-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                <Sliders className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-base font-bold text-foreground flex items-center space-x-2">
+                <Sliders className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 <span>Adjust Stock / Physical Audit</span>
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Record stock reconciliation, shrinkage adjustments, or damaged write-offs.
               </p>
             </div>
 
             <form onSubmit={handleAdjustmentSubmit} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Select Product *</label>
+                <label className="text-xs font-semibold text-foreground">Select Product *</label>
                 <select
                   value={adjForm.itemId}
                   onChange={(e) => {
@@ -347,7 +349,7 @@ export default function TenantStockExplorerPage() {
                       unitCost: itm?.purchasePrice || 0,
                     });
                   }}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
                 >
                   {items.map((i) => (
                     <option key={i.id} value={i.id}>
@@ -358,11 +360,11 @@ export default function TenantStockExplorerPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Storage Warehouse *</label>
+                <label className="text-xs font-semibold text-foreground">Storage Warehouse *</label>
                 <select
                   value={adjForm.warehouseId}
                   onChange={(e) => setAdjForm({ ...adjForm, warehouseId: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
                 >
                   {allWarehouses.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -374,11 +376,11 @@ export default function TenantStockExplorerPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Adjustment Type</label>
+                  <label className="text-xs font-semibold text-foreground">Adjustment Type</label>
                   <select
                     value={adjForm.movementType}
                     onChange={(e) => setAdjForm({ ...adjForm, movementType: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground font-medium cursor-pointer"
                   >
                     <option value="5">Physical Audit Adjustment</option>
                     <option value="6">Damaged / Broken Stock Loss</option>
@@ -388,7 +390,7 @@ export default function TenantStockExplorerPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Qty Change (+ or -) *</label>
+                  <label className="text-xs font-semibold text-foreground">Qty Change (+ or -) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -396,19 +398,19 @@ export default function TenantStockExplorerPage() {
                     placeholder="+10 or -5"
                     value={adjForm.quantityChange || ""}
                     onChange={(e) => setAdjForm({ ...adjForm, quantityChange: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground font-mono focus:outline-none focus:border-indigo-500 font-bold"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Reason / Notes</label>
+                <label className="text-xs font-semibold text-foreground">Reason / Notes</label>
                 <input
                   type="text"
                   placeholder="e.g. Discovered extra unit during annual stock count"
                   value={adjForm.notes || ""}
                   onChange={(e) => setAdjForm({ ...adjForm, notes: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
                 />
               </div>
 
@@ -416,14 +418,14 @@ export default function TenantStockExplorerPage() {
                 <button
                   type="button"
                   onClick={() => setIsAdjModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg text-xs text-slate-400"
+                  className="px-3.5 py-1.5 rounded-lg border border-border bg-surface-muted text-xs font-semibold text-foreground hover:bg-surface cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500"
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20 cursor-pointer"
                 >
                   {submitting ? "Applying..." : "Apply Stock Adjustment"}
                 </button>

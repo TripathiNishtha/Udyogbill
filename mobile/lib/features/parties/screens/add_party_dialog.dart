@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../app/constants/app_constants.dart';
 import '../../../../core/database/daos/party_dao.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/sync/sync_service.dart';
@@ -162,13 +164,16 @@ class _AddPartyDialogState extends State<AddPartyDialog> {
 
     setState(() => _isSaving = true);
     try {
+      const storage = FlutterSecureStorage();
+      final activeTenantId = await storage.read(key: AppConstants.keyTenantId) ?? '';
+
       final rawBal = double.tryParse(_balanceController.text.trim()) ?? 0.0;
       final balance = _balanceType == 1 ? rawBal.abs() : -rawBal.abs();
       final creditLimit = double.tryParse(_creditLimitController.text.trim()) ?? 0.0;
 
       final party = PartyModel(
         id: widget.existingParty?.id ?? const Uuid().v4(),
-        tenantId: 'demo-tenant',
+        tenantId: widget.existingParty?.tenantId ?? activeTenantId,
         name: _nameController.text.trim(),
         tradeName: _tradeNameController.text.trim().isEmpty ? null : _tradeNameController.text.trim(),
         contactPerson: _contactPersonController.text.trim().isEmpty ? null : _contactPersonController.text.trim(),

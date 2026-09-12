@@ -94,3 +94,56 @@ public class PartyLedgerEntryConfiguration : IEntityTypeConfiguration<PartyLedge
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public class BrokerConfiguration : IEntityTypeConfiguration<Broker>
+{
+    public void Configure(EntityTypeBuilder<Broker> builder)
+    {
+        builder.ToTable("brokers");
+
+        builder.Property(b => b.BrokerCode).HasMaxLength(50).IsRequired();
+        builder.Property(b => b.FullName).HasMaxLength(200).IsRequired();
+        builder.Property(b => b.Mobile).HasMaxLength(30);
+        builder.Property(b => b.Email).HasMaxLength(150);
+        builder.Property(b => b.Address).HasMaxLength(300);
+        builder.Property(b => b.PAN).HasMaxLength(15);
+        builder.Property(b => b.GSTIN).HasMaxLength(20);
+
+        builder.Property(b => b.DefaultCommissionRate).HasPrecision(18, 4);
+        builder.Property(b => b.TdsPercent).HasPrecision(5, 2);
+        builder.Property(b => b.CurrentPayableBalance).HasPrecision(18, 4);
+
+        builder.HasIndex(b => new { b.TenantId, b.BrokerCode }).IsUnique();
+        builder.HasIndex(b => new { b.TenantId, b.FullName });
+        builder.HasIndex(b => new { b.TenantId, b.Mobile });
+    }
+}
+
+public class BrokerCommissionEntryConfiguration : IEntityTypeConfiguration<BrokerCommissionEntry>
+{
+    public void Configure(EntityTypeBuilder<BrokerCommissionEntry> builder)
+    {
+        builder.ToTable("broker_commission_entries");
+
+        builder.Property(e => e.SalesInvoiceNumber).HasMaxLength(100);
+        builder.Property(e => e.PartyName).HasMaxLength(200);
+        builder.Property(e => e.PaymentReference).HasMaxLength(100);
+        builder.Property(e => e.Notes).HasMaxLength(500);
+
+        builder.Property(e => e.BaseAmount).HasPrecision(18, 4);
+        builder.Property(e => e.CommissionRate).HasPrecision(18, 4);
+        builder.Property(e => e.GrossCommissionAmount).HasPrecision(18, 4);
+        builder.Property(e => e.TdsAmount).HasPrecision(18, 4);
+        builder.Property(e => e.NetCommissionPayable).HasPrecision(18, 4);
+
+        builder.HasIndex(e => new { e.TenantId, e.BrokerId, e.TransactionDate });
+        builder.HasIndex(e => new { e.TenantId, e.SalesInvoiceId });
+        builder.HasIndex(e => new { e.TenantId, e.Status });
+
+        builder.HasOne(e => e.Broker)
+            .WithMany(b => b.CommissionEntries)
+            .HasForeignKey(e => e.BrokerId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+

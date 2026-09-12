@@ -24,7 +24,6 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString, npgsqlOptions =>
             {
                 npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorCodesToAdd: null);
             })
             .AddInterceptors(interceptor);
         });
@@ -68,7 +67,11 @@ public static class DependencyInjection
         services.AddScoped<ITenantModuleAuthorizationService, TenantModuleAuthorizationService>();
         services.AddScoped<ITenantAssistantService, TenantAssistantService>();
         services.AddScoped<IReferralService, ReferralService>();
+        services.AddScoped<IChequeService, ChequeService>();
+        services.AddScoped<IBrokerService, BrokerService>();
+        services.AddScoped<ISandboxGstService, SandboxGstService>();
 
         return services;
     }
 }
+

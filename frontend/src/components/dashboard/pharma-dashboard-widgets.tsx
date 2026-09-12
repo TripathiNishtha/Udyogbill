@@ -40,7 +40,7 @@ export function PharmaDashboardWidgets() {
 
   return (
     <section className="mb-4 space-y-2.5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center space-x-2">
           <span className="flex h-2 w-2 relative">
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
@@ -55,7 +55,7 @@ export function PharmaDashboardWidgets() {
 
         <Link
           href="/app/pharma/pos"
-          className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold shadow-2xs transition-all active:scale-95"
+          className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold shadow-2xs transition-all active:scale-95 shrink-0"
         >
           <Zap className="w-3.5 h-3.5" />
           <span>Launch Chemist Rapid POS</span>

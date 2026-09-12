@@ -165,6 +165,26 @@ public class LeadManagementController : BaseApiController
         await _db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// DELETE /api/v1/superadmin/leads/{id}
+    /// Deletes a lead record by ID.
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteLead(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var lead = await _db.Leads.FindAsync(new object[] { id }, cancellationToken);
+        if (lead is null)
+            return NotFound(new { error = "Lead not found.", code = "NOT_FOUND" });
+
+        _db.Leads.Remove(lead);
+        await _db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
 }
 
 /// <summary>Read model for a marketing lead with full organic attribution.</summary>

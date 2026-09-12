@@ -36,7 +36,13 @@ public class PlatformCompanyProfile : BaseAuditableEntity
 
     // Invoicing Defaults
     public string InvoicePrefix { get; set; } = "UB/SUB/26-27/";
+    public int NextInvoiceSequence { get; set; } = 1;
     public string InvoiceTermsAndConditions { get; set; } = "1. This is a computer generated tax invoice for software subscription.\n2. SAC Code 998313 (Information Technology Software Services).\n3. Input tax credit is available subject to valid GSTIN.";
+
+    // Sandbox / GST Auto-Fill Settings
+    public bool EnableGstAutoFill { get; set; } = false;
+    public string? SandboxApiKey { get; set; }
+    public string? SandboxApiSecret { get; set; }
 }
 
 public class PlatformEmailConfig : BaseAuditableEntity

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace UdyogBill.Application.DTOs;
@@ -36,7 +36,9 @@ public record TenantReferralSummaryDto(
     string? BankAccountNumber,
     string? BankIfsc,
     string? AccountHolderName,
-    IReadOnlyList<TenantReferralItemDto> Referrals
+    IReadOnlyList<TenantReferralItemDto> Referrals,
+    bool HasActiveSubscription = true,
+    string? IneligibilityReason = null
 );
 
 public record TenantReferralItemDto(

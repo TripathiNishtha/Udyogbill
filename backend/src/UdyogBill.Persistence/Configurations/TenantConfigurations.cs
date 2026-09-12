@@ -18,6 +18,7 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.TradeName).HasMaxLength(255);
         builder.Property(t => t.AdminEmail).IsRequired().HasMaxLength(255);
         builder.Property(t => t.PrimaryPhone).IsRequired().HasMaxLength(50);
+        builder.Property(t => t.AdminPassword).HasMaxLength(255);
         builder.Property(t => t.GSTIN).HasMaxLength(50);
         builder.Property(t => t.PAN).HasMaxLength(50);
         builder.Property(t => t.DrugLicenseNumber).HasMaxLength(100);

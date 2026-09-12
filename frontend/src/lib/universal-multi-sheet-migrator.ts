@@ -11,6 +11,8 @@ export interface MigratedProduct {
   taxRate: number;
   cessRate?: number;
   salePrice: number;
+  retailPrice?: number;
+  wholesalePrice?: number;
   purchasePrice: number;
   mrp: number;
   openingStock: number;
@@ -102,7 +104,9 @@ const PRODUCT_FIELD_SYNONYMS: Record<keyof MigratedProduct, string[]> = {
   unit: ["unit", "uom", "unit of measure", "primary uom", "pack", "packing unit", "measure"],
   taxRate: ["gst", "gst %", "tax %", "tax rate", "gst rate", "tax rate %", "tax_per", "vat %", "tax category"],
   cessRate: ["cess", "cess %", "cess rate"],
-  salePrice: ["sale price", "selling price", "rate", "s_rate", "srate", "sales rate", "unit price", "billing rate", "standard price", "net rate", "price"],
+  salePrice: ["sale price", "selling price", "retail rate", "retail price", "rate", "s_rate", "srate", "sales rate", "unit price", "billing rate", "standard price", "net rate", "price"],
+  retailPrice: ["retail rate", "retail price", "retail", "sale price", "selling price", "s_rate", "srate", "rate", "price"],
+  wholesalePrice: ["wholesale rate", "wholesale price", "wholesale", "b2b rate", "b2b price", "dealer rate", "dealer price", "minimum selling price", "min selling price", "ws rate"],
   purchasePrice: ["purchase price", "pur price", "p_rate", "prate", "buy price", "standard cost", "cost price", "purchase rate", "cost"],
   mrp: ["mrp", "m.r.p.", "maximum retail price", "retail price"],
   openingStock: ["stock", "qty", "quantity", "opening stock", "current stock", "closing stock", "bal qty", "balance qty", "op qty", "op. qty", "bal_qty", "closing balance", "on hand"],
@@ -276,25 +280,31 @@ export function parseUniversalWorkbook(fileData: ArrayBuffer, fileName: string):
     switch (category) {
       case "products":
         mappedFields = findBestHeaderMatch(headers, PRODUCT_FIELD_SYNONYMS);
-        parsedData = rawRows.map((r, idx) => ({
-          name: String(r[mappedFields.name] || "").trim(),
-          sku: String(r[mappedFields.sku] || `SKU-${idx + 1001}`).trim(),
-          category: String(r[mappedFields.category] || "General").trim(),
-          hsnCode: String(r[mappedFields.hsnCode] || "30049099").trim(),
-          barcode: String(r[mappedFields.barcode] || "").trim(),
-          unit: String(r[mappedFields.unit] || "PCS").trim().toUpperCase(),
-          taxRate: parseFloat(r[mappedFields.taxRate]) || 18,
-          cessRate: parseFloat(r[mappedFields.cessRate]) || 0,
-          salePrice: parseFloat(r[mappedFields.salePrice]) || parseFloat(r[mappedFields.mrp]) || 0,
-          purchasePrice: parseFloat(r[mappedFields.purchasePrice]) || 0,
-          mrp: parseFloat(r[mappedFields.mrp]) || parseFloat(r[mappedFields.salePrice]) || 0,
-          openingStock: parseFloat(r[mappedFields.openingStock]) || 0,
-          batchNumber: String(r[mappedFields.batchNumber] || "").trim(),
-          expiryDate: r[mappedFields.expiryDate] ? String(r[mappedFields.expiryDate]).split("T")[0] : "",
-          rackLocation: String(r[mappedFields.rackLocation] || "").trim(),
-          description: String(r[mappedFields.description] || "").trim(),
-          isValid: Boolean(String(r[mappedFields.name] || "").trim())
-        })).filter((x) => x.isValid);
+        parsedData = rawRows.map((r, idx) => {
+          const rawSalePrice = parseFloat(r[mappedFields.retailPrice]) || parseFloat(r[mappedFields.salePrice]) || parseFloat(r[mappedFields.mrp]) || 0;
+          const rawWholesalePrice = parseFloat(r[mappedFields.wholesalePrice]) || rawSalePrice;
+          return {
+            name: String(r[mappedFields.name] || "").trim(),
+            sku: String(r[mappedFields.sku] || `SKU-${idx + 1001}`).trim(),
+            category: String(r[mappedFields.category] || "General").trim(),
+            hsnCode: String(r[mappedFields.hsnCode] || "30049099").trim(),
+            barcode: String(r[mappedFields.barcode] || "").trim(),
+            unit: String(r[mappedFields.unit] || "PCS").trim().toUpperCase(),
+            taxRate: parseFloat(r[mappedFields.taxRate]) || 18,
+            cessRate: parseFloat(r[mappedFields.cessRate]) || 0,
+            salePrice: rawSalePrice,
+            retailPrice: rawSalePrice,
+            wholesalePrice: rawWholesalePrice,
+            purchasePrice: parseFloat(r[mappedFields.purchasePrice]) || 0,
+            mrp: parseFloat(r[mappedFields.mrp]) || rawSalePrice || 0,
+            openingStock: parseFloat(r[mappedFields.openingStock]) || 0,
+            batchNumber: String(r[mappedFields.batchNumber] || "").trim(),
+            expiryDate: r[mappedFields.expiryDate] ? String(r[mappedFields.expiryDate]).split("T")[0] : "",
+            rackLocation: String(r[mappedFields.rackLocation] || "").trim(),
+            description: String(r[mappedFields.description] || "").trim(),
+            isValid: Boolean(String(r[mappedFields.name] || "").trim())
+          };
+        }).filter((x) => x.isValid);
 
         totalProducts += parsedData.length;
         icon = "💊";
@@ -575,7 +585,8 @@ export async function executeUniversalMigration(
           taxRate: p.taxRate,
           cessRate: p.cessRate || 0,
           purchasePrice: p.purchasePrice,
-          salePrice: p.salePrice,
+          salePrice: p.retailPrice || p.salePrice,
+          wholesalePrice: p.wholesalePrice || p.retailPrice || p.salePrice,
           mrp: p.mrp,
           minimumStockAlert: 10,
           reorderQuantity: 20,

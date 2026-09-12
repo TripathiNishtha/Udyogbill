@@ -19,7 +19,10 @@ import {
   Layers,
   HelpCircle,
   FileText,
-  Download
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from "lucide-react";
 import {
   parseUniversalWorkbook,
@@ -36,6 +39,7 @@ export default function UniversalMultiSheetMigrationPage() {
   const [selectedSoftware, setSelectedSoftware] = useState<string>("auto");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [parsedPackage, setParsedPackage] = useState<UniversalMigrationPackage | null>(null);
+  const [showSheetsInfo, setShowSheetsInfo] = useState(false);
   
   // Execution state
   const [isMigrating, setIsMigrating] = useState(false);
@@ -95,105 +99,200 @@ export default function UniversalMultiSheetMigrationPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-semibold uppercase tracking-wider border border-blue-400/30">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 dark:from-blue-950 dark:via-indigo-950 dark:to-slate-900 border border-blue-200/80 dark:border-blue-900/50 p-6 rounded-2xl shadow-xs text-slate-900 dark:text-white">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 rounded-full text-xs font-semibold uppercase tracking-wider border border-blue-300/80 dark:border-blue-400/30">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             Universal Smart Importer
           </div>
-          <h1 className="text-2xl font-black tracking-tight">1-Click Multi-Sheet ERP Data Migrator</h1>
-          <p className="text-slate-300 text-sm max-w-2xl">
-            Switch from <strong>Marg ERP, Tally Prime, Vyapar, or Busy</strong> seamlessly. Upload an Excel workbook with multiple sheets (Items, Customers, Suppliers, Invoices, Expenses). Our engine automatically detects sheet categories and maps any column sequence without data loss.
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            1-Click Multi-Sheet ERP Data Migrator
+          </h1>
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm max-w-2xl font-medium">
+            Apne purane software (<strong className="text-slate-900 dark:text-white">Marg, Tally, Vyapar, Busy ya Custom Excel</strong>) se saara data bina kisi loss ke UdyogBill me transfer karein.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={() => downloadMasterMigrationTemplate({ includeSampleData: true })}
-            className="px-3.5 py-2 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition shadow-sm flex items-center gap-1.5"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Download Master Template (.xlsx)</span>
-          </button>
+        <div className="flex items-center gap-2.5">
           <Link
             href="/app/settings/migration"
-            className="px-4 py-2 text-xs font-medium text-slate-300 bg-white/10 hover:bg-white/20 rounded-xl transition border border-white/10"
+            className="px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-white/10 dark:hover:bg-white/20 rounded-xl transition border border-slate-300 dark:border-white/10 shadow-xs flex items-center gap-1.5"
           >
-            Classic CSV Import
+            <span>Single-Sheet CSV Import</span>
           </Link>
         </div>
       </div>
 
-      {/* Master Excel Template Hero Card */}
-      <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-sm space-y-3.5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-semibold uppercase tracking-wider border border-emerald-400/30">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-              Official UdyogBill Excel Template
-            </div>
-            <h2 className="text-base font-bold text-white">
-              Download 100% Comprehensive Multi-Sheet Excel Template (.xlsx)
-            </h2>
-            <p className="text-xs text-slate-300 max-w-3xl">
-              Pre-configured workbook containing 7 specialized sheets with column headers, sample data across industries, GST slabs, and multi-batch opening stock. Fill it up and upload here for zero-error migration!
-            </p>
+      {/* 3-Step Quick Guide Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex items-center gap-3 shadow-2xs">
+          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-black text-xs flex items-center justify-center shrink-0">
+            1
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => downloadMasterMigrationTemplate({ includeSampleData: true })}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-900/30 flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download with Sample Data</span>
-            </button>
-            <button
-              onClick={() => downloadMasterMigrationTemplate({ includeSampleData: false })}
-              className="px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <span>Blank Template</span>
-            </button>
+          <div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">Step 1: File Ready Karein</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Purane software ka export ya hamara template
+            </div>
           </div>
         </div>
 
-        {/* 7 Sheets Overview Pills */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1 border-t border-slate-800/80">
-          {MASTER_MIGRATION_SHEETS_INFO.map((s, idx) => (
-            <div
-              key={idx}
-              className="p-2 bg-slate-950/60 border border-slate-800 rounded-lg text-left"
-            >
-              <span className="text-[11px] font-bold text-slate-200 block truncate">{s.title}</span>
-              <span className="text-[9px] text-slate-400 line-clamp-2 mt-0.5">{s.desc}</span>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex items-center gap-3 shadow-2xs">
+          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-black text-xs flex items-center justify-center shrink-0">
+            2
+          </div>
+          <div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">Step 2: Excel File Upload Karein</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Drag & drop .xlsx ya .xls file
             </div>
-          ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex items-center gap-3 shadow-2xs">
+          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-black text-xs flex items-center justify-center shrink-0">
+            3
+          </div>
+          <div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">Step 3: 1-Click Live Import</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Stock, Customer aur Balances live load
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Software Presets */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Select Source Software (Optional - Auto Detect Available)
-        </label>
+      {/* 2 Clear Paths: Direct Upload vs Download Template */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Option A: Already have file from Marg/Tally/Vyapar/Busy */}
+        <div className="lg:col-span-6 bg-gradient-to-br from-blue-50/70 via-indigo-50/30 to-white dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-900 border border-blue-200 dark:border-blue-900/40 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-2xs">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider">
+              🚀 Option 1 • Sabse Aasaan
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Purane Software se Export File Ready Hai?
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+              Agar aapne <strong>Marg, Tally, Vyapar, Busy ya purani Excel</strong> se file export kar li hai, to <span className="text-blue-700 dark:text-blue-400 font-bold">template download karne ki koi zaroorat nahi hai</span>. Aap seedha neeche apni file upload karein — hamara AI system columns khud pehchan lega.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full sm:w-auto self-start px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <UploadCloud className="w-4 h-4" />
+            <span>Seedha File Upload Karein</span>
+          </button>
+        </div>
+
+        {/* Option B: Need Excel Template */}
+        <div className="lg:col-span-6 bg-gradient-to-br from-emerald-50/70 via-teal-50/30 to-white dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-200 dark:border-emerald-900/40 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-2xs">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+              📥 Option 2 • Naya Format Chahiye
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Naye Sire Se Excel Me Data Bharna Hai?
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+              UdyogBill ka official Excel workbook download karein. Isme demo data ke sath <strong>Items, Customers, Suppliers aur Opening Stock</strong> ke bane-banaye columns milenge jisme aap apna data fill kar sakte hain.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => downloadMasterMigrationTemplate({ includeSampleData: true })}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-2 transition cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Excel Template (.xlsx)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadMasterMigrationTemplate({ includeSampleData: false })}
+                className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 hover:underline cursor-pointer"
+              >
+                Blank Template (Khaali File)
+              </button>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowSheetsInfo(!showSheetsInfo)}
+                className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer pt-1"
+              >
+                <Info className="w-3.5 h-3.5" />
+                <span>{showSheetsInfo ? "Hide Included Sheets" : "Dekhein template me kaun si sheets shamil hain (7 Sheets)"}</span>
+                {showSheetsInfo ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expandable Sheets Overview (Only if requested by user) */}
+      {showSheetsInfo && (
+        <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-slate-800 rounded-2xl p-4 space-y-2.5 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              Is Workbook Me 7 Specialized Sheets Shamil Hain:
+            </span>
+            <button
+              onClick={() => setShowSheetsInfo(false)}
+              className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              ✕ Band Karein
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            {MASTER_MIGRATION_SHEETS_INFO.map((s, idx) => (
+              <div
+                key={idx}
+                className="p-2.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-left shadow-2xs"
+              >
+                <span className="text-[11px] font-bold text-slate-900 dark:text-slate-200 block truncate">{s.title}</span>
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 line-clamp-2 mt-0.5 font-medium">{s.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Software Presets (Optional) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
+            Select Source Software (Optional)
+          </label>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+            ✨ Agar aap select nahi bhi karenge, to hamara Smart Importer file dekh kar khud pehchan lega.
+          </span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { id: "auto", name: "Auto Detect", icon: "✨", desc: "Universal Multi-Sheet" },
+            { id: "auto", name: "Auto Detect", icon: "✨", desc: "Sabhi Software ke liye" },
             { id: "marg", name: "Marg ERP 9+", icon: "🟢", desc: "Pharma / FMCG Master" },
-            { id: "tally", name: "Tally Prime", icon: "🟡", desc: "Ledger & Inventory XML/XLS" },
-            { id: "vyapar", name: "Vyapar App", icon: "🔵", desc: "Full Company Backup" },
-            { id: "busy", name: "Busy Accounting", icon: "🟣", desc: "Standard Excel Register" }
+            { id: "tally", name: "Tally Prime", icon: "🟡", desc: "Ledger & Inventory" },
+            { id: "vyapar", name: "Vyapar App", icon: "🔵", desc: "Company Backup" },
+            { id: "busy", name: "Busy Accounting", icon: "🟣", desc: "Excel Register" }
           ].map((sw) => (
             <button
               key={sw.id}
               onClick={() => setSelectedSoftware(sw.id)}
               className={
                 selectedSoftware === sw.id
-                  ? "flex flex-col text-left p-3.5 rounded-xl border transition-all border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 dark:border-blue-500 shadow-sm"
-                  : "flex flex-col text-left p-3.5 rounded-xl border transition-all border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30"
+                  ? "flex flex-col text-left p-3.5 rounded-xl border-2 transition-all border-blue-600 bg-blue-50/80 dark:bg-blue-950/50 dark:border-blue-500 shadow-sm ring-2 ring-blue-500/20 cursor-pointer"
+                  : "flex flex-col text-left p-3.5 rounded-xl border transition-all border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 shadow-2xs cursor-pointer"
               }
             >
               <span className="text-xl mb-1">{sw.icon}</span>
               <span className="text-xs font-bold text-slate-900 dark:text-white">{sw.name}</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{sw.desc}</span>
+              <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium">{sw.desc}</span>
             </button>
           ))}
         </div>
@@ -214,18 +313,18 @@ export default function UniversalMultiSheetMigrationPage() {
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              {parsedPackage ? parsedPackage.fileName : "Upload Multi-Sheet Excel Workbook"}
+              {parsedPackage ? parsedPackage.fileName : "Apna Excel File Yahan Drag & Drop Karein"}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Supports .xlsx and .xls workbooks containing 1 to 20 sheets. Columns in any sequence will be matched automatically.
+              Supports .xlsx aur .xls workbooks. Columns kisi bhi order me ho, UdyogBill safely map kar lega.
             </p>
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isAnalyzing || isMigrating}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-500/25 transition disabled:opacity-50"
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition disabled:opacity-50 cursor-pointer"
           >
-            {isAnalyzing ? "Analyzing All Sheets..." : parsedPackage ? "Replace Excel File" : "Choose Excel File"}
+            {isAnalyzing ? "File Analyze Ho Rahi Hai..." : parsedPackage ? "Doosri File Select Karein" : "Computer Se Excel File Chunein"}
           </button>
         </div>
       </div>

@@ -107,6 +107,34 @@ class PartyModel {
       updatedAt: map['updatedAt'] ?? DateTime.now().toIso8601String(),
     );
   }
+
+  factory PartyModel.fromJson(Map<String, dynamic> json) {
+    return PartyModel(
+      id: json['id']?.toString() ?? '',
+      tenantId: json['tenantId']?.toString() ?? '',
+      name: json['legalName'] ?? json['name'] ?? '',
+      tradeName: json['tradeName'],
+      contactPerson: json['contactPersonName'] ?? json['contactPerson'],
+      phone: json['primaryPhone'] ?? json['mobile'] ?? json['phone'],
+      email: json['email'],
+      gstin: json['gstin'] ?? json['gstinNumber'],
+      pan: json['pan'],
+      address: json['address'] ?? json['billingAddressLine1'],
+      city: json['city'],
+      state: json['state'],
+      stateCode: json['stateCode'],
+      pincode: json['pincode'],
+      creditLimit: (json['creditLimit'] as num?)?.toDouble() ?? 0.0,
+      creditPeriodDays: (json['creditPeriodDays'] as num?)?.toInt() ?? 30,
+      drugLicenseNumber: json['drugLicenseNumber'],
+      fssaiNumber: json['fssaiNumber'],
+      attributesJson: json['attributesJson'],
+      outstandingBalance: (json['currentOutstandingBalance'] ?? json['outstandingBalance'] as num?)?.toDouble() ?? 0.0,
+      partyType: json['partyType'] is int ? json['partyType'] : (json['partyType'] == 'Supplier' || json['partyType'] == 2 ? 2 : 1),
+      customerType: json['customerType'] is int ? json['customerType'] : 1,
+      updatedAt: json['updatedAtUtc'] ?? json['updatedAt'] ?? DateTime.now().toIso8601String(),
+    );
+  }
 }
 
 class PartyDao {
@@ -135,12 +163,20 @@ class PartyDao {
       maps = await db.query('parties', orderBy: 'name ASC');
     }
 
-    if (maps.isEmpty) {
-      await _seedSampleParties();
-      return getAllParties(partyType: partyType);
-    }
-
     return maps.map((m) => PartyModel.fromMap(m)).toList();
+  }
+
+  Future<void> upsertParties(List<PartyModel> parties) async {
+    final db = await _db;
+    final batch = db.batch();
+    for (final party in parties) {
+      batch.insert(
+        'parties',
+        party.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<List<PartyModel>> searchParties(String query, {int? partyType}) async {
@@ -172,73 +208,5 @@ class PartyDao {
       'UPDATE parties SET outstandingBalance = outstandingBalance + ?, updatedAt = ? WHERE id = ?',
       [deltaAmount, DateTime.now().toIso8601String(), partyId],
     );
-  }
-
-  Future<void> _seedSampleParties() async {
-    final db = await _db;
-    final now = DateTime.now().toIso8601String();
-    final batch = db.batch();
-
-    final samples = [
-      PartyModel(
-        id: 'cust-1',
-        tenantId: 'demo-tenant',
-        name: 'Sharma Medical Store',
-        phone: '9876543210',
-        gstin: '07AAAAA0000A1Z5',
-        address: 'Chandni Chowk, Delhi',
-        outstandingBalance: 14500.0,
-        partyType: 1, // Customer
-        updatedAt: now,
-      ),
-      PartyModel(
-        id: 'cust-2',
-        tenantId: 'demo-tenant',
-        name: 'Gupta General Traders',
-        phone: '9811223344',
-        gstin: '07BBBBB1111B2Z6',
-        address: 'Sector 18, Noida',
-        outstandingBalance: 8200.0,
-        partyType: 1, // Customer
-        updatedAt: now,
-      ),
-      PartyModel(
-        id: 'cust-3',
-        tenantId: 'demo-tenant',
-        name: 'Cash Customer (Counter Walk-in)',
-        phone: '9999999999',
-        address: 'Counter Retail',
-        outstandingBalance: 0.0,
-        partyType: 1, // Customer
-        updatedAt: now,
-      ),
-      PartyModel(
-        id: 'supp-1',
-        tenantId: 'demo-tenant',
-        name: 'Cipla India Healthcare Ltd',
-        phone: '9820011223',
-        gstin: '27CCCC2222C3Z7',
-        address: 'Mumbai Central, MH',
-        outstandingBalance: 35000.0, // We owe them
-        partyType: 2, // Supplier
-        updatedAt: now,
-      ),
-      PartyModel(
-        id: 'supp-2',
-        tenantId: 'demo-tenant',
-        name: 'Sun Pharma Distributors',
-        phone: '9833445566',
-        gstin: '24DDDD3333D4Z8',
-        address: 'Baroda, Gujarat',
-        outstandingBalance: 18400.0,
-        partyType: 2, // Supplier
-        updatedAt: now,
-      ),
-    ];
-
-    for (final p in samples) {
-      batch.insert('parties', p.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-    }
-    await batch.commit(noResult: true);
   }
 }

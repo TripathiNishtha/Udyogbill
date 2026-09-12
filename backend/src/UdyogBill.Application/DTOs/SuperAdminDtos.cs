@@ -43,7 +43,8 @@ public record SuperAdminTenantDetailsDto(
     TenantSubscriptionSummaryDto? ActiveSubscription,
     int TotalUsers,
     int TotalBranches,
-    int TotalWarehouses
+    int TotalWarehouses,
+    string? AdminPassword = null
 );
 
 // --- Super Admin Industry Catalog DTOs ---
@@ -169,7 +170,12 @@ public record AssignPackageAndAddOnsRequest(
     Guid PlanId,
     int PlanDurationDays,
     List<AddonAssignmentDto>? Addons = null,
-    string? Reason = null
+    string? Reason = null,
+    decimal? CustomAmount = null,
+    bool IsGstInclusive = true,
+    string? PaymentMode = "Cash",
+    string? PaymentReference = null,
+    bool GenerateInvoice = true
 );
 
 public record ExtendTenantTrialRequest(

@@ -284,7 +284,7 @@ export const tenantAppService = {
     return response.data?.data ?? response.data;
   },
 
-  async createSubscriptionOrder(input: { planCode?: string; addonCode?: string; billingCycle?: string }): Promise<any> {
+  async createSubscriptionOrder(input: { planCode?: string; addonCode?: string; billingCycle?: string; couponCode?: string }): Promise<any> {
     const response = await apiClient.post<any>("/tenant/subscription/create-order", input);
     return response.data?.data ?? response.data;
   },
@@ -296,6 +296,7 @@ export const tenantAppService = {
     planCode?: string;
     addonCode?: string;
     billingCycle?: string;
+    couponCode?: string;
   }): Promise<any> {
     const response = await apiClient.post<any>("/tenant/subscription/confirm-payment", input);
     return response.data?.data ?? response.data;

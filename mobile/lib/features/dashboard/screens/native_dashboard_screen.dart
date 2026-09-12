@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/daos/invoice_dao.dart';
+import '../../../../core/database/daos/item_dao.dart';
 import '../../../../core/sync/sync_service.dart';
 import '../../billing_pos/screens/billing_pos_screen.dart';
 import '../../invoices/screens/create_invoice_screen.dart';
@@ -10,6 +11,10 @@ import '../../invoices/screens/invoices_list_screen.dart';
 import '../../parties/screens/add_party_dialog.dart';
 import '../../items/screens/add_item_dialog.dart';
 import '../../invoices/screens/invoice_detail_preview_screen.dart';
+import '../../payments/screens/record_payment_screen.dart';
+import '../../sales_returns/screens/sales_returns_list_screen.dart';
+import '../../inventory/screens/expiry_watchlist_screen.dart';
+import '../../../../core/services/mobile_remote_config_service.dart';
 
 class NativeDashboardScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -22,14 +27,23 @@ class NativeDashboardScreen extends StatefulWidget {
 
 class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
   final InvoiceDao _invoiceDao = InvoiceDao();
+  final ItemDao _itemDao = ItemDao();
   final SyncService _syncService = SyncService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  String _tenantName = 'UdyogBill Demo Mart';
+  String _tenantName = 'My Business';
   Map<String, double> _metrics = {
     'todaySales': 0.0,
     'totalReceivable': 0.0,
     'totalPayable': 0.0,
+  };
+  Map<String, dynamic> _expirySummary = {
+    'totalExpiringCount': 0,
+    'expiredCount': 0,
+    'criticalCount': 0,
+    'warningCount': 0,
+    'cautionCount': 0,
+    'totalRiskStockValue': 0.0,
   };
   List<InvoiceModel> _recentInvoices = [];
   bool _isLoading = true;
@@ -47,6 +61,7 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
     final storedName = await _storage.read(key: AppConstants.keyTenantName);
     final metrics = await _invoiceDao.getDashboardMetrics();
     final recents = await _invoiceDao.getRecentInvoices(limit: 5);
+    final expiry = await _itemDao.getExpirySummary();
 
     if (mounted) {
       setState(() {
@@ -55,6 +70,7 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
         }
         _metrics = metrics;
         _recentInvoices = recents;
+        _expirySummary = expiry;
         _isLoading = false;
       });
     }
@@ -64,12 +80,13 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
     setState(() => _isSyncing = true);
     try {
       final catalogSynced = await _syncService.syncCatalogFromWeb();
+      final partiesSynced = await _syncService.syncPartiesFromWeb();
       final flushed = await _syncService.flushSyncQueue();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sync complete! Items updated: $catalogSynced, Invoices synced: $flushed'),
+            content: Text('Sync complete! Items: $catalogSynced, Parties: $partiesSynced, Invoices: $flushed'),
             backgroundColor: AppTheme.success,
           ),
         );
@@ -429,7 +446,7 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Grid of 5 Quick Actions
+                      // Primary Transactions (Sale Bill + Payment-In)
                       Row(
                         children: [
                           Expanded(
@@ -448,6 +465,28 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                             ),
                           ),
                           const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildQuickActionButton(
+                              label: '💰 Payment-In (Vasooli)',
+                              icon: Icons.account_balance_wallet_rounded,
+                              bgGradientStart: const Color(0xFF059669),
+                              bgGradientEnd: const Color(0xFF10B981),
+                              onTap: () async {
+                                final res = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const RecordPaymentScreen()),
+                                );
+                                if (res == true) _loadDashboardData();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Operational Utilities (Fast POS + Party + Item)
+                      Row(
+                        children: [
                           Expanded(
                             child: _buildQuickActionButton(
                               label: '⚡ Fast POS',
@@ -497,7 +536,135 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+
+                      // Sales Returns & Credit Notes Card
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: const Color(0xFFFEE2E2),
+                              child: const Icon(Icons.assignment_return_outlined, size: 18, color: Color(0xFFDC2626)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Sales Returns & Credit Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                                  Text('Manage goods return, expiry & credit adjustments', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SalesReturnsListScreen()),
+                                );
+                              },
+                              child: const Text('Manage ➔', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFDC2626))),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Near-Expiry Radar & Watchlist Card
+                      if (MobileRemoteConfigService().config.isNearExpiryRadarEnabled) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: (_expirySummary['totalExpiringCount'] ?? 0) > 0
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFFE2E8F0),
+                              width: (_expirySummary['totalExpiringCount'] ?? 0) > 0 ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: (_expirySummary['totalExpiringCount'] ?? 0) > 0
+                                    ? const Color(0xFFFEF3C7)
+                                    : const Color(0xFFF1F5F9),
+                                child: Icon(
+                                  Icons.radar_rounded,
+                                  size: 18,
+                                  color: (_expirySummary['totalExpiringCount'] ?? 0) > 0
+                                      ? const Color(0xFFD97706)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'Near-Expiry Radar',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                                        ),
+                                        if ((_expirySummary['totalExpiringCount'] ?? 0) > 0) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFEF3C7),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '${_expirySummary['totalExpiringCount']} AT RISK',
+                                              style: const TextStyle(
+                                                color: Color(0xFFD97706),
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 9,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    Text(
+                                      (_expirySummary['totalExpiringCount'] ?? 0) > 0
+                                          ? '₹${((_expirySummary['totalRiskStockValue'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(0)} value • ${_expirySummary['expiredCount']} Expired, ${_expirySummary['criticalCount']} <30d'
+                                          : 'Track batches & expiry dates to prevent stock loss',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: (_expirySummary['totalExpiringCount'] ?? 0) > 0 ? const Color(0xFFB45309) : Colors.grey[600],
+                                        fontWeight: (_expirySummary['totalExpiringCount'] ?? 0) > 0 ? FontWeight.w600 : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const ExpiryWatchlistScreen()),
+                                  );
+                                  _loadDashboardData();
+                                },
+                                child: const Text('Radar ➔', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFD97706))),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
 
                       // Recent Invoices Section
                       Row(

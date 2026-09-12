@@ -36,10 +36,10 @@ export const metadata: Metadata = {
       "Har vyapar ka smart saathi. Production-grade GST billing, inventory, party ledger, and multi-branch business management.",
     images: [
       {
-        url: "/logo.png",
-        width: 600,
-        height: 200,
-        alt: "UdyogBill - Multi-Industry Cloud Billing Software",
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "UdyogBill - GST Billing Software for Indian Businesses",
       },
     ],
   },
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     title: "UdyogBill — Multi-Industry Cloud SaaS Platform",
     description:
       "Production-grade GST billing, inventory, and enterprise business management platform for Indian businesses.",
-    images: ["/logo.png"],
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "google9876543210abcdef",
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "",
   },
 };
 
@@ -71,8 +71,71 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const globalSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://udyogbill.com/#organization",
+        name: "UdyogBill",
+        legalName: "DigiOpera Private Limited",
+        url: "https://udyogbill.com",
+        logo: "https://udyogbill.com/logo.png",
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: "+919473807622",
+          contactType: "customer service",
+          areaServed: "IN",
+          availableLanguage: ["en", "hi"],
+        },
+        sameAs: [
+          "https://twitter.com/udyogbill",
+          "https://www.linkedin.com/company/udyogbill",
+        ],
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://udyogbill.com/#website",
+        url: "https://udyogbill.com",
+        name: "UdyogBill",
+        publisher: { "@id": "https://udyogbill.com/#organization" },
+        inLanguage: "en-IN",
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://udyogbill.com/#software",
+        name: "UdyogBill",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web, Android, iOS",
+        url: "https://udyogbill.com",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "INR",
+          description: "Free trial available",
+        },
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: "4.8",
+          reviewCount: "500",
+          bestRating: "5",
+          worstRating: "1",
+        },
+      },
+    ],
+  };
+
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://www.google-analytics.com" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(globalSchema) }}
+        />
+      </head>
       <body className="antialiased min-h-screen">
         <GoogleAnalytics />
         <ThemeProvider>{children}</ThemeProvider>

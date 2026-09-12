@@ -1,141 +1,141 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CheckCircle, MessageCircle, Smartphone, ShieldCheck, Wrench, BarChart3, Tag, Scan } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle,
+  MessageCircle,
+  Smartphone,
+  ShieldCheck,
+  Wrench,
+  CreditCard,
+  Barcode,
+  Search
+} from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Electronics & Mobile Shop Billing Software India | IMEI Tracking | UdyogBill",
-  description: "Electronics showroom & mobile stores ke liye best GST billing software. IMEI & serial number tracking, warranty cards, service job sheets, brand-wise margins.",
-  keywords: [
-    "electronics billing software",
-    "mobile shop billing software",
-    "imei tracking software",
-    "mobile store pos india",
-    "electronics gst invoice software",
-    "warranty tracking billing",
-  ],
+  title: "Electronics, Mobile & Appliance Store Billing Software | IMEI & Serial Tracking",
+  description: "GST billing software for mobile shops and electronics retailers. Track dual IMEI, serial numbers, print warranty slips, manage service repair job cards, and offer EMI split payments.",
   alternates: {
     canonical: "https://udyogbill.com/industries/electronics",
+  },
+  openGraph: {
+    title: "Electronics & Mobile Store Billing Software | UdyogBill",
+    description: "Track IMEI/Serial numbers, issue automated warranty slips, and streamline repair job sheets with UdyogBill.",
+    url: "https://udyogbill.com/industries/electronics",
+    siteName: "UdyogBill",
+    type: "website",
   },
 };
 
 export default function ElectronicsIndustryPage() {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "UdyogBill Electronics & Mobile",
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web, Android, Windows",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "INR",
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "1840",
-    },
-  };
-
-  const features = [
+  const painPoints = [
     {
-      icon: "ðŸ“±",
-      title: "Dual IMEI & Serial Number Tracking",
-      desc: "Smartphones, laptops aur appliances ke exact IMEI / Serial numbers billing par print karein. Duplicate entry ka zero chance.",
+      problem: "Fraudulent warranty claims due to untracked IMEI/serial numbers on tax bills",
+      solution: "Mandatory serial/IMEI capture at purchase and sale with instant warranty lookup",
     },
     {
-      icon: "ðŸ›¡ï¸",
-      title: "Automated Warranty Cards",
-      desc: "Invoice ke saath manufacturer aur store warranty print hoti hai. Serial scan karte hi warranty status turant check karein.",
+      problem: "Disorganized mobile and appliance repair workshop job sheets and missing tokens",
+      solution: "Digital repair job card system tracking spare parts, technician logs, and SMS updates",
     },
     {
-      icon: "ðŸ”§",
-      title: "Mobile & Laptop Repair Job Sheets",
-      desc: "Customer repair devices ke liye intake job sheet banayein. Problem description, advance payment, aur technician status track karein.",
-    },
-    {
-      icon: "ðŸ·ï¸",
-      title: "Brand-Wise Margins & Commissions",
-      desc: "Samsung, Apple, Xiaomi, Vivo jaise har brand aur category ke margins aur sales executive commissions auto-calculate karein.",
-    },
-    {
-      icon: "âš¡",
-      title: "Fast Barcode & Scanner Support",
-      desc: "Cables, chargers, covers aur accessories ko ultra-fast barcode scanner se bill karein. Customer ka time bache.",
-    },
-    {
-      icon: "ðŸ’³",
-      title: "Finance & EMI Split Billing",
-      desc: "Bajaj Finserv, PineLabs, Credit Card EMI aur Cash split payment modes ek invoice par asani se record karein.",
+      problem: "Complex multi-provider consumer finance (Bajaj, Pine Labs, UPI) split calculations",
+      solution: "Automated split tender payments capturing down payment, delivery order (DO), and EMI scheme",
     },
   ];
 
-  return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+  const features = [
+    {
+      icon: Smartphone,
+      title: "Dual IMEI & Unique Serial Tracking",
+      desc: "Record IMEI 1, IMEI 2, and serial numbers during invoice scanning. Print them prominently on customer invoices for warranty claims.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Automated Warranty Cards & Verification",
+      desc: "Issue professional warranty slips with brand terms and duration. Look up any past invoice in 3 seconds using the IMEI number.",
+    },
+    {
+      icon: Wrench,
+      title: "Repair Workshop & Job Sheet Management",
+      desc: "Manage customer repair devices from intake to delivery. Track technician labor charges, replaced spare parts, and issue delivery tokens.",
+    },
+    {
+      icon: CreditCard,
+      title: "Consumer Finance & Split Payments",
+      desc: "Seamlessly split bill totals across Cash, Card, UPI, and Consumer Finance DOs (Bajaj Finserv, TVS Credit, HDB) without accounting errors.",
+    },
+    {
+      icon: Barcode,
+      title: "Fast Barcode Scanner Compatibility",
+      desc: "Scan handset box barcodes directly. Automatically populate brand, model, color, RAM/storage variant, and IMEI numbers in one shot.",
+    },
+    {
+      icon: Search,
+      title: "Brand-Wise Incentive & Margin Analysis",
+      desc: "Track company back-end schemes, promoter incentives, and brand target payouts with granular product profitability reports.",
+    },
+  ];
 
-      {/* Hero Section */}
-      <section className="py-20" style={{ background: "linear-gradient(135deg,#eff6ff,#f0fdf4)" }}>
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="text-6xl mb-4">ðŸ“±</div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4" style={{ fontFamily: "Poppins,sans-serif" }}>
-                Electronics & Mobile Shop <br />
-                <span style={{ color: "#2563eb" }}>Smart GST Billing Software</span>
+  const relatedIndustries = [
+    { name: "Retail Stores", href: "/industries/retail" },
+    { name: "Hardware & Building", href: "/industries/hardware" },
+    { name: "Wholesale & Stockists", href: "/industries/wholesale" },
+    { name: "General Trading", href: "/industries/general-trading" },
+  ];
+
+  return (
+    <div className="bg-white text-slate-900 space-y-10 sm:space-y-12">
+      {/* ── Hero Section ── */}
+      <section className="pt-2 pb-6 sm:pb-8 border-b border-slate-200" style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffffff 50%, #fffbf5 100%)" }}>
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+            <div className="lg:col-span-7 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-cyan-200 bg-cyan-50 text-cyan-900 shadow-2xs">
+                <Smartphone className="w-3.5 h-3.5 text-cyan-600" />
+                Advanced Electronics, Mobile & Appliance POS
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl lg:text-[40px] font-black text-slate-950 tracking-tight leading-[1.2]">
+                Protect Margins & Track Serial Numbers with{" "}
+                <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                  Smart Electronics Billing
+                </span>
               </h1>
-              <p className="text-gray-600 text-lg leading-relaxed mb-8">
-                Electronics showrooms aur retail mobile stores ke liye Bharat ka sabse bharosemand software.
-                IMEI tracking, warranty slip, aur repair job card â€” sab ek jagah.
+
+              <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed">
+                Capture dual IMEI and serial numbers effortlessly, issue legitimate warranty cards, manage repair job tokens, and handle consumer finance split payments with UdyogBill.
               </p>
-              <div className="flex gap-4 flex-wrap">
+
+              <div className="flex gap-3 flex-wrap pt-2">
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-2 text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all hover:scale-105"
-                  style={{ background: "#2563eb" }}
+                  className="inline-flex items-center gap-2 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm bg-orange-600 hover:bg-orange-700 shadow-sm transition-all"
                 >
-                  Free Trial Shuru Karo <ArrowRight className="w-4 h-4" />
+                  Start 14-Day Free Trial <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a
-                  href="https://wa.me/919473807622?text=Hi%2C%20Electronics%20Billing%20Software%20ka%20demo%20chahiye"
+                  href="https://wa.me/919473807622?text=Hi%2C%20I%20want%20a%20demo%20of%20UdyogBill%20Electronics%20Billing%20Software"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 font-bold px-6 py-3 rounded-xl border-2 transition-all hover:bg-green-50"
-                  style={{ borderColor: "#25D366", color: "#16a34a" }}
+                  className="inline-flex items-center gap-2 font-bold px-5 py-2.5 rounded-xl text-emerald-800 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-xs sm:text-sm transition-all shadow-2xs"
                 >
-                  <MessageCircle className="w-4 h-4" /> WhatsApp Demo
+                  <MessageCircle className="w-4 h-4 text-emerald-600" /> Live Electronics Demo
                 </a>
               </div>
             </div>
 
-            {/* Pain Points Solved */}
-            <div className="rounded-2xl p-6 shadow-sm" style={{ background: "linear-gradient(135deg,#2563eb12,#16a34a12)" }}>
-              <h3 className="font-bold text-gray-800 mb-4" style={{ fontFamily: "Poppins,sans-serif" }}>
-                Electronics Dukandar Ki Pareshaniyon Ka Solution:
+            {/* Pain Point vs Solution Card */}
+            <div className="lg:col-span-5 rounded-2xl p-5 border-2 border-orange-200 bg-orange-50/40">
+              <h3 className="font-black text-slate-950 mb-3 text-sm sm:text-base">
+                Electronics Shop Friction Solved:
               </h3>
-              <div className="space-y-3">
-                {[
-                  [
-                    "IMEI aur serial number bill par manually type karna padta tha",
-                    "Barcode/IMEI scanner se 1 second mein scan aur invoice generate.",
-                  ],
-                  [
-                    "Customer purana bill kho deta tha, warranty claim mein vivad hota tha",
-                    "IMEI number daal kar kisi bhi bill aur warranty ki history 2 second mein nikalein.",
-                  ],
-                  [
-                    "Repair job work aur parts replacement ka hisaab ulajh jaata tha",
-                    "Job Sheet print karein, spare parts auto-deduct honge aur SMS update jayega.",
-                  ],
-                ].map(([p, s]) => (
-                  <div key={p} className="bg-white rounded-xl p-4 shadow-2xs border border-gray-100">
-                    <div className="text-xs text-red-500 mb-1 font-medium">âŒ {p}</div>
-                    <div className="text-sm font-semibold text-gray-800 flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#16a34a" }} />
-                      {s}
+              <div className="space-y-2.5">
+                {painPoints.map((item) => (
+                  <div key={item.problem} className="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs">
+                    <div className="text-[11px] text-red-600 font-bold mb-0.5">⚠️ {item.problem}</div>
+                    <div className="text-xs font-semibold text-slate-800 flex items-start gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
+                      <span>{item.solution}</span>
                     </div>
                   </div>
                 ))}
@@ -145,83 +145,65 @@ export default function ElectronicsIndustryPage() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-16 bg-white">
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3" style={{ fontFamily: "Poppins,sans-serif" }}>
-              Electronics Retailers Ke Liye Special Features
+      {/* ── Specialized Capabilities ── */}
+      <section className="py-4 sm:py-6">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+          <div className="max-w-2xl mb-6">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-950 mb-1.5">
+              Engineered for Mobile Dealers, Showrooms & Service Centers
             </h2>
-            <p className="text-gray-600 text-sm">
-              Har phone, laptop, TV aur accessory ka hisaab 100% accurate aur compliant.
+            <p className="text-xs sm:text-sm text-slate-600">
+              Complete tracking from showroom purchase to customer warranty claim and post-sale service.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="p-6 rounded-2xl border border-gray-100 bg-white hover:shadow-lg transition-all hover:-translate-y-1"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div key={f.title} className="flex items-start gap-3.5 p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-orange-300 hover:shadow-sm transition-all">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-orange-200 bg-orange-50 text-orange-600">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-950 text-sm sm:text-base mb-1">{f.title}</h3>
+                    <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">{f.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Related Verticals & SEO Links ── */}
+      <section className="py-6 sm:pb-8 border-t border-slate-200 bg-slate-50/50">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-black text-slate-950">Explore Other Industry Modules:</h4>
+              <p className="text-xs text-slate-600">Specialized billing solutions for other retail verticals.</p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {relatedIndustries.map((ind) => (
+                <Link
+                  key={ind.name}
+                  href={ind.href}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-xs hover:border-orange-400 hover:text-orange-600 transition-all shadow-2xs"
+                >
+                  {ind.name}
+                </Link>
+              ))}
+              <Link
+                href="/pricing"
+                className="px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-300 text-orange-800 font-bold text-xs hover:bg-orange-100 transition-all"
               >
-                <div className="text-3xl mb-3">{f.icon}</div>
-                <h3 className="font-bold text-gray-900 text-base mb-2" style={{ fontFamily: "Poppins,sans-serif" }}>
-                  {f.title}
-                </h3>
-                <p className="text-gray-500 text-xs leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
+                View Pricing Plans →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
-
-      {/* FAQ Section */}
-      <section className="py-16 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-8" style={{ fontFamily: "Poppins,sans-serif" }}>
-            Aksar Pooche Jaane Wale Sawaal (FAQ)
-          </h2>
-          <div className="space-y-4">
-            {[
-              {
-                q: "Kya ek bill par multiple IMEI print ho sakte hain?",
-                a: "Haan, UdyogBill mein single aur dual IMEI smartphones, tablets aur laptops ke sabhi serial numbers invoice par clearly print hote hain.",
-              },
-              {
-                q: "Bajaj Finserv ya Credit Card EMI billing kaise manage hoti hai?",
-                a: "Payment section mein Split Payment option hai, jahan aap Cash + Finance company ka ref number aur approval code ek sath record kar sakte hain.",
-              },
-              {
-                q: "Kya mobile repair workshop ke liye alag se software lena hoga?",
-                a: "Bilkul nahi! UdyogBill Electronics Edition mein Repair Job Sheet aur technician assignment built-in hai.",
-              },
-            ].map((faq, i) => (
-              <div key={i} className="bg-white rounded-xl p-5 border border-gray-200">
-                <h4 className="font-bold text-gray-800 text-sm mb-1">{faq.q}</h4>
-                <p className="text-gray-600 text-xs leading-relaxed">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-16 text-center" style={{ background: "linear-gradient(135deg,#1e3a8a,#2563eb)" }}>
-        <div className="max-w-3xl mx-auto px-6 text-white">
-          <h2 className="text-3xl font-extrabold mb-4" style={{ fontFamily: "Poppins,sans-serif" }}>
-            Apne Electronics Vyapar Ko Aaj Hi Digital Banayein
-          </h2>
-          <p className="text-blue-100 text-sm mb-8">
-            14 din ka free trial shuru karein. Koi credit card zaroori nahi.
-          </p>
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 bg-white text-blue-600 font-bold px-8 py-3.5 rounded-xl shadow-lg hover:bg-gray-100 transition-all text-sm"
-          >
-            Free Trial Shuru Karo â†’
-          </Link>
-        </div>
-      </section>
-    </>
+    </div>
   );
 }
-

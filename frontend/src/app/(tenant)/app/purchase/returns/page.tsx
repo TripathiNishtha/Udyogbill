@@ -289,79 +289,80 @@ export default function PurchaseReturnsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border shadow-xs">
         <div className="flex items-center space-x-3">
-          <div className="p-3 bg-rose-600/20 border border-rose-500/30 rounded-xl text-rose-400">
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-600 dark:text-rose-400">
             <RotateCcw className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Purchase Returns &amp; Debit Notes</h1>
-            <p className="text-sm text-slate-400">Real-time PostgreSQL transactions: warehouse stock reduction &amp; supplier ledger debit</p>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Purchase Returns &amp; Debit Notes</h1>
+            <p className="text-sm text-muted-foreground">Real-time PostgreSQL transactions: warehouse stock reduction &amp; supplier ledger debit</p>
           </div>
         </div>
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium shadow-lg shadow-rose-600/20 transition"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold shadow-md shadow-rose-600/20 transition cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>+ Issue Supplier Debit Note</span>
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-950/80 text-xs uppercase text-slate-400 font-semibold border-b border-slate-800 tracking-wider">
+          <table className="w-full text-left text-sm text-foreground">
+            <thead className="bg-surface-muted text-xs uppercase text-muted-foreground font-bold border-b border-border tracking-wider">
               <tr>
-                <th className="py-3.5 px-4">Debit Note #</th>
-                <th className="py-3.5 px-4">Date</th>
-                <th className="py-3.5 px-4">Supplier</th>
-                <th className="py-3.5 px-4">Orig. Bill #</th>
-                <th className="py-3.5 px-4">Reason</th>
-                <th className="py-3.5 px-4 text-right">Taxable</th>
-                <th className="py-3.5 px-4 text-right">Debit Total</th>
-                <th className="py-3.5 px-4 text-center">Actions</th>
+                <th className="py-3.5 px-4 font-bold text-foreground">Debit Note #</th>
+                <th className="py-3.5 px-4 font-bold text-foreground">Date</th>
+                <th className="py-3.5 px-4 font-bold text-foreground">Supplier</th>
+                <th className="py-3.5 px-4 font-bold text-foreground">Orig. Bill #</th>
+                <th className="py-3.5 px-4 font-bold text-foreground">Reason</th>
+                <th className="py-3.5 px-4 text-right font-bold text-foreground">Taxable</th>
+                <th className="py-3.5 px-4 text-right font-bold text-foreground">Debit Total</th>
+                <th className="py-3.5 px-4 text-center font-bold text-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+            <tbody className="divide-y divide-border font-mono text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 font-sans">
-                    Loading verified debit notes from database...
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground font-sans">
+                    <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-rose-600 mb-2"></div>
+                    <div>Loading verified debit notes from database...</div>
                   </td>
                 </tr>
               ) : returns.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 font-sans">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground font-sans">
                     No purchase returns found in database. Click &ldquo;+ Issue Supplier Debit Note&rdquo; to process your first return.
                   </td>
                 </tr>
               ) : (
                 returns.map((ret) => (
-                  <tr key={ret.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-rose-400">{ret.debitNoteNumber}</td>
-                    <td className="py-3.5 px-4 font-sans text-slate-300">{new Date(ret.returnDate).toLocaleDateString()}</td>
-                    <td className="py-3.5 px-4 font-sans font-semibold text-white">{ret.supplierName}</td>
-                    <td className="py-3.5 px-4 text-slate-400">{ret.originalBillNumber || "-"}</td>
+                  <tr key={ret.id} className="hover:bg-surface-muted/60 transition">
+                    <td className="py-3.5 px-4 font-bold text-rose-600 dark:text-rose-400">{ret.debitNoteNumber}</td>
+                    <td className="py-3.5 px-4 font-sans text-muted-foreground">{new Date(ret.returnDate).toLocaleDateString()}</td>
+                    <td className="py-3.5 px-4 font-sans font-semibold text-foreground">{ret.supplierName}</td>
+                    <td className="py-3.5 px-4 text-muted-foreground">{ret.originalBillNumber || "-"}</td>
                     <td className="py-3.5 px-4 font-sans">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                         {ret.returnReason}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">₹{ret.subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-                    <td className="py-3.5 px-4 text-right font-bold text-white">
+                    <td className="py-3.5 px-4 text-right text-foreground">₹{ret.subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                    <td className="py-3.5 px-4 text-right font-bold text-foreground">
                       ₹{ret.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button
                         onClick={() => printDebitNote(ret)}
                         title="Print Debit Note Voucher"
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition inline-flex items-center space-x-1"
+                        className="p-1.5 rounded-lg bg-surface-muted hover:bg-surface-elevated border border-border text-foreground transition inline-flex items-center space-x-1 cursor-pointer"
                       >
                         <Printer className="w-3.5 h-3.5" />
-                        <span className="font-sans text-[11px]">Print</span>
+                        <span className="font-sans text-[11px] font-semibold">Print</span>
                       </button>
                     </td>
                   </tr>
@@ -374,14 +375,14 @@ export default function PurchaseReturnsPage() {
 
       {/* Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <RotateCcw className="w-5 h-5 text-rose-400" />
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="w-full max-w-3xl bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center space-x-2 text-foreground font-bold text-base">
+                <RotateCcw className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                 <span>+ Issue Vendor Debit Note (Return Goods)</span>
               </div>
-              <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
+              <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -389,11 +390,11 @@ export default function PurchaseReturnsPage() {
             <form onSubmit={handleCreateReturn} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Supplier *</label>
+                  <label className="text-foreground font-semibold block mb-1">Supplier *</label>
                   <select
                     value={selectedSupplierId}
                     onChange={(e) => setSelectedSupplierId(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-foreground focus:outline-none focus:border-rose-500 font-medium text-xs"
                   >
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -404,23 +405,23 @@ export default function PurchaseReturnsPage() {
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Original Vendor Bill # *</label>
+                  <label className="text-foreground font-semibold block mb-1">Original Vendor Bill # *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. PB-2627-00001"
                     value={origBillNum}
                     onChange={(e) => setOrigBillNum(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-foreground font-mono focus:outline-none focus:border-rose-500 text-xs font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Return Reason</label>
+                  <label className="text-foreground font-semibold block mb-1">Return Reason</label>
                   <select
                     value={returnReason}
                     onChange={(e) => setReturnReason(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-foreground focus:outline-none focus:border-rose-500 font-medium text-xs"
                   >
                     <option value="Defective">Defective / Rejected</option>
                     <option value="Expired">Near Expiry / Expired</option>
@@ -432,11 +433,11 @@ export default function PurchaseReturnsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Deduct from Warehouse *</label>
+                  <label className="text-foreground font-semibold block mb-1">Deduct from Warehouse *</label>
                   <select
                     value={selectedWarehouseId}
                     onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-foreground focus:outline-none focus:border-rose-500 font-medium text-xs"
                   >
                     {warehouses.map((w) => (
                       <option key={w.id} value={w.id}>
@@ -447,27 +448,27 @@ export default function PurchaseReturnsPage() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="text-slate-300 font-semibold block mb-1">Notes / Remarks</label>
+                  <label className="text-foreground font-semibold block mb-1">Notes / Remarks</label>
                   <input
                     type="text"
                     placeholder="Optional return notes..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-foreground focus:outline-none focus:border-rose-500 text-xs"
                   />
                 </div>
               </div>
 
               {/* Line Items */}
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+              <div className="p-3.5 bg-surface-muted/60 rounded-xl border border-border space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider block">
                     Items to Return &amp; Debit
                   </span>
                   <button
                     type="button"
                     onClick={addLine}
-                    className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 text-xs font-semibold"
+                    className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-xs font-semibold cursor-pointer"
                   >
                     + Add Item
                   </button>
@@ -476,11 +477,11 @@ export default function PurchaseReturnsPage() {
                 {lineItems.map((line, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center">
                     <div className="col-span-5">
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Item</label>
+                      <label className="text-[10px] text-muted-foreground font-semibold block mb-0.5">Item</label>
                       <select
                         value={line.itemId}
                         onChange={(e) => handleItemSelect(idx, e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:outline-none"
+                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-foreground text-xs focus:outline-none font-medium"
                       >
                         {items.map((i) => (
                           <option key={i.id} value={i.id}>
@@ -491,31 +492,31 @@ export default function PurchaseReturnsPage() {
                     </div>
 
                     <div className="col-span-2">
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Qty</label>
+                      <label className="text-[10px] text-muted-foreground font-semibold block mb-0.5">Qty</label>
                       <input
                         type="number"
                         min="1"
                         placeholder="Qty"
                         value={line.returnQuantity}
                         onChange={(e) => handleQtyChange(idx, parseInt(e.target.value) || 1)}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-white font-mono text-center text-xs focus:outline-none"
+                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-foreground font-mono font-semibold text-center text-xs focus:outline-none"
                       />
                     </div>
 
                     <div className="col-span-2">
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Rate (₹)</label>
+                      <label className="text-[10px] text-muted-foreground font-semibold block mb-0.5">Rate (₹)</label>
                       <input
                         type="number"
                         step="0.01"
                         value={line.rate}
                         onChange={(e) => handleRateChange(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-white font-mono text-right text-xs focus:outline-none"
+                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-foreground font-mono font-semibold text-right text-xs focus:outline-none"
                       />
                     </div>
 
                     <div className="col-span-2 text-right">
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Total</label>
-                      <span className="font-mono font-bold text-rose-400 text-xs inline-block pt-1">
+                      <label className="text-[10px] text-muted-foreground font-semibold block mb-0.5">Total</label>
+                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs inline-block pt-1">
                         ₹{line.amount.toFixed(2)}
                       </span>
                     </div>
@@ -525,7 +526,7 @@ export default function PurchaseReturnsPage() {
                         type="button"
                         onClick={() => removeLine(idx)}
                         disabled={lineItems.length === 1}
-                        className="text-slate-500 hover:text-rose-400 disabled:opacity-30"
+                        className="text-muted-foreground hover:text-rose-600 disabled:opacity-30 cursor-pointer"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -533,24 +534,24 @@ export default function PurchaseReturnsPage() {
                   </div>
                 ))}
 
-                <div className="pt-2 border-t border-slate-800 flex justify-between font-mono font-bold text-xs text-white">
+                <div className="pt-2 border-t border-border flex justify-between font-mono font-bold text-xs text-foreground">
                   <span>Grand Total Debit Note:</span>
-                  <span className="text-rose-400">₹{grandTotal.toFixed(2)}</span>
+                  <span className="text-rose-600 dark:text-rose-400 font-bold">₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex justify-end space-x-2">
+              <div className="pt-3 border-t border-border flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold"
+                  className="px-4 py-2 bg-surface-muted hover:bg-surface border border-border text-foreground rounded-xl text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-600/30"
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/30 cursor-pointer"
                 >
                   {submitting ? "Processing..." : "Issue Debit Note (Persist to DB)"}
                 </button>

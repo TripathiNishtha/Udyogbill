@@ -199,7 +199,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* In-Article Conversion CTA Box */}
         <div className="my-10 p-6 sm:p-8 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600 text-white rounded-2xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center sm:text-left">
-            <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-black/20 text-white">
+            <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-white/20 text-white border border-white/30">
               Try It In Your Business
             </span>
             <h2 className="text-xl sm:text-2xl font-bold">Billing aur Stock Sambhalein</h2>
@@ -216,7 +216,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             </Link>
             <Link
               href="/pricing"
-              className="w-full sm:w-auto px-4 py-3 bg-black/20 hover:bg-black/30 text-white font-semibold rounded-xl text-xs text-center border border-white/30 transition-all"
+              className="w-full sm:w-auto px-4 py-3 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-xl text-xs text-center border border-white/30 transition-all"
             >
               See Pricing
             </Link>

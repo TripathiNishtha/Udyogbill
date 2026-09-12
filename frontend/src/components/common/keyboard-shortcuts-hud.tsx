@@ -30,10 +30,10 @@ export function KeyboardShortcutsHud() {
 
   return (
     <>
-      {/* Floating Bottom Right Trigger */}
+      {/* Floating Bottom Right Trigger (Desktop only) */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-5 right-22 z-40 px-3 py-2.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold flex items-center space-x-2 shadow-xl backdrop-blur-md transition group"
+        className="hidden sm:flex fixed bottom-5 right-22 z-40 px-3 py-2.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold items-center space-x-2 shadow-xl backdrop-blur-md transition group"
         title="Press F1 for ERP Keyboard Shortcuts"
       >
         <Keyboard className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition" />

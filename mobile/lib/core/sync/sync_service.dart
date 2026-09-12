@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import '../database/app_database.dart';
 import '../database/daos/item_dao.dart';
+import '../database/daos/party_dao.dart';
 import '../database/daos/sfa_dao.dart';
 import '../network/api_client.dart';
 
 class SyncService {
   final ApiClient _apiClient = ApiClient();
   final ItemDao _itemDao = ItemDao();
+  final PartyDao _partyDao = PartyDao();
   final SfaDao _sfaDao = SfaDao();
 
   Future<Database> get _db async => await AppDatabase.instance.database;
@@ -16,7 +18,7 @@ class SyncService {
   Future<int> syncCatalogFromWeb() async {
     try {
       final response = await _apiClient.get('/tenant/items', queryParameters: {
-        'page': 1,
+        'pageNumber': 1,
         'pageSize': 1000,
       });
 
@@ -33,6 +35,43 @@ class SyncService {
       // In offline mode, continue using local SQLite database smoothly
     }
     return 0;
+  }
+
+  /// Pulls registered customers and suppliers from UdyogBill backend into SQLite
+  Future<int> syncPartiesFromWeb() async {
+    int count = 0;
+    try {
+      // 1. Sync Customers
+      final custRes = await _apiClient.get('/tenant/customers', queryParameters: {
+        'pageNumber': 1,
+        'pageSize': 1000,
+      });
+      if (custRes.statusCode == 200 && custRes.data != null) {
+        final List custJson = custRes.data['items'] ?? custRes.data['data'] ?? [];
+        final parties = custJson.map((j) => PartyModel.fromJson(j)).toList();
+        if (parties.isNotEmpty) {
+          await _partyDao.upsertParties(parties);
+          count += parties.length;
+        }
+      }
+
+      // 2. Sync Suppliers
+      final suppRes = await _apiClient.get('/tenant/suppliers', queryParameters: {
+        'pageNumber': 1,
+        'pageSize': 1000,
+      });
+      if (suppRes.statusCode == 200 && suppRes.data != null) {
+        final List suppJson = suppRes.data['items'] ?? suppRes.data['data'] ?? [];
+        final parties = suppJson.map((j) => PartyModel.fromJson(j)).toList();
+        if (parties.isNotEmpty) {
+          await _partyDao.upsertParties(parties);
+          count += parties.length;
+        }
+      }
+    } catch (_) {
+      // Keep existing local parties
+    }
+    return count;
   }
 
   /// Pulls assigned Doctors, Chemist Beats, Sample Balances, and Trade Schemes into SQLite
@@ -110,6 +149,40 @@ class SyncService {
       'endpoint': '/tenant/invoices',
       'method': 'POST',
       'payloadJson': jsonEncode(invoicePayload),
+      'attempts': 0,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Queues an offline-created payment-in receipt to sync_queue
+  Future<void> queueOfflinePayment({
+    required String paymentId,
+    required Map<String, dynamic> paymentPayload,
+  }) async {
+    final db = await _db;
+    await db.insert('sync_queue', {
+      'id': paymentId,
+      'action': 'CREATE_PAYMENT',
+      'endpoint': '/tenant/payments',
+      'method': 'POST',
+      'payloadJson': jsonEncode(paymentPayload),
+      'attempts': 0,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Queues an offline-created sales return (credit note) to sync_queue
+  Future<void> queueOfflineSalesReturn({
+    required String returnId,
+    required Map<String, dynamic> returnPayload,
+  }) async {
+    final db = await _db;
+    await db.insert('sync_queue', {
+      'id': returnId,
+      'action': 'CREATE_SALES_RETURN',
+      'endpoint': '/tenant/sales-returns',
+      'method': 'POST',
+      'payloadJson': jsonEncode(returnPayload),
       'attempts': 0,
       'createdAt': DateTime.now().toIso8601String(),
     });

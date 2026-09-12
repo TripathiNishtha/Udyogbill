@@ -12,6 +12,7 @@ class AppConstants {
   static const String keyUserRole = "udyogbill_user_role";
   static const String keyApiUrl = "udyogbill_custom_api_url";
   static const String keyLastSyncTimestamp = "udyogbill_last_sync_timestamp";
+  static const String keyStoreUpiId = "udyogbill_store_upi_id";
 
   // Indian Business Defaults
   static const String currencySymbol = "₹";

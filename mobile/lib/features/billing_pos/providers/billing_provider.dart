@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
+import '../../../app/constants/app_constants.dart';
 import '../../../core/database/daos/item_dao.dart';
 import '../../../core/database/daos/invoice_dao.dart';
 import '../../../core/database/daos/party_dao.dart';
@@ -125,6 +127,9 @@ class BillingNotifier extends StateNotifier<BillingState> {
     state = state.copyWith(isSubmitting: true);
 
     try {
+      const storage = FlutterSecureStorage();
+      final activeTenantId = await storage.read(key: AppConstants.keyTenantId) ?? '';
+
       final invoiceId = const Uuid().v4();
       final invoiceNumber = "INV-POS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}";
       final nowStr = DateTime.now().toIso8601String();
@@ -136,7 +141,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
         final partyDao = PartyDao();
         await partyDao.insertParty(PartyModel(
           id: partyId,
-          tenantId: 'demo-tenant',
+          tenantId: activeTenantId,
           name: state.customerName.isEmpty ? 'Walk-in Customer' : state.customerName,
           phone: state.customerPhone,
           partyType: 1,
@@ -147,7 +152,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
 
       final invoiceModel = InvoiceModel(
         id: invoiceId,
-        tenantId: 'demo-tenant',
+        tenantId: activeTenantId,
         invoiceNumber: invoiceNumber,
         invoiceDate: nowStr.substring(0, 10),
         partyId: partyId,

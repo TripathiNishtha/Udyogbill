@@ -755,35 +755,35 @@ export default function TenantItemsCatalogPage() {
 
       {/* Add Product Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-6 space-y-5 shadow-2xl relative my-4 sm:my-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-4xl w-full p-5 sm:p-7 space-y-6 shadow-2xl relative my-4 sm:my-6">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+            {/* Modal Top Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-inner">
                   {form.itemType === 2 ? (
-                    <>
-                      <Wrench className="w-5 h-5 text-amber-500" />
-                      <span>Add Service to Catalog</span>
-                    </>
+                    <Wrench className="w-5 h-5 text-amber-500" />
                   ) : (
-                    <>
-                      <Boxes className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                      <span>Add Product to Master Catalog</span>
-                    </>
+                    <Boxes className="w-5 h-5" />
                   )}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {form.itemType === 2
-                    ? "Services, consultations, repairs, AMC, and labor (No physical stock balances)."
-                    : `Physical products & goods for ${profile?.industryName || "your enterprise"}.`}
-                </p>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>{form.itemType === 2 ? "Add Service to Catalog" : "Add Product to Master Catalog"}</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {form.itemType === 2
+                      ? "Services, consultations, repairs, AMC, and labor (No physical stock balances)."
+                      : `Physical products & goods for ${profile?.industryName || "your enterprise"}.`}
+                  </p>
+                </div>
               </div>
 
               {/* Segmented Type Toggle */}
@@ -791,7 +791,7 @@ export default function TenantItemsCatalogPage() {
                 <button
                   type="button"
                   onClick={() => setForm((prev) => ({ ...prev, itemType: 1, trackInventory: true }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
                     (form.itemType || 1) === 1
                       ? "bg-indigo-600 text-white shadow"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -812,7 +812,7 @@ export default function TenantItemsCatalogPage() {
                       initialStock: 0,
                     }))
                   }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
                     form.itemType === 2
                       ? "bg-amber-600 text-white shadow"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -824,615 +824,1027 @@ export default function TenantItemsCatalogPage() {
               </div>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              {/* Basic Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div className="sm:col-span-4 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">SKU / Item Code</label>
-                    <button
-                      type="button"
-                      onClick={() => setForm((prev) => ({ ...prev, sku: generateAutoSku(prev.name) }))}
-                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                      title="Auto-generate unique SKU"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      <span>Auto Generate</span>
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder={form.itemType === 2 ? "e.g. SRV-001" : "Leave blank to auto-generate"}
-                    value={form.sku}
-                    onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  />
-                </div>
-                <div className={form.itemType === 2 ? "sm:col-span-8 space-y-1" : "sm:col-span-5 space-y-1"}>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {form.itemType === 2 ? "Service / Labor / Fee Name *" : "Product Name *"}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={
-                      form.itemType === 2
-                        ? "e.g. GST Compliance Advisory / Hardware Repair Charges"
-                        : "e.g. Augmentin 625 Duo Tablet / T-Shirt Cotton Round Neck"
-                    }
-                    value={form.name}
-                    onChange={(e) => {
-                      const newName = e.target.value;
-                      setForm((prev) => ({
-                        ...prev,
-                        name: newName,
-                        sku: prev.sku ? prev.sku : generateAutoSku(newName),
-                      }));
-                    }}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 font-medium"
-                  />
-                </div>
-                {form.itemType !== 2 && (
-                  <div className="sm:col-span-3 space-y-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Barcode / EAN</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 8901234567890"
-                      value={form.barcode || ""}
-                      onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Categorization & Units */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Category</label>
-                  <select
-                    value={form.categoryId || ""}
-                    onChange={(e) => setForm({ ...form, categoryId: e.target.value || undefined })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  >
-                    <option value="">None</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Brand / Maker</label>
-                    <button
-                      type="button"
-                      onClick={() => setIsBrandModalOpen(true)}
-                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center space-x-0.5 transition-colors cursor-pointer"
-                      title="Add New Brand / Maker"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Add Brand</span>
-                    </button>
-                  </div>
-                  <select
-                    value={form.brandId || ""}
-                    onChange={(e) => setForm({ ...form, brandId: e.target.value || undefined })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  >
-                    <option value="">Generic</option>
-                    {brands.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Primary UOM *</label>
-                    <button
-                      type="button"
-                      onClick={() => setIsUomModalOpen(true)}
-                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center space-x-0.5 transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Custom UOM</span>
-                    </button>
-                  </div>
-                  <select
-                    value={form.primaryUomId}
-                    onChange={(e) => setForm({ ...form, primaryUomId: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  >
-                    {units.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {form.itemType === 2 ? "SAC Code (Services) *" : "HSN / SAC Code"}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={form.itemType === 2 ? "e.g. 998311" : "e.g. 3004"}
-                    value={form.hsnCode || ""}
-                    onChange={(e) => setForm({ ...form, hsnCode: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  />
-                </div>
-              </div>
-
-              {/* Pricing Section: Retail Rate & Wholesale Rate Separate */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
-                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Pricing &amp; Multi-Tier Rates (₹)</span>
-                  </div>
-
-                  {/* GST Tax Mode Toggle: Without GST (Exclusive) vs With GST (Inclusive) */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Rates are:</span>
-                    <div className="inline-flex rounded-lg p-0.5 bg-slate-200/80 dark:bg-slate-800 border border-slate-300 dark:border-slate-700">
-                      <button
-                        type="button"
-                        onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: false }))}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
-                          !form.isTaxInclusive
-                            ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                        }`}
-                      >
-                        Without GST (Exclusive)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: true }))}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
-                          form.isTaxInclusive
-                            ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                        }`}
-                      >
-                        With GST (Inclusive)
-                      </button>
+            <form onSubmit={handleCreateSubmit} className="space-y-5">
+              {/* ─── SECTION 1: CORE DETAILS & IDENTIFICATION ─────────────────────── */}
+              {form.itemType === 2 ? (
+                /* SERVICE IDENTITY CARD */
+                <div className="bg-amber-50/40 dark:bg-slate-950/60 border border-amber-200/80 dark:border-amber-900/40 rounded-2xl p-4.5 space-y-4 shadow-2xs">
+                  <div className="flex items-center justify-between border-b border-amber-200/60 dark:border-slate-800 pb-2.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-400 uppercase tracking-wider">
+                      <Wrench className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>Service / Labor Specification</span>
                     </div>
+                    <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-800">
+                      Step 1 • Service Details
+                    </span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Purchase Rate (₹)</span>
-                      <span className={`text-[10px] font-bold ${form.isTaxInclusive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"}`}>
-                        {form.isTaxInclusive ? "With GST" : "Without GST"}
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={form.purchasePrice || ""}
-                      onChange={(e) => setForm({ ...form, purchasePrice: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
-                      <span>Retail Rate (₹) *</span>
-                      <span className={`text-[10px] font-bold ${form.isTaxInclusive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"}`}>
-                        {form.isTaxInclusive ? "With GST" : "Without GST"}
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={form.sellingPrice || ""}
-                      onChange={(e) => setForm({ ...form, sellingPrice: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border-2 border-emerald-500/60 rounded-lg text-xs text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 flex items-center justify-between">
-                      <span>Wholesale Rate (₹)</span>
-                      <span className={`text-[10px] font-bold ${form.isTaxInclusive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500"}`}>
-                        {form.isTaxInclusive ? "With GST" : "Without GST"}
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={form.minimumSellingPrice || ""}
-                      onChange={(e) => setForm({ ...form, minimumSellingPrice: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border-2 border-indigo-500/60 rounded-lg text-xs text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>MRP (₹)</span>
-                      <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                        Max / With GST
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={form.mrp || ""}
-                      onChange={(e) => setForm({ ...form, mrp: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                    />
-                  </div>
-                  <div className="space-y-1 col-span-2 sm:col-span-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">GST Rate (%)</label>
-                    <select
-                      value={form.taxRate}
-                      onChange={(e) => setForm({ ...form, taxRate: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 font-semibold"
-                    >
-                      <option value="0">0% (Exempt)</option>
-                      <option value="5">5% GST</option>
-                      <option value="12">12% GST</option>
-                      <option value="18">18% GST</option>
-                      <option value="28">28% GST</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Calculation helper preview */}
-                {Number(form.taxRate || 0) > 0 && (Number(form.sellingPrice || 0) > 0 || Number(form.purchasePrice || 0) > 0) && (() => {
-                  const sp = Number(form.sellingPrice || 0);
-                  const tr = Number(form.taxRate || 0);
-                  const isIncl = Boolean(form.isTaxInclusive);
-                  const basic = isIncl ? sp / (1 + tr / 100) : sp;
-                  const gstAmt = isIncl ? sp - basic : (sp * tr) / 100;
-                  const total = isIncl ? sp : sp + gstAmt;
-
-                  return (
-                    <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600 dark:text-slate-400 border-t border-slate-200/60 dark:border-slate-800">
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">
-                        💡 Rate Preview ({tr}% GST):
-                      </span>
-                      {sp > 0 && (
-                        <span>
-                          Retail:{" "}
-                          <strong className="text-emerald-600 dark:text-emerald-400">
-                            ₹{sp.toFixed(2)} {isIncl ? "(incl. GST)" : "(excl. GST)"}
-                          </strong>
-                          {" → "}
-                          {isIncl ? (
-                            <>Basic: ₹{basic.toFixed(2)} + GST: ₹{gstAmt.toFixed(2)}</>
-                          ) : (
-                            <>+ GST ₹{gstAmt.toFixed(2)} = Total ₹{total.toFixed(2)}</>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Additional Inventory & Storage Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Min Stock Alert Level (Qty)</label>
-                  <input
-                    type="number"
-                    placeholder="5"
-                    value={form.minimumStockAlert || ""}
-                    onChange={(e) => setForm({ ...form, minimumStockAlert: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Rack / Shelf / Location</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Rack A-12, Bin 4"
-                    value={form.rackLocation || ""}
-                    onChange={(e) => setForm({ ...form, rackLocation: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Short Description / Notes</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Strip of 10 Tablets"
-                    value={form.shortDescription || ""}
-                    onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
-                  />
-                </div>
-              </div>
-
-              {/* Dynamic Industry Schema Fields */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-3">
-                <div className="text-xs font-bold text-indigo-700 dark:text-indigo-400 flex items-center space-x-1.5">
-                  <Sliders className="w-4 h-4" />
-                  <span>Dynamic Industry Attributes ({profile?.industryName})</span>
-                </div>
-
-                {profile?.industryCode === "PHARMA" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Drug Schedule</label>
-                      <select
-                        value={pharmaSchedule}
-                        onChange={(e) => setPharmaSchedule(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                      >
-                        <option value="None">None (OTC)</option>
-                        <option value="Schedule H">Schedule H (Prescription)</option>
-                        <option value="Schedule H1">Schedule H1 (Controlled Register)</option>
-                        <option value="Schedule X">Schedule X (Narcotic)</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Active Salt / Composition</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Amoxicillin + Clavulanate"
-                        value={pharmaSalt}
-                        onChange={(e) => setPharmaSalt(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {(profile?.industryCode === "APPAREL" || profile?.industryCode === "FOOTWEAR") && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Size</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. M, L, XL, 42"
-                        value={apparelSize}
-                        onChange={(e) => setApparelSize(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Color</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Navy Blue"
-                        value={apparelColor}
-                        onChange={(e) => setApparelColor(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {profile?.industryCode === "FMCG_GROCERY" && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Net Weight / Volume</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 500g / 1 Litre"
-                      value={fmcgNetWeight}
-                      onChange={(e) => setFmcgNetWeight(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                    />
-                  </div>
-                )}
-
-                {/* Inventory Management Options - For Physical Goods Only */}
-                {form.itemType !== 2 && (
-                  <>
-                    <div className="p-3 bg-indigo-50/70 dark:bg-slate-900/80 border border-indigo-200/70 dark:border-slate-800 rounded-xl space-y-1.5 mt-2">
-                      <label className="flex items-center space-x-2 text-xs text-indigo-950 dark:text-indigo-300 font-bold cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={form.trackInventory !== false}
-                          onChange={(e) => setForm({ ...form, trackInventory: e.target.checked })}
-                          className="rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 w-4 h-4"
-                        />
-                        <span>Manage Inventory & Stock for this product?</span>
+                  {/* Row 1: Service Name & Service SKU */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                    <div className="sm:col-span-8 space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Service / Labor / Fee Name *
                       </label>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400 pl-6">
-                        {form.trackInventory !== false
-                          ? "Stock balances, reorder alerts, and warehouse ledger will be actively updated."
-                          : "Non-stock item (print on demand, custom made, daily consumables). Invoicing allowed without stock deduction."}
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. AC Repair & Servicing / Legal & Tax Consultation / Web Development AMC"
+                        value={form.name}
+                        onChange={(e) => {
+                          const newName = e.target.value;
+                          setForm((prev) => ({
+                            ...prev,
+                            name: newName,
+                            sku: prev.sku ? prev.sku : generateAutoSku(newName),
+                          }));
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 font-medium shadow-2xs transition"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-4 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Service Code / SKU</label>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, sku: generateAutoSku(prev.name) }))}
+                          className="text-[10px] text-amber-700 dark:text-amber-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                          title="Auto-generate service code"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>Auto Code</span>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g. SRV-001"
+                        value={form.sku}
+                        onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: SAC Code, Billing Unit, Category */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        SAC Code (Services) *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 998311 (IT/Consulting) or 9987 (Repairs)"
+                        value={form.hsnCode || ""}
+                        onChange={(e) => setForm({ ...form, hsnCode: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition"
+                      />
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Standard 6-digit SAC code for GST invoicing
                       </p>
                     </div>
 
-                    {form.trackInventory !== false && (
-                      <div className="flex items-center space-x-6 pt-1">
-                        <label className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={form.trackBatches}
-                            onChange={(e) => setForm({ ...form, trackBatches: e.target.checked })}
-                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-600"
-                          />
-                          <span>Track Batches & Expiry Dates</span>
-                        </label>
-
-                        <label className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={form.trackSerialNumbers}
-                            onChange={(e) => setForm({ ...form, trackSerialNumbers: e.target.checked })}
-                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-600"
-                          />
-                          <span>Track Serial / IMEI Numbers</span>
-                        </label>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Billing Unit (UOM) *</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsUomModalOpen(true)}
+                          className="text-[10px] text-amber-700 dark:text-amber-400 hover:underline font-bold flex items-center space-x-0.5 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Custom Unit</span>
+                        </button>
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Initial Stock Opening - Only when tracking inventory for physical products */}
-              {form.itemType !== 2 && form.trackInventory !== false && (
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
-                      <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span>Opening Stock Inward (Multi-Batch & Expiry Supported)</span>
-                    </div>
-                    <div className="flex items-center space-x-2.5">
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                        Total Stock:{" "}
-                        <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                          {openingBatches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0)}
-                        </strong>{" "}
-                        <span className="text-slate-500 dark:text-slate-400">
-                          {units.find((u) => u.id === form.primaryUomId)?.code || "Units"}
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleAddBatchRow}
-                        className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-600/30 border border-emerald-300 dark:border-emerald-500/30 rounded-lg text-[11px] font-semibold flex items-center space-x-1 transition-colors"
+                      <select
+                        value={form.primaryUomId}
+                        onChange={(e) => setForm({ ...form, primaryUomId: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add Batch Row</span>
-                      </button>
+                        {units.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.code})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        e.g. NOS, HOURS, DAYS, VISIT, JOB
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Service Category (Optional)</label>
+                      <select
+                        value={form.categoryId || ""}
+                        onChange={(e) => setForm({ ...form, categoryId: e.target.value || undefined })}
+                        className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition"
+                      >
+                        <option value="">None / General</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Group services into reports &amp; receipts
+                      </p>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
-                      <thead className="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-400 text-[11px] font-semibold uppercase border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th className="p-2 w-32">Warehouse</th>
-                          <th className="p-2 w-36">Batch Number</th>
-                          <th className="p-2 w-32">Expiry Date</th>
-                          <th className="p-2 w-24">Opening Qty</th>
-                          <th className="p-2 w-24">Cost Rate (₹)</th>
-                          <th className="p-2 w-24">MRP (₹)</th>
-                          <th className="p-2 w-10 text-center"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 bg-white dark:bg-slate-900/50">
-                        {openingBatches.map((batchRow, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                            <td className="p-1.5">
-                              <select
-                                value={batchRow.warehouseId}
-                                onChange={(e) => handleUpdateBatchRow(idx, "warehouseId", e.target.value)}
-                                className="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                              >
-                                <option value="">Default Warehouse</option>
-                                {allWarehouses.map((w) => (
-                                  <option key={w.id} value={w.id}>
-                                    {w.warehouseName} ({w.warehouseCode})
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="p-1.5">
-                              <input
-                                type="text"
-                                placeholder={form.trackBatches ? "e.g. BATCH-01" : "Batch (Optional)"}
-                                value={batchRow.batchNumber}
-                                onChange={(e) => handleUpdateBatchRow(idx, "batchNumber", e.target.value.toUpperCase())}
-                                className={`w-full px-2 py-1 bg-white dark:bg-slate-950 border rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none ${
-                                  form.trackBatches && !batchRow.batchNumber && Number(batchRow.quantity) > 0
-                                    ? "border-amber-500"
-                                    : "border-slate-300 dark:border-slate-800 focus:border-indigo-600"
-                                }`}
-                              />
-                            </td>
-                            <td className="p-1.5">
-                              <input
-                                type="date"
-                                value={batchRow.expiryDate}
-                                onChange={(e) => handleUpdateBatchRow(idx, "expiryDate", e.target.value)}
-                                className="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                              />
-                            </td>
-                            <td className="p-1.5">
-                              <input
-                                type="number"
-                                step="any"
-                                placeholder="0"
-                                value={batchRow.quantity}
-                                onChange={(e) => handleUpdateBatchRow(idx, "quantity", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-600"
-                              />
-                            </td>
-                            <td className="p-1.5">
-                              <input
-                                type="number"
-                                step="0.01"
-                                placeholder={form.purchasePrice ? String(form.purchasePrice) : "0.00"}
-                                value={batchRow.purchaseRate}
-                                onChange={(e) => handleUpdateBatchRow(idx, "purchaseRate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                              />
-                            </td>
-                            <td className="p-1.5">
-                              <input
-                                type="number"
-                                step="0.01"
-                                placeholder={form.mrp ? String(form.mrp) : "0.00"}
-                                value={batchRow.mrp}
-                                onChange={(e) => handleUpdateBatchRow(idx, "mrp", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
-                              />
-                            </td>
-                            <td className="p-1.5 text-center">
-                              {openingBatches.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveBatchRow(idx)}
-                                  className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                                  title="Delete Batch Row"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  {/* Row 3: Service Scope / Deliverables Description */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      Service Scope / Description (Printed on Invoice)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Includes on-site technician inspection, parts replacement labor, and 30-day warranty"
+                      value={form.shortDescription || ""}
+                      onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs transition"
+                    />
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                      💡 Multiple batches can have distinct expiry dates, warehouse allocations, and quantities.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => downloadMasterMigrationTemplate()}
-                      className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline font-medium flex items-center gap-1"
-                    >
-                      <FileSpreadsheet className="w-3 h-3" />
-                      <span>Download Multi-Sheet Excel Template to import in bulk</span>
-                    </button>
+                </div>
+              ) : (
+                /* PHYSICAL GOODS IDENTITY CARD */
+                <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-2.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                      <Tag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>Product Identity &amp; Basic Details</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                      Step 1 • Core Info
+                    </span>
+                  </div>
+
+                  {/* Row 1: Name & SKU */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                    <div className="sm:col-span-8 space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Product Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Augmentin 625 Duo Tablet / T-Shirt Cotton Round Neck"
+                        value={form.name}
+                        onChange={(e) => {
+                          const newName = e.target.value;
+                          setForm((prev) => ({
+                            ...prev,
+                            name: newName,
+                            sku: prev.sku ? prev.sku : generateAutoSku(newName),
+                          }));
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 font-medium shadow-2xs transition"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-4 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">SKU / Item Code</label>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, sku: generateAutoSku(prev.name) }))}
+                          className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                          title="Auto-generate unique SKU"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>Auto Generate</span>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Leave blank to auto-generate"
+                        value={form.sku}
+                        onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: Category, Brand, Primary UOM, HSN */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Category</label>
+                      <select
+                        value={form.categoryId || ""}
+                        onChange={(e) => setForm({ ...form, categoryId: e.target.value || undefined })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      >
+                        <option value="">None</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Brand / Maker</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsBrandModalOpen(true)}
+                          className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center space-x-0.5 cursor-pointer"
+                          title="Add New Brand / Maker"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Add Brand</span>
+                        </button>
+                      </div>
+                      <select
+                        value={form.brandId || ""}
+                        onChange={(e) => setForm({ ...form, brandId: e.target.value || undefined })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      >
+                        <option value="">Generic</option>
+                        {brands.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Primary UOM *</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsUomModalOpen(true)}
+                          className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center space-x-0.5 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Custom UOM</span>
+                        </button>
+                      </div>
+                      <select
+                        value={form.primaryUomId}
+                        onChange={(e) => setForm({ ...form, primaryUomId: e.target.value })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      >
+                        {units.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        HSN / SAC Code
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 3004"
+                        value={form.hsnCode || ""}
+                        onChange={(e) => setForm({ ...form, hsnCode: e.target.value })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 3: Barcode & Short Description */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 pt-1">
+                    <div className="sm:col-span-6 space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Barcode className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Barcode / EAN (Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Scan or type barcode, e.g. 8901234567890"
+                        value={form.barcode || ""}
+                        onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-6 space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Short Description / Packing Notes
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Strip of 10 Tablets"
+                        value={form.shortDescription || ""}
+                        onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center justify-end space-x-3 pt-2">
+              {/* ─── SECTION 2: PRICING & GST CONFIGURATION ───────────────────────── */}
+              {form.itemType === 2 ? (
+                /* SERVICE PRICING & FEE CARD */
+                <div className="bg-gradient-to-br from-amber-50/40 via-white to-slate-50/60 dark:from-slate-900/90 dark:via-slate-900 dark:to-slate-950 border border-amber-200/80 dark:border-amber-900/40 rounded-2xl p-4.5 space-y-4 shadow-2xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 flex items-center justify-center font-black shrink-0">
+                        <DollarSign className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <span>Service Fee &amp; GST Rates (₹)</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            Step 2 • Service Fee
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Set customer billing rate and technician / internal cost.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* GST Tax Mode Toggle */}
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Fee is:</span>
+                      <div className="inline-flex rounded-xl p-0.5 bg-slate-200/90 dark:bg-slate-800 border border-slate-300 dark:border-slate-700">
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: false }))}
+                          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                            !form.isTaxInclusive
+                              ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Without GST (Exclusive)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: true }))}
+                          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                            form.isTaxInclusive
+                              ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          With GST (Inclusive)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2 Tailored Price Cards for Services */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Primary Service Billing Fee */}
+                    <div className="p-3.5 bg-emerald-50/40 dark:bg-emerald-950/20 border-2 border-emerald-500/80 dark:border-emerald-500/50 rounded-xl space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                          Service Fee / Charge Rate (₹) *
+                        </label>
+                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full">
+                          Billed to Customer
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="0.00"
+                        value={form.sellingPrice || ""}
+                        onChange={(e) => setForm({ ...form, sellingPrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-lg text-sm text-emerald-950 dark:text-emerald-200 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                      <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+                        Standard rate charged per {units.find((u) => u.id === form.primaryUomId)?.code || "Unit / Job"}
+                      </div>
+                    </div>
+
+                    {/* Internal / Subcontractor Cost */}
+                    <div className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Internal Cost / Payout (₹) (Optional)
+                        </label>
+                        <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                          Technician / Expense
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={form.purchasePrice || ""}
+                        onChange={(e) => setForm({ ...form, purchasePrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white font-mono font-semibold focus:outline-none focus:border-amber-500 focus:bg-white"
+                      />
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        For profitability &amp; vendor expense reporting (Not printed on bill)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* GST Tax Slab & Calculation Preview */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1 border-t border-amber-100 dark:border-slate-800 items-center">
+                    <div className="sm:col-span-4 space-y-1">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        GST Tax Slab (%)
+                      </label>
+                      <select
+                        value={form.taxRate}
+                        onChange={(e) => setForm({ ...form, taxRate: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-amber-500 shadow-2xs"
+                      >
+                        <option value="18">18% GST Slab (Standard for Services)</option>
+                        <option value="0">0% (GST Exempted / Nil)</option>
+                        <option value="5">5% GST Slab</option>
+                        <option value="12">12% GST Slab</option>
+                        <option value="28">28% GST Slab</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-8">
+                      {Number(form.taxRate || 0) > 0 && (Number(form.sellingPrice || 0) > 0 || Number(form.purchasePrice || 0) > 0) ? (() => {
+                        const sp = Number(form.sellingPrice || 0);
+                        const tr = Number(form.taxRate || 0);
+                        const isIncl = Boolean(form.isTaxInclusive);
+                        const basic = isIncl ? sp / (1 + tr / 100) : sp;
+                        const gstAmt = isIncl ? sp - basic : (sp * tr) / 100;
+                        const total = isIncl ? sp : sp + gstAmt;
+
+                        return (
+                          <div className="p-2.5 bg-white dark:bg-slate-950 border border-amber-200 dark:border-slate-800 rounded-xl flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                            <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                              💡 Service Tax Breakdown ({tr}% GST):
+                            </span>
+                            <span>
+                              Basic Fee: <strong className="text-slate-900 dark:text-white font-mono">₹{basic.toFixed(2)}</strong>
+                            </span>
+                            <span>+</span>
+                            <span>
+                              GST ({tr}%): <strong className="text-amber-600 dark:text-amber-400 font-mono">₹{gstAmt.toFixed(2)}</strong>
+                            </span>
+                            <span>=</span>
+                            <span>
+                              Total Invoice: <strong className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">₹{total.toFixed(2)}</strong>
+                            </span>
+                          </div>
+                        );
+                      })() : (
+                        <div className="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-500 dark:text-slate-400">
+                          💡 Tax calculation preview will appear here once service fee rate is entered.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* PHYSICAL GOODS PRICING & MULTI-TIER RATES CARD */
+                <div className="bg-gradient-to-br from-emerald-50/40 via-white to-slate-50/60 dark:from-slate-900/90 dark:via-slate-900 dark:to-slate-950 border border-emerald-200/80 dark:border-slate-800 rounded-2xl p-4.5 space-y-4 shadow-2xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-black shrink-0">
+                        <DollarSign className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <span>Pricing &amp; Multi-Tier Rates (₹)</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            Step 2 • Billing Engine
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Configure Purchase, Customer Retail, B2B Wholesale, and MRP rates.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* GST Tax Mode Toggle */}
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Rates are:</span>
+                      <div className="inline-flex rounded-xl p-0.5 bg-slate-200/90 dark:bg-slate-800 border border-slate-300 dark:border-slate-700">
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: false }))}
+                          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                            !form.isTaxInclusive
+                              ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Without GST (Exclusive)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: true }))}
+                          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                            form.isTaxInclusive
+                              ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          With GST (Inclusive)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4 Pricing Cards Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {/* Purchase Rate */}
+                    <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                          Purchase Rate (₹)
+                        </label>
+                        <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                          Cost / Kharid
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={form.purchasePrice || ""}
+                        onChange={(e) => setForm({ ...form, purchasePrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white font-mono font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white"
+                      />
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {form.isTaxInclusive ? "Includes GST" : "Excludes GST"}
+                      </div>
+                    </div>
+
+                    {/* Retail Rate */}
+                    <div className="p-3 bg-emerald-50/40 dark:bg-emerald-950/20 border-2 border-emerald-500/70 dark:border-emerald-500/50 rounded-xl space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                          Retail Rate (₹) *
+                        </label>
+                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded">
+                          Sale Price
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="0.00"
+                        value={form.sellingPrice || ""}
+                        onChange={(e) => setForm({ ...form, sellingPrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-lg text-xs text-emerald-950 dark:text-emerald-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                      <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+                        Primary Customer Price
+                      </div>
+                    </div>
+
+                    {/* Wholesale Rate */}
+                    <div className="p-3 bg-indigo-50/40 dark:bg-indigo-950/20 border-2 border-indigo-400/70 dark:border-indigo-500/50 rounded-xl space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-indigo-800 dark:text-indigo-300">
+                          Wholesale Rate (₹)
+                        </label>
+                        <span className="text-[9px] font-bold text-indigo-700 bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded">
+                          B2B Rate
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={form.minimumSellingPrice || ""}
+                        onChange={(e) => setForm({ ...form, minimumSellingPrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border-2 border-indigo-400 rounded-lg text-xs text-indigo-950 dark:text-indigo-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                      <div className="text-[10px] text-indigo-700 dark:text-indigo-400 font-medium">
+                        Dealer / Min Selling Rate
+                      </div>
+                    </div>
+
+                    {/* MRP */}
+                    <div className="p-3 bg-amber-50/40 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-500/40 rounded-xl space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-amber-800 dark:text-amber-300">
+                          MRP (₹)
+                        </label>
+                        <span className="text-[9px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">
+                          Max Retail
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={form.mrp || ""}
+                        onChange={(e) => setForm({ ...form, mrp: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg text-xs text-amber-950 dark:text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-600"
+                      />
+                      <div className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                        Max Print on Box
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* GST Tax Slab & Calculation Preview */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1 border-t border-emerald-100/80 dark:border-slate-800 items-center">
+                    <div className="sm:col-span-4 space-y-1">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        GST Tax Slab (%)
+                      </label>
+                      <select
+                        value={form.taxRate}
+                        onChange={(e) => setForm({ ...form, taxRate: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-indigo-600 shadow-2xs"
+                      >
+                        <option value="0">0% (GST Exempted / Nil)</option>
+                        <option value="5">5% GST Slab</option>
+                        <option value="12">12% GST Slab</option>
+                        <option value="18">18% GST Slab (Standard)</option>
+                        <option value="28">28% GST Slab (Luxury / Sin)</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-8">
+                      {Number(form.taxRate || 0) > 0 && (Number(form.sellingPrice || 0) > 0 || Number(form.purchasePrice || 0) > 0) ? (() => {
+                        const sp = Number(form.sellingPrice || 0);
+                        const tr = Number(form.taxRate || 0);
+                        const isIncl = Boolean(form.isTaxInclusive);
+                        const basic = isIncl ? sp / (1 + tr / 100) : sp;
+                        const gstAmt = isIncl ? sp - basic : (sp * tr) / 100;
+                        const total = isIncl ? sp : sp + gstAmt;
+
+                        return (
+                          <div className="p-2.5 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-800 rounded-xl flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                            <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                              💡 Tax Breakdown ({tr}% GST):
+                            </span>
+                            <span>
+                              Basic Price: <strong className="text-slate-900 dark:text-white font-mono">₹{basic.toFixed(2)}</strong>
+                            </span>
+                            <span>+</span>
+                            <span>
+                              GST ({tr}%): <strong className="text-indigo-600 dark:text-indigo-400 font-mono">₹{gstAmt.toFixed(2)}</strong>
+                            </span>
+                            <span>=</span>
+                            <span>
+                              Total Invoice: <strong className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">₹{total.toFixed(2)}</strong>
+                            </span>
+                          </div>
+                        );
+                      })() : (
+                        <div className="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-500 dark:text-slate-400">
+                          💡 Tax calculation preview will appear here once retail rate is entered.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── SECTION 3: STORAGE LOCATION & STOCK REORDER ALERTS (PHYSICAL ONLY) ─ */}
+              {form.itemType !== 2 && (
+                <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                      <Sliders className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span>Warehouse Location &amp; Reorder Alerts</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                      Step 3 • Storage
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Min Stock Alert Level (Reorder Qty)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 5 (Alerts dashboard when stock is low)"
+                        value={form.minimumStockAlert || ""}
+                        onChange={(e) => setForm({ ...form, minimumStockAlert: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Rack / Shelf / Bin Location
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Rack A-12, Bin 4, Shelf 2"
+                        value={form.rackLocation || ""}
+                        onChange={(e) => setForm({ ...form, rackLocation: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── SECTION 4: DYNAMIC INDUSTRY ATTRIBUTES (PHYSICAL ONLY) ──────────── */}
+              {form.itemType !== 2 && (profile?.industryCode === "PHARMA" ||
+                profile?.industryCode === "APPAREL" ||
+                profile?.industryCode === "FOOTWEAR" ||
+                profile?.industryCode === "FMCG_GROCERY") && (
+                <div className="bg-indigo-50/40 dark:bg-slate-950/50 border border-indigo-200/80 dark:border-slate-800 rounded-2xl p-4.5 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-indigo-200/60 dark:border-slate-800 pb-2">
+                    <div className="text-xs font-bold text-indigo-900 dark:text-indigo-400 flex items-center gap-2 uppercase tracking-wider">
+                      <Sliders className="w-4 h-4 text-indigo-600" />
+                      <span>Dynamic Industry Attributes ({profile?.industryName})</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-950 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                      Specialized
+                    </span>
+                  </div>
+
+                  {profile?.industryCode === "PHARMA" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Drug Schedule</label>
+                        <select
+                          value={pharmaSchedule}
+                          onChange={(e) => setPharmaSchedule(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                        >
+                          <option value="None">None (OTC - Over The Counter)</option>
+                          <option value="Schedule H">Schedule H (Doctor Prescription Required)</option>
+                          <option value="Schedule H1">Schedule H1 (Controlled Register)</option>
+                          <option value="Schedule X">Schedule X (Narcotic / Strict)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Active Salt / Composition</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Amoxicillin + Clavulanate"
+                          value={pharmaSalt}
+                          onChange={(e) => setPharmaSalt(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {(profile?.industryCode === "APPAREL" || profile?.industryCode === "FOOTWEAR") && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Size</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. M, L, XL, 42"
+                          value={apparelSize}
+                          onChange={(e) => setApparelSize(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Color</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Navy Blue"
+                          value={apparelColor}
+                          onChange={(e) => setApparelColor(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {profile?.industryCode === "FMCG_GROCERY" && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Net Weight / Volume</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 500g / 1 Litre"
+                        value={fmcgNetWeight}
+                        onChange={(e) => setFmcgNetWeight(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─── SECTION 5: INVENTORY TRACKING & OPENING BATCHES (PHYSICAL ONLY) ── */}
+              {form.itemType !== 2 && (
+                <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 space-y-4">
+                  {/* Inventory Management Toggle Card */}
+                  <div className="p-4 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-slate-800 rounded-xl space-y-2 shadow-2xs">
+                    <label className="flex items-center space-x-3 text-xs text-indigo-950 dark:text-indigo-300 font-bold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.trackInventory !== false}
+                        onChange={(e) => setForm({ ...form, trackInventory: e.target.checked })}
+                        className="rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 w-4 h-4 cursor-pointer"
+                      />
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        Manage Inventory &amp; Stock for this product?
+                      </span>
+                    </label>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 pl-7">
+                      {form.trackInventory !== false
+                        ? "Stock balances, reorder alerts, and warehouse ledger will be actively updated on sales & purchases."
+                        : "Non-stock item (print on demand, custom made, daily consumables). Invoicing allowed without stock deduction."}
+                    </p>
+
+                    {form.trackInventory !== false && (
+                      <div className="flex flex-wrap items-center gap-6 pt-2 pl-7 border-t border-slate-100 dark:border-slate-800">
+                        <label className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={form.trackBatches}
+                            onChange={(e) => setForm({ ...form, trackBatches: e.target.checked })}
+                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-600 cursor-pointer"
+                          />
+                          <span>📅 Track Batches &amp; Expiry Dates</span>
+                        </label>
+
+                        <label className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={form.trackSerialNumbers}
+                            onChange={(e) => setForm({ ...form, trackSerialNumbers: e.target.checked })}
+                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-600 cursor-pointer"
+                          />
+                          <span>🏷️ Track Serial / IMEI Numbers</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Initial Stock Opening Table */}
+                  {form.trackInventory !== false && (
+                    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-2xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          <span>Opening Stock Inward (Multi-Batch &amp; Expiry Supported)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className="text-xs text-slate-600 dark:text-slate-300">
+                            Total Stock:{" "}
+                            <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold text-sm">
+                              {openingBatches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0)}
+                            </strong>{" "}
+                            <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                              {units.find((u) => u.id === form.primaryUomId)?.code || "Units"}
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleAddBatchRow}
+                            className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-600/30 border border-emerald-300 dark:border-emerald-500/30 rounded-lg text-xs font-bold flex items-center space-x-1 transition cursor-pointer shadow-2xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Batch Row</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                          <thead className="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-400 text-[11px] font-bold uppercase border-b border-slate-200 dark:border-slate-800">
+                            <tr>
+                              <th className="p-2.5 w-36">Warehouse</th>
+                              <th className="p-2.5 w-36">Batch Number</th>
+                              <th className="p-2.5 w-32">Expiry Date</th>
+                              <th className="p-2.5 w-24">Opening Qty</th>
+                              <th className="p-2.5 w-24">Cost Rate (₹)</th>
+                              <th className="p-2.5 w-24">MRP (₹)</th>
+                              <th className="p-2.5 w-10 text-center"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 bg-white dark:bg-slate-900/50">
+                            {openingBatches.map((batchRow, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                <td className="p-2">
+                                  <select
+                                    value={batchRow.warehouseId}
+                                    onChange={(e) => handleUpdateBatchRow(idx, "warehouseId", e.target.value)}
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                  >
+                                    <option value="">Default Warehouse</option>
+                                    {allWarehouses.map((w) => (
+                                      <option key={w.id} value={w.id}>
+                                        {w.warehouseName} ({w.warehouseCode})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="text"
+                                    placeholder={form.trackBatches ? "e.g. BATCH-01" : "Batch (Optional)"}
+                                    value={batchRow.batchNumber}
+                                    onChange={(e) => handleUpdateBatchRow(idx, "batchNumber", e.target.value.toUpperCase())}
+                                    className={`w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none ${
+                                      form.trackBatches && !batchRow.batchNumber && Number(batchRow.quantity) > 0
+                                        ? "border-amber-500 ring-1 ring-amber-500"
+                                        : "border-slate-300 dark:border-slate-800 focus:border-indigo-600"
+                                    }`}
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="date"
+                                    value={batchRow.expiryDate}
+                                    onChange={(e) => handleUpdateBatchRow(idx, "expiryDate", e.target.value)}
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    placeholder="0"
+                                    value={batchRow.quantity}
+                                    onChange={(e) => handleUpdateBatchRow(idx, "quantity", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-600"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder={form.purchasePrice ? String(form.purchasePrice) : "0.00"}
+                                    value={batchRow.purchaseRate}
+                                    onChange={(e) => handleUpdateBatchRow(idx, "purchaseRate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder={form.mrp ? String(form.mrp) : "0.00"}
+                                    value={batchRow.mrp}
+                                    onChange={(e) => handleUpdateBatchRow(idx, "mrp", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  {openingBatches.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveBatchRow(idx)}
+                                      className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                                      title="Delete Batch Row"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          💡 Multiple batches can have distinct expiry dates, warehouse allocations, and quantities.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => downloadMasterMigrationTemplate()}
+                          className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5" />
+                          <span>Bulk upload multiple items via Excel</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─── MODAL FOOTER ────────────────────────────────────────────────── */}
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm"
+                  className={`px-6 py-2.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50 shadow-md flex items-center gap-2 cursor-pointer ${
+                    form.itemType === 2
+                      ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/25 active:scale-95"
+                      : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/25 active:scale-95"
+                  }`}
                 >
-                  {submitting ? "Saving Product..." : "Save Product to Catalog"}
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    {submitting
+                      ? form.itemType === 2
+                        ? "Saving Service..."
+                        : "Saving Product..."
+                      : form.itemType === 2
+                      ? "Save Service to Catalog"
+                      : "Save Product to Catalog"}
+                  </span>
                 </button>
               </div>
             </form>

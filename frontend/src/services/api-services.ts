@@ -6,6 +6,12 @@ export const authService = {
     if (typeof window !== "undefined") {
       localStorage.removeItem("udyogbill_token");
       localStorage.removeItem("udyogbill_user");
+      localStorage.removeItem("udyogbill_superadmin_token_backup");
+      localStorage.removeItem("udyogbill_superadmin_user_backup");
+      localStorage.removeItem("udyogbill_impersonating");
+      localStorage.removeItem("udyog_access_token");
+      localStorage.removeItem("udyog_refresh_token");
+      localStorage.removeItem("udyog_user");
     }
     const response = await apiClient.post<AuthResponse>("/auth/login", credentials);
     if (response.data.accessToken) {
@@ -31,9 +37,17 @@ export const authService = {
   },
 
   logout(): void {
-    localStorage.removeItem("udyogbill_token");
-    localStorage.removeItem("udyogbill_user");
-    window.location.href = "/login";
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("udyogbill_token");
+      localStorage.removeItem("udyogbill_user");
+      localStorage.removeItem("udyogbill_superadmin_token_backup");
+      localStorage.removeItem("udyogbill_superadmin_user_backup");
+      localStorage.removeItem("udyogbill_impersonating");
+      localStorage.removeItem("udyog_access_token");
+      localStorage.removeItem("udyog_refresh_token");
+      localStorage.removeItem("udyog_user");
+      window.location.href = "/login";
+    }
   },
 
   getCurrentUser(): AuthResponse["user"] | null {
@@ -77,3 +91,10 @@ export const planService = {
 // Aliases for compatibility
 export const catalogService = industryService;
 export const subscriptionService = planService;
+
+export const publicOnboardingService = {
+  async lookupGstin(gstin: string): Promise<any> {
+    const res = await apiClient.get<any>("/public/onboarding/gstin-lookup", { params: { gstin } });
+    return res.data?.data ?? res.data;
+  },
+};

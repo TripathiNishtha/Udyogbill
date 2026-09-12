@@ -8,6 +8,12 @@ class ItemModel {
   final String? sku;
   final String? barcode;
   final String? hsnCode;
+  final String? batchNumber;
+  final String? expiryDate;
+  final double mrp;
+  final double ptr;
+  final double pts;
+  final String? rackLocation;
   final double salePrice;
   final double purchasePrice;
   final double stockQuantity;
@@ -24,6 +30,12 @@ class ItemModel {
     this.sku,
     this.barcode,
     this.hsnCode,
+    this.batchNumber,
+    this.expiryDate,
+    this.mrp = 0.0,
+    this.ptr = 0.0,
+    this.pts = 0.0,
+    this.rackLocation,
     required this.salePrice,
     required this.purchasePrice,
     required this.stockQuantity,
@@ -34,6 +46,44 @@ class ItemModel {
     required this.updatedAt,
   });
 
+  /// Returns parsed DateTime from standard formats (MM/YY, MM/YYYY, YYYY-MM-DD)
+  DateTime? get parsedExpiryDate {
+    if (expiryDate == null || expiryDate!.trim().isEmpty) return null;
+    final exp = expiryDate!.trim();
+    if (exp.contains('/')) {
+      final parts = exp.split('/');
+      if (parts.length == 2) {
+        final month = int.tryParse(parts[0]);
+        var year = int.tryParse(parts[1]);
+        if (month != null && year != null) {
+          if (year < 100) year += 2000;
+          return DateTime(year, month + 1, 0, 23, 59, 59);
+        }
+      }
+    } else if (exp.contains('-')) {
+      return DateTime.tryParse(exp);
+    }
+    return null;
+  }
+
+  /// Days remaining until expiry (negative means already expired)
+  int? get daysUntilExpiry {
+    final dt = parsedExpiryDate;
+    if (dt == null) return null;
+    return dt.difference(DateTime.now()).inDays;
+  }
+
+  /// 0 = Not set, 1 = Expired (<0), 2 = Critical (<30d), 3 = Warning (30-60d), 4 = Caution (60-90d), 5 = Safe (>90d)
+  int get expirySeverity {
+    final days = daysUntilExpiry;
+    if (days == null) return 0;
+    if (days < 0) return 1; // Expired
+    if (days <= 30) return 2; // Critical
+    if (days <= 60) return 3; // Warning
+    if (days <= 90) return 4; // Caution
+    return 5; // Safe
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -42,6 +92,12 @@ class ItemModel {
       'sku': sku,
       'barcode': barcode,
       'hsnCode': hsnCode,
+      'batchNumber': batchNumber,
+      'expiryDate': expiryDate,
+      'mrp': mrp,
+      'ptr': ptr,
+      'pts': pts,
+      'rackLocation': rackLocation,
       'salePrice': salePrice,
       'purchasePrice': purchasePrice,
       'stockQuantity': stockQuantity,
@@ -61,6 +117,12 @@ class ItemModel {
       sku: map['sku'],
       barcode: map['barcode'],
       hsnCode: map['hsnCode'],
+      batchNumber: map['batchNumber'],
+      expiryDate: map['expiryDate'],
+      mrp: (map['mrp'] as num?)?.toDouble() ?? 0.0,
+      ptr: (map['ptr'] as num?)?.toDouble() ?? 0.0,
+      pts: (map['pts'] as num?)?.toDouble() ?? 0.0,
+      rackLocation: map['rackLocation'],
       salePrice: (map['salePrice'] as num).toDouble(),
       purchasePrice: (map['purchasePrice'] as num).toDouble(),
       stockQuantity: (map['stockQuantity'] as num).toDouble(),
@@ -80,6 +142,12 @@ class ItemModel {
       sku: json['sku'],
       barcode: json['barcode'],
       hsnCode: json['hsnCode'],
+      batchNumber: json['batchNumber'],
+      expiryDate: json['expiryDate'],
+      mrp: (json['mrp'] as num?)?.toDouble() ?? 0.0,
+      ptr: (json['ptr'] as num?)?.toDouble() ?? 0.0,
+      pts: (json['pts'] as num?)?.toDouble() ?? 0.0,
+      rackLocation: json['rackLocation'],
       salePrice: (json['salePrice'] as num?)?.toDouble() ?? 0.0,
       purchasePrice: (json['purchasePrice'] as num?)?.toDouble() ?? 0.0,
       stockQuantity: (json['currentStock'] as num?)?.toDouble() ?? 0.0,
@@ -119,102 +187,6 @@ class ItemDao {
         orderBy: 'name ASC',
         limit: limit,
       );
-      if (res.isEmpty) {
-        final sampleItems = [
-          ItemModel(
-            id: 'demo-1',
-            tenantId: 'demo',
-            name: 'Paracetamol 650mg Strip (15 Tab)',
-            sku: 'MED-001',
-            barcode: '8901234567890',
-            hsnCode: '30049099',
-            salePrice: 32.50,
-            purchasePrice: 24.00,
-            stockQuantity: 120,
-            gstRate: 12.0,
-            uom: 'Strip',
-            categoryName: 'Pharmacy',
-            updatedAt: DateTime.now().toIso8601String(),
-          ),
-          ItemModel(
-            id: 'demo-2',
-            tenantId: 'demo',
-            name: 'Dolo 650 Tablet (15 Tab)',
-            sku: 'MED-002',
-            barcode: '8901111222333',
-            hsnCode: '30049099',
-            salePrice: 35.00,
-            purchasePrice: 26.50,
-            stockQuantity: 85,
-            gstRate: 12.0,
-            uom: 'Strip',
-            categoryName: 'Pharmacy',
-            updatedAt: DateTime.now().toIso8601String(),
-          ),
-          ItemModel(
-            id: 'demo-3',
-            tenantId: 'demo',
-            name: 'Tata Salt Vaccum Evaporated 1kg',
-            sku: 'GROC-001',
-            barcode: '8901030000010',
-            hsnCode: '25010010',
-            salePrice: 28.00,
-            purchasePrice: 22.00,
-            stockQuantity: 50,
-            gstRate: 0.0,
-            uom: 'Pcs',
-            categoryName: 'Grocery',
-            updatedAt: DateTime.now().toIso8601String(),
-          ),
-          ItemModel(
-            id: 'demo-4',
-            tenantId: 'demo',
-            name: 'Fortune Refined Sunflower Oil 1L',
-            sku: 'GROC-002',
-            barcode: '8901030000027',
-            hsnCode: '15121910',
-            salePrice: 145.00,
-            purchasePrice: 128.00,
-            stockQuantity: 40,
-            gstRate: 5.0,
-            uom: 'Ltr',
-            categoryName: 'Grocery',
-            updatedAt: DateTime.now().toIso8601String(),
-          ),
-          ItemModel(
-            id: 'demo-5',
-            tenantId: 'demo',
-            name: 'Amul Pasteurised Butter 100g',
-            sku: 'DAIRY-001',
-            barcode: '8901030000034',
-            hsnCode: '04051000',
-            salePrice: 58.00,
-            purchasePrice: 51.00,
-            stockQuantity: 30,
-            gstRate: 12.0,
-            uom: 'Pcs',
-            categoryName: 'Dairy',
-            updatedAt: DateTime.now().toIso8601String(),
-          ),
-          ItemModel(
-            id: 'demo-6',
-            tenantId: 'demo',
-            name: 'Maggi 2-Minute Masala Noodles 70g',
-            sku: 'FMCG-001',
-            barcode: '8901030000041',
-            hsnCode: '19023010',
-            salePrice: 14.00,
-            purchasePrice: 11.50,
-            stockQuantity: 150,
-            gstRate: 12.0,
-            uom: 'Pcs',
-            categoryName: 'FMCG',
-            updatedAt: DateTime.now().toIso8601String(),
-          ),
-        ];
-        await upsertItems(sampleItems);
-        return sampleItems;
-      }
       return res.map((m) => ItemModel.fromMap(m)).toList();
     }
 
@@ -233,8 +205,8 @@ class ItemDao {
     // Name or SKU search
     final res = await db.query(
       'items',
-      where: 'name LIKE ? OR sku LIKE ? OR barcode LIKE ?',
-      whereArgs: ['%$trimmed%', '%$trimmed%', '%$trimmed%'],
+      where: 'name LIKE ? OR sku LIKE ? OR barcode LIKE ? OR batchNumber LIKE ? OR rackLocation LIKE ?',
+      whereArgs: ['%$trimmed%', '%$trimmed%', '%$trimmed%', '%$trimmed%', '%$trimmed%'],
       orderBy: 'name ASC',
       limit: limit,
     );
@@ -252,6 +224,66 @@ class ItemDao {
     );
     if (res.isEmpty) return null;
     return ItemModel.fromMap(res.first);
+  }
+
+  /// Returns all items that are either expired or expiring within [withinDays] (default 90)
+  Future<List<ItemModel>> getExpiringItems({int withinDays = 90}) async {
+    final db = await _db;
+    final res = await db.query(
+      'items',
+      where: 'expiryDate IS NOT NULL AND expiryDate != "" AND stockQuantity > 0',
+      orderBy: 'name ASC',
+    );
+    final items = res.map((m) => ItemModel.fromMap(m)).toList();
+    final expiring = items.where((item) {
+      final days = item.daysUntilExpiry;
+      if (days == null) return false;
+      return days <= withinDays;
+    }).toList();
+
+    // Sort by days until expiry ascending (most urgent/expired first)
+    expiring.sort((a, b) {
+      final da = a.daysUntilExpiry ?? 9999;
+      final dbVal = b.daysUntilExpiry ?? 9999;
+      return da.compareTo(dbVal);
+    });
+
+    return expiring;
+  }
+
+  /// Returns summary counts for Expiry Radar dashboard KPI
+  Future<Map<String, dynamic>> getExpirySummary() async {
+    final expiring = await getExpiringItems(withinDays: 90);
+    int expiredCount = 0;
+    int criticalCount = 0; // <= 30 days
+    int warningCount = 0; // 31 - 60 days
+    int cautionCount = 0; // 61 - 90 days
+    double totalRiskStockValue = 0.0;
+
+    for (final it in expiring) {
+      final days = it.daysUntilExpiry;
+      if (days == null) continue;
+      final stockVal = it.stockQuantity * it.purchasePrice;
+      totalRiskStockValue += stockVal;
+      if (days < 0) {
+        expiredCount++;
+      } else if (days <= 30) {
+        criticalCount++;
+      } else if (days <= 60) {
+        warningCount++;
+      } else {
+        cautionCount++;
+      }
+    }
+
+    return {
+      'totalExpiringCount': expiring.length,
+      'expiredCount': expiredCount,
+      'criticalCount': criticalCount,
+      'warningCount': warningCount,
+      'cautionCount': cautionCount,
+      'totalRiskStockValue': totalRiskStockValue,
+    };
   }
 
   /// Calculates total inventory valuation (cost value & retail value) and low stock items

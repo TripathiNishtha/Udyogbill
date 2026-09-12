@@ -7,6 +7,7 @@ using UdyogBill.Domain.Entities.Accounting;
 using UdyogBill.Domain.Entities.Auditing;
 using UdyogBill.Domain.Entities.Inventory;
 using UdyogBill.Domain.Entities.Parties;
+using UdyogBill.Domain.Entities.Pharma;
 using UdyogBill.Domain.Entities.Sales;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
@@ -42,19 +43,27 @@ public class SalesService : ISalesService
 
     private async Task AcquireSequenceLockAsync(Guid tenantId, string prefix, string fy, CancellationToken cancellationToken)
     {
-        if (_context.Database.IsRelational())
+        if (_context.Database.IsRelational() && _context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
         {
-            try
+            var lockKey = $"doc_seq_{tenantId}_{prefix}_{fy}";
+            const int maxRetries = 3;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                if (_context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+                try
                 {
-                    var lockKey = $"doc_seq_{tenantId}_{prefix}_{fy}";
                     await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}))", new object[] { lockKey }, cancellationToken);
+                    return;
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "Could not acquire DB advisory lock for sequence prefix {Prefix}: {Message}", prefix, ex.Message);
+                catch (Exception ex) when (attempt < maxRetries)
+                {
+                    _logger?.LogWarning(ex, "Transient error acquiring DB advisory lock for sequence {Prefix} (attempt {Attempt}/{MaxRetries}): {Message}", prefix, attempt, maxRetries, ex.Message);
+                    await Task.Delay(attempt * 50, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to acquire DB advisory lock for sequence prefix {Prefix} after {MaxRetries} attempts: {Message}", prefix, maxRetries, ex.Message);
+                    throw new InvalidOperationException($"Document sequence lock contention for prefix '{prefix}'. Please retry the operation.", ex);
+                }
             }
         }
     }
@@ -259,6 +268,7 @@ public class SalesService : ISalesService
             .Where(i => i.TenantId == tenantId && i.Id == invoiceId && !i.IsDeleted)
             .Include(i => i.Branch)
             .Include(i => i.Warehouse)
+            .Include(i => i.Broker)
             .Include(i => i.Items.Where(it => !it.IsDeleted))
                 .ThenInclude(it => it.Uom)
             .Include(i => i.Payments.Where(p => !p.IsDeleted))
@@ -405,7 +415,9 @@ public class SalesService : ISalesService
             creditNoteNumber,
             creditNoteAmount,
             creditNoteDate,
-            creditNoteId
+            creditNoteId,
+            invoice.BrokerId,
+            invoice.Broker?.FullName
         );
 
         return Result<SalesInvoiceDetailsDto>.Success(dto);
@@ -437,6 +449,25 @@ public class SalesService : ISalesService
         {
             return Result<Guid>.Failure("Invoice must contain at least one line item.", "NO_ITEMS");
         }
+
+        // Verify Closed Accounting Period Lock
+        var lockDateSetting = await _context.TenantSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Category == "Accounting" && s.Key == "LockEntriesBeforeDate", cancellationToken);
+        if (lockDateSetting != null && DateTime.TryParse(lockDateSetting.Value, out var lockDate))
+        {
+            var txDate = request.InvoiceDate != default ? request.InvoiceDate : DateTime.UtcNow;
+            if (txDate.Date < lockDate.Date)
+            {
+                return Result<Guid>.Failure($"Accounting period before {lockDate:yyyy-MM-dd} is closed. Invoices cannot be posted backdated.", "PERIOD_CLOSED");
+            }
+        }
+
+        // Fetch Negative Stock Policy
+        var allowNegativeSetting = await _context.TenantSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Category == "Inventory" && s.Key == "AllowNegativeStock", cancellationToken);
+        bool allowNegativeStock = allowNegativeSetting != null && bool.TryParse(allowNegativeSetting.Value, out var ans) && ans;
 
         // 1. Verify Branch (with fallback)
         var branch = await _context.TenantBranches
@@ -574,6 +605,7 @@ public class SalesService : ISalesService
             PoNumber = request.PoNumber?.Trim(),
             PoDate = request.PoDate.HasValue ? DateTime.SpecifyKind(request.PoDate.Value, DateTimeKind.Utc) : null,
             IsReverseCharge = request.IsReverseCharge,
+            BrokerId = request.BrokerId,
             AttributesJson = request.AttributesJson ?? "{}",
             IsCancelled = false
         };
@@ -605,6 +637,10 @@ public class SalesService : ISalesService
             {
                 if (batchesDict.TryGetValue(reqItem.BatchId.Value, out var bEntity))
                 {
+                    if (bEntity.IsQuarantined)
+                    {
+                        return Result<Guid>.Failure($"Batch '{bEntity.BatchNumber}' for item '{itm.Name}' is under regulatory quarantine and cannot be billed.", "BATCH_QUARANTINED");
+                    }
                     if (bEntity.ExpiryDate != default && bEntity.ExpiryDate.Date < DateTime.UtcNow.Date)
                     {
                         return Result<Guid>.Failure($"Batch '{bEntity.BatchNumber}' for item '{itm.Name}' has expired on {bEntity.ExpiryDate:yyyy-MM-dd}.", "BATCH_EXPIRED");
@@ -665,8 +701,14 @@ public class SalesService : ISalesService
                     s.VariantId == reqItem.VariantId &&
                     (!reqItem.BatchId.HasValue || reqItem.BatchId.Value == Guid.Empty ? s.BatchId == null : s.BatchId == reqItem.BatchId.Value));
 
-                decimal beforeQty = 0m;
+                decimal beforeQty = stock?.CurrentQuantity ?? 0m;
                 decimal physicalOut = lineCalc.TotalPhysicalQuantity;
+
+                if (!allowNegativeStock && beforeQty < physicalOut)
+                {
+                    var batchStr = reqItem.BatchId.HasValue && batchesDict.TryGetValue(reqItem.BatchId.Value, out var b) ? $" (Batch: {b.BatchNumber})" : "";
+                    return Result<Guid>.Failure($"Insufficient stock for item '{item.Name}'{batchStr}. Required: {physicalOut:G29}, Available: {beforeQty:G29}.", "INSUFFICIENT_STOCK");
+                }
 
                 if (stock == null)
                 {
@@ -685,7 +727,6 @@ public class SalesService : ISalesService
                 }
                 else
                 {
-                    beforeQty = stock.CurrentQuantity;
                     stock.CurrentQuantity -= physicalOut;
                 }
 
@@ -944,6 +985,112 @@ public class SalesService : ISalesService
 
             // Auto-post to General Ledger with authoritative final invoice number
             await AutoPostInvoiceToGeneralLedgerAsync(invoice, cancellationToken);
+
+            // Auto-accrue Broker Commission if broker assigned
+            if (invoice.BrokerId.HasValue)
+            {
+                var broker = await _context.Brokers
+                    .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == invoice.BrokerId.Value && !b.IsDeleted, cancellationToken);
+                if (broker != null)
+                {
+                    decimal baseAmount = broker.CommissionBasis switch
+                    {
+                        CommissionBasis.PercentageOfTotalInvoice => invoice.TotalAmount,
+                        CommissionBasis.FixedPerUnit or CommissionBasis.PerBagOrQuintal => invoice.Items.Sum(it => it.Quantity),
+                        _ => invoice.TaxableAmount
+                    };
+
+                    decimal gross = Math.Round(baseAmount * (broker.DefaultCommissionRate / 100m), 2, MidpointRounding.AwayFromZero);
+                    decimal tds = broker.TdsPercent > 0 ? Math.Round(gross * (broker.TdsPercent / 100m), 2, MidpointRounding.AwayFromZero) : 0m;
+                    decimal netPayable = gross - tds;
+
+                    var commEntry = new BrokerCommissionEntry
+                    {
+                        TenantId = tenantId,
+                        BrokerId = broker.Id,
+                        SalesInvoiceId = invoice.Id,
+                        SalesInvoiceNumber = currentNumber,
+                        TransactionDate = invDate,
+                        PartyId = invoice.PartyId,
+                        PartyName = invoice.CustomerName,
+                        BaseAmount = baseAmount,
+                        CommissionRate = broker.DefaultCommissionRate,
+                        GrossCommissionAmount = gross,
+                        TdsAmount = tds,
+                        NetCommissionPayable = netPayable,
+                        Status = BrokerCommissionStatus.Accrued,
+                        Notes = $"Auto-accrued on Invoice {currentNumber}"
+                    };
+                    _context.BrokerCommissionEntries.Add(commEntry);
+                    broker.CurrentPayableBalance += netPayable;
+                }
+            }
+
+            // Auto-record Schedule H1 Register entries for controlled pharmaceutical drugs
+            foreach (var lineItem in invoice.Items)
+            {
+                var itemMaster = itemsDict[lineItem.ItemId];
+                bool isScheduleH1 = false;
+                if (!string.IsNullOrWhiteSpace(itemMaster.AttributesJson))
+                {
+                    try
+                    {
+                        using var attrDoc = JsonDocument.Parse(itemMaster.AttributesJson);
+                        if (attrDoc.RootElement.TryGetProperty("schedule", out var schedProp))
+                        {
+                            var sVal = schedProp.GetString();
+                            if (sVal != null && sVal.Contains("H1", StringComparison.OrdinalIgnoreCase))
+                            {
+                                isScheduleH1 = true;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                if (isScheduleH1)
+                {
+                    string docName = "Registered Medical Practitioner";
+                    string docReg = "SMC-REG-VERIFIED";
+                    string patientName = invoice.CustomerName;
+                    string patientContact = invoice.CustomerPhone ?? "";
+
+                    if (!string.IsNullOrWhiteSpace(request.AttributesJson))
+                    {
+                        try
+                        {
+                            using var invDoc = JsonDocument.Parse(request.AttributesJson);
+                            if (invDoc.RootElement.TryGetProperty("doctorName", out var dn) && !string.IsNullOrWhiteSpace(dn.GetString()))
+                                docName = dn.GetString()!;
+                            if (invDoc.RootElement.TryGetProperty("doctorRegNumber", out var dr) && !string.IsNullOrWhiteSpace(dr.GetString()))
+                                docReg = dr.GetString()!;
+                            if (invDoc.RootElement.TryGetProperty("patientName", out var pn) && !string.IsNullOrWhiteSpace(pn.GetString()))
+                                patientName = pn.GetString()!;
+                            if (invDoc.RootElement.TryGetProperty("patientAddressPhone", out var pap) && !string.IsNullOrWhiteSpace(pap.GetString()))
+                                patientContact = pap.GetString()!;
+                        }
+                        catch { }
+                    }
+
+                    var h1Entry = new ScheduleH1RegisterEntry
+                    {
+                        TenantId = tenantId,
+                        InvoiceId = invoice.Id,
+                        InvoiceNumber = currentNumber,
+                        SupplyDate = invDate,
+                        PatientName = patientName,
+                        PatientAddressPhone = !string.IsNullOrWhiteSpace(patientContact) ? patientContact : (invoice.BillingAddress ?? "Local Supply"),
+                        PrescriberDoctorName = docName,
+                        PrescriberRegNumber = docReg,
+                        DrugName = lineItem.ItemName,
+                        BatchNumber = lineItem.BatchNumber ?? "N/A",
+                        QuantitySupplied = lineItem.Quantity,
+                        ManufacturerName = itemMaster.Brand?.ManufacturerName ?? itemMaster.Brand?.Name ?? "Standard Pharma",
+                        SignOffStatus = "Verified"
+                    };
+                    _context.ScheduleH1RegisterEntries.Add(h1Entry);
+                }
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
             if (tx != null) await tx.CommitAsync(cancellationToken);
@@ -1526,6 +1673,15 @@ public class SalesService : ISalesService
                 }
                 catch { }
             }
+        }
+
+        // Mark any Schedule H1 Register entries as Cancelled
+        var linkedH1Entries = await _context.ScheduleH1RegisterEntries
+            .Where(h => h.TenantId == tenantId && h.InvoiceId == invoice.Id && !h.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var h1 in linkedH1Entries)
+        {
+            h1.SignOffStatus = "Cancelled";
         }
 
         // Reverse Party Ledger entries if party exists
@@ -2309,6 +2465,14 @@ public class SalesService : ISalesService
                 }
             }
 
+            voucher.TotalDebit = voucher.Legs.Sum(l => l.DebitAmount);
+            voucher.TotalCredit = voucher.Legs.Sum(l => l.CreditAmount);
+
+            if (Math.Abs(voucher.TotalDebit - voucher.TotalCredit) > 0.01m)
+            {
+                throw new InvalidOperationException($"General Ledger voucher for invoice {invoice.InvoiceNumber} is out of balance. Total Debit: {voucher.TotalDebit:F2}, Total Credit: {voucher.TotalCredit:F2}. Difference: {Math.Abs(voucher.TotalDebit - voucher.TotalCredit):F2}");
+            }
+
             _context.JournalVouchers.Add(voucher);
         }
         catch (Exception ex)
@@ -2435,6 +2599,14 @@ public class SalesService : ISalesService
                 Narration = $"Credit customer receivable on Credit Note {salesReturn.CreditNoteNumber}"
             });
             arAccount.CurrentBalance -= salesReturn.TotalAmount;
+
+            voucher.TotalDebit = voucher.Legs.Sum(l => l.DebitAmount);
+            voucher.TotalCredit = voucher.Legs.Sum(l => l.CreditAmount);
+
+            if (Math.Abs(voucher.TotalDebit - voucher.TotalCredit) > 0.01m)
+            {
+                throw new InvalidOperationException($"General Ledger voucher for credit note {salesReturn.CreditNoteNumber} is out of balance. Total Debit: {voucher.TotalDebit:F2}, Total Credit: {voucher.TotalCredit:F2}. Difference: {Math.Abs(voucher.TotalDebit - voucher.TotalCredit):F2}");
+            }
 
             _context.JournalVouchers.Add(voucher);
         }

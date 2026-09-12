@@ -48,12 +48,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined") {
         const path = window.location.pathname;
         const isMarketing =
-          path === "/" ||
-          path.startsWith("/features") ||
-          path.startsWith("/pricing") ||
-          path.startsWith("/industries") ||
-          path.startsWith("/about") ||
-          path.startsWith("/contact");
+          !path.startsWith("/app") &&
+          !path.startsWith("/dashboard");
         if (isMarketing) {
           const root = document.documentElement;
           const body = document.body;

@@ -5,8 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/features", "/pricing", "/about", "/contact", "/industries", "/city", "/blog", "/register", "/login"],
-        disallow: ["/app/", "/admin/", "/api/"],
+        allow: ["/", "/features", "/pricing", "/about", "/contact", "/industries", "/city", "/blog", "/terms", "/privacy"],
+        disallow: ["/app/", "/admin/", "/api/", "/login", "/register"],
       },
     ],
     sitemap: "https://udyogbill.com/sitemap.xml",

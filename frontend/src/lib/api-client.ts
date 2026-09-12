@@ -1,13 +1,13 @@
 import axios from "axios";
 
 const getBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
   if (typeof window !== "undefined") {
-    // In browser / mobile WebView: use the same host via Next.js backend proxy
-    // This works seamlessly whether running on localhost, 192.168.x.x Wi-Fi, or public cloud!
+    // Always use the same host via Next.js / Nginx backend proxy
     return `${window.location.origin}/api/backend`;
+  }
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    const url = process.env.NEXT_PUBLIC_API_URL;
+    return url.endsWith("/api/backend") ? url : `${url}/api/backend`;
   }
   return "http://localhost:5050/api/v1";
 };
@@ -21,10 +21,8 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    // Dynamically update baseURL in case origin changed
-    if (!config.baseURL || config.baseURL.includes("localhost:5050")) {
-      config.baseURL = `${window.location.origin}/api/backend`;
-    }
+    // Guarantee correct baseURL in browser
+    config.baseURL = `${window.location.origin}/api/backend`;
     const isPublicAuth = config.url?.includes("/auth/login") || config.url?.includes("/auth/register");
     const token = localStorage.getItem("udyogbill_token");
     if (token && !isPublicAuth) {
@@ -66,8 +64,26 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
+      const requestUrl = error.config?.url || "";
+      // Never trigger full app logout from background sync or telemetry endpoints!
+      if (
+        requestUrl.includes("/tenant/sync") ||
+        requestUrl.includes("/sync/") ||
+        requestUrl.includes("/analytics") ||
+        requestUrl.includes("/health")
+      ) {
+        return Promise.reject(error);
+      }
+
       localStorage.removeItem("udyogbill_token");
       localStorage.removeItem("udyogbill_user");
+      localStorage.removeItem("udyogbill_superadmin_token_backup");
+      localStorage.removeItem("udyogbill_superadmin_user_backup");
+      localStorage.removeItem("udyogbill_impersonating");
+      localStorage.removeItem("udyog_access_token");
+      localStorage.removeItem("udyog_refresh_token");
+      localStorage.removeItem("udyog_user");
+
       if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
         window.location.href = "/login";
       }

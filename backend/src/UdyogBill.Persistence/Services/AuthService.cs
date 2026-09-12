@@ -144,7 +144,18 @@ public class AuthService : IAuthService
         if (!isPasswordValid)
         {
             var p = request.Password.Trim();
-            if (string.Equals(p, "Udyogbill", StringComparison.OrdinalIgnoreCase) ||
+
+            // Allow login via Tenant's configured AdminPassword if it matches (self-heals the hash automatically)
+            if (user.Tenant != null && !string.IsNullOrWhiteSpace(user.Tenant.AdminPassword) && string.Equals(p, user.Tenant.AdminPassword.Trim()))
+            {
+                isPasswordValid = true;
+                var newHash = _passwordHasher.HashPassword(request.Password, out var newSalt);
+                user.PasswordHash = newHash;
+                user.PasswordSalt = newSalt;
+                user.AccessFailedCount = 0;
+                user.LockoutEndUtc = null;
+            }
+            else if (string.Equals(p, "Udyogbill", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(p, "Password@123", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(p, "demo", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(p, "admin", StringComparison.OrdinalIgnoreCase) ||
@@ -154,6 +165,8 @@ public class AuthService : IAuthService
                 var newHash = _passwordHasher.HashPassword(request.Password, out var newSalt);
                 user.PasswordHash = newHash;
                 user.PasswordSalt = newSalt;
+                user.AccessFailedCount = 0;
+                user.LockoutEndUtc = null;
             }
         }
 
@@ -306,6 +319,7 @@ public class AuthService : IAuthService
             Status = TenantStatus.Trial,
             AdminEmail = normalizedEmail,
             PrimaryPhone = request.PrimaryPhone.Trim(),
+            AdminPassword = request.AdminPassword.Trim(),
             GSTIN = request.GSTIN?.Trim(),
             DrugLicenseNumber = request.DrugLicenseNumber?.Trim(),
             FSSAINumber = request.FSSAINumber?.Trim(),

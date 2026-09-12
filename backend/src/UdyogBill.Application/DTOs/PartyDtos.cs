@@ -201,3 +201,95 @@ public record RecordPartyPaymentRequest(
     PartyPaymentDirection Direction = PartyPaymentDirection.Automatic
 );
 
+// --- Broker & Commission Management DTOs ---
+public record CreateBrokerRequest(
+    string BrokerCode,
+    string FullName,
+    string? Mobile = null,
+    string? Email = null,
+    string? Address = null,
+    string? PAN = null,
+    string? GSTIN = null,
+    CommissionBasis CommissionBasis = CommissionBasis.PercentageOfTaxable,
+    decimal DefaultCommissionRate = 2.0m,
+    decimal TdsPercent = 5.0m,
+    CommissionAccrualTrigger AccrualTrigger = CommissionAccrualTrigger.OnInvoiceIssuance,
+    string? Notes = null
+);
+
+public record UpdateBrokerRequest(
+    string FullName,
+    string? Mobile,
+    string? Email,
+    string? Address,
+    string? PAN,
+    string? GSTIN,
+    CommissionBasis CommissionBasis,
+    decimal DefaultCommissionRate,
+    decimal TdsPercent,
+    CommissionAccrualTrigger AccrualTrigger,
+    bool IsActive,
+    string? Notes
+);
+
+public record BrokerDto(
+    Guid Id,
+    string BrokerCode,
+    string FullName,
+    string? Mobile,
+    string? Email,
+    string? Address,
+    string? PAN,
+    string? GSTIN,
+    CommissionBasis CommissionBasis,
+    decimal DefaultCommissionRate,
+    decimal TdsPercent,
+    CommissionAccrualTrigger AccrualTrigger,
+    decimal CurrentPayableBalance,
+    bool IsActive,
+    string? Notes,
+    DateTimeOffset CreatedAtUtc
+);
+
+public record BrokerCommissionEntryDto(
+    Guid Id,
+    Guid BrokerId,
+    string BrokerName,
+    Guid? SalesInvoiceId,
+    string? SalesInvoiceNumber,
+    DateTime TransactionDate,
+    Guid? PartyId,
+    string? PartyName,
+    decimal BaseAmount,
+    decimal CommissionRate,
+    decimal GrossCommissionAmount,
+    decimal TdsAmount,
+    decimal NetCommissionPayable,
+    BrokerCommissionStatus Status,
+    DateTime? PaidDate,
+    string? PaymentReference,
+    string? Notes,
+    DateTimeOffset CreatedAtUtc
+);
+
+public record PayBrokerCommissionRequest(
+    Guid BrokerId,
+    decimal Amount,
+    string PaymentMode,
+    Guid? BankAccountId = null,
+    string? ReferenceNumber = null,
+    string? Notes = null
+);
+
+public record BrokerSummaryDto(
+    Guid BrokerId,
+    string BrokerCode,
+    string FullName,
+    string? Mobile,
+    decimal TotalAccrued,
+    decimal TotalPaid,
+    decimal CurrentPayableBalance,
+    int TotalInvoicesBrokered
+);
+
+

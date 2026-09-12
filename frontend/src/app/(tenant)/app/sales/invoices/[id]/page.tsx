@@ -1547,6 +1547,24 @@ export default function SalesInvoiceDetailsPage({
                 ))}
               </div>
             )}
+
+            {/* Template Selector — switch between Tally Prime, Marg, Sovereign Green, etc. */}
+            {activeDoc === "invoice" && availableTemplates.length > 0 && (
+              <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Design:</span>
+                <select
+                  value={selectedTemplateId || availableTemplates.find(t => t.isDefault)?.id || ""}
+                  onChange={(e) => handleTemplateChange(e.target.value)}
+                  className="bg-transparent text-xs font-black text-slate-900 dark:text-white outline-none cursor-pointer pr-1"
+                >
+                  {availableTemplates.map((t) => (
+                    <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">
+                      {t.templateName} {t.isDefault ? "(Default)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Row 2: All action buttons with Full HD Contrast */}

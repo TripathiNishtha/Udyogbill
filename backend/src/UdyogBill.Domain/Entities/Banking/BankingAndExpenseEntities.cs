@@ -98,3 +98,61 @@ public class CashDrawerSession : BaseTenantAuditableEntity
     public CashDrawerStatus Status { get; set; } = CashDrawerStatus.Open;
     public string? ClosingNotes { get; set; }
 }
+
+public enum ChequeDirection
+{
+    Incoming = 1, // Received from Customer / Debtor
+    Outgoing = 2  // Issued to Vendor / Creditor
+}
+
+public enum ChequeStatus
+{
+    ReceivedInHand = 1,
+    Deposited = 2,
+    Cleared = 3,
+    Bounced = 4,
+    RePresented = 5,
+    Cancelled = 6,
+    ReturnedToParty = 7
+}
+
+public class ChequeRegister : BaseTenantAuditableEntity
+{
+    public ChequeDirection Direction { get; set; } = ChequeDirection.Incoming;
+    public ChequeStatus Status { get; set; } = ChequeStatus.ReceivedInHand;
+
+    // Party Information
+    public Guid PartyId { get; set; }
+    public string PartyName { get; set; } = string.Empty;
+
+    // Cheque Details
+    public string ChequeNumber { get; set; } = string.Empty; // e.g. "000124"
+    public string BankName { get; set; } = string.Empty;     // e.g. "HDFC Bank", "SBI"
+    public string? BranchName { get; set; }
+    public decimal Amount { get; set; } = 0m;
+
+    // Dates
+    public DateTime ChequeDate { get; set; }                  // Date on Cheque (PDC date)
+    public DateTime ReceivedDate { get; set; } = DateTime.UtcNow.Date;
+    public DateTime? DepositDate { get; set; }
+    public DateTime? PresentationDate { get; set; }
+    public DateTime? ClearingDate { get; set; }
+    public DateTime? BouncedDate { get; set; }
+
+    // Bank Account in which cheque is deposited
+    public Guid? BankAccountId { get; set; }
+    public BankAccount? BankAccount { get; set; }
+
+    // Document References
+    public string? ReferenceDocumentType { get; set; }       // "SalesInvoice", "PurchaseBill", "PaymentReceipt"
+    public Guid? ReferenceDocumentId { get; set; }
+    public string? ReferenceDocumentNumber { get; set; }
+
+    // Dishonour / Bounce Handling
+    public string? BounceReason { get; set; }
+    public decimal BounceChargesAmount { get; set; } = 0m;
+    public bool IsBounceChargeBilledToParty { get; set; } = false;
+
+    public string? Remarks { get; set; }
+}
+

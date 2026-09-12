@@ -12,6 +12,9 @@ public record CreatePurchaseOrderItemRequest(
     Guid UomId,
     decimal UnitPrice,
     decimal DiscountPercent = 0m,
+    decimal FreeQuantity = 0m,
+    decimal SchemeDiscountPercent = 0m,
+    decimal CashDiscountPercent = 0m,
     string? AttributesJson = null
 );
 
@@ -34,12 +37,15 @@ public record PurchaseOrderItemDto(
     string ItemName,
     string? HsnCode,
     decimal OrderQuantity,
+    decimal FreeQuantity,
     decimal ReceivedQuantity,
     decimal RemainingQuantity,
     Guid UomId,
     string UomCode,
     decimal UnitPrice,
     decimal DiscountPercent,
+    decimal SchemeDiscountPercent,
+    decimal CashDiscountPercent,
     decimal DiscountAmount,
     decimal TaxableAmount,
     decimal GstRate,
@@ -125,7 +131,10 @@ public record ReceiveGrnItemRequest(
     decimal RejectedQuantity,
     Guid UomId,
     decimal UnitCost,
-    string? RejectionReason = null
+    decimal ReceivedFreeQuantity = 0m,
+    decimal AcceptedFreeQuantity = 0m,
+    string? RejectionReason = null,
+    string? AttributesJson = null
 );
 
 public record CreateGrnRequest(
@@ -152,7 +161,9 @@ public record GrnItemDto(
     DateTime? ManufacturingDate,
     DateTime? ExpiryDate,
     decimal ReceivedQuantity,
+    decimal ReceivedFreeQuantity,
     decimal AcceptedQuantity,
+    decimal AcceptedFreeQuantity,
     decimal RejectedQuantity,
     Guid UomId,
     string UomCode,
@@ -213,12 +224,14 @@ public record CreatePurchaseBillItemRequest
     public DateTime? ExpiryDate { get; set; }
     public Guid? VariantId { get; set; }
     public decimal Quantity { get; set; } = 1m;
+    public decimal FreeQuantity { get; set; } = 0m;
     public Guid UomId { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal SchemeDiscountPercent { get; set; } = 0m;
+    public decimal CashDiscountPercent { get; set; } = 0m;
     public decimal DiscountAmount { get; set; }
     public decimal Mrp { get; set; }
-    public decimal FreeQuantity { get; set; }
     public string? Packing { get; set; }
     public string? HsnCode { get; set; }
     public string? AttributesJson { get; set; } = "{}";
@@ -260,10 +273,13 @@ public record PurchaseBillItemDto(
     Guid? BatchId,
     string? BatchNumber,
     decimal Quantity,
+    decimal FreeQuantity,
     Guid UomId,
     string UomCode,
     decimal UnitPrice,
     decimal DiscountPercent,
+    decimal SchemeDiscountPercent,
+    decimal CashDiscountPercent,
     decimal DiscountAmount,
     decimal TaxableAmount,
     decimal GstRate,

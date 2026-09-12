@@ -58,6 +58,7 @@ export interface CreateSalesInvoiceInput {
   poNumber?: string;
   poDate?: string;
   isReverseCharge?: boolean;
+  brokerId?: string;
   attributesJson?: string;
   items: CreateInvoiceItemInput[];
 }

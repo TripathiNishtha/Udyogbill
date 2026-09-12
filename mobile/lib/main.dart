@@ -5,9 +5,12 @@ import 'app/theme/app_theme.dart';
 import 'app/constants/app_constants.dart';
 import 'app/shell/native_shell_screen.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'core/services/mobile_remote_config_service.dart';
+import 'core/widgets/force_update_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await MobileRemoteConfigService().init();
   runApp(
     const ProviderScope(
       child: UdyogBillMobileApp(),
@@ -21,7 +24,7 @@ class UdyogBillMobileApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'UdyogBill',
+      title: MobileRemoteConfigService().config.appDisplayName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -73,6 +76,11 @@ class _BillingAuthCheckScreenState extends State<BillingAuthCheckScreen> {
           child: CircularProgressIndicator(color: AppTheme.primary),
         ),
       );
+    }
+
+    final remoteConfig = MobileRemoteConfigService();
+    if (remoteConfig.isForceUpdateRequired(currentVersionCode: 1)) {
+      return ForceUpdateScreen(config: remoteConfig.config);
     }
 
     if (_isAuthenticated) {

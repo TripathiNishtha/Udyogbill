@@ -130,6 +130,10 @@ export const superAdminService = {
     return res.data?.data ?? res.data;
   },
 
+  async deleteTenant(id: string): Promise<void> {
+    await apiClient.delete(`/superadmin/tenants/${id}`);
+  },
+
   // Industry Catalog
   async createIndustry(data: CreateIndustryInput): Promise<string> {
     const res = await apiClient.post<any>("/superadmin/industries", data);
@@ -253,6 +257,11 @@ export const superAdminService = {
     await apiClient.put("/superadmin/company-profile", data);
   },
 
+  async testSandboxGst(data: { apiKey?: string; apiSecret?: string; testGstin?: string }): Promise<any> {
+    const res = await apiClient.post<any>("/superadmin/company-profile/test-sandbox-gst", data);
+    return res.data?.data ?? res.data;
+  },
+
   // Email & SMTP Configuration
   async getEmailConfig(): Promise<{
     smtpHost: string;
@@ -286,5 +295,90 @@ export const superAdminService = {
   }): Promise<{ totalTargeted: number; successfullySent: number; failedCount: number }> {
     const res = await apiClient.post<any>("/superadmin/broadcast-email", data);
     return res.data?.data ?? res.data;
+  },
+
+  // Organic Leads CRM
+  async getLeads(params?: {
+    page?: number;
+    pageSize?: number;
+    industry?: string;
+    conversionStage?: string;
+    search?: string;
+  }): Promise<any> {
+    const res = await apiClient.get<any>("/superadmin/leads", { params });
+    return res.data;
+  },
+
+  async updateLeadStatus(id: string, data: {
+    conversionStage?: string;
+    paidAmount?: number | null;
+    notes?: string;
+    industryCode?: string;
+    status?: string;
+  }): Promise<any> {
+    const res = await apiClient.patch<any>(`/superadmin/leads/${id}/status`, data);
+    return res.data;
+  },
+
+  async deleteLead(id: string): Promise<any> {
+    const res = await apiClient.delete<any>(`/superadmin/leads/${id}`);
+    return res.data;
+  },
+
+  // Growth Command Center
+  async getGrowthOverview(from?: string, to?: string): Promise<any> {
+    const params: any = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const res = await apiClient.get<any>("/superadmin/growth/overview", { params });
+    return res.data;
+  },
+
+  async getGrowthCitiesPerformance(from?: string, to?: string): Promise<any> {
+    const params: any = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const res = await apiClient.get<any>("/superadmin/growth/cities-performance", { params });
+    return res.data;
+  },
+
+  async getGrowthContentPerformance(from?: string, to?: string): Promise<any> {
+    const params: any = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const res = await apiClient.get<any>("/superadmin/growth/content-performance", { params });
+    return res.data;
+  },
+
+  // Mobile App Control Center
+  async getMobileAppConfig(): Promise<any> {
+    const res = await apiClient.get<any>("/superadmin/mobile-app/config");
+    return res.data;
+  },
+
+  async saveMobileAppConfig(data: any): Promise<any> {
+    const res = await apiClient.post<any>("/superadmin/mobile-app/config", data);
+    return res.data;
+  },
+
+  async sendMobilePush(data: {
+    title: string;
+    message: string;
+    imageUrl?: string;
+    actionRoute?: string;
+    targetSegment?: string;
+  }): Promise<any> {
+    const res = await apiClient.post<any>("/superadmin/mobile-app/push/send", data);
+    return res.data;
+  },
+
+  async getMobilePushHistory(): Promise<any> {
+    const res = await apiClient.get<any>("/superadmin/mobile-app/push/history");
+    return res.data;
+  },
+
+  async getMobileDevices(): Promise<any> {
+    const res = await apiClient.get<any>("/superadmin/mobile-app/devices");
+    return res.data;
   },
 };

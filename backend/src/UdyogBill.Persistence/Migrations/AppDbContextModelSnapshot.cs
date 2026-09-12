@@ -674,6 +674,124 @@ namespace UdyogBill.Persistence.Migrations
                     b.ToTable("CashDrawerSessions");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Banking.ChequeRegister", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<decimal>("BounceChargesAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("BounceReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("BouncedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("BranchName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime>("ChequeDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChequeNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ClearingDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DepositDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsBounceChargeBilledToParty")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PartyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("PresentationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReceivedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReferenceDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenceDocumentNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReferenceDocumentType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("TenantId", "ChequeDate", "Status");
+
+                    b.HasIndex("TenantId", "ChequeNumber", "BankName");
+
+                    b.HasIndex("TenantId", "PartyId", "Status");
+
+                    b.ToTable("cheque_registers", (string)null);
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Banking.ExpenseCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -805,6 +923,44 @@ namespace UdyogBill.Persistence.Migrations
                     b.ToTable("ExpenseVouchers");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.AnalyticsConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Ga4PropertyId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Ga4ServiceAccountJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GscServiceAccountJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GscSiteUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsGa4Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsGscEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AnalyticsConfigs");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.Lead", b =>
                 {
                     b.Property<Guid>("Id")
@@ -821,6 +977,9 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<string>("City")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CitySlug")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ContactedAt")
@@ -887,6 +1046,9 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("TrialStartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -902,6 +1064,232 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Leads");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.MobileAppConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccentColor")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApkDownloadUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AppDisplayName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AppTagline")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HeaderLogoUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsAiBillScannerEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsContinuousBarcodePosEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEWayBillExportEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsForceUpdateEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsMaintenanceModeEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsNearExpiryRadarEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPopupBannerEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsReferralProgramEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KnowledgebaseDocUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("LatestAndroidVersionCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LatestAndroidVersionName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MaintenanceNoticeMessage")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("MinSupportedVersionCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PlayStoreUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PopupBannerCtaText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PopupBannerCtaUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PopupBannerDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PopupBannerExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PopupBannerFrequency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PopupBannerImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PopupBannerTargetAudience")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PopupBannerTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryBrandColor")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SelectedLauncherIconPreset")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SplashLogoUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SupportEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SupportHelplineNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SupportWhatsAppNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TutorialYouTubePlaylistUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UpdateChangelog")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MobileAppConfigs");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.MobileDeviceRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AppVersionCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AppVersionName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceModel")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("LastActiveAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OsVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PushToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TenantId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MobileDeviceRegistrations");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.MobilePushBroadcast", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionRoute")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DeliveredCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SentBySuperAdmin")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetSegment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MobilePushBroadcasts");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Catalog.Feature", b =>
@@ -2290,8 +2678,6 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.HasIndex("TenantId", "MovementType", "CreatedAtUtc");
 
-                    b.HasIndex("TenantId", "ItemId", "WarehouseId", "CreatedAtUtc");
-
                     b.ToTable("stock_movements", (string)null);
                 });
 
@@ -3454,6 +3840,199 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("TenantWebhookEndpoints");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Parties.Broker", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AccrualTrigger")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("BrokerCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("CommissionBasis")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CurrentPayableBalance")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("DefaultCommissionRate")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("GSTIN")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Mobile")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PAN")
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)");
+
+                    b.Property<decimal>("TdsPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "BrokerCode")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "FullName");
+
+                    b.HasIndex("TenantId", "Mobile");
+
+                    b.ToTable("brokers", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Parties.BrokerCommissionEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BaseAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid>("BrokerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CommissionRate")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("GrossCommissionAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("NetCommissionPayable")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("PaidDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PartyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("SalesInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SalesInvoiceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TdsAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrokerId");
+
+                    b.HasIndex("TenantId", "SalesInvoiceId");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.HasIndex("TenantId", "BrokerId", "TransactionDate");
+
+                    b.ToTable("broker_commission_entries", (string)null);
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Parties.Party", b =>
@@ -6570,6 +7149,10 @@ namespace UdyogBill.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("AcceptedFreeQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
                     b.Property<decimal>("AcceptedQuantity")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
@@ -6620,6 +7203,10 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<Guid?>("PurchaseOrderItemId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("ReceivedFreeQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<decimal>("ReceivedQuantity")
                         .HasPrecision(18, 4)
@@ -6865,6 +7452,10 @@ namespace UdyogBill.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<decimal>("CashDiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
                     b.Property<decimal>("CessAmount")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
@@ -6900,6 +7491,10 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<decimal>("DiscountPercent")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("FreeQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<decimal>("GstRate")
                         .HasPrecision(5, 2)
@@ -6939,6 +7534,10 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("SchemeDiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<decimal>("SgstAmount")
                         .HasPrecision(18, 4)
@@ -7219,6 +7818,10 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<decimal>("CashDiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
                     b.Property<decimal>("CessAmount")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
@@ -7254,6 +7857,10 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<decimal>("DiscountPercent")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("FreeQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<decimal>("GstRate")
                         .HasPrecision(5, 2)
@@ -7297,6 +7904,10 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<decimal>("ReceivedQuantity")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("SchemeDiscountPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<decimal>("SgstAmount")
                         .HasPrecision(18, 4)
@@ -7509,6 +8120,213 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("VariantId");
 
                     b.ToTable("PurchaseReturnItems");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Referrals.ReferralProgramConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DefaultRewardAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MinimumPayoutThreshold")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("PayoutScheduleDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RewardType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TermsAndConditions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ReferralProgramConfigs");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Referrals.TenantReferralConversion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("CommissionRewardAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("FirstPaidDateUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("PaidAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayoutMode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PayoutReference")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RefereeTenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferralCodeUsed")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ReferrerTenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("RegistrationDateUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ScheduledPayoutDateUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("SubscriptionAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("SubscriptionInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RefereeTenantId");
+
+                    b.HasIndex("ReferrerTenantId");
+
+                    b.ToTable("TenantReferralConversions");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Referrals.TenantReferralProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountHolderName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankIfsc")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("CustomRewardAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PaidConversionsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PendingBalanceAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ReferralCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalEarnedAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TotalPaidOutAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TotalReferralsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpiId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("TenantReferralProfiles");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Reports.SavedReportPreset", b =>
@@ -7959,6 +8777,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BrokerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("CancellationReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -8166,9 +8987,13 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("BrokerId");
+
                     b.HasIndex("PartyId");
 
                     b.HasIndex("WarehouseId");
+
+                    b.HasIndex("TenantId", "BrokerId");
 
                     b.HasIndex("TenantId", "InvoiceDate");
 
@@ -9103,6 +9928,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("EnableGstAutoFill")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Gstin")
                         .IsRequired()
                         .HasColumnType("text");
@@ -9125,6 +9953,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<string>("LogoUrl")
                         .HasColumnType("text");
 
+                    b.Property<int>("NextInvoiceSequence")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Pan")
                         .IsRequired()
                         .HasColumnType("text");
@@ -9135,6 +9966,12 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<string>("ProductBrandName")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SandboxApiKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SandboxApiSecret")
                         .HasColumnType("text");
 
                     b.Property<string>("SignatoryImageUrl")
@@ -9627,6 +10464,10 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<string>("AdminEmail")
                         .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("AdminPassword")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
@@ -10143,6 +10984,16 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("CashierUser");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Banking.ChequeRegister", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Banking.BankAccount", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("BankAccount");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Banking.ExpenseVoucher", b =>
                 {
                     b.HasOne("UdyogBill.Domain.Entities.Banking.BankAccount", "BankAccount")
@@ -10586,6 +11437,17 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Party");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Parties.BrokerCommissionEntry", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Broker", "Broker")
+                        .WithMany("CommissionEntries")
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Broker");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Parties.PartyAddress", b =>
@@ -11492,6 +12354,36 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Variant");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Referrals.TenantReferralConversion", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Tenants.Tenant", "RefereeTenant")
+                        .WithMany()
+                        .HasForeignKey("RefereeTenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Tenants.Tenant", "ReferrerTenant")
+                        .WithMany()
+                        .HasForeignKey("ReferrerTenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RefereeTenant");
+
+                    b.Navigation("ReferrerTenant");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Referrals.TenantReferralProfile", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.Quotation", b =>
                 {
                     b.HasOne("UdyogBill.Domain.Entities.Tenants.TenantBranch", "Branch")
@@ -11552,6 +12444,11 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Broker", "Broker")
+                        .WithMany()
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "Party")
                         .WithMany()
                         .HasForeignKey("PartyId")
@@ -11564,6 +12461,8 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Branch");
+
+                    b.Navigation("Broker");
 
                     b.Navigation("Party");
 
@@ -11894,6 +12793,11 @@ namespace UdyogBill.Persistence.Migrations
             modelBuilder.Entity("UdyogBill.Domain.Entities.Loyalty.CustomerLoyaltyAccount", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Parties.Broker", b =>
+                {
+                    b.Navigation("CommissionEntries");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Parties.Party", b =>

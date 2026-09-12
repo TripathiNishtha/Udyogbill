@@ -74,7 +74,11 @@ public class PlatformSettingsService : IPlatformSettingsService
             AuthorizedSignatoryName: profile.AuthorizedSignatoryName,
             AuthorizedSignatoryDesignation: profile.AuthorizedSignatoryDesignation,
             InvoicePrefix: profile.InvoicePrefix,
-            InvoiceTermsAndConditions: profile.InvoiceTermsAndConditions
+            NextInvoiceSequence: profile.NextInvoiceSequence > 0 ? profile.NextInvoiceSequence : 1,
+            InvoiceTermsAndConditions: profile.InvoiceTermsAndConditions,
+            EnableGstAutoFill: profile.EnableGstAutoFill,
+            SandboxApiKey: profile.SandboxApiKey,
+            SandboxApiSecret: profile.SandboxApiSecret
         );
 
         return Result<PlatformCompanyProfileDto>.Success(dto);
@@ -117,7 +121,24 @@ public class PlatformSettingsService : IPlatformSettingsService
         profile.AuthorizedSignatoryName = request.AuthorizedSignatoryName?.Trim() ?? profile.AuthorizedSignatoryName;
         profile.AuthorizedSignatoryDesignation = request.AuthorizedSignatoryDesignation?.Trim() ?? profile.AuthorizedSignatoryDesignation;
         profile.InvoicePrefix = request.InvoicePrefix?.Trim() ?? profile.InvoicePrefix;
+        if (request.NextInvoiceSequence.HasValue && request.NextInvoiceSequence.Value > 0)
+        {
+            profile.NextInvoiceSequence = request.NextInvoiceSequence.Value;
+        }
         profile.InvoiceTermsAndConditions = request.InvoiceTermsAndConditions ?? profile.InvoiceTermsAndConditions;
+
+        if (request.EnableGstAutoFill.HasValue)
+        {
+            profile.EnableGstAutoFill = request.EnableGstAutoFill.Value;
+        }
+        if (request.SandboxApiKey != null)
+        {
+            profile.SandboxApiKey = request.SandboxApiKey.Trim();
+        }
+        if (request.SandboxApiSecret != null)
+        {
+            profile.SandboxApiSecret = request.SandboxApiSecret.Trim();
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();

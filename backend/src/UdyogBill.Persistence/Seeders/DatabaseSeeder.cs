@@ -202,6 +202,7 @@ ALTER TABLE ""SubscriptionInvoices"" ADD COLUMN IF NOT EXISTS ""SupplierGstin"" 
 ALTER TABLE ""SubscriptionInvoices"" ADD COLUMN IF NOT EXISTS ""SupplierAddress"" text NULL;
 ALTER TABLE ""SubscriptionInvoices"" ADD COLUMN IF NOT EXISTS ""SupplierStateCode"" text NULL;
 ALTER TABLE ""SubscriptionInvoices"" ADD COLUMN IF NOT EXISTS ""SubscriberStateCode"" text NULL;
+ALTER TABLE ""PlatformCompanyProfiles"" ADD COLUMN IF NOT EXISTS ""NextInvoiceSequence"" integer NOT NULL DEFAULT 1;
 
 ALTER TABLE ""item_batches"" ADD COLUMN IF NOT EXISTS ""IsQuarantined"" boolean NOT NULL DEFAULT FALSE;
 ALTER TABLE ""item_batches"" ADD COLUMN IF NOT EXISTS ""QuarantinedStock"" numeric NOT NULL DEFAULT 0;
@@ -1977,19 +1978,50 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
 
         var tenantPasswordHash = _passwordHasher.HashPassword("Udyogbill", out var tenantSalt);
 
-        // Update all existing tenant admins with the password "Udyogbill"
-        var existingTenantUsers = await _context.Users
+        // Update ONLY demo tenant users with default "Udyogbill" password (never wipe real customer passwords!)
+        var demoTenantUsers = await _context.Users
             .IgnoreQueryFilters()
-            .Where(u => u.IsTenantAdmin || u.Email.ToLower() == "demo" || u.Email.ToLower() == "demo@udyogbill.com" || u.Email.ToLower() == "suresh@citypharma.com")
+            .Where(u => u.Email.ToLower() == "demo" || u.Email.ToLower() == "demo@udyogbill.com" || u.Email.ToLower() == "suresh@citypharma.com")
             .ToListAsync(cancellationToken);
 
-        foreach (var tu in existingTenantUsers)
+        foreach (var tu in demoTenantUsers)
         {
             tu.PasswordHash = tenantPasswordHash;
             tu.PasswordSalt = tenantSalt;
             tu.IsActive = true;
             tu.LockoutEndUtc = null;
             tu.AccessFailedCount = 0;
+        }
+
+        // Sync password hashes for any real customer tenant admin whose Tenant.AdminPassword is set
+        var realTenantAdmins = await _context.Users
+            .IgnoreQueryFilters()
+            .Include(u => u.Tenant)
+            .Where(u => u.IsTenantAdmin && u.Tenant != null && !string.IsNullOrEmpty(u.Tenant.AdminPassword))
+            .ToListAsync(cancellationToken);
+
+        foreach (var tu in realTenantAdmins)
+        {
+            var emailLower = tu.Email.ToLower();
+            if (emailLower != "demo" && emailLower != "demo@udyogbill.com" && emailLower != "suresh@citypharma.com")
+            {
+                if (!_passwordHasher.VerifyPassword(tu.Tenant!.AdminPassword, tu.PasswordHash, tu.PasswordSalt))
+                {
+                    tu.PasswordHash = _passwordHasher.HashPassword(tu.Tenant.AdminPassword, out var realSalt);
+                    tu.PasswordSalt = realSalt;
+                    tu.AccessFailedCount = 0;
+                    tu.LockoutEndUtc = null;
+                }
+            }
+        }
+
+        var allTenants = await _context.Tenants.IgnoreQueryFilters().ToListAsync(cancellationToken);
+        foreach (var tn in allTenants)
+        {
+            if (string.IsNullOrEmpty(tn.AdminPassword))
+            {
+                tn.AdminPassword = "Udyogbill";
+            }
         }
 
         var tenant = await _context.Tenants
@@ -1999,7 +2031,7 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
 
         if (tenant != null)
         {
-            var demoUser = existingTenantUsers.FirstOrDefault(u => u.Email.ToLower() == "demo@udyogbill.com" || u.Email.ToLower() == "demo");
+            var demoUser = demoTenantUsers.FirstOrDefault(u => u.Email.ToLower() == "demo@udyogbill.com" || u.Email.ToLower() == "demo");
             if (demoUser == null)
             {
                 demoUser = new User
@@ -2075,6 +2107,7 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
                 Pincode = "201309",
                 AddressLine1 = "Tower B, Cyber City, Sector 62",
                 DrugLicenseNumber = "UP-NOI-2024-98765",
+                AdminPassword = "Udyogbill",
                 SmtpPort = 587,
                 SmtpEnableSsl = true,
                 IsActive = true
@@ -2132,6 +2165,7 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
                 City = "Connaught Place, New Delhi",
                 Pincode = "110001",
                 AddressLine1 = "Shop 12-14, Palika Bazaar",
+                AdminPassword = "Udyogbill",
                 SmtpPort = 587,
                 SmtpEnableSsl = true,
                 IsActive = true
@@ -2186,6 +2220,7 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
                 City = "Andheri East, Mumbai",
                 Pincode = "400069",
                 AddressLine1 = "Plot 45, MIDC Central Road",
+                AdminPassword = "Udyogbill",
                 SmtpPort = 587,
                 SmtpEnableSsl = true,
                 IsActive = true

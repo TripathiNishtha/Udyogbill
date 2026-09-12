@@ -30,11 +30,26 @@ public class TenantReferralController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
     {
+        Guid effectiveTenantId = _tenantContext.TenantId;
+        if (effectiveTenantId == Guid.Empty)
+        {
+            var userTenantClaim = User.FindFirst(Claims.TenantId)?.Value;
+            if (!string.IsNullOrEmpty(userTenantClaim) && Guid.TryParse(userTenantClaim, out var claimTenantId))
+            {
+                effectiveTenantId = claimTenantId;
+            }
+        }
+
+        if (effectiveTenantId == Guid.Empty)
+        {
+            return BadRequest(new { message = "Active store context is required to view referral details." });
+        }
+
         string? baseUrl = Request.Headers.ContainsKey("Origin") 
             ? Request.Headers["Origin"].ToString() 
             : $"{Request.Scheme}://{Request.Host}";
 
-        var result = await _referralService.GetTenantReferralSummaryAsync(_tenantContext.TenantId, baseUrl, cancellationToken);
+        var result = await _referralService.GetTenantReferralSummaryAsync(effectiveTenantId, baseUrl, cancellationToken);
         return HandleResult(result);
     }
 
@@ -45,7 +60,22 @@ public class TenantReferralController : BaseApiController
         [FromBody] UpdateReferralPayoutSettingsRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _referralService.UpdateTenantPayoutSettingsAsync(_tenantContext.TenantId, request, cancellationToken);
+        Guid effectiveTenantId = _tenantContext.TenantId;
+        if (effectiveTenantId == Guid.Empty)
+        {
+            var userTenantClaim = User.FindFirst(Claims.TenantId)?.Value;
+            if (!string.IsNullOrEmpty(userTenantClaim) && Guid.TryParse(userTenantClaim, out var claimTenantId))
+            {
+                effectiveTenantId = claimTenantId;
+            }
+        }
+
+        if (effectiveTenantId == Guid.Empty)
+        {
+            return BadRequest(new { message = "Active store context is required." });
+        }
+
+        var result = await _referralService.UpdateTenantPayoutSettingsAsync(effectiveTenantId, request, cancellationToken);
         return HandleResult(result);
     }
 }

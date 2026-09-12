@@ -88,7 +88,8 @@ public class SuperAdminService : ISuperAdminService
                 t.CurrencyCode,
                 t.IsActive,
                 t.CreatedAtUtc,
-                t.LogoUrl
+                t.LogoUrl,
+                t.AdminPassword
             ))
             .ToListAsync(cancellationToken);
 
@@ -200,7 +201,8 @@ public class SuperAdminService : ISuperAdminService
             subDto,
             totalUsers,
             totalBranches,
-            totalWarehouses
+            totalWarehouses,
+            tenant.AdminPassword
         );
 
         return Result<SuperAdminTenantDetailsDto>.Success(details);
@@ -246,6 +248,141 @@ public class SuperAdminService : ISuperAdminService
             EntityId = tenant.Id.ToString(),
             OldValuesJson = JsonSerializer.Serialize(new { Status = oldStatus.ToString() }),
             NewValuesJson = JsonSerializer.Serialize(new { Status = request.Status.ToString(), Reason = request.Reason }),
+            IpAddress = ipAddress
+        }, cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> DeleteTenantAsync(Guid tenantId, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == tenantId && !t.IsDeleted, cancellationToken);
+
+        if (tenant == null)
+        {
+            return Result.Failure("Tenant not found.", "NOT_FOUND");
+        }
+
+        var deletedTime = DateTimeOffset.UtcNow;
+        var adminUserId = _currentUserContext.UserId;
+
+        // 1. Soft-delete and disable the tenant
+        tenant.IsDeleted = true;
+        tenant.DeletedAtUtc = deletedTime;
+        tenant.DeletedBy = adminUserId;
+        tenant.IsActive = false;
+        tenant.Status = TenantStatus.Suspended;
+        tenant.SuspendedAtUtc = deletedTime;
+        tenant.SuspensionReason = "Permanently deleted by Super Admin";
+
+        // 2. Deactivate all users under this tenant
+        var users = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.TenantId == tenantId && !u.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var user in users)
+        {
+            user.IsDeleted = true;
+            user.DeletedAtUtc = deletedTime;
+            user.DeletedBy = adminUserId;
+            user.IsActive = false;
+        }
+
+        // 3. Invalidate active refresh tokens for these users
+        var userIds = users.Select(u => u.Id).ToList();
+        if (userIds.Count > 0)
+        {
+            var tokens = await _context.RefreshTokens
+                .Where(t => userIds.Contains(t.UserId))
+                .ToListAsync(cancellationToken);
+            if (tokens.Count > 0)
+            {
+                _context.RefreshTokens.RemoveRange(tokens);
+            }
+        }
+
+        // 4. Soft-delete branches
+        var branches = await _context.TenantBranches
+            .IgnoreQueryFilters()
+            .Where(b => b.TenantId == tenantId && !b.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var b in branches)
+        {
+            b.IsDeleted = true;
+            b.DeletedAtUtc = deletedTime;
+            b.DeletedBy = adminUserId;
+        }
+
+        // 5. Soft-delete warehouses
+        var warehouses = await _context.TenantWarehouses
+            .IgnoreQueryFilters()
+            .Where(w => w.TenantId == tenantId && !w.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var w in warehouses)
+        {
+            w.IsDeleted = true;
+            w.DeletedAtUtc = deletedTime;
+            w.DeletedBy = adminUserId;
+        }
+
+        // 6. Soft-delete subscriptions
+        var subs = await _context.TenantSubscriptions
+            .IgnoreQueryFilters()
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var s in subs)
+        {
+            s.IsDeleted = true;
+            s.DeletedAtUtc = deletedTime;
+            s.DeletedBy = adminUserId;
+            s.Status = SubscriptionStatus.Cancelled;
+        }
+
+        // 7. Soft-delete configs & settings
+        var configs = await _context.TenantIndustryConfigs
+            .IgnoreQueryFilters()
+            .Where(c => c.TenantId == tenantId && !c.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var c in configs)
+        {
+            c.IsDeleted = true;
+            c.DeletedAtUtc = deletedTime;
+            c.DeletedBy = adminUserId;
+        }
+
+        var settings = await _context.TenantSettings
+            .IgnoreQueryFilters()
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var s in settings)
+        {
+            s.IsDeleted = true;
+            s.DeletedAtUtc = deletedTime;
+            s.DeletedBy = adminUserId;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // 8. Audit log
+        await _auditService.LogAsync(new AuditLog
+        {
+            TenantId = tenant.Id,
+            UserId = adminUserId,
+            UserEmail = _currentUserContext.Email,
+            Action = AuditActionType.Delete,
+            ActionName = "DeleteTenant",
+            EntityName = "Tenant",
+            EntityId = tenant.Id.ToString(),
+            OldValuesJson = JsonSerializer.Serialize(new { tenant.Code, tenant.BusinessName, tenant.AdminEmail, tenant.PrimaryPhone }),
+            NewValuesJson = JsonSerializer.Serialize(new { IsDeleted = true, DeletedBy = adminUserId }),
             IpAddress = ipAddress
         }, cancellationToken);
 
@@ -960,6 +1097,118 @@ public class SuperAdminService : ISuperAdminService
         }
 
         tenant.Status = TenantStatus.Active;
+
+        if (request.GenerateInvoice)
+        {
+            var profile = await _context.PlatformCompanyProfiles
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(cancellationToken);
+
+            string supplierLegalName = !string.IsNullOrWhiteSpace(profile?.LegalCompanyName) ? profile.LegalCompanyName : "DIGIOPERA PRIVATE LIMITED";
+            string supplierGstin = profile?.Gstin ?? "";
+            string supplierAddress = profile != null && !string.IsNullOrWhiteSpace(profile.AddressLine1)
+                ? $"{profile.AddressLine1}, {profile.City}, {profile.State} - {profile.Pincode}"
+                : "";
+            string supplierStateCode = profile?.StateCode ?? (!string.IsNullOrWhiteSpace(supplierGstin) && supplierGstin.Length >= 2 ? supplierGstin[..2] : "06");
+
+            string subscriberStateCode = ResolveSubscriberStateCode(tenant);
+            bool isInterState = !string.Equals(subscriberStateCode, supplierStateCode, StringComparison.OrdinalIgnoreCase);
+
+            decimal enteredAmount = request.CustomAmount ?? plan.Price;
+            decimal totalAmount;
+            decimal subTotal;
+            decimal taxAmount;
+
+            if (request.IsGstInclusive)
+            {
+                totalAmount = Math.Max(0, enteredAmount);
+                subTotal = Math.Round(totalAmount / 1.18m, 2);
+                taxAmount = totalAmount - subTotal;
+            }
+            else
+            {
+                subTotal = Math.Max(0, enteredAmount);
+                taxAmount = Math.Round(subTotal * 0.18m, 2);
+                totalAmount = subTotal + taxAmount;
+            }
+
+            decimal cgstRate = isInterState ? 0 : 9m;
+            decimal cgstAmt = isInterState ? 0 : Math.Round(taxAmount / 2m, 2);
+            decimal sgstRate = isInterState ? 0 : 9m;
+            decimal sgstAmt = isInterState ? 0 : taxAmount - cgstAmt;
+            decimal igstRate = isInterState ? 18m : 0;
+            decimal igstAmt = isInterState ? taxAmount : 0;
+
+            string prefix = !string.IsNullOrWhiteSpace(profile?.InvoicePrefix) ? profile.InvoicePrefix.Trim() : "UB/SUB/26-27/";
+            int seq = profile != null && profile.NextInvoiceSequence > 0 ? profile.NextInvoiceSequence : 1;
+            string invoiceNumber = $"{prefix}{seq.ToString().PadLeft(4, '0')}";
+            if (profile != null)
+            {
+                profile.NextInvoiceSequence = seq + 1;
+            }
+
+            string paymentMethod = string.IsNullOrWhiteSpace(request.PaymentMode) ? "Cash" : request.PaymentMode.Trim();
+            string paymentRef = string.IsNullOrWhiteSpace(request.PaymentReference)
+                ? $"OFFLINE_{DateTime.UtcNow.Ticks}"
+                : request.PaymentReference.Trim();
+
+            var invoice = new SubscriptionInvoice
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenant.Id,
+                InvoiceNumber = invoiceNumber,
+                InvoiceDate = DateTimeOffset.UtcNow,
+                TenantBusinessName = tenant.BusinessName,
+                TenantGstin = tenant.GSTIN,
+                TenantPan = tenant.PAN,
+                TenantBillingAddress = $"{tenant.TradeName}, {tenant.PrimaryPhone}",
+                TenantEmail = tenant.AdminEmail,
+                TenantPhone = tenant.PrimaryPhone,
+                ItemDescription = $"{plan.Name} Subscription ({request.PlanDurationDays} Days)",
+                PlanCode = plan.Code,
+                AddonCode = null,
+                BillingCycle = $"{request.PlanDurationDays} Days",
+                DurationDays = request.PlanDurationDays,
+                SubTotal = subTotal,
+                TaxRatePercent = 18m,
+                TaxAmount = taxAmount,
+                TotalAmount = totalAmount,
+                Currency = "INR",
+                IsInterState = isInterState,
+                CgstRatePercent = cgstRate,
+                CgstAmount = cgstAmt,
+                SgstRatePercent = sgstRate,
+                SgstAmount = sgstAmt,
+                IgstRatePercent = igstRate,
+                IgstAmount = igstAmt,
+                PlaceOfSupply = $"{subscriberStateCode} ({tenant.BusinessName})",
+                SupplierLegalName = supplierLegalName,
+                SupplierGstin = supplierGstin,
+                SupplierAddress = supplierAddress,
+                SupplierStateCode = supplierStateCode,
+                SubscriberStateCode = subscriberStateCode,
+                SupplierLogoUrl = profile?.LogoUrl,
+                SupplierBankName = profile?.BankName,
+                SupplierBankAccountNumber = profile?.BankAccountNumber,
+                SupplierBankIfsc = profile?.BankIfsc,
+                SupplierBankBranch = profile?.BankBranch,
+                SupplierUpiId = profile?.UpiId,
+                SupplierSignatoryName = profile?.AuthorizedSignatoryName,
+                SupplierSignatoryDesignation = profile?.AuthorizedSignatoryDesignation,
+                SupplierSignatoryImageUrl = profile?.SignatoryImageUrl,
+                InvoiceTermsAndConditions = profile?.InvoiceTermsAndConditions,
+                PaymentGateway = paymentMethod,
+                GatewayOrderId = null,
+                GatewayPaymentId = paymentRef,
+                PaymentStatus = "Paid",
+                PaidAtUtc = DateTimeOffset.UtcNow,
+                Notes = $"Offline Payment recorded by SuperAdmin. Mode: {paymentMethod}. Ref: {paymentRef}. Notes: {request.Reason ?? ""}"
+            };
+
+            _context.SubscriptionInvoices.Add(invoice);
+            existingSub.PricePaid = totalAmount;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
@@ -1160,5 +1409,59 @@ public class SuperAdminService : ISuperAdminService
 
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();
+    }
+
+    private static string ResolveSubscriberStateCode(Tenant tenant)
+    {
+        // 1. First 2 digits of GSTIN if valid numeric code
+        if (!string.IsNullOrWhiteSpace(tenant.GSTIN) && tenant.GSTIN.Length >= 2 && char.IsDigit(tenant.GSTIN[0]) && char.IsDigit(tenant.GSTIN[1]))
+        {
+            return tenant.GSTIN[..2];
+        }
+
+        // 2. Tenant.StateCode if present
+        if (!string.IsNullOrWhiteSpace(tenant.StateCode))
+        {
+            var code = tenant.StateCode.Trim();
+            if (code.Length == 1 && char.IsDigit(code[0])) code = "0" + code;
+            if (code.Length == 2 && char.IsDigit(code[0]) && char.IsDigit(code[1]))
+            {
+                return code;
+            }
+        }
+
+        // 3. Resolve by Tenant.State name
+        if (!string.IsNullOrWhiteSpace(tenant.State))
+        {
+            var st = tenant.State.Trim().ToLowerInvariant();
+            if (st.Contains("haryana")) return "06";
+            if (st.Contains("delhi")) return "07";
+            if (st.Contains("uttar pradesh") || st == "up") return "09";
+            if (st.Contains("rajasthan")) return "08";
+            if (st.Contains("punjab")) return "03";
+            if (st.Contains("maharashtra")) return "27";
+            if (st.Contains("gujarat")) return "24";
+            if (st.Contains("bihar")) return "10";
+            if (st.Contains("madhya pradesh") || st == "mp") return "23";
+            if (st.Contains("karnataka")) return "29";
+            if (st.Contains("tamil nadu") || st.Contains("tamilnadu")) return "33";
+            if (st.Contains("west bengal")) return "19";
+            if (st.Contains("telangana")) return "36";
+            if (st.Contains("andhra")) return "37";
+            if (st.Contains("kerala")) return "32";
+            if (st.Contains("odisha") || st.Contains("orissa")) return "21";
+            if (st.Contains("jharkhand")) return "20";
+            if (st.Contains("chhattisgarh")) return "22";
+            if (st.Contains("uttarakhand") || st.Contains("uttaranchal")) return "05";
+            if (st.Contains("himachal")) return "02";
+            if (st.Contains("jammu") || st.Contains("kashmir")) return "01";
+            if (st.Contains("chandigarh")) return "04";
+            if (st.Contains("goa")) return "30";
+            if (st.Contains("assam")) return "18";
+        }
+
+        // If unknown or not specified, return empty string so it defaults to inter-state (IGST 18%)
+        // Only if tenant is explicitly Haryana (06) will it match supplierStateCode ("06") and charge CGST+SGST.
+        return "";
     }
 }

@@ -209,6 +209,26 @@ public class CouponService : ICouponService
             ));
         }
 
+        if (coupon.ApplicableType == CouponApplicableType.PlansOnly && !string.Equals(request.OrderType, "Plan", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<ValidatePlatformCouponResponse>.Success(new ValidatePlatformCouponResponse(
+                IsValid: false,
+                DiscountAmount: 0,
+                FinalAmount: request.OrderAmount,
+                Message: "This coupon is only valid for core subscription plans."
+            ));
+        }
+
+        if (coupon.ApplicableType == CouponApplicableType.AddOnsOnly && !string.Equals(request.OrderType, "Addon", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<ValidatePlatformCouponResponse>.Success(new ValidatePlatformCouponResponse(
+                IsValid: false,
+                DiscountAmount: 0,
+                FinalAmount: request.OrderAmount,
+                Message: "This coupon is only valid for add-ons."
+            ));
+        }
+
         // Calculate discount
         decimal discount = 0;
         if (coupon.DiscountType == DiscountType.Percentage)

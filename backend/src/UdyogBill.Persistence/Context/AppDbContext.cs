@@ -90,6 +90,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Party> Parties => Set<Party>();
     public DbSet<PartyAddress> PartyAddresses => Set<PartyAddress>();
     public DbSet<PartyLedgerEntry> PartyLedgerEntries => Set<PartyLedgerEntry>();
+    public DbSet<Broker> Brokers => Set<Broker>();
+    public DbSet<BrokerCommissionEntry> BrokerCommissionEntries => Set<BrokerCommissionEntry>();
 
     // Sales, Quotations & Invoicing
     public DbSet<Quotation> Quotations => Set<Quotation>();
@@ -121,6 +123,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Domain.Entities.Banking.ExpenseCategory> ExpenseCategories => Set<Domain.Entities.Banking.ExpenseCategory>();
     public DbSet<Domain.Entities.Banking.ExpenseVoucher> ExpenseVouchers => Set<Domain.Entities.Banking.ExpenseVoucher>();
     public DbSet<Domain.Entities.Banking.CashDrawerSession> CashDrawerSessions => Set<Domain.Entities.Banking.CashDrawerSession>();
+    public DbSet<Domain.Entities.Banking.ChequeRegister> ChequeRegisters => Set<Domain.Entities.Banking.ChequeRegister>();
 
     // Loyalty & Promotions
     public DbSet<Domain.Entities.Loyalty.LoyaltyProgramConfig> LoyaltyProgramConfigs => Set<Domain.Entities.Loyalty.LoyaltyProgramConfig>();
@@ -197,6 +200,10 @@ public class AppDbContext : DbContext, IAppDbContext
 
     // CMS - Marketing Website
     public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<AnalyticsConfig> AnalyticsConfigs => Set<AnalyticsConfig>();
+    public DbSet<MobileAppConfig> MobileAppConfigs => Set<MobileAppConfig>();
+    public DbSet<MobilePushBroadcast> MobilePushBroadcasts => Set<MobilePushBroadcast>();
+    public DbSet<MobileDeviceRegistration> MobileDeviceRegistrations => Set<MobileDeviceRegistration>();
 
     // Referrals & Affiliate Partner Program
     public DbSet<Domain.Entities.Referrals.ReferralProgramConfig> ReferralProgramConfigs => Set<Domain.Entities.Referrals.ReferralProgramConfig>();
@@ -256,6 +263,8 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<Party> IAppDbContext.Parties => Parties;
     IQueryable<PartyAddress> IAppDbContext.PartyAddresses => PartyAddresses;
     IQueryable<PartyLedgerEntry> IAppDbContext.PartyLedgerEntries => PartyLedgerEntries;
+    IQueryable<Broker> IAppDbContext.Brokers => Brokers;
+    IQueryable<BrokerCommissionEntry> IAppDbContext.BrokerCommissionEntries => BrokerCommissionEntries;
 
     // Sales explicit properties
     IQueryable<Quotation> IAppDbContext.Quotations => Quotations;
@@ -286,6 +295,7 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<Domain.Entities.Banking.ExpenseCategory> IAppDbContext.ExpenseCategories => ExpenseCategories;
     IQueryable<Domain.Entities.Banking.ExpenseVoucher> IAppDbContext.ExpenseVouchers => ExpenseVouchers;
     IQueryable<Domain.Entities.Banking.CashDrawerSession> IAppDbContext.CashDrawerSessions => CashDrawerSessions;
+    IQueryable<Domain.Entities.Banking.ChequeRegister> IAppDbContext.ChequeRegisters => ChequeRegisters;
 
     // Loyalty & Promotions explicit properties
     IQueryable<Domain.Entities.Loyalty.LoyaltyProgramConfig> IAppDbContext.LoyaltyProgramConfigs => LoyaltyProgramConfigs;
@@ -366,13 +376,29 @@ public class AppDbContext : DbContext, IAppDbContext
 
         modelBuilder.Entity<StockMovement>()
             .HasIndex(sm => new { sm.TenantId, sm.MovementType, sm.CreatedAtUtc });
-        modelBuilder.Entity<StockMovement>()
-            .HasIndex(sm => new { sm.TenantId, sm.ItemId, sm.WarehouseId, sm.CreatedAtUtc });
-
         modelBuilder.Entity<PartyLedgerEntry>()
             .HasIndex(l => new { l.TenantId, l.PartyId, l.TransactionDate, l.EntryType });
         modelBuilder.Entity<Domain.Entities.Banking.ExpenseVoucher>()
             .HasIndex(e => new { e.TenantId, e.CategoryId, e.ExpenseDate });
+
+        modelBuilder.Entity<Domain.Entities.Banking.ChequeRegister>(b =>
+        {
+            b.ToTable("cheque_registers");
+            b.HasKey(c => c.Id);
+            b.Property(c => c.ChequeNumber).HasMaxLength(50).IsRequired();
+            b.Property(c => c.BankName).HasMaxLength(150).IsRequired();
+            b.Property(c => c.BranchName).HasMaxLength(150);
+            b.Property(c => c.PartyName).HasMaxLength(200).IsRequired();
+            b.Property(c => c.Amount).HasPrecision(18, 4);
+            b.Property(c => c.BounceChargesAmount).HasPrecision(18, 4);
+            b.HasIndex(c => new { c.TenantId, c.ChequeNumber, c.BankName });
+            b.HasIndex(c => new { c.TenantId, c.PartyId, c.Status });
+            b.HasIndex(c => new { c.TenantId, c.ChequeDate, c.Status });
+            b.HasOne(c => c.BankAccount)
+                .WithMany()
+                .HasForeignKey(c => c.BankAccountId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
 
         modelBuilder.Entity<SalesReturn>()
             .HasIndex(r => new { r.TenantId, r.CreditNoteNumber })

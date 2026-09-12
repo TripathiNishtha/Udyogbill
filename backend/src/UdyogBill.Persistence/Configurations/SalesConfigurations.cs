@@ -46,6 +46,7 @@ public class SalesInvoiceConfiguration : IEntityTypeConfiguration<SalesInvoice>
         builder.HasIndex(i => new { i.TenantId, i.InvoiceNumber }).IsUnique();
         builder.HasIndex(i => new { i.TenantId, i.BranchId, i.InvoiceDate });
         builder.HasIndex(i => new { i.TenantId, i.PartyId });
+        builder.HasIndex(i => new { i.TenantId, i.BrokerId });
         builder.HasIndex(i => new { i.TenantId, i.Status });
         builder.HasIndex(i => new { i.TenantId, i.InvoiceDate });
 
@@ -63,6 +64,11 @@ public class SalesInvoiceConfiguration : IEntityTypeConfiguration<SalesInvoice>
             .WithMany()
             .HasForeignKey(i => i.PartyId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(i => i.Broker)
+            .WithMany()
+            .HasForeignKey(i => i.BrokerId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

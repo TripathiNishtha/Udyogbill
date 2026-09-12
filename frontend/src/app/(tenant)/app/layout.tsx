@@ -107,33 +107,31 @@ export default function TenantAppLayout({
       <div className="h-screen h-[100dvh] overflow-hidden bg-background text-foreground flex flex-col antialiased font-sans transition-colors">
         {/* Impersonation Banner for Super Admin */}
         {impersonateInfo && (
-          <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white px-5 py-2.5 flex items-center justify-between shadow-2xl shrink-0 z-[99999] border-b border-amber-400/30">
-            <div className="flex items-center space-x-3">
-              <span className="flex h-2.5 w-2.5 relative">
+          <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white px-3 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between shadow-2xl shrink-0 z-[99999] border-b border-amber-400/30 gap-2">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+              <span className="flex h-2 w-2 sm:h-2.5 sm:w-2.5 relative shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-200 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-white"></span>
               </span>
-              <div className="text-xs font-semibold tracking-wide flex items-center gap-2">
-                <span className="text-amber-200 uppercase text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/30 border border-amber-300/30">
-                  Super Admin Mode
+              <div className="text-[11px] sm:text-xs font-semibold tracking-wide flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="text-amber-200 uppercase text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/30 border border-amber-300/30 shrink-0">
+                  Super Admin
                 </span>
-                <span>
-                  Logged in as Store:{" "}
-                  <strong className="underline text-white ml-0.5">
-                    {impersonateInfo.storeName || impersonateInfo.tenantName || "Store"}
-                  </strong>
+                <span className="truncate">
+                  Store: <strong className="underline text-white ml-0.5">{impersonateInfo.storeName || impersonateInfo.tenantName || "Store"}</strong>
                 </span>
-                <span className="text-amber-200/80 hidden sm:inline text-[11px]">
+                <span className="text-amber-200/80 hidden md:inline text-[11px]">
                   (Full Store Control)
                 </span>
               </div>
             </div>
             <button
               onClick={handleBackToSuperAdmin}
-              className="bg-black/60 hover:bg-black/90 text-white hover:text-amber-200 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 border border-white/20 hover:border-amber-300 shadow-md cursor-pointer"
+              className="bg-black/60 hover:bg-black/90 text-white hover:text-amber-200 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center space-x-1 shrink-0 border border-white/20 hover:border-amber-300 shadow-md cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Super Admin</span>
+              <span className="hidden sm:inline">Back to Super Admin</span>
+              <span className="sm:hidden">Exit</span>
             </button>
           </div>
         )}
@@ -165,7 +163,7 @@ export default function TenantAppLayout({
             </button>
           )}
 
-          <main className="flex-1 overflow-y-auto bg-background text-foreground min-w-0 h-full transition-all duration-300">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background text-foreground min-w-0 h-full transition-all duration-300">
             {children}
           </main>
         </div>

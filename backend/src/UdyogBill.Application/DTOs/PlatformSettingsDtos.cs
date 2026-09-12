@@ -30,7 +30,11 @@ public record PlatformCompanyProfileDto(
     string AuthorizedSignatoryName,
     string AuthorizedSignatoryDesignation,
     string InvoicePrefix,
-    string InvoiceTermsAndConditions
+    int NextInvoiceSequence,
+    string InvoiceTermsAndConditions,
+    bool EnableGstAutoFill = false,
+    string? SandboxApiKey = null,
+    string? SandboxApiSecret = null
 );
 
 public record UpdatePlatformCompanyProfileRequest(
@@ -59,7 +63,31 @@ public record UpdatePlatformCompanyProfileRequest(
     string AuthorizedSignatoryName,
     string AuthorizedSignatoryDesignation,
     string InvoicePrefix,
-    string InvoiceTermsAndConditions
+    int? NextInvoiceSequence,
+    string InvoiceTermsAndConditions,
+    bool? EnableGstAutoFill = null,
+    string? SandboxApiKey = null,
+    string? SandboxApiSecret = null
+);
+
+public record GstLookupResponseDto(
+    bool Success,
+    string? Gstin,
+    string? LegalName,
+    string? TradeName,
+    string? Status,
+    string? State,
+    string? StateCode,
+    string? AddressLine1,
+    string? City,
+    string? Pincode,
+    string? ErrorMessage
+);
+
+public record TestSandboxGstRequest(
+    string? ApiKey,
+    string? ApiSecret,
+    string? TestGstin
 );
 
 // --- SMTP / Email Settings DTOs ---

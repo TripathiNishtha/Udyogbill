@@ -63,6 +63,9 @@ public record CreateSalesInvoiceRequest
     public DateTime? PoDate { get; set; }
     public bool IsReverseCharge { get; set; } = false;
 
+    // Broker / Commission Agent
+    public Guid? BrokerId { get; set; }
+
     public List<CreateSalesInvoiceItemRequest>? Items { get; set; }
 }
 
@@ -232,7 +235,9 @@ public record SalesInvoiceDetailsDto(
     string? CreditNoteNumber = null,
     decimal? CreditNoteAmount = null,
     DateTimeOffset? CreditNoteDate = null,
-    Guid? CreditNoteId = null
+    Guid? CreditNoteId = null,
+    Guid? BrokerId = null,
+    string? BrokerName = null
 );
 
 public record CreateSalesReturnItemRequest

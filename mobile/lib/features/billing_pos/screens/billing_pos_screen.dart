@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/database/daos/item_dao.dart';
+import '../../../core/widgets/continuous_barcode_scanner_sheet.dart';
 import '../../invoices/screens/invoice_detail_preview_screen.dart';
 import '../providers/billing_provider.dart';
 
@@ -57,49 +57,51 @@ class _BillingPosScreenState extends ConsumerState<BillingPosScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
-      builder: (ctx) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.7,
-        child: Column(
-          children: [
-            AppBar(
-              title: const Text('Scan Product Barcode', style: TextStyle(color: Colors.white, fontSize: 16)),
-              backgroundColor: Colors.black,
-              leading: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(ctx),
-              ),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ContinuousBarcodeScannerSheet(
+        title: 'Fast POS Continuous Barcode Billing',
+        initialContinuousMode: true,
+        onItemScanned: (item) {
+          ref.read(billingProvider.notifier).addItem(item);
+        },
+        onUnknownBarcode: (code) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Barcode "$code" not found in inventory'),
+              backgroundColor: AppTheme.warning,
+              duration: const Duration(seconds: 1),
             ),
-            Expanded(
-              child: MobileScanner(
-                onDetect: (capture) async {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
-                      final item = await _itemDao.getByBarcode(barcode.rawValue!);
-                      if (item != null) {
-                        ref.read(billingProvider.notifier).addItem(item);
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx);
-                        }
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Added ${item.name} to cart!'),
-                              backgroundColor: AppTheme.success,
-                              duration: const Duration(milliseconds: 900),
-                            ),
-                          );
-                        }
-                        break;
-                      }
-                    }
-                  }
-                },
-              ),
+          );
+        },
+        bottomCartWidget: (sheetCtx) {
+          final state = ref.watch(billingProvider);
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(10),
             ),
-          ],
-        ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.shopping_cart_outlined, color: Colors.white70, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${state.itemCount} Items in Cart',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
+                ),
+                Text(
+                  '₹${state.grandTotal.toStringAsFixed(2)}',
+                  style: const TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.w900, fontSize: 15),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

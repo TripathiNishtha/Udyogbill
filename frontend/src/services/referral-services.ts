@@ -1,4 +1,4 @@
-﻿import { apiClient } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 
 export interface ReferralProgramConfigDto {
   isEnabled: boolean;
@@ -38,6 +38,8 @@ export interface TenantReferralSummaryDto {
   bankIfsc?: string | null;
   accountHolderName?: string | null;
   referrals: TenantReferralItemDto[];
+  hasActiveSubscription?: boolean;
+  ineligibilityReason?: string | null;
 }
 
 export interface UpdateReferralPayoutSettingsRequest {
@@ -116,31 +118,31 @@ export interface ProcessReferralPayoutRequest {
 export const referralService = {
   // Tenant Portal APIs
   getTenantSummary: async (): Promise<TenantReferralSummaryDto> => {
-    const res = await apiClient.get('/api/v1/tenant/referral/summary');
+    const res = await apiClient.get('/tenant/referral/summary');
     return res.data?.data || res.data;
   },
 
   updatePayoutSettings: async (req: UpdateReferralPayoutSettingsRequest): Promise<void> => {
-    await apiClient.put('/api/v1/tenant/referral/payout-settings', req);
+    await apiClient.put('/tenant/referral/payout-settings', req);
   },
 
   // SuperAdmin APIs
   getAdminConfig: async (): Promise<ReferralProgramConfigDto> => {
-    const res = await apiClient.get('/api/v1/superadmin/referrals/config');
+    const res = await apiClient.get('/superadmin/referrals/config');
     return res.data?.data || res.data;
   },
 
   updateAdminConfig: async (req: UpdateReferralProgramConfigRequest): Promise<ReferralProgramConfigDto> => {
-    const res = await apiClient.put('/api/v1/superadmin/referrals/config', req);
+    const res = await apiClient.put('/superadmin/referrals/config', req);
     return res.data?.data || res.data;
   },
 
   getAdminAnalytics: async (): Promise<SuperAdminReferralAnalyticsDto> => {
-    const res = await apiClient.get('/api/v1/superadmin/referrals/analytics');
+    const res = await apiClient.get('/superadmin/referrals/analytics');
     return res.data?.data || res.data;
   },
 
   processPayout: async (conversionId: string, req: ProcessReferralPayoutRequest): Promise<void> => {
-    await apiClient.post(`/api/v1/superadmin/referrals/conversions/${conversionId}/payout`, req);
+    await apiClient.post(`/superadmin/referrals/conversions/${conversionId}/payout`, req);
   },
 };

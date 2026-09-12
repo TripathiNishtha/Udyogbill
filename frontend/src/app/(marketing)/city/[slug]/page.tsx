@@ -61,7 +61,7 @@ function renderHeroHeadline(tagline: string | undefined, cityName: string) {
     return (
       <div className="space-y-2">
         <span className="text-slate-900 block text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-          {cityName} Ke Vyapar Ka
+          Leading Enterprise Billing & Accounting in {cityName}
         </span>
         <span className="bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent block text-3xl sm:text-5xl lg:text-6xl font-black">
           No. 1 GST Billing Software
@@ -170,7 +170,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `Best GST Billing Software in ${city.name} (${city.state}) | Free Demo | UdyogBill`;
 
   const customDescription = city.heroSubtitle ||
-    `${city.name} ke vyapariyon ke liye No. 1 GST billing software. Pharma, FMCG, Electronics, Garments, Hardware sabhi dukaano ke liye. State GST Code ${city.stateCode} compliant.`;
+    `Best GST Billing & POS Software in ${city.name}, ${city.state}. Designed for Pharma, FMCG, Garments, Retail & Wholesale trade. 100% compliant with State GST Code ${city.stateCode}, E-Invoicing & E-Way Bill.`;
 
   return {
     title: customTitle,
@@ -217,7 +217,7 @@ export default async function CityLandingPage({ params }: Props) {
     },
     industrial: {
       bgGradient: "linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f0fdf4 100%)",
-      badgeClass: "bg-slate-900 text-white border-slate-700",
+      badgeClass: "bg-emerald-50 text-emerald-900 border-emerald-300 font-bold",
       BadgeIcon: Factory,
       badgeLabel: `${city.name} Industrial & Job-Work Cluster • GST: ${city.stateCode}`,
     },
@@ -353,21 +353,21 @@ export default async function CityLandingPage({ params }: Props) {
                   href="/register"
                   className="inline-flex items-center gap-2 text-white font-extrabold px-7 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base bg-orange-600 hover:bg-orange-700 hover:-translate-y-0.5"
                 >
-                  14 Din Ka Free Trial Lein <ArrowRight className="w-4 h-4" />
+                  Start 14-Day Free Trial <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a
-                  href={`https://wa.me/919473807622?text=Hi%2C%20main%20${encodeURIComponent(
+                  href={`https://wa.me/919473807622?text=Hi%2C%20I%20am%20from%20${encodeURIComponent(
                     city.name
-                  )}%20se%20hoon%20aur%20UdyogBill%20ka%20live%20demo%20dekhna%20chahta%20hoon`}
+                  )}%20and%20want%20a%20live%20demo%20of%20UdyogBill`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 font-extrabold px-6 py-4 rounded-xl border-2 border-emerald-600 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all text-base shadow-sm"
                 >
-                  <MessageCircle className="w-5 h-5 text-emerald-600" /> {city.name} Demo Team
+                  <MessageCircle className="w-5 h-5 text-emerald-600" /> Connect with {city.name} Sales Team
                 </a>
               </div>
               <p className="text-xs text-slate-500 font-semibold mt-3 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Koi Credit Card Ki Zaroorat Nahi • Instant Setup
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> No Credit Card Required • Instant Activation • Free Remote Setup
               </p>
             </div>
 
@@ -424,7 +424,7 @@ export default async function CityLandingPage({ params }: Props) {
                           ✓
                         </div>
                         <div className="text-xs text-slate-700 font-medium">
-                          <strong className="text-slate-900 block font-bold">Mandi Pain-Point Solved:</strong>
+                          <strong className="text-slate-900 block font-bold">Trading Challenge Solved:</strong>
                           {city.localTradeProfile.majorPainPoint.slice(0, 115)}...
                         </div>
                       </div>
@@ -440,19 +440,19 @@ export default async function CityLandingPage({ params }: Props) {
                     </div>
                   )}
 
-                  <div className="rounded-xl p-3.5 bg-slate-950 text-white flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 bg-amber-50 border border-amber-200 text-slate-900 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] text-amber-400 font-extrabold uppercase tracking-wider">
+                      <div className="text-[11px] text-amber-800 font-extrabold uppercase tracking-wider">
                         Mandi Onboarding Desk
                       </div>
-                      <div className="text-sm font-black text-white mt-0.5">
+                      <div className="text-sm font-black text-slate-950 mt-0.5">
                         +91 94738 07622
                       </div>
                     </div>
                     <a
-                      href={`https://wa.me/919473807622?text=Hi%2C%20main%20${encodeURIComponent(
+                      href={`https://wa.me/919473807622?text=Hi%2C%20I%20am%20from%20${encodeURIComponent(
                         city.name
-                      )}%20se%20hoon%20aur%20mandi%20billing%20demo%20chahta%20hoon`}
+                      )}%20and%20want%20a%20mandi%20billing%20demo`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-black text-xs transition-colors shadow-sm flex items-center gap-1.5"
@@ -464,44 +464,44 @@ export default async function CityLandingPage({ params }: Props) {
               )}
 
               {archetype === "industrial" && (
-                <div className="rounded-3xl p-6 sm:p-7 border-2 border-slate-300 bg-slate-900 text-white shadow-2xl ring-8 ring-slate-800/50">
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                <div className="rounded-3xl p-6 sm:p-7 border-2 border-emerald-200 bg-white text-slate-900 shadow-xl ring-8 ring-emerald-50/70">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
                     <div className="flex items-center gap-2.5">
-                      <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                        <Factory className="w-3.5 h-3.5 text-orange-400" />
+                      <span className="w-3 h-3 rounded-full bg-emerald-600 animate-pulse" />
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                        <Factory className="w-3.5 h-3.5 text-orange-600" />
                         {city.name} Industrial & Job-Work Engine
                       </span>
                     </div>
-                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                       Tier-1 Vendor Ready
                     </span>
                   </div>
 
                   {/* Simulated Industrial Delivery Challan & BOM */}
-                  <div className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 mb-4 font-mono text-xs">
-                    <div className="flex justify-between items-center text-orange-400 font-bold mb-2">
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-4 font-mono text-xs">
+                    <div className="flex justify-between items-center text-orange-600 font-bold mb-2">
                       <span>JOB-WORK WORKFLOW</span>
-                      <span className="bg-slate-900 px-2 py-0.5 rounded text-[11px] text-emerald-400 border border-slate-700">
+                      <span className="bg-white px-2 py-0.5 rounded text-[11px] text-emerald-700 border border-emerald-200 font-bold">
                         ACTIVE
                       </span>
                     </div>
-                    <div className="space-y-1.5 text-slate-300 text-[11px]">
+                    <div className="space-y-1.5 text-slate-700 text-[11px]">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Cluster Hub:</span>
-                        <span className="text-white font-bold">{city.popularHubs[0] || "Industrial MIDC"}</span>
+                        <span className="text-slate-500">Cluster Hub:</span>
+                        <span className="text-slate-950 font-bold">{city.popularHubs[0] || "Industrial MIDC"}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Dispatch Challan:</span>
-                        <span className="text-emerald-400 font-bold">DC-Auto Merge to Tax Invoice</span>
+                        <span className="text-slate-500">Dispatch Challan:</span>
+                        <span className="text-emerald-700 font-bold">DC-Auto Merge to Tax Invoice</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">BOM & Raw Material:</span>
-                        <span className="text-white">Auto-Deduct with Scrap %</span>
+                        <span className="text-slate-500">BOM & Raw Material:</span>
+                        <span className="text-slate-900 font-medium">Auto-Deduct with Scrap %</span>
                       </div>
-                      <div className="flex justify-between border-t border-slate-700 pt-1.5 font-bold">
-                        <span className="text-slate-400">E-Way Bill & IRN:</span>
-                        <span className="text-orange-300">1-Click Direct NIC Sync</span>
+                      <div className="flex justify-between border-t border-slate-200 pt-1.5 font-bold">
+                        <span className="text-slate-500">E-Way Bill & IRN:</span>
+                        <span className="text-orange-600">1-Click Direct NIC Sync</span>
                       </div>
                     </div>
                   </div>
@@ -509,34 +509,34 @@ export default async function CityLandingPage({ params }: Props) {
                   {/* City Specific Industrial Advantage */}
                   {city.localTradeProfile && (
                     <div className="space-y-2 mb-5">
-                      <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700 text-xs">
-                        <span className="text-orange-400 font-bold block mb-0.5">Focus Industry:</span>
-                        <p className="text-slate-300 text-[11px] leading-relaxed">
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                        <span className="text-orange-600 font-bold block mb-0.5">Focus Industry:</span>
+                        <p className="text-slate-700 text-[11px] leading-relaxed">
                           {city.primaryIndustries.slice(0, 2).join(", ")}
                         </p>
                       </div>
-                      <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-xs">
-                        <span className="text-emerald-400 font-bold block mb-0.5">UdyogBill Advantage:</span>
-                        <p className="text-slate-300 text-[11px] leading-relaxed">
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs">
+                        <span className="text-emerald-800 font-bold block mb-0.5">UdyogBill Advantage:</span>
+                        <p className="text-emerald-950 text-[11px] leading-relaxed font-medium">
                           {city.localTradeProfile.udyogBillSolution.slice(0, 115)}...
                         </p>
                       </div>
                     </div>
                   )}
 
-                  <div className="rounded-xl p-3.5 bg-slate-800 border border-slate-700 flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 bg-orange-50 border border-orange-200 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                      <div className="text-[11px] text-orange-800 font-bold uppercase tracking-wider">
                         Industrial Technical Desk
                       </div>
-                      <div className="text-sm font-black text-white mt-0.5">
+                      <div className="text-sm font-black text-slate-950 mt-0.5">
                         +91 94738 07622
                       </div>
                     </div>
                     <a
-                      href={`https://wa.me/919473807622?text=Hi%2C%20main%20${encodeURIComponent(
+                      href={`https://wa.me/919473807622?text=Hi%2C%20I%20am%20from%20${encodeURIComponent(
                         city.name
-                      )}%20industrial%20cluster%20se%20hoon%20aur%20job-work%20demo%20chahta%20hoon`}
+                      )}%20industrial%20cluster%20and%20need%20a%20job-work%20demo`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-slate-950 font-black text-xs transition-colors shadow-sm flex items-center gap-1.5"
@@ -616,12 +616,12 @@ export default async function CityLandingPage({ params }: Props) {
                     </div>
                   )}
 
-                  <div className="rounded-xl p-3.5 bg-slate-900 text-white flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 bg-blue-50 border border-blue-200 text-slate-900 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] text-blue-400 font-extrabold uppercase tracking-wider">
+                      <div className="text-[11px] text-blue-800 font-extrabold uppercase tracking-wider">
                         Retail POS Quick Setup
                       </div>
-                      <div className="text-sm font-black text-white mt-0.5">
+                      <div className="text-sm font-black text-slate-950 mt-0.5">
                         +91 94738 07622
                       </div>
                     </div>
@@ -668,7 +668,7 @@ export default async function CityLandingPage({ params }: Props) {
                         <span className="font-bold text-indigo-800">Direct Multi-State IGST + E-Way Bill</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Udhar Recovery:</span>
+                        <span>Outstanding Recovery:</span>
                         <span className="font-bold text-emerald-700">Auto WhatsApp Statement + UPI Link</span>
                       </div>
                       <div className="flex justify-between border-t border-indigo-200 pt-1.5 font-bold">
@@ -702,19 +702,19 @@ export default async function CityLandingPage({ params }: Props) {
                     </div>
                   )}
 
-                  <div className="rounded-xl p-3.5 bg-slate-900 text-white flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 bg-indigo-50 border border-indigo-200 text-slate-900 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] text-indigo-400 font-extrabold uppercase tracking-wider">
+                      <div className="text-[11px] text-indigo-800 font-extrabold uppercase tracking-wider">
                         Logistics Onboarding Desk
                       </div>
-                      <div className="text-sm font-black text-white mt-0.5">
+                      <div className="text-sm font-black text-slate-950 mt-0.5">
                         +91 94738 07622
                       </div>
                     </div>
                     <a
-                      href={`https://wa.me/919473807622?text=Hi%2C%20main%20${encodeURIComponent(
+                      href={`https://wa.me/919473807622?text=Hi%2C%20I%20am%20from%20${encodeURIComponent(
                         city.name
-                      )}%20se%20hoon%20aur%20outstation%20billing%20demo%20chahta%20hoon`}
+                      )}%20and%20want%20an%20outstation%20billing%20demo`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition-colors shadow-sm flex items-center gap-1.5"
@@ -737,17 +737,17 @@ export default async function CityLandingPage({ params }: Props) {
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100">
                 <div>
                   <span className="text-xs font-black uppercase tracking-wider text-orange-600 bg-orange-100 px-3 py-1 rounded-full border border-orange-200">
-                    Local Mandi Intelligence: {city.name}
+                    Local Trading Intelligence: {city.name}
                   </span>
                   <h2
                     className="text-2xl sm:text-3xl font-black text-slate-950 mt-2.5"
                     style={{ fontFamily: "Poppins, sans-serif" }}
                   >
-                    {city.name} Vyapar Ka Asal Mudda Aur UdyogBill Solution
+                    Solving Core Trade Challenges in {city.name}
                   </h2>
                 </div>
                 <div className="text-xs font-extrabold text-slate-600 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200">
-                  🎯 100% Tailored for {city.name}
+                  🎯 100% Tailored for {city.name} Enterprises
                 </div>
               </div>
 
@@ -769,7 +769,7 @@ export default async function CityLandingPage({ params }: Props) {
                     Ground-Level Challenge
                   </div>
                   <h3 className="text-base font-extrabold text-slate-900 mb-2">
-                    Vyapari Ki Badi Pareshani
+                    Operational Bottleneck
                   </h3>
                   <p className="text-sm text-slate-700 leading-relaxed font-medium">
                     {city.localTradeProfile.majorPainPoint}
@@ -781,7 +781,7 @@ export default async function CityLandingPage({ params }: Props) {
                     UdyogBill Advantage
                   </div>
                   <h3 className="text-base font-extrabold text-slate-900 mb-2">
-                    Hamara Asardaar Solution
+                    Our Automated Solution
                   </h3>
                   <p className="text-sm text-slate-700 leading-relaxed font-medium">
                     {city.localTradeProfile.udyogBillSolution}
@@ -792,26 +792,26 @@ export default async function CityLandingPage({ params }: Props) {
               {/* Contextual Internal Links Pill Strip */}
               <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="font-extrabold text-slate-700">
-                  ⚡ Quick Business Navigation for {city.name}:
+                  ⚡ Specialized Solutions for {city.name} Traders:
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
                     href="/features"
                     className="font-bold text-orange-700 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg border border-orange-200 transition-colors"
                   >
-                    View All Features →
+                    Explore Enterprise Features →
                   </Link>
                   <Link
                     href="/pricing"
                     className="font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-300 transition-colors"
                   >
-                    Check Pricing & Plans →
+                    Transparent Pricing Plans →
                   </Link>
                   <Link
                     href="/industries"
                     className="font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors"
                   >
-                    Explore 10+ Industries →
+                    View 11 Industry Verticals →
                   </Link>
                 </div>
               </div>
@@ -832,10 +832,10 @@ export default async function CityLandingPage({ params }: Props) {
               className="text-2xl sm:text-4xl font-extrabold text-slate-950 mb-3 tracking-tight"
               style={{ fontFamily: "Poppins, sans-serif" }}
             >
-              {city.state} GST Niyam & E-Invoicing Compliance
+              {city.state} GST Compliance & E-Invoicing Engine
             </h2>
             <p className="text-slate-700 text-base leading-relaxed">
-              {city.name} ke vyapariyon ko tax notices aur penalties se bachane ke liye sabhi statutory features automated hain.
+              Protect your business from tax notices and penalties in {city.name} with automated statutory compliance and real-time state GST validations.
             </p>
           </div>
 
@@ -849,7 +849,7 @@ export default async function CityLandingPage({ params }: Props) {
                   State GST Code {city.stateCode} Validation
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                  Har invoice par party ke GSTIN ka pehla do-digit verify hota hai. Agar party {city.state} ki hai to automatic CGST + SGST apply hoga, bahar ki state hone par IGST.
+                  Every invoice automatically verifies the counter-party GSTIN state prefix. Seamlessly applies CGST + SGST for intra-state sales in {city.state}, and switches to IGST for interstate shipments.
                 </p>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
@@ -863,14 +863,14 @@ export default async function CityLandingPage({ params }: Props) {
                   IRN
                 </div>
                 <h3 className="text-lg font-bold text-slate-950 mb-2">
-                  E-Invoicing & B2B QR Code Ready
+                  Govt E-Invoicing & B2B QR Code
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                  ₹5 Crore se adhik turnover wale vyapariyon ke liye direct IRP portal integration. 1-click mein IRN number aur signed QR code generate hota hai.
+                  Direct IRP portal integration for businesses crossing the ₹5 Cr turnover threshold. Generate 64-character IRN numbers and tamper-proof signed QR codes in a single click.
                 </p>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
-                ✅ Govt. Mandated E-Invoice Compatible
+                ✅ Govt Mandated E-Invoice Compatible
               </div>
             </div>
 
@@ -880,10 +880,10 @@ export default async function CityLandingPage({ params }: Props) {
                   EWB
                 </div>
                 <h3 className="text-lg font-bold text-slate-950 mb-2">
-                  Instant E-Way Bill Generation
+                  Instant NIC E-Way Bill Sync
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                  ₹50,000 se adhik consignment ke liye trans-docking ya vehicle number enter karke turant E-Way Bill banao aur transport copy print karo.
+                  Generate E-Way bills directly from the billing screen for consignments exceeding ₹50,000. Auto-sync Part-A and Part-B with transporter ID and vehicle numbers.
                 </p>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
@@ -902,10 +902,10 @@ export default async function CityLandingPage({ params }: Props) {
               className="text-2xl sm:text-4xl font-extrabold text-slate-950 mb-3 tracking-tight"
               style={{ fontFamily: "Poppins, sans-serif" }}
             >
-              {city.name} Ke Mukhya Business Sectors Ke Liye Specialised Features
+              Specialized Industry Workflows for {city.name}
             </h2>
             <p className="text-slate-700 text-base leading-relaxed">
-              Aapki industry chahe wholesale ho ya retail, UdyogBill har product category ki khas requirement samajhta hai.
+              Whether you run a high-volume wholesale distribution agency or a multi-counter retail chain, UdyogBill adapts to your specific trade workflows.
             </p>
           </div>
 
@@ -935,7 +935,7 @@ export default async function CityLandingPage({ params }: Props) {
                       href={ind.link}
                       className="w-full text-center py-2.5 rounded-xl text-xs font-bold bg-orange-50 hover:bg-orange-600 hover:text-white text-orange-800 border border-orange-200 hover:border-orange-600 transition-colors flex items-center justify-center gap-1"
                     >
-                      {ind.title} Features Dekhein <ArrowRight className="w-3.5 h-3.5" />
+                      {ind.title} Solutions <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 ))
@@ -952,20 +952,20 @@ export default async function CityLandingPage({ params }: Props) {
                         {ind}
                       </h3>
                       <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                        {ind} vyapar ke liye pre-defined HSN codes, GST slab rates, size/batch variants aur unit conversions ready hain.
+                        Pre-configured HSN codes, GST slab rates, barcode variants and unit conversions built for {ind} traders.
                       </p>
                       <ul className="space-y-1.5 text-xs text-slate-700 font-semibold mb-6">
                         <li className="flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          Live Stock Tracking
+                          Live Multi-Godown Stock
                         </li>
                         <li className="flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          Party Ledger & Udhaar Khata
+                          Party Ledgers & Automated Reminders
                         </li>
                         <li className="flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          Thermal & A4 Invoice Print
+                          Thermal 3" & A4 Tax Invoices
                         </li>
                       </ul>
                     </div>
@@ -973,7 +973,7 @@ export default async function CityLandingPage({ params }: Props) {
                       href="/industries"
                       className="w-full text-center py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-orange-600 hover:text-white text-slate-800 transition-colors"
                     >
-                      Is Industry Ka Demo Lein →
+                      Explore Industry Workflows →
                     </Link>
                   </div>
                 ))}
@@ -993,10 +993,10 @@ export default async function CityLandingPage({ params }: Props) {
               className="text-2xl sm:text-4xl font-extrabold text-slate-950 mb-3 tracking-tight"
               style={{ fontFamily: "Poppins, sans-serif" }}
             >
-              Aapke Purane Hardware Ke Sath 100% Compatible
+              100% Compatible with Your Existing Hardware
             </h2>
             <p className="text-slate-700 text-base leading-relaxed">
-              Naya printer ya scanner khareedne ki zaroorat nahi — UdyogBill aapki dukan ke existing setups ke sath turant jud jata hai.
+              Zero need for costly hardware upgrades. UdyogBill pairs seamlessly with your store's existing thermal printers, barcode scanners, and weighing scales.
             </p>
           </div>
 
@@ -1005,22 +1005,22 @@ export default async function CityLandingPage({ params }: Props) {
               {
                 icon: Printer,
                 title: "Thermal Receipt Printers",
-                desc: "TVS, Epson, NGX, Everycom aur Bluetooth POS printers (2 inch / 3 inch / 58mm / 80mm roll).",
+                desc: "TVS, Epson, NGX, Everycom, and Bluetooth POS printers (2-inch / 3-inch / 58mm / 80mm roll).",
               },
               {
                 icon: ScanBarcode,
                 title: "Barcode Scanners",
-                desc: "USB, Wireless 2.4GHz aur Bluetooth 1D/2D QR code scanners instant keystroke ke sath.",
+                desc: "USB, Wireless 2.4GHz, and Bluetooth 1D/2D QR code scanners with zero-latency keystrokes.",
               },
               {
                 icon: Laptop,
                 title: "Desktop & Laptops",
-                desc: "Windows 10/11, macOS aur Chrome browser par bina kisi heavy software installation ke superfast.",
+                desc: "Windows 10/11, macOS, and Chrome browser with ultra-fast cloud performance and offline sync.",
               },
               {
                 icon: Smartphone,
                 title: "Mobile Billing Apps",
-                desc: "Android smartphone aur tablet se billing, stock check aur WhatsApp bill share karein.",
+                desc: "Generate bills, audit stock, and share WhatsApp invoices directly from Android smartphones and tablets.",
               },
             ].map((hw) => {
               const Icon = hw.icon;
@@ -1058,10 +1058,10 @@ export default async function CityLandingPage({ params }: Props) {
               className="text-2xl sm:text-4xl font-extrabold text-slate-950 mb-3 tracking-tight"
               style={{ fontFamily: "Poppins, sans-serif" }}
             >
-              {city.name} Vyapariyon Ke Aam Sawaal (FAQs)
+              Frequently Asked Questions for {city.name} Businesses
             </h2>
             <p className="text-slate-700 text-base">
-              Billing software lene se pehle jo sawaal aapke mann mein aate hain, unka spasht jawab:
+              Clear answers to common questions about GST compliance, hardware compatibility, and data migration:
             </p>
           </div>
 
@@ -1087,40 +1087,40 @@ export default async function CityLandingPage({ params }: Props) {
       </section>
 
       {/* 6. Sticky/Bottom Conversion Action Strip */}
-      <section className="py-16 bg-slate-950 text-white text-center">
+      <section className="py-16 bg-gradient-to-br from-orange-50/70 via-white to-emerald-50/70 text-slate-900 text-center border-t border-orange-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-8 lg:px-12">
-          <div className="inline-block px-3.5 py-1 rounded-full text-xs font-bold text-orange-400 bg-orange-950 border border-orange-800 mb-4">
-            {city.name} Vyapari Special Offer
+          <div className="inline-block px-3.5 py-1 rounded-full text-xs font-bold text-orange-800 bg-orange-100 border border-orange-300 mb-4">
+            Special Launch Offer for {city.name} Traders
           </div>
           <h2
-            className="text-3xl sm:text-5xl font-black text-white mb-4 tracking-tight"
+            className="text-3xl sm:text-5xl font-black text-slate-950 mb-4 tracking-tight"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
-            {city.name} Mein Apni Dukan Ko Digital Banayein
+            Modernize Your Business in {city.name} Today
           </h2>
-          <p className="text-slate-300 text-base sm:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-            14 din ka free trial shuru karein. Hamare billing experts aapki dukan par ya remote screen-share ke zariye data migration aur printer setup mein poori madad karenge.
+          <p className="text-slate-700 text-base sm:text-lg mb-8 max-w-2xl mx-auto leading-relaxed font-medium">
+            Start your 14-day free trial. Our technical team assists with free historical data migration from Vyapar, Busy, Marg, or Excel, plus remote printer and barcode configuration.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
               href="/register"
-              className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-extrabold px-8 py-4 rounded-xl text-base shadow-xl transition-all"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold px-8 py-4 rounded-xl text-base shadow-lg shadow-orange-500/25 transition-all"
             >
-              Free Trial Shuru Karo <ArrowRight className="w-5 h-5" />
+              Start Free Trial Now <ArrowRight className="w-5 h-5" />
             </Link>
             <a
-              href={`https://wa.me/919473807622?text=Hi%2C%20main%20${encodeURIComponent(
+              href={`https://wa.me/919473807622?text=Hi%2C%20I%20am%20from%20${encodeURIComponent(
                 city.name
-              )}%20se%20hoon%20aur%20UdyogBill%20setup%20karwana%20chahta%20hoon`}
+              )}%20and%20want%20to%20set%20up%20UdyogBill`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-4 rounded-xl text-base shadow-xl transition-all"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-4 rounded-xl text-base shadow-lg shadow-emerald-600/20 transition-all"
             >
-              <MessageCircle className="w-5 h-5" /> WhatsApp Pe Baat Karein
+              <MessageCircle className="w-5 h-5" /> Chat with Regional Support
             </a>
           </div>
-          <p className="text-xs text-slate-400 mt-5">
-            Toll-Free / Direct Hotline: <span className="text-white font-bold">+91 94738 07622</span> (10 AM – 7 PM)
+          <p className="text-xs text-slate-600 mt-5 font-medium">
+            Direct Merchant Hotline: <span className="text-slate-950 font-bold">+91 94738 07622</span> (Mon–Sat, 10 AM – 7 PM IST)
           </p>
         </div>
       </section>

@@ -14,6 +14,7 @@ public interface ISuperAdminService
     Task<Result<ImpersonateTenantResponse>> ImpersonateTenantAsync(Guid tenantId, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> AssignPackageAndAddOnsAsync(Guid tenantId, AssignPackageAndAddOnsRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> ExtendTenantTrialAsync(Guid tenantId, ExtendTenantTrialRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result> DeleteTenantAsync(Guid tenantId, string? ipAddress = null, CancellationToken cancellationToken = default);
 
     // Dynamic Industry Catalog Management
     Task<Result<Guid>> CreateIndustryAsync(CreateIndustryRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);

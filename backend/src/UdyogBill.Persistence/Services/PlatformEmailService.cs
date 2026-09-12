@@ -187,8 +187,8 @@ public class PlatformEmailService : IPlatformEmailService
 <head><meta charset='utf-8'></head>
 <body style='font-family: Arial, sans-serif; background-color: #0f172a; padding: 40px; color: #f8fafc;'>
   <div style='max-width: 580px; margin: 0 auto; background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px;'>
-    <div style='font-size: 20px; font-weight: bold; color: #818cf8; margin-bottom: 4px;'>{WebUtility.HtmlEncode(invoice.SupplierLegalName ?? "UDYOGBILL TECHNOLOGIES")}</div>
-    <div style='font-size: 11px; color: #64748b; margin-bottom: 16px;'>Supplier GSTIN: {invoice.SupplierGstin ?? "09AAACU9876A1Z5"} • SAC: 998313</div>
+    <div style='font-size: 20px; font-weight: bold; color: #818cf8; margin-bottom: 4px;'>{WebUtility.HtmlEncode(invoice.SupplierLegalName ?? "DIGIOPERA PRIVATE LIMITED")}</div>
+    <div style='font-size: 11px; color: #64748b; margin-bottom: 16px;'>Supplier GSTIN: {invoice.SupplierGstin ?? ""} • SAC: 998313</div>
     
     <div style='background-color: #064e3b; border: 1px solid #059669; border-radius: 10px; padding: 12px; margin-bottom: 20px; color: #a7f3d0; font-size: 13px; font-weight: bold;'>
       ✓ Payment Confirmed — Subscription Active!

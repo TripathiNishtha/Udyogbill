@@ -42,9 +42,33 @@ const blogs: BlogPost[] = (blogsData as BlogPost[]).map((b) => {
         .replace(/https:\/\/udyogbill\.com/g, "")
     : "";
 
+  let featuredImg = b.featured_image;
+  if (!featuredImg || !featuredImg.trim() || featuredImg.startsWith("blog/")) {
+    const slug = (cat?.slug || "").toLowerCase();
+    if (slug.includes("pharma") || slug.includes("chemist")) {
+      featuredImg = "/img/blog/pharmacy.svg";
+    } else if (slug.includes("retail") || slug.includes("pos")) {
+      featuredImg = "/img/blog/retail-billing.svg";
+    } else if (slug.includes("gst") || slug.includes("invoice") || slug.includes("tax")) {
+      featuredImg = "/img/blog/gst-billing.svg";
+    } else if (slug.includes("inventory") || slug.includes("stock")) {
+      featuredImg = "/img/blog/inventory.svg";
+    } else if (slug.includes("compliance") || slug.includes("e-way") || slug.includes("e-invoice")) {
+      featuredImg = "/img/blog/compliance.svg";
+    } else if (slug.includes("restaurant") || slug.includes("cafe")) {
+      featuredImg = "/img/blog/restaurant.svg";
+    } else if (slug.includes("wholesale")) {
+      featuredImg = "/img/blog/wholesale.svg";
+    } else {
+      featuredImg = "/img/blog/default.svg";
+    }
+  }
+
   return {
     ...b,
     category: cat,
+    featured_image: featuredImg,
+    og_image: b.og_image || featuredImg,
     content: normalizedContent,
   };
 });

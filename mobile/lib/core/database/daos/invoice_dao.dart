@@ -7,10 +7,17 @@ class InvoiceItemModel {
   final String itemId;
   final String itemName;
   final String? itemSku;
+  final String? hsnCode;
   final String? batchNumber;
+  final String? expiryDate;
   final double quantity;
+  final double freeQuantity;
   final double unitPrice;
+  final double mrp;
+  final double ptr;
+  final double pts;
   final double discountPercent;
+  final double schemeDiscountPercent;
   final double taxableAmount;
   final double gstRate;
   final double cgstAmount;
@@ -24,10 +31,17 @@ class InvoiceItemModel {
     required this.itemId,
     required this.itemName,
     this.itemSku,
+    this.hsnCode,
     this.batchNumber,
+    this.expiryDate,
     required this.quantity,
+    this.freeQuantity = 0.0,
     required this.unitPrice,
+    this.mrp = 0.0,
+    this.ptr = 0.0,
+    this.pts = 0.0,
     this.discountPercent = 0.0,
+    this.schemeDiscountPercent = 0.0,
     required this.taxableAmount,
     required this.gstRate,
     required this.cgstAmount,
@@ -43,10 +57,17 @@ class InvoiceItemModel {
       'itemId': itemId,
       'itemName': itemName,
       'itemSku': itemSku,
+      'hsnCode': hsnCode,
       'batchNumber': batchNumber,
+      'expiryDate': expiryDate,
       'quantity': quantity,
+      'freeQuantity': freeQuantity,
       'unitPrice': unitPrice,
+      'mrp': mrp,
+      'ptr': ptr,
+      'pts': pts,
       'discountPercent': discountPercent,
+      'schemeDiscountPercent': schemeDiscountPercent,
       'taxableAmount': taxableAmount,
       'gstRate': gstRate,
       'cgstAmount': cgstAmount,
@@ -63,10 +84,17 @@ class InvoiceItemModel {
       itemId: map['itemId'],
       itemName: map['itemName'],
       itemSku: map['itemSku'],
+      hsnCode: map['hsnCode'],
       batchNumber: map['batchNumber'],
+      expiryDate: map['expiryDate'],
       quantity: (map['quantity'] as num).toDouble(),
+      freeQuantity: (map['freeQuantity'] as num?)?.toDouble() ?? 0.0,
       unitPrice: (map['unitPrice'] as num).toDouble(),
+      mrp: (map['mrp'] as num?)?.toDouble() ?? 0.0,
+      ptr: (map['ptr'] as num?)?.toDouble() ?? 0.0,
+      pts: (map['pts'] as num?)?.toDouble() ?? 0.0,
       discountPercent: (map['discountPercent'] as num?)?.toDouble() ?? 0.0,
+      schemeDiscountPercent: (map['schemeDiscountPercent'] as num?)?.toDouble() ?? 0.0,
       taxableAmount: (map['taxableAmount'] as num).toDouble(),
       gstRate: (map['gstRate'] as num).toDouble(),
       cgstAmount: (map['cgstAmount'] as num).toDouble(),
@@ -87,6 +115,22 @@ class InvoiceModel {
   final String partyName;
   final String? partyPhone;
   final String? partyGstin;
+  final String? placeOfSupply;
+  final String? billingStateCode;
+  final String? shippingStateCode;
+  final String? billingAddress;
+  final String? shippingAddress;
+  final String? poNumber;
+  final String? poDate;
+  final String? vehicleNumber;
+  final String? transporterName;
+  final String? transporterId;
+  final String? ewayBillNumber;
+  final String? ewayBillDate;
+  final String? lrNumber;
+  final String? lrDate;
+  final bool isReverseCharge;
+  final int invoiceType; // 1 = TaxInvoice (B2B), 2 = POSBill (Retail B2C)
   final double taxableAmount;
   final double cgstAmount;
   final double sgstAmount;
@@ -111,6 +155,22 @@ class InvoiceModel {
     required this.partyName,
     this.partyPhone,
     this.partyGstin,
+    this.placeOfSupply,
+    this.billingStateCode,
+    this.shippingStateCode,
+    this.billingAddress,
+    this.shippingAddress,
+    this.poNumber,
+    this.poDate,
+    this.vehicleNumber,
+    this.transporterName,
+    this.transporterId,
+    this.ewayBillNumber,
+    this.ewayBillDate,
+    this.lrNumber,
+    this.lrDate,
+    this.isReverseCharge = false,
+    this.invoiceType = 1,
     required this.taxableAmount,
     required this.cgstAmount,
     required this.sgstAmount,
@@ -137,6 +197,22 @@ class InvoiceModel {
       'partyName': partyName,
       'partyPhone': partyPhone,
       'partyGstin': partyGstin,
+      'placeOfSupply': placeOfSupply,
+      'billingStateCode': billingStateCode,
+      'shippingStateCode': shippingStateCode,
+      'billingAddress': billingAddress,
+      'shippingAddress': shippingAddress,
+      'poNumber': poNumber,
+      'poDate': poDate,
+      'vehicleNumber': vehicleNumber,
+      'transporterName': transporterName,
+      'transporterId': transporterId,
+      'ewayBillNumber': ewayBillNumber,
+      'ewayBillDate': ewayBillDate,
+      'lrNumber': lrNumber,
+      'lrDate': lrDate,
+      'isReverseCharge': isReverseCharge ? 1 : 0,
+      'invoiceType': invoiceType,
       'taxableAmount': taxableAmount,
       'cgstAmount': cgstAmount,
       'sgstAmount': sgstAmount,
@@ -163,6 +239,22 @@ class InvoiceModel {
       partyName: map['partyName'],
       partyPhone: map['partyPhone'],
       partyGstin: map['partyGstin'],
+      placeOfSupply: map['placeOfSupply'],
+      billingStateCode: map['billingStateCode'],
+      shippingStateCode: map['shippingStateCode'],
+      billingAddress: map['billingAddress'],
+      shippingAddress: map['shippingAddress'],
+      poNumber: map['poNumber'],
+      poDate: map['poDate'],
+      vehicleNumber: map['vehicleNumber'],
+      transporterName: map['transporterName'],
+      transporterId: map['transporterId'],
+      ewayBillNumber: map['ewayBillNumber'],
+      ewayBillDate: map['ewayBillDate'],
+      lrNumber: map['lrNumber'],
+      lrDate: map['lrDate'],
+      isReverseCharge: (map['isReverseCharge'] ?? 0) == 1,
+      invoiceType: map['invoiceType'] ?? 1,
       taxableAmount: (map['taxableAmount'] as num).toDouble(),
       cgstAmount: (map['cgstAmount'] as num).toDouble(),
       sgstAmount: (map['sgstAmount'] as num).toDouble(),
@@ -191,10 +283,11 @@ class InvoiceDao {
       for (final item in invoice.items) {
         await txn.insert('invoice_items', item.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
 
-        // Deduct inventory stock quantity
+        // Deduct inventory stock quantity (Billed + Free Qty)
+        final totalDeduct = item.quantity + item.freeQuantity;
         await txn.rawUpdate(
           'UPDATE items SET stockQuantity = stockQuantity - ? WHERE id = ?',
-          [item.quantity, item.itemId],
+          [totalDeduct, item.itemId],
         );
       }
 
@@ -217,11 +310,6 @@ class InvoiceDao {
       orderBy: 'createdAt DESC',
       limit: limit,
     );
-
-    if (invMaps.isEmpty) {
-      await _seedSampleInvoices();
-      return getRecentInvoices(limit: limit);
-    }
 
     final List<InvoiceModel> results = [];
     for (final map in invMaps) {
@@ -324,64 +412,25 @@ class InvoiceDao {
     };
   }
 
-  Future<void> _seedSampleInvoices() async {
-    final now = DateTime.now();
-    final todayStr = now.toIso8601String().substring(0, 10);
-
-    final sample1 = InvoiceModel(
-      id: 'inv-seed-1',
-      tenantId: 'demo-tenant',
-      invoiceNumber: 'INV-2026-0001',
-      invoiceDate: todayStr,
-      partyId: 'cust-1',
-      partyName: 'Sharma Medical Store',
-      partyPhone: '9876543210',
-      taxableAmount: 1250.0,
-      cgstAmount: 75.0,
-      sgstAmount: 75.0,
-      totalAmount: 1400.0,
-      paidAmount: 1400.0,
-      balanceAmount: 0.0,
-      paymentMode: 1, // Cash
-      paymentStatus: 3, // Paid
-      createdAt: now.subtract(const Duration(hours: 3)).toIso8601String(),
-      items: [
-        InvoiceItemModel(
-          id: 'item-1',
-          invoiceId: 'inv-seed-1',
-          itemId: '1',
-          itemName: 'Paracetamol 650mg Tabs',
-          quantity: 20,
-          unitPrice: 30.0,
-          taxableAmount: 600.0,
-          gstRate: 12.0,
-          cgstAmount: 36.0,
-          sgstAmount: 36.0,
-          totalAmount: 672.0,
-        ),
-      ],
+  /// Returns all invoices for a specific party
+  Future<List<InvoiceModel>> getInvoicesByParty(String partyId) async {
+    final db = await _db;
+    final rows = await db.query(
+      'invoices',
+      where: 'partyId = ? AND isCancelled = 0',
+      whereArgs: [partyId],
+      orderBy: 'invoiceDate DESC',
     );
-
-    final sample2 = InvoiceModel(
-      id: 'inv-seed-2',
-      tenantId: 'demo-tenant',
-      invoiceNumber: 'INV-2026-0002',
-      invoiceDate: todayStr,
-      partyId: 'cust-2',
-      partyName: 'Gupta General Traders',
-      partyPhone: '9811223344',
-      taxableAmount: 3200.0,
-      cgstAmount: 160.0,
-      sgstAmount: 160.0,
-      totalAmount: 3520.0,
-      paidAmount: 1520.0,
-      balanceAmount: 2000.0,
-      paymentMode: 2, // UPI
-      paymentStatus: 2, // Partial
-      createdAt: now.subtract(const Duration(minutes: 45)).toIso8601String(),
-    );
-
-    await insertInvoice(sample1);
-    await insertInvoice(sample2);
+    final List<InvoiceModel> list = [];
+    for (final r in rows) {
+      final itemRows = await db.query(
+        'invoice_items',
+        where: 'invoiceId = ?',
+        whereArgs: [r['id']],
+      );
+      final items = itemRows.map((it) => InvoiceItemModel.fromMap(it)).toList();
+      list.add(InvoiceModel.fromMap(r, items: items));
+    }
+    return list;
   }
 }

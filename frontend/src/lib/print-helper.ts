@@ -14,13 +14,13 @@ export function printRawHtml(
   iframe.setAttribute("aria-hidden", "true");
   document.body.appendChild(iframe);
 
-  let pageCss = "@page { size: A4 portrait; margin: 4mm 5mm; }";
+  let pageCss = `@page { size: A4 portrait; margin: ${margin || "4mm 5mm"}; }`;
   if (pageSize === "A5 landscape") {
-    pageCss = "@page { size: A5 landscape; margin: 3mm 4mm; }";
+    pageCss = `@page { size: A5 landscape; margin: ${margin || "3mm 4mm"}; }`;
   } else if (pageSize === "thermal80") {
-    pageCss = "@page { size: 80mm auto; margin: 2mm; }";
+    pageCss = `@page { size: 80mm auto; margin: ${margin || "2mm"}; }`;
   } else if (pageSize === "thermal58") {
-    pageCss = "@page { size: 58mm auto; margin: 1mm; }";
+    pageCss = `@page { size: 58mm auto; margin: ${margin || "1mm"}; }`;
   }
 
   const doc = iframe.contentWindow?.document;

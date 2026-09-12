@@ -1,15 +1,15 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import PricingClient from "./pricing-client";
 
 export const metadata: Metadata = {
-  title: "Simple & Affordable Pricing Plans | UdyogBill",
-  description: "UdyogBill ke affordable pricing plans dekho. Starter plan sirf ₹399/month se shuru. GST billing, stock management, aur multi-branch support. 14-day free trial.",
+  title: "Transparent & Affordable Pricing Plans | UdyogBill",
+  description: "Explore UdyogBill transparent pricing plans starting at just ₹399/month. Includes GST billing, real-time inventory, multi-branch control, and 14-day unrestricted free trial.",
   alternates: {
     canonical: "https://udyogbill.com/pricing",
   },
   openGraph: {
-    title: "Simple & Transparent Pricing Plans | UdyogBill",
-    description: "Affordable GST billing and inventory plans for small and growing businesses. Starter plan from ₹399/mo.",
+    title: "Transparent & Affordable Pricing Plans | UdyogBill",
+    description: "Cloud GST billing, inventory, and accounting software built for Indian MSMEs. Start your 14-day free trial today.",
     url: "https://udyogbill.com/pricing",
     siteName: "UdyogBill",
     type: "website",

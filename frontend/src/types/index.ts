@@ -134,6 +134,7 @@ export interface Tenant {
   status: TenantStatus;
   adminEmail: string;
   primaryPhone: string;
+  adminPassword?: string;
   gstin?: string;
   timeZone: string;
   currencyCode: string;
@@ -676,6 +677,8 @@ export interface SalesInvoiceDetails {
   creditNoteAmount?: number;
   creditNoteDate?: string;
   creditNoteId?: string;
+  brokerId?: string;
+  brokerName?: string;
   createdAtUtc: string;
   items: SalesInvoiceItem[];
   payments: SalesInvoicePayment[];
@@ -690,12 +693,15 @@ export interface PurchaseOrderItem {
   itemName: string;
   hsnCode?: string;
   orderQuantity: number;
+  freeQuantity?: number;
   receivedQuantity: number;
   remainingQuantity: number;
   uomId: string;
   uomCode: string;
   unitPrice: number;
   discountPercent: number;
+  schemeDiscountPercent?: number;
+  cashDiscountPercent?: number;
   discountAmount: number;
   taxableAmount: number;
   gstRate: number;
@@ -772,9 +778,12 @@ export interface PurchaseOrderDetails {
 export interface CreatePurchaseOrderItemRequest {
   itemId: string;
   quantity: number;
+  freeQuantity?: number;
   uomId: string;
   unitPrice: number;
   discountPercent?: number;
+  schemeDiscountPercent?: number;
+  cashDiscountPercent?: number;
   attributesJson?: string;
 }
 
@@ -802,7 +811,9 @@ export interface GrnItem {
   manufacturingDate?: string;
   expiryDate?: string;
   receivedQuantity: number;
+  receivedFreeQuantity?: number;
   acceptedQuantity: number;
+  acceptedFreeQuantity?: number;
   rejectedQuantity: number;
   uomId: string;
   uomCode: string;
@@ -861,7 +872,9 @@ export interface ReceiveGrnItemRequest {
   manufacturingDate?: string;
   expiryDate?: string;
   receivedQuantity: number;
+  receivedFreeQuantity?: number;
   acceptedQuantity: number;
+  acceptedFreeQuantity?: number;
   rejectedQuantity: number;
   uomId: string;
   unitCost: number;
@@ -891,10 +904,13 @@ export interface PurchaseBillItem {
   batchId?: string;
   batchNumber?: string;
   quantity: number;
+  freeQuantity?: number;
   uomId: string;
   uomCode: string;
   unitPrice: number;
   discountPercent: number;
+  schemeDiscountPercent?: number;
+  cashDiscountPercent?: number;
   discountAmount: number;
   taxableAmount: number;
   gstRate: number;

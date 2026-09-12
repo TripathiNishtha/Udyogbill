@@ -1,4 +1,4 @@
-﻿import * as XLSX from "xlsx";
+import * as XLSX from "xlsx";
 
 export interface MasterMigrationTemplateConfig {
   includeSampleData?: boolean;
@@ -29,35 +29,41 @@ export function downloadMasterMigrationTemplate(config: MasterMigrationTemplateC
     {
       "Section / Step": "2. Sheets Included",
       "Field / Rule": "Sheet Structure",
-      "Requirement / Format": "• CUSTOMERS: Sundry Debtors, GSTIN, Drug License, Credit Limits, Opening Balances\n• SUPPLIERS: Sundry Creditors, GSTIN, DL, FSSAI, Payment Terms, Opening Balances\n• PRODUCTS_CATALOG: Item Names, SKU, Barcode, HSN, Tax%, MRP, Sale & Purchase Rates\n• OPENING_BATCHES: Multi-Batch inventory, Batch No, Expiry Dates, Opening Quantities\n• OPENING_LEDGERS: Chart of Accounts (Bank, Cash, Capital, Assets) with Opening Balances\n• HISTORICAL_INVOICES: (Optional) Past sales bills for reference and customer balances",
+      "Requirement / Format": "• CUSTOMERS: Sundry Debtors, GSTIN, Drug License, Credit Limits, Opening Balances\n• SUPPLIERS: Sundry Creditors, GSTIN, DL, FSSAI, Payment Terms, Opening Balances\n• PRODUCTS_CATALOG: Item Names, SKU, Barcode, HSN, Tax%, MRP, Retail Rate (Sale Price), Wholesale Rate (B2B/Min Rate) & Purchase Rate\n• OPENING_BATCHES: Multi-Batch inventory, Batch No, Expiry Dates, Opening Quantities\n• OPENING_LEDGERS: Chart of Accounts (Bank, Cash, Capital, Assets) with Opening Balances\n• HISTORICAL_INVOICES: (Optional) Past sales bills for reference and customer balances",
       "Example / Notes": "You can fill all sheets or only the ones you need. Empty sheets are safely ignored."
     },
     {
-      "Section / Step": "3. Mandatory Fields",
-      "Field / Rule": "Required Columns (*)",
-      "Requirement / Format": "Columns marked with an asterisk (*) are mandatory. Other columns are optional and can be left blank.",
-      "Example / Notes": "Example: Legal Name, Mobile, Product Name, SKU, Primary UOM, Batch No."
+      "Section / Step": "3. Multi-Tier Pricing (Retail & Wholesale)",
+      "Field / Rule": "Retail vs Wholesale Rates",
+      "Requirement / Format": "• RetailRate: Price charged to retail counter walk-in customers.\n• WholesaleRate: Minimum selling price charged to B2B distributors/retailers.\n• MRP: Max Retail Price printed on package commodity.",
+      "Example / Notes": "Retail: 28.00, Wholesale: 25.00, MRP: 30.50, Purchase: 21.00"
     },
     {
-      "Section / Step": "4. GST Tax Slabs",
+      "Section / Step": "4. Mandatory Fields",
+      "Field / Rule": "Required Columns (*)",
+      "Requirement / Format": "Columns marked with an asterisk (*) are mandatory. Other columns are optional and can be left blank.",
+      "Example / Notes": "Example: Legal Name, Mobile, Product Name, SKU, Primary UOM, RetailRate, Batch No."
+    },
+    {
+      "Section / Step": "5. GST Tax Slabs",
       "Field / Rule": "Tax Rates (%)",
       "Requirement / Format": "Enter standard GST rates as numbers without % sign: 0, 5, 12, 18, or 28.",
       "Example / Notes": "Example: Enter 12 for 12% GST, 18 for 18% GST"
     },
     {
-      "Section / Step": "5. Standard Industry Units (UOM)",
+      "Section / Step": "6. Standard Industry Units (UOM)",
       "Field / Rule": "Supported Units",
       "Requirement / Format": "• Pharma: Strip, Box, Bottle, Vial, Ampoule, Tube, Pcs\n• FMCG / Grocery: Pkt, Kg, Gm, Ltr, Ml, Box, Pcs\n• Hardware / Sanitary: Pcs, Set, Meter, Feet, Kg, Roll\n• Garments / Apparel: Pcs, Set, Meter, Pair, Dozen\n• Electronics: Pcs, Unit, Box, Set\n• Services: Hour, Day, Job, Month",
       "Example / Notes": "You can use standard units or custom units. UdyogBill automatically matches or creates them."
     },
     {
-      "Section / Step": "6. Date Formats",
+      "Section / Step": "7. Date Formats",
       "Field / Rule": "Expiry & Invoice Dates",
       "Requirement / Format": "Preferred format: YYYY-MM-DD (e.g., 2028-12-31). MM/YYYY or MM/YY (e.g., 12/28) is also auto-converted.",
       "Example / Notes": "2028-12-31 or 12/28"
     },
     {
-      "Section / Step": "7. Opening Balance Direction",
+      "Section / Step": "8. Opening Balance Direction",
       "Field / Rule": "Debit vs Credit",
       "Requirement / Format": "• Customers (Debtors): 'Debit' = Customer owes you money. 'Credit' = Advance paid by customer.\n• Suppliers (Creditors): 'Credit' = You owe supplier money. 'Debit' = Advance paid to supplier.",
       "Example / Notes": "Type 'Debit' or 'Credit'"
@@ -225,7 +231,8 @@ export function downloadMasterMigrationTemplate(config: MasterMigrationTemplateC
       "TaxRate*": 12,
       "CessRate": 0,
       "PurchasePrice": 21.00,
-      "SellingPrice*": 28.00,
+      "RetailRate*": 28.00,
+      "WholesaleRate": 25.00,
       "MRP*": 30.50,
       "MinimumStockAlert": 20,
       "ReorderQuantity": 50,
@@ -246,7 +253,8 @@ export function downloadMasterMigrationTemplate(config: MasterMigrationTemplateC
       "TaxRate*": 12,
       "CessRate": 0,
       "PurchasePrice": 145.00,
-      "SellingPrice*": 185.00,
+      "RetailRate*": 185.00,
+      "WholesaleRate": 168.00,
       "MRP*": 201.00,
       "MinimumStockAlert": 10,
       "ReorderQuantity": 25,
@@ -267,7 +275,8 @@ export function downloadMasterMigrationTemplate(config: MasterMigrationTemplateC
       "TaxRate*": 5,
       "CessRate": 0,
       "PurchasePrice": 280.00,
-      "SellingPrice*": 310.00,
+      "RetailRate*": 310.00,
+      "WholesaleRate": 295.00,
       "MRP*": 330.00,
       "MinimumStockAlert": 15,
       "ReorderQuantity": 30,
@@ -288,7 +297,8 @@ export function downloadMasterMigrationTemplate(config: MasterMigrationTemplateC
       "TaxRate*": 18,
       "CessRate": 0,
       "PurchasePrice": 1450.00,
-      "SellingPrice*": 1750.00,
+      "RetailRate*": 1750.00,
+      "WholesaleRate": 1600.00,
       "MRP*": 1950.00,
       "MinimumStockAlert": 5,
       "ReorderQuantity": 10,
@@ -309,7 +319,8 @@ export function downloadMasterMigrationTemplate(config: MasterMigrationTemplateC
       "TaxRate*": 5,
       "CessRate": 0,
       "PurchasePrice": 650.00,
-      "SellingPrice*": 999.00,
+      "RetailRate*": 999.00,
+      "WholesaleRate": 850.00,
       "MRP*": 1299.00,
       "MinimumStockAlert": 8,
       "ReorderQuantity": 20,
@@ -324,7 +335,7 @@ export function downloadMasterMigrationTemplate(config: MasterMigrationTemplateC
   const wsProducts = XLSX.utils.json_to_sheet(config.includeSampleData ? productsData : productsData.slice(0, 0));
   wsProducts["!cols"] = [
     { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 12 },
-    { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 12 },
+    { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 12 },
     { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
     { wch: 35 }
   ];
@@ -485,7 +496,7 @@ export const MASTER_MIGRATION_SHEETS_INFO = [
   {
     name: "PRODUCTS_CATALOG",
     title: "📦 Products & Items Catalog",
-    desc: "Catalog directory with SKU, Barcode, HSN, Tax%, MRP, Sale/Purchase Price, Rack Location & Opening Stock."
+    desc: "Catalog directory with SKU, Barcode, HSN, Tax%, MRP, Retail Rate (Sale Price), Wholesale Rate (B2B Price), Purchase Price, Rack Location & Opening Stock."
   },
   {
     name: "OPENING_BATCHES",

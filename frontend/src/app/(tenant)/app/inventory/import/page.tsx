@@ -79,8 +79,9 @@ export default function BulkProductImportPage() {
       const taxRate = parseFloat(getVal(["taxrate", "tax", "gst", "gstpercent"])) || 0;
       const cessRate = parseFloat(getVal(["cessrate", "cess"])) || 0;
       const purchasePrice = parseFloat(getVal(["purchaseprice", "purchaserate", "cost", "buyprice"])) || 0;
-      const salePrice = parseFloat(getVal(["saleprice", "salerate", "price", "rate"])) || purchasePrice * 1.2;
-      const mrp = parseFloat(getVal(["mrp", "maxretailprice"])) || salePrice;
+      const retailPrice = parseFloat(getVal(["retailprice", "retailrate", "customerrate", "saleprice", "salerate", "sellingprice", "price", "rate"])) || purchasePrice * 1.2;
+      const wholesalePrice = parseFloat(getVal(["wholesaleprice", "wholesalerate", "b2brate", "dealerrate", "minimumsellingprice"])) || retailPrice;
+      const mrp = parseFloat(getVal(["mrp", "maxretailprice"])) || retailPrice;
       const minimumStockAlert = parseFloat(getVal(["minimumstockalert", "minstock", "minqty"])) || 10;
       const reorderQuantity = parseFloat(getVal(["reorderquantity", "reorderqty", "roq"])) || 20;
       const openingStock = parseFloat(getVal(["openingstock", "stock", "quantity", "qty"])) || 0;
@@ -100,7 +101,9 @@ export default function BulkProductImportPage() {
         taxRate,
         cessRate,
         purchasePrice,
-        salePrice,
+        salePrice: retailPrice,
+        retailPrice,
+        wholesalePrice,
         mrp,
         minimumStockAlert,
         reorderQuantity,

@@ -186,3 +186,88 @@ export const bankingService = {
     return response.data;
   },
 };
+
+export interface ChequeItem {
+  id: string;
+  direction: number; // 1: Incoming, 2: Outgoing
+  status: number; // 1: ReceivedInHand, 2: Deposited, 3: Cleared, 4: Bounced, 5: RePresented, 6: Cancelled, 7: ReturnedToParty
+  partyId: string;
+  partyName: string;
+  chequeNumber: string;
+  bankName: string;
+  branchName?: string;
+  amount: number;
+  chequeDate: string;
+  receivedDate: string;
+  depositDate?: string;
+  presentationDate?: string;
+  clearingDate?: string;
+  bouncedDate?: string;
+  bankAccountId?: string;
+  bankAccountName?: string;
+  referenceDocumentType?: string;
+  referenceDocumentId?: string;
+  referenceDocumentNumber?: string;
+  bounceReason?: string;
+  bounceChargesAmount: number;
+  isBounceChargeBilledToParty: boolean;
+  remarks?: string;
+  createdAtUtc: string;
+}
+
+export const chequeService = {
+  async getCheques(params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    direction?: number;
+    status?: number;
+    fromDate?: string;
+    toDate?: string;
+    searchTerm?: string;
+  }) {
+    const response = await apiClient.get<{ items: ChequeItem[]; totalCount: number }>("/tenant/cheques", { params });
+    return response.data;
+  },
+
+  async recordCheque(data: {
+    direction: number;
+    partyId: string;
+    partyName: string;
+    chequeNumber: string;
+    bankName: string;
+    branchName?: string;
+    amount: number;
+    chequeDate: string;
+    receivedDate?: string;
+    bankAccountId?: string;
+    referenceDocumentType?: string;
+    referenceDocumentNumber?: string;
+    remarks?: string;
+  }): Promise<string> {
+    const response = await apiClient.post<string>("/tenant/cheques", data);
+    return response.data;
+  },
+
+  async depositCheque(id: string, data: { bankAccountId: string; depositDate: string; remarks?: string }): Promise<void> {
+    await apiClient.post(`/tenant/cheques/${id}/deposit`, data);
+  },
+
+  async clearCheque(id: string, data: { clearingDate: string; remarks?: string }): Promise<void> {
+    await apiClient.post(`/tenant/cheques/${id}/clear`, data);
+  },
+
+  async bounceCheque(id: string, data: {
+    bouncedDate: string;
+    bounceReason: string;
+    bounceCharges?: number;
+    billChargesToParty?: boolean;
+    remarks?: string;
+  }): Promise<void> {
+    await apiClient.post(`/tenant/cheques/${id}/bounce`, data);
+  },
+
+  async cancelCheque(id: string, reason?: string): Promise<void> {
+    await apiClient.post(`/tenant/cheques/${id}/cancel`, reason || "");
+  }
+};
+

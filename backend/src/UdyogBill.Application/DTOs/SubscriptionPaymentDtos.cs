@@ -8,7 +8,8 @@ namespace UdyogBill.Application.DTOs;
 public record CreateSubscriptionOrderRequest(
     string? PlanCode,
     string? AddonCode,
-    string BillingCycle = "Monthly" // "Monthly" or "Annual"
+    string BillingCycle = "Monthly", // "Monthly" or "Annual"
+    string? CouponCode = null
 );
 
 public record CreateSubscriptionOrderResponse(
@@ -21,7 +22,9 @@ public record CreateSubscriptionOrderResponse(
     string Description,
     string ItemName,
     string? CustomerEmail,
-    string? CustomerPhone
+    string? CustomerPhone,
+    decimal DiscountAmount = 0,
+    string? CouponCode = null
 );
 
 public record ConfirmSubscriptionPaymentRequest(
@@ -30,7 +33,8 @@ public record ConfirmSubscriptionPaymentRequest(
     string RazorpaySignature,
     string? PlanCode,
     string? AddonCode,
-    string BillingCycle = "Monthly"
+    string BillingCycle = "Monthly",
+    string? CouponCode = null
 );
 
 public record SubscriptionInvoiceDto(

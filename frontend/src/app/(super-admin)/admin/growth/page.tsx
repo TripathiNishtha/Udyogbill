@@ -28,6 +28,7 @@ import {
   Activity,
 } from "lucide-react";
 import { CITIES_DATA } from "@/lib/city-data";
+import { superAdminService } from "@/services/super-admin-services";
 
 interface IndustryGrowthMetric {
   code: string;
@@ -173,42 +174,42 @@ export default function GrowthCommandCenterPage() {
   const fetchOverview = async () => {
     setLoading(true);
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("udyogbill_token") || localStorage.getItem("udyog_access_token")
-          : null;
+      const now = new Date();
+      let from: Date | undefined;
+      let to: string | undefined = now.toISOString();
 
-      const dateQuery = getDateParams();
+      if (dateRange === "today") {
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (dateRange === "7d") {
+        from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (dateRange === "30d") {
+        from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (dateRange === "90d") {
+        from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      } else {
+        from = undefined;
+        to = undefined;
+      }
 
-      const [overviewRes, citiesRes, contentRes] = await Promise.all([
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050"}/api/v1/superadmin/growth/overview${dateQuery}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050"}/api/v1/superadmin/growth/cities-performance${dateQuery}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050"}/api/v1/superadmin/growth/content-performance${dateQuery}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
+      const fromIso = from ? from.toISOString() : undefined;
+
+      const [overviewData, citiesData, contentData] = await Promise.all([
+        superAdminService.getGrowthOverview(fromIso, to).catch(() => null),
+        superAdminService.getGrowthCitiesPerformance(fromIso, to).catch(() => []),
+        superAdminService.getGrowthContentPerformance(fromIso, to).catch(() => []),
       ]);
 
-      if (overviewRes.ok) {
-        const json = await overviewRes.json();
-        setData(json);
+      if (overviewData) {
+        setData(overviewData);
       }
-      if (citiesRes.ok) {
-        const json = await citiesRes.json();
-        setCitiesData(json);
+      if (citiesData) {
+        setCitiesData(citiesData);
       }
-      if (contentRes.ok) {
-        const json = await contentRes.json();
-        setContentData(json);
+      if (contentData) {
+        setContentData(contentData);
       }
-    } catch {
-      // Handled gracefully
+    } catch (err) {
+      console.error("fetchOverview error:", err);
     }
     setLoading(false);
   };

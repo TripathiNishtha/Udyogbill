@@ -20,7 +20,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 7,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -48,6 +48,127 @@ class AppDatabase {
         if (oldVersion < 3) {
           await _createSfaTables(db);
         }
+        if (oldVersion < 4) {
+          final b2bCols = [
+            'ALTER TABLE invoices ADD COLUMN placeOfSupply TEXT',
+            'ALTER TABLE invoices ADD COLUMN billingStateCode TEXT',
+            'ALTER TABLE invoices ADD COLUMN shippingStateCode TEXT',
+            'ALTER TABLE invoices ADD COLUMN billingAddress TEXT',
+            'ALTER TABLE invoices ADD COLUMN shippingAddress TEXT',
+            'ALTER TABLE invoices ADD COLUMN poNumber TEXT',
+            'ALTER TABLE invoices ADD COLUMN poDate TEXT',
+            'ALTER TABLE invoices ADD COLUMN vehicleNumber TEXT',
+            'ALTER TABLE invoices ADD COLUMN transporterName TEXT',
+            'ALTER TABLE invoices ADD COLUMN transporterId TEXT',
+            'ALTER TABLE invoices ADD COLUMN ewayBillNumber TEXT',
+            'ALTER TABLE invoices ADD COLUMN ewayBillDate TEXT',
+            'ALTER TABLE invoices ADD COLUMN lrNumber TEXT',
+            'ALTER TABLE invoices ADD COLUMN lrDate TEXT',
+            'ALTER TABLE invoices ADD COLUMN isReverseCharge INTEGER DEFAULT 0',
+            'ALTER TABLE invoices ADD COLUMN invoiceType INTEGER DEFAULT 1',
+            'ALTER TABLE invoice_items ADD COLUMN hsnCode TEXT',
+            'ALTER TABLE invoice_items ADD COLUMN expiryDate TEXT',
+            'ALTER TABLE invoice_items ADD COLUMN mrp REAL DEFAULT 0.0',
+            'ALTER TABLE invoice_items ADD COLUMN ptr REAL DEFAULT 0.0',
+            'ALTER TABLE invoice_items ADD COLUMN pts REAL DEFAULT 0.0',
+            'ALTER TABLE invoice_items ADD COLUMN freeQuantity REAL DEFAULT 0.0',
+            'ALTER TABLE invoice_items ADD COLUMN schemeDiscountPercent REAL DEFAULT 0.0',
+          ];
+          for (final col in b2bCols) {
+            try {
+              await db.execute(col);
+            } catch (_) {}
+          }
+        }
+        if (oldVersion < 5) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS payments (
+              id TEXT PRIMARY KEY,
+              tenantId TEXT NOT NULL,
+              paymentNumber TEXT NOT NULL,
+              partyId TEXT NOT NULL,
+              partyName TEXT NOT NULL,
+              partyPhone TEXT,
+              amount REAL NOT NULL,
+              paymentDate TEXT NOT NULL,
+              paymentMode INTEGER NOT NULL,
+              referenceNumber TEXT,
+              notes TEXT,
+              isSynced INTEGER NOT NULL DEFAULT 0,
+              createdAt TEXT NOT NULL
+            )
+          ''');
+          try {
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_payments_party ON payments (partyId)');
+          } catch (_) {}
+        }
+        if (oldVersion < 6) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS sales_returns (
+              id TEXT PRIMARY KEY,
+              tenantId TEXT NOT NULL,
+              creditNoteNumber TEXT NOT NULL,
+              originalInvoiceId TEXT,
+              originalInvoiceNumber TEXT,
+              partyId TEXT NOT NULL,
+              partyName TEXT NOT NULL,
+              partyPhone TEXT,
+              returnDate TEXT NOT NULL,
+              returnReason TEXT NOT NULL,
+              taxableAmount REAL NOT NULL,
+              cgstAmount REAL NOT NULL,
+              sgstAmount REAL NOT NULL,
+              igstAmount REAL NOT NULL,
+              totalAmount REAL NOT NULL,
+              restockToWarehouse INTEGER NOT NULL DEFAULT 1,
+              isSynced INTEGER NOT NULL DEFAULT 0,
+              createdAt TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS sales_return_items (
+              id TEXT PRIMARY KEY,
+              returnId TEXT NOT NULL,
+              itemId TEXT NOT NULL,
+              itemName TEXT NOT NULL,
+              hsnCode TEXT,
+              batchNumber TEXT,
+              expiryDate TEXT,
+              quantity REAL NOT NULL,
+              unitPrice REAL NOT NULL,
+              taxableAmount REAL NOT NULL,
+              gstRate REAL NOT NULL,
+              cgstAmount REAL NOT NULL,
+              sgstAmount REAL NOT NULL,
+              igstAmount REAL NOT NULL,
+              totalAmount REAL NOT NULL,
+              FOREIGN KEY (returnId) REFERENCES sales_returns (id) ON DELETE CASCADE
+            )
+          ''');
+          try {
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_returns_party ON sales_returns (partyId)');
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_returns_date ON sales_returns (returnDate)');
+          } catch (_) {}
+        }
+        if (oldVersion < 7) {
+          final itemCols = [
+            'ALTER TABLE items ADD COLUMN batchNumber TEXT',
+            'ALTER TABLE items ADD COLUMN expiryDate TEXT',
+            'ALTER TABLE items ADD COLUMN mrp REAL DEFAULT 0.0',
+            'ALTER TABLE items ADD COLUMN ptr REAL DEFAULT 0.0',
+            'ALTER TABLE items ADD COLUMN pts REAL DEFAULT 0.0',
+            'ALTER TABLE items ADD COLUMN rackLocation TEXT',
+          ];
+          for (final col in itemCols) {
+            try {
+              await db.execute(col);
+            } catch (_) {}
+          }
+          try {
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_items_expiry ON items (expiryDate)');
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_items_batch ON items (batchNumber)');
+          } catch (_) {}
+        }
       },
     );
   }
@@ -62,6 +183,12 @@ class AppDatabase {
         sku TEXT,
         barcode TEXT,
         hsnCode TEXT,
+        batchNumber TEXT,
+        expiryDate TEXT,
+        mrp REAL NOT NULL DEFAULT 0.0,
+        ptr REAL NOT NULL DEFAULT 0.0,
+        pts REAL NOT NULL DEFAULT 0.0,
+        rackLocation TEXT,
         salePrice REAL NOT NULL,
         purchasePrice REAL NOT NULL,
         stockQuantity REAL NOT NULL,
@@ -77,6 +204,8 @@ class AppDatabase {
     await db.execute('CREATE INDEX idx_items_name ON items (name)');
     await db.execute('CREATE INDEX idx_items_barcode ON items (barcode)');
     await db.execute('CREATE INDEX idx_items_sku ON items (sku)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_items_expiry ON items (expiryDate)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_items_batch ON items (batchNumber)');
 
     // 2. Customers / Parties Table with complete GST, PAN, Address & Credit Fields
     await db.execute('''
@@ -121,6 +250,22 @@ class AppDatabase {
         partyName TEXT NOT NULL,
         partyPhone TEXT,
         partyGstin TEXT,
+        placeOfSupply TEXT,
+        billingStateCode TEXT,
+        shippingStateCode TEXT,
+        billingAddress TEXT,
+        shippingAddress TEXT,
+        poNumber TEXT,
+        poDate TEXT,
+        vehicleNumber TEXT,
+        transporterName TEXT,
+        transporterId TEXT,
+        ewayBillNumber TEXT,
+        ewayBillDate TEXT,
+        lrNumber TEXT,
+        lrDate TEXT,
+        isReverseCharge INTEGER NOT NULL DEFAULT 0,
+        invoiceType INTEGER NOT NULL DEFAULT 1,
         taxableAmount REAL NOT NULL,
         cgstAmount REAL NOT NULL,
         sgstAmount REAL NOT NULL,
@@ -144,10 +289,17 @@ class AppDatabase {
         itemId TEXT NOT NULL,
         itemName TEXT NOT NULL,
         itemSku TEXT,
+        hsnCode TEXT,
         batchNumber TEXT,
+        expiryDate TEXT,
         quantity REAL NOT NULL,
+        freeQuantity REAL NOT NULL DEFAULT 0.0,
         unitPrice REAL NOT NULL,
+        mrp REAL NOT NULL DEFAULT 0.0,
+        ptr REAL NOT NULL DEFAULT 0.0,
+        pts REAL NOT NULL DEFAULT 0.0,
         discountPercent REAL NOT NULL,
+        schemeDiscountPercent REAL NOT NULL DEFAULT 0.0,
         taxableAmount REAL NOT NULL,
         gstRate REAL NOT NULL,
         cgstAmount REAL NOT NULL,
@@ -158,7 +310,27 @@ class AppDatabase {
       )
     ''');
 
-    // 5. Offline Sync Queue Table (Idempotent background sync)
+    // 5. Offline Payments Table (Receipt Vouchers / Payment-In)
+    await db.execute('''
+      CREATE TABLE payments (
+        id TEXT PRIMARY KEY,
+        tenantId TEXT NOT NULL,
+        paymentNumber TEXT NOT NULL,
+        partyId TEXT NOT NULL,
+        partyName TEXT NOT NULL,
+        partyPhone TEXT,
+        amount REAL NOT NULL,
+        paymentDate TEXT NOT NULL,
+        paymentMode INTEGER NOT NULL,
+        referenceNumber TEXT,
+        notes TEXT,
+        isSynced INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_payments_party ON payments (partyId)');
+
+    // 6. Offline Sync Queue Table (Idempotent background sync)
     await db.execute('''
       CREATE TABLE sync_queue (
         id TEXT PRIMARY KEY,
@@ -172,7 +344,54 @@ class AppDatabase {
       )
     ''');
 
-    // 6. Pharma SFA Offline Modules (Sprint 6)
+    // 7. Sales Returns & GST Credit Notes Table
+    await db.execute('''
+      CREATE TABLE sales_returns (
+        id TEXT PRIMARY KEY,
+        tenantId TEXT NOT NULL,
+        creditNoteNumber TEXT NOT NULL,
+        originalInvoiceId TEXT,
+        originalInvoiceNumber TEXT,
+        partyId TEXT NOT NULL,
+        partyName TEXT NOT NULL,
+        partyPhone TEXT,
+        returnDate TEXT NOT NULL,
+        returnReason TEXT NOT NULL,
+        taxableAmount REAL NOT NULL,
+        cgstAmount REAL NOT NULL,
+        sgstAmount REAL NOT NULL,
+        igstAmount REAL NOT NULL,
+        totalAmount REAL NOT NULL,
+        restockToWarehouse INTEGER NOT NULL DEFAULT 1,
+        isSynced INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_returns_party ON sales_returns (partyId)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_returns_date ON sales_returns (returnDate)');
+
+    await db.execute('''
+      CREATE TABLE sales_return_items (
+        id TEXT PRIMARY KEY,
+        returnId TEXT NOT NULL,
+        itemId TEXT NOT NULL,
+        itemName TEXT NOT NULL,
+        hsnCode TEXT,
+        batchNumber TEXT,
+        expiryDate TEXT,
+        quantity REAL NOT NULL,
+        unitPrice REAL NOT NULL,
+        taxableAmount REAL NOT NULL,
+        gstRate REAL NOT NULL,
+        cgstAmount REAL NOT NULL,
+        sgstAmount REAL NOT NULL,
+        igstAmount REAL NOT NULL,
+        totalAmount REAL NOT NULL,
+        FOREIGN KEY (returnId) REFERENCES sales_returns (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // 8. Pharma SFA Offline Modules (Sprint 6)
     await _createSfaTables(db);
   }
 

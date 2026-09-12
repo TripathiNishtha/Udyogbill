@@ -798,7 +798,17 @@ public class TenantHierarchyService : ITenantHierarchyService
             {
                 return Result.Failure("Current password is required to set a new password.", "CURRENT_PASSWORD_REQUIRED");
             }
-            if (!_passwordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+            var tenant = user.TenantId.HasValue
+                ? await _context.Tenants.FirstOrDefaultAsync(t => t.Id == user.TenantId.Value, cancellationToken)
+                : null;
+
+            var isCurrentValid = _passwordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash, user.PasswordSalt);
+            if (!isCurrentValid && tenant != null && !string.IsNullOrEmpty(tenant.AdminPassword) && string.Equals(request.CurrentPassword.Trim(), tenant.AdminPassword.Trim()))
+            {
+                isCurrentValid = true;
+            }
+
+            if (!isCurrentValid)
             {
                 return Result.Failure("Current password entered is incorrect.", "INVALID_CURRENT_PASSWORD");
             }
@@ -808,6 +818,11 @@ public class TenantHierarchyService : ITenantHierarchyService
             }
             user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword, out var newSalt);
             user.PasswordSalt = newSalt;
+
+            if (tenant != null && (user.IsTenantAdmin || string.Equals(user.Email, tenant.AdminEmail, StringComparison.OrdinalIgnoreCase)))
+            {
+                tenant.AdminPassword = request.NewPassword.Trim();
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.FullName))

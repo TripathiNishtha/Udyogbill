@@ -211,6 +211,7 @@ public class BulkImportService : IBulkImportService
 
             var sanitizedPurchasePrice = Math.Max(0m, row.PurchasePrice);
             var sanitizedSalePrice = Math.Max(0m, row.SalePrice);
+            var sanitizedWholesalePrice = row.WholesalePrice > 0m ? row.WholesalePrice : sanitizedSalePrice;
             var sanitizedMrp = row.Mrp > 0m ? row.Mrp : (sanitizedSalePrice > 0m ? sanitizedSalePrice : (sanitizedPurchasePrice > 0m ? sanitizedPurchasePrice : 100m));
             var sanitizedMinStock = Math.Max(0m, row.MinimumStockAlert);
             var sanitizedReorderQty = row.ReorderQuantity > 0m ? row.ReorderQuantity : 10m;
@@ -231,6 +232,7 @@ public class BulkImportService : IBulkImportService
                 item.CessRate = sanitizedCessRate;
                 item.PurchasePrice = sanitizedPurchasePrice;
                 item.SellingPrice = sanitizedSalePrice;
+                item.MinimumSellingPrice = sanitizedWholesalePrice;
                 item.MRP = sanitizedMrp;
                 item.MinimumStockAlert = sanitizedMinStock;
                 item.ReorderQuantity = sanitizedReorderQty;
@@ -253,6 +255,7 @@ public class BulkImportService : IBulkImportService
                     CessRate = sanitizedCessRate,
                     PurchasePrice = sanitizedPurchasePrice,
                     SellingPrice = sanitizedSalePrice,
+                    MinimumSellingPrice = sanitizedWholesalePrice,
                     MRP = sanitizedMrp,
                     MinimumStockAlert = sanitizedMinStock,
                     ReorderQuantity = sanitizedReorderQty,
@@ -511,10 +514,10 @@ public class BulkImportService : IBulkImportService
     public Task<Result<CsvTemplateFileDto>> GetProductImportTemplateAsync(CancellationToken cancellationToken = default)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Sku,Name,CategoryName,BrandName,HsnCode,Barcode,PrimaryUom,TaxRate,CessRate,PurchasePrice,SalePrice,Mrp,MinimumStockAlert,ReorderQuantity,OpeningStock,BatchNumber,ExpiryDate,RackLocation,Description");
-        sb.AppendLine("MED-PCM-650,Paracetamol 650mg Tablets,Analgesic,Cipla,30049099,8901002001,STRIP,12,0,18.50,30.00,35.00,50,100,250,BAT-2026-A1,2028-12-31,Rack-A-12,Pain & Fever Relief");
-        sb.AppendLine("MED-AZI-500,Azithromycin 500mg,Antibiotic,Sun Pharma,30042010,8901002002,STRIP,12,0,45.00,75.00,90.00,30,60,150,BAT-2026-B2,2027-08-31,Rack-B-04,Broad spectrum antibiotic");
-        sb.AppendLine("FMCG-BIS-01,Parle-G Gold Glucose 1kg,Biscuits,Parle,19053100,8901003001,PACK,5,0,80.00,100.00,110.00,20,50,80,BAT-FMCG-01,2027-03-31,Shelf-1,Daily nutrition biscuits");
+        sb.AppendLine("Sku,Name,CategoryName,BrandName,HsnCode,Barcode,PrimaryUom,TaxRate,CessRate,PurchasePrice,RetailPrice,WholesalePrice,Mrp,MinimumStockAlert,ReorderQuantity,OpeningStock,BatchNumber,ExpiryDate,RackLocation,Description");
+        sb.AppendLine("MED-PCM-650,Paracetamol 650mg Tablets,Analgesic,Cipla,30049099,8901002001,STRIP,12,0,18.50,30.00,26.00,35.00,50,100,250,BAT-2026-A1,2028-12-31,Rack-A-12,Pain & Fever Relief");
+        sb.AppendLine("MED-AZI-500,Azithromycin 500mg,Antibiotic,Sun Pharma,30042010,8901002002,STRIP,12,0,45.00,75.00,65.00,90.00,30,60,150,BAT-2026-B2,2027-08-31,Rack-B-04,Broad spectrum antibiotic");
+        sb.AppendLine("FMCG-BIS-01,Parle-G Gold Glucose 1kg,Biscuits,Parle,19053100,8901003001,PACK,5,0,80.00,100.00,92.00,110.00,20,50,80,BAT-FMCG-01,2027-03-31,Shelf-1,Daily nutrition biscuits");
 
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());
         var dto = new CsvTemplateFileDto("UdyogBill_Products_Import_Template.csv", "text/csv", bytes);

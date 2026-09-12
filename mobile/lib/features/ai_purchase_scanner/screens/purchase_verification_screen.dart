@@ -1,6 +1,8 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../app/constants/app_constants.dart';
 import '../../../../core/database/daos/item_dao.dart';
 import '../../../../core/database/daos/party_dao.dart';
 
@@ -163,6 +165,9 @@ class _PurchaseVerificationScreenState extends State<PurchaseVerificationScreen>
     setState(() => _isSaving = true);
 
     try {
+      const storage = FlutterSecureStorage();
+      final activeTenantId = await storage.read(key: AppConstants.keyTenantId) ?? '';
+
       // 1. Auto-record/update supplier in SQLite parties table
       final supplierName = _supplierNameCtrl.text.trim();
       final supplierGstin = _gstinCtrl.text.trim();
@@ -170,7 +175,7 @@ class _PurchaseVerificationScreenState extends State<PurchaseVerificationScreen>
 
       await _partyDao.insertParty(PartyModel(
         id: supplierId,
-        tenantId: 'demo-tenant',
+        tenantId: activeTenantId,
         name: supplierName,
         gstin: supplierGstin.isNotEmpty ? supplierGstin : null,
         outstandingBalance: -_grandTotal, // Negative = Payable to supplier (Dene Hain)
@@ -184,7 +189,7 @@ class _PurchaseVerificationScreenState extends State<PurchaseVerificationScreen>
         await _itemDao.upsertItems([
           ItemModel(
             id: itemId,
-            tenantId: 'demo-tenant',
+            tenantId: activeTenantId,
             name: itm.name,
             hsnCode: itm.hsn,
             salePrice: itm.purchasePrice * 1.25, // Default 25% gross margin

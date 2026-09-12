@@ -200,14 +200,14 @@ export function UdyogMitraCopilot() {
     <>
       {/* Floating Launcher Button */}
       {!isOpen && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-50 flex items-center animate-in fade-in slide-in-from-bottom-5 duration-300">
           <button
             onClick={() => setIsOpen(true)}
-            className="group relative w-14 h-14 rounded-full bg-gradient-to-tr from-blue-700 via-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/20"
+            className="group relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-blue-700 via-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/20"
             title="Open UdyogMitra Assistant"
           >
-            <Bot className="w-7 h-7 text-white transition-transform group-hover:rotate-12" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-950 rounded-full" />
+            <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-white transition-transform group-hover:rotate-12" />
+            <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-slate-950 rounded-full" />
           </button>
         </div>
       )}

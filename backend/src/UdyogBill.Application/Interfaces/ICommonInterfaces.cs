@@ -82,6 +82,8 @@ public interface IAppDbContext
     IQueryable<Party> Parties { get; }
     IQueryable<PartyAddress> PartyAddresses { get; }
     IQueryable<PartyLedgerEntry> PartyLedgerEntries { get; }
+    IQueryable<Broker> Brokers { get; }
+    IQueryable<BrokerCommissionEntry> BrokerCommissionEntries { get; }
 
     // Sales, Quotations & Invoicing
     IQueryable<Quotation> Quotations { get; }
@@ -120,6 +122,7 @@ public interface IAppDbContext
     IQueryable<Domain.Entities.Banking.ExpenseCategory> ExpenseCategories { get; }
     IQueryable<Domain.Entities.Banking.ExpenseVoucher> ExpenseVouchers { get; }
     IQueryable<Domain.Entities.Banking.CashDrawerSession> CashDrawerSessions { get; }
+    IQueryable<Domain.Entities.Banking.ChequeRegister> ChequeRegisters { get; }
 
     // Loyalty & Promotions
     IQueryable<Domain.Entities.Loyalty.LoyaltyProgramConfig> LoyaltyProgramConfigs { get; }

@@ -1,0 +1,162 @@
+[
+  {
+    "id": "vol-1-setup",
+    "volumeNumber": 1,
+    "title": "Onboarding, Setup & Navigation",
+    "titleHindi": "शुरुआती सेटअप और नेविगेशन",
+    "iconName": "LayoutDashboard",
+    "description": "Login, registration, business profile setup, 1-click migration, and master sidebar navigation.",
+    "topics": [
+      {
+        "id": "global-navigation",
+        "title": "Master Navigation, Sidebar & UI Theme",
+        "titleHindi": "मास्टर नेविगेशन, साइडबार और थीम",
+        "volumeId": "vol-1-setup",
+        "navigationPath": "Top Navbar & Left Sidebar (Keyboard: Ctrl + B)",
+        "keyboardShortcuts": [
+          {
+            "key": "Ctrl + B",
+            "action": "Sidebar को Hide / Show (संक्षिप्त/विस्तार) करें"
+          },
+          {
+            "key": "Ctrl + K",
+            "action": "Global Search (बिल, ग्राहक, सामान तुरंत खोजें)"
+          },
+          {
+            "key": "F2",
+            "action": "Direct Create Sale Bill (नया सेल बिल बनाएं)"
+          }
+        ],
+        "overview": "Master navigation bar allows rapid access to all ERP modules with instant filter search, light/dark mode switcher, active branch switch, and live network status.",
+        "overviewHindi": "UdyogBill का नेविगेशन बार आपको किसी भी मॉड्यूल तक 1 सेकंड में पहुंचने की सुविधा देता है। आप साइडबार सर्च बार में कोई भी मेन्यू टाइप करके सीधे वहां पहुंच सकते हैं।",
+        "uiMockType": "navigation",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Quick Menu Search",
+            "fieldType": "input",
+            "purpose": "Instant search across 50+ modules and tools",
+            "hindiExplanation": "साइडबार में सबसे ऊपर दिए सर्च बॉक्स में कोई भी नाम लिखें (जैसे GST, POS, PO) तो तुरंत वही ऑप्शन आ जाएगा।",
+            "formulaOrLogic": "Realtime text match across title and labels"
+          },
+          {
+            "fieldName": "Branch / Warehouse Switcher",
+            "fieldType": "select",
+            "purpose": "Switch between Head Office and Godown/Branch",
+            "hindiExplanation": "यदि आपके एक से अधिक आउटलेट या गोदाम हैं, तो यहाँ से एक्टिव ब्रांच बदल सकते हैं। सारा बिलिंग उसी ब्रांच के अंतर्गत होगा।",
+            "formulaOrLogic": "Multi-tenant branch ID context"
+          },
+          {
+            "fieldName": "Theme Switcher",
+            "fieldType": "button",
+            "purpose": "Toggle between Professional Dark Mode and High-Contrast Light Mode",
+            "hindiExplanation": "रात के समय आँखों के आराम के लिए डार्क मोड और दिन में प्रिंटिंग या साफ़ दिखने के लिए लाइट मोड चुनें।"
+          },
+          {
+            "fieldName": "Network Status Badge",
+            "fieldType": "display",
+            "purpose": "Shows Online (Cloud Synced) vs Offline status",
+            "hindiExplanation": "हरा बिंदु दर्शाता है कि इंटरनेट चालू है और क्लाउड सुरक्षित है। इंटरनेट जाने पर भी लोकल बिलिंग निर्बाध चलती है।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Expand or Collapse Sidebar",
+            "actionInstruction": "Click the menu icon on top-left or press Ctrl+B to maximize your screen workspace.",
+            "hindiInstruction": "स्क्रीन पर अधिक जगह पाने के लिए Ctrl+B दबाएं या मेन्यू आइकन पर क्लिक करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Locate Any Feature in 1 Second",
+            "actionInstruction": "Use Quick Search or Ctrl+K to jump directly into any screen.",
+            "hindiInstruction": "Ctrl+K दबाएं और जो भी बिल या रिपोर्ट चाहिए उसका नाम लिखें।"
+          }
+        ],
+        "proTips": [
+          "Use Ctrl+B during busy counter hours to maximize billing screen width.",
+          "Always verify active branch name on top header before creating purchase orders or invoices."
+        ],
+        "proTipsHindi": [
+          "काउंटर पर भीड़ के समय Ctrl+B दबाकर साइडबार छुपाएं ताकि बिलिंग टेबल बड़ी दिखे।",
+          "बिल बनाने से पहले ऊपर टॉप हेडर में एक्टिव ब्रांच का नाम अवश्य देख लें।"
+        ],
+        "faqs": [
+          {
+            "question": "What happens if internet disconnects during billing?",
+            "questionHindi": "बिलिंग करते समय इंटरनेट कट जाए तो क्या होगा?",
+            "answer": "UdyogBill uses progressive offline caching. The network badge turns amber, but you can continue issuing bills. Once reconnected, it auto-syncs with NeonDB cloud.",
+            "solutionHindi": "बिलिंग नहीं रुकेगी। स्टेटस एम्बर हो जाएगा और इंटरनेट वापस आते ही सभी बिल क्लाउड पर अपने आप सुरक्षित अपलोड हो जाएंगे।"
+          }
+        ]
+      },
+      {
+        "id": "migration-import",
+        "title": "1-Click Data Migration from Tally, Marg, Vyapar & Excel",
+        "titleHindi": "टैली, मार्ग, व्यापार और एक्सेल से 1-क्लिक डेटा माइग्रेशन",
+        "volumeId": "vol-1-setup",
+        "navigationPath": "Sidebar -> Settings & System -> ⚡ 1-Click Data Migration (/app/settings/migration/universal)",
+        "overview": "Switching from another accounting software to UdyogBill takes less than 2 minutes without re-entering old ledger accounts or inventory items.",
+        "overviewHindi": "पुराने सॉफ्टवेयर (Marg, Tally, Vyapar, Busy) से अपने सभी ग्राहकों, सप्लायर्स और सामानों को एक्सेल के ज़रिये 2 मिनट में UdyogBill में शिफ्ट करें।",
+        "uiMockType": "settings",
+        "fieldsBreakdown": [
+          {
+            "fieldName": "Source Software Selector",
+            "fieldType": "select",
+            "isRequired": true,
+            "purpose": "Identifies spreadsheet column formats",
+            "hindiExplanation": "चुनें कि आप डेटा कहाँ से ला रहे हैं: Marg ERP, Tally Prime, Vyapar, Busy या Custom Excel।"
+          },
+          {
+            "fieldName": "Download Sample Template",
+            "fieldType": "button",
+            "purpose": "Provides pre-formatted CSV/Excel template with right column headers",
+            "hindiExplanation": "अगर आपके पास कस्टम फाइल है, तो यह बटन दबाकर सैंपल फॉर्मेट डाउनलोड करें और उसमें अपना डेटा भरें।"
+          },
+          {
+            "fieldName": "Drag & Drop File Upload",
+            "fieldType": "input",
+            "isRequired": true,
+            "purpose": "Upload .xlsx or .csv data file",
+            "hindiExplanation": "अपनी एक्सेल या सीएसवी फाइल यहाँ अपलोड करें। सिस्टम अपने आप कॉलम्स को मैप कर लेगा।"
+          }
+        ],
+        "stepByStepGuide": [
+          {
+            "stepNumber": 1,
+            "stepTitle": "Export from Old Software",
+            "actionInstruction": "Export your Item Master and Party Master as Excel/CSV from Marg or Tally.",
+            "hindiInstruction": "अपने पुराने सॉफ्टवेयर से आइटम लिस्ट और पार्टी लिस्ट एक्सेल में एक्सपोर्ट करें।"
+          },
+          {
+            "stepNumber": 2,
+            "stepTitle": "Upload & Auto-Map Columns",
+            "actionInstruction": "Select the file in UdyogBill. Review the preview table to ensure GSTIN, Item Names, and Opening Balances match.",
+            "hindiInstruction": "फाइल अपलोड करें। स्क्रीन पर प्रीव्यू देखकर कन्फर्म करें कि नाम, जीएसटी और स्टॉक सही दिख रहा है।"
+          },
+          {
+            "stepNumber": 3,
+            "stepTitle": "Click Import & Validate",
+            "actionInstruction": "Click the green Import button. System validates duplicate barcodes and creates records instantly.",
+            "hindiInstruction": "इम्पोर्ट बटन दबाएं। डुप्लीकेट चेक होने के बाद सभी रिकॉर्ड्स कुछ ही सेकंड में सेव हो जाएंगे।"
+          }
+        ],
+        "proTips": [
+          "Ensure phone numbers are 10 digits and GSTINs are valid 15-character strings to prevent validation errors.",
+          "Opening stock is automatically posted to the inventory ledger upon import."
+        ],
+        "proTipsHindi": [
+          "फोन नंबर 10 अंकों का और जीएसटी नंबर 15 अंकों का होना चाहिए ताकि इम्पोर्ट में कोई एरर न आए।",
+          "इम्पोर्ट होते ही ओपनिंग स्टॉक आपके इन्वेंट्री लेजर में तुरंत जुड़ जाता है।"
+        ],
+        "faqs": [
+          {
+            "question": "Will duplicate items be overwritten?",
+            "questionHindi": "क्या पहले से मौजूद आइटम दोबारा अपलोड करने पर डुप्लीकेट हो जाएंगे?",
+            "answer": "No, UdyogBill matches existing records by Barcode / Item Code and updates the stock rather than duplicating.",
+            "solutionHindi": "नहीं, सॉफ्टवेयर बारकोड और आइटम कोड से पहचान कर सिर्फ स्टॉक और रेट अपडेट करता है, डुप्लीकेट नहीं बनाता।"
+          }
+        ]
+      }
+    ]
+  }
+]

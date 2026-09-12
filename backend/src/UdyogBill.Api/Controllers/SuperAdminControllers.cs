@@ -109,6 +109,17 @@ public class SuperAdminTenantsController : BaseApiController
         var result = await _superAdminService.UpdateTenantSubscriptionAsync(id, new UpdateTenantSubscriptionRequest(Guid.Empty, SubscriptionStatus.Active, DateTimeOffset.UtcNow.AddYears(1), true, $"AI Add-on set to {isEnabled}"), HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken);
         return Ok(new { success = true, tenantId = id, isAiAddonEnabled = isEnabled, quota = monthlyQuota });
     }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteTenant(Guid id, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _superAdminService.DeleteTenantAsync(id, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
 }
 
 [Authorize(Roles = Roles.SuperAdmin)]

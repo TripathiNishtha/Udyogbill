@@ -168,3 +168,69 @@ public record BankingCashFlowSummaryDto(
     decimal ExpensesThisMonth,
     IReadOnlyList<BankAccountDto> Accounts
 );
+
+// --- Cheque / PDC Register DTOs ---
+public record RecordChequeRequest(
+    ChequeDirection Direction,
+    Guid PartyId,
+    string PartyName,
+    string ChequeNumber,
+    string BankName,
+    string? BranchName,
+    decimal Amount,
+    DateTime ChequeDate,
+    DateTime? ReceivedDate,
+    Guid? BankAccountId = null,
+    string? ReferenceDocumentType = null,
+    Guid? ReferenceDocumentId = null,
+    string? ReferenceDocumentNumber = null,
+    string? Remarks = null
+);
+
+public record DepositChequeRequest(
+    Guid BankAccountId,
+    DateTime DepositDate,
+    string? Remarks = null
+);
+
+public record ClearChequeRequest(
+    DateTime ClearingDate,
+    string? Remarks = null
+);
+
+public record BounceChequeRequest(
+    DateTime BouncedDate,
+    string BounceReason,
+    decimal BounceCharges = 0m,
+    bool BillChargesToParty = false,
+    string? Remarks = null
+);
+
+public record ChequeRegisterDto(
+    Guid Id,
+    ChequeDirection Direction,
+    ChequeStatus Status,
+    Guid PartyId,
+    string PartyName,
+    string ChequeNumber,
+    string BankName,
+    string? BranchName,
+    decimal Amount,
+    DateTime ChequeDate,
+    DateTime ReceivedDate,
+    DateTime? DepositDate,
+    DateTime? PresentationDate,
+    DateTime? ClearingDate,
+    DateTime? BouncedDate,
+    Guid? BankAccountId,
+    string? BankAccountName,
+    string? ReferenceDocumentType,
+    Guid? ReferenceDocumentId,
+    string? ReferenceDocumentNumber,
+    string? BounceReason,
+    decimal BounceChargesAmount,
+    bool IsBounceChargeBilledToParty,
+    string? Remarks,
+    DateTimeOffset CreatedAtUtc
+);
+

@@ -2,14 +2,14 @@
 import ContactClient from "./contact-client";
 
 export const metadata: Metadata = {
-  title: "Contact UdyogBill Support | Phone, WhatsApp & Office Details",
-  description: "UdyogBill team se sampark karein. Call: +91 94738 07622, WhatsApp support, ya free demo request form submit karein. We respond within 24 hours.",
+  title: "Contact UdyogBill Support & Enterprise Sales | Call, WhatsApp & Office",
+  description: "Get in touch with UdyogBill technical support and sales advisory. Call +91 94738 07622, connect via WhatsApp, or submit an inquiry for custom product demonstrations.",
   alternates: {
     canonical: "https://udyogbill.com/contact",
   },
   openGraph: {
-    title: "Contact UdyogBill Support | Phone, WhatsApp & Demo",
-    description: "Get in touch with UdyogBill support team for sales, demo, or technical queries. Call +91 94738 07622.",
+    title: "Contact UdyogBill Support & Enterprise Sales",
+    description: "Get in touch with the UdyogBill engineering and sales team for product demos, onboarding, or API queries.",
     url: "https://udyogbill.com/contact",
     siteName: "UdyogBill",
     type: "website",

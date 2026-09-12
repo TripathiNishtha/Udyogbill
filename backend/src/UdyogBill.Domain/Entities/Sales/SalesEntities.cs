@@ -113,6 +113,8 @@ public class SalesInvoice : BaseTenantAuditableEntity
 
     // Salesman & Industry Doctor / Return Tracking
     public Guid? SalesmanUserId { get; set; }
+    public Guid? BrokerId { get; set; }
+    public Broker? Broker { get; set; }
     public string? DoctorName { get; set; }
     public string? DoctorRegistrationNumber { get; set; }
     public Guid? OriginalInvoiceId { get; set; }

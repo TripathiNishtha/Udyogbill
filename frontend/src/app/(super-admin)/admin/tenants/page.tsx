@@ -25,7 +25,13 @@ import {
   ArrowRight,
   RefreshCw,
   Zap,
-  Stethoscope
+  Stethoscope,
+  Trash2,
+  Phone,
+  Mail,
+  KeyRound,
+  Copy,
+  Check
 } from "lucide-react";
 import { superAdminService } from "@/services/super-admin-services";
 import { platformCouponService } from "@/services/coupon-service";
@@ -40,6 +46,7 @@ export default function SuperAdminTenantsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [quickLoggingIn, setQuickLoggingIn] = useState(false);
+  const [copiedTenantId, setCopiedTenantId] = useState<string | null>(null);
   const [seedingSamples, setSeedingSamples] = useState(false);
   const [isTenantMode, setIsTenantMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,6 +62,10 @@ export default function SuperAdminTenantsPage() {
   const [tenantDetails, setTenantDetails] = useState<TenantDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
+  // Delete Confirmation State
+  const [deleteConfirmTenant, setDeleteConfirmTenant] = useState<Tenant | null>(null);
+  const [deletingTenant, setDeletingTenant] = useState(false);
+
   
   // ⚡ 1-Click Package & Addons Modal State
   const [subModal, setSubModal] = useState<{
@@ -66,6 +77,11 @@ export default function SuperAdminTenantsPage() {
     selectedAddons: string[];
     saving: boolean;
     notes: string;
+    customAmount: number | string;
+    isGstInclusive: boolean;
+    paymentMode: string;
+    paymentReference: string;
+    generateInvoice: boolean;
   }>({
     isOpen: false,
     tenant: null,
@@ -75,6 +91,11 @@ export default function SuperAdminTenantsPage() {
     selectedAddons: [],
     saving: false,
     notes: "",
+    customAmount: "",
+    isGstInclusive: true,
+    paymentMode: "Cash",
+    paymentReference: "",
+    generateInvoice: true,
   });
 
   // ⏳ 1-Click Trial Extension Modal State
@@ -178,15 +199,21 @@ export default function SuperAdminTenantsPage() {
         { id: "a438271a-28dc-4a33-871d-11488c5ef331", name: "Enterprise Plan", code: "ENTERPRISE", price: 5999 }
       ];
     }
+    const initialPlan = availablePlans[1] || availablePlans[0];
     setSubModal({
       isOpen: true,
       tenant,
       plans: availablePlans,
-      selectedPlanId: availablePlans[1]?.id || availablePlans[0]?.id || "",
+      selectedPlanId: initialPlan?.id || "",
       durationDays: 365,
       selectedAddons: [],
       saving: false,
-      notes: "Granted VIP access by Super Admin",
+      notes: "Offline Payment & Subscription Activation",
+      customAmount: initialPlan?.price ?? 2499,
+      isGstInclusive: true,
+      paymentMode: "Cash",
+      paymentReference: "",
+      generateInvoice: true,
     });
   };
 
@@ -199,8 +226,15 @@ export default function SuperAdminTenantsPage() {
         planDurationDays: subModal.durationDays,
         addons: subModal.selectedAddons.map((code) => ({ addonCode: code, durationDays: subModal.durationDays })),
         notes: subModal.notes,
+        customAmount: subModal.customAmount !== "" ? Number(subModal.customAmount) : null,
+        isGstInclusive: subModal.isGstInclusive,
+        paymentMode: subModal.paymentMode,
+        paymentReference: subModal.paymentReference,
+        generateInvoice: subModal.generateInvoice,
       });
-      setGrowthSuccessAlert("Successfully updated subscription & add-ons for " + subModal.tenant.businessName + "!");
+      setGrowthSuccessAlert(
+        "Successfully activated subscription & generated official invoice for " + subModal.tenant.businessName + "!"
+      );
       setTimeout(() => setGrowthSuccessAlert(null), 4000);
       setSubModal((prev) => ({ ...prev, isOpen: false }));
       loadTenants();
@@ -483,31 +517,56 @@ export default function SuperAdminTenantsPage() {
     }
   };
 
+  const handleDeleteTenant = async (tenantId: string) => {
+    try {
+      setDeletingTenant(true);
+      await superAdminService.deleteTenant(tenantId);
+      setGrowthSuccessAlert("Tenant / Subscriber record permanently deleted.");
+      setTimeout(() => setGrowthSuccessAlert(null), 4000);
+      setDeleteConfirmTenant(null);
+      if (selectedTenantId === tenantId) {
+        setSelectedTenantId(null);
+        setTenantDetails(null);
+      }
+      await loadTenants();
+    } catch (err: any) {
+      console.error("Failed to delete tenant:", err);
+      alert("Failed to delete tenant: " + (err?.response?.data?.message || err?.message || "Error"));
+    } finally {
+      setDeletingTenant(false);
+    }
+  };
+
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
-            <Building2 className="w-6 h-6 text-indigo-400" />
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              PLATFORM SUBSCRIBERS
+            </span>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center space-x-2">
+            <Building2 className="w-6 h-6 text-indigo-600" />
             <span>Subscribers & Tenants Governance</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Inspect, suspend, reactivate, and manage all multi-industry business subscribers across the platform.
+          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+            Inspect, suspend, reactivate, manage packages, and control all multi-industry business subscribers across the platform.
           </p>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex flex-col md:flex-row items-center gap-4 justify-between">
+      <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center gap-4 justify-between">
         <form onSubmit={handleSearchSubmit} className="flex-1 w-full md:w-auto relative">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by business name, code, email or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"
           />
         </form>
 
@@ -516,7 +575,7 @@ export default function SuperAdminTenantsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:outline-none focus:border-indigo-600 cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="Active">Active</option>
@@ -528,7 +587,7 @@ export default function SuperAdminTenantsPage() {
           <select
             value={industryFilter}
             onChange={(e) => setIndustryFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-indigo-500 max-w-[180px]"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:outline-none focus:border-indigo-600 max-w-[180px] cursor-pointer"
           >
             <option value="ALL">All Industries</option>
             {industries.map((ind) => (
@@ -543,9 +602,9 @@ export default function SuperAdminTenantsPage() {
             onClick={loadTenants}
             disabled={loading}
             title="Refresh list"
-            className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+            className="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-indigo-400" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-indigo-600" : ""}`} />
           </button>
 
           <button
@@ -553,32 +612,33 @@ export default function SuperAdminTenantsPage() {
             onClick={handleSeedSampleStores}
             disabled={seedingSamples}
             title="Seed demo stores across Pharma, Garments and Kirana"
-            className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-500 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer whitespace-nowrap shadow-sm disabled:opacity-50"
+            className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-50"
           >
-            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+            <Zap className="w-3.5 h-3.5 text-indigo-600 fill-indigo-600" />
             <span>{seedingSamples ? "Seeding..." : "⚡ Add Demo Stores"}</span>
           </button>
         </div>
       </div>
 
       {/* Tenants Table */}
-      <div className="rounded-2xl bg-slate-950/60 border border-slate-800 shadow-sm min-h-[480px]">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-xs overflow-hidden min-h-[480px]">
         <div className="overflow-x-auto min-h-[480px] pb-32">
           <table className="w-full text-left text-xs">
-            <thead className="text-slate-400 uppercase tracking-wider bg-slate-900/50 border-b border-slate-800">
+            <thead className="text-slate-700 uppercase tracking-wider bg-slate-100/90 border-b border-slate-200 text-[11px] font-bold">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Tenant Organization</th>
-                <th className="px-5 py-3.5 font-semibold">Industry</th>
-                <th className="px-5 py-3.5 font-semibold">Administrator Contact</th>
-                <th className="px-5 py-3.5 font-semibold">Status</th>
-                <th className="px-5 py-3.5 font-semibold">Onboarded</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
+                <th className="px-5 py-3.5 font-bold">Tenant Organization</th>
+                <th className="px-5 py-3.5 font-bold">Industry</th>
+                <th className="px-5 py-3.5 font-bold">Administrator Contact</th>
+                <th className="px-5 py-3.5 font-bold">Status</th>
+                <th className="px-5 py-3.5 font-bold">Onboarded</th>
+                <th className="px-5 py-3.5 font-bold text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-850">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-500 font-medium">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-600" />
                     Loading subscriber records...
                   </td>
                 </tr>
@@ -586,34 +646,68 @@ export default function SuperAdminTenantsPage() {
                 tenants.map((tenant, index) => {
                   const isNearBottom = index >= Math.max(1, tenants.length - 2);
                   return (
-                  <tr key={tenant.id} className="hover:bg-slate-900/40 transition-colors">
+                  <tr key={tenant.id} className="hover:bg-slate-50/90 transition-colors">
                     <td className="px-5 py-4">
-                      <div className="font-semibold text-white text-sm">{tenant.businessName}</div>
-                      <div className="text-[11px] font-mono text-slate-400 flex items-center space-x-2 mt-0.5">
-                        <span className="text-indigo-400">{tenant.code}</span>
-                        {tenant.tradeName && <span>• {tenant.tradeName}</span>}
+                      <div className="font-bold text-slate-900 text-sm">{tenant.businessName}</div>
+                      <div className="text-[11px] font-mono text-slate-500 flex items-center space-x-2 mt-0.5">
+                        <span className="text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">{tenant.code}</span>
+                        {tenant.tradeName && <span className="text-slate-600 font-medium">• {tenant.tradeName}</span>}
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 border border-slate-200 text-slate-800">
                         {tenant.industryName || tenant.industryCode}
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="text-slate-200 font-medium">{tenant.adminEmail}</div>
-                      <div className="text-[11px] text-slate-400">{tenant.primaryPhone}</div>
+                      <div className="text-slate-900 font-semibold text-xs flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{tenant.adminEmail}</span>
+                      </div>
+                      <div className="text-xs font-mono font-bold text-slate-700 flex items-center gap-1.5 mt-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>+91 {tenant.primaryPhone}</span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <div 
+                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200/80 text-[11px] font-mono font-medium text-emerald-800 shadow-xs"
+                          title="Store Admin Password"
+                        >
+                          <KeyRound className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span className="font-bold select-all tracking-wide">
+                            {tenant.adminPassword || "Udyogbill"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(tenant.adminPassword || "Udyogbill");
+                            setCopiedTenantId(tenant.id);
+                            setTimeout(() => setCopiedTenantId(null), 2000);
+                          }}
+                          className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                          title="Copy Password"
+                        >
+                          {copiedTenantId === tenant.id ? (
+                            <Check className="w-3 h-3 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-5 py-4">
                       {(() => {
                         const label = getStatusLabel(tenant.status);
                         return (
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                               label === "Active"
-                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : label === "Trial"
-                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                : "bg-rose-50 text-rose-700 border border-rose-200"
                             }`}
                           >
                             {label}
@@ -621,180 +715,203 @@ export default function SuperAdminTenantsPage() {
                         );
                       })()}
                     </td>
-                    <td className="px-5 py-4 text-slate-400 text-[11px]">
+                    <td className="px-5 py-4 text-slate-600 text-xs font-semibold">
                       {new Date(tenant.createdAtUtc).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                       })}
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="relative inline-block text-left">
+                    <td className="px-5 py-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <div className="relative inline-block text-left">
+                          <button
+                            type="button"
+                            onClick={() => setOpenDropdownId(openDropdownId === tenant.id ? null : tenant.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all shadow-xs cursor-pointer"
+                          >
+                            <span>Actions</span>
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdownId === tenant.id ? "rotate-180" : ""}`} />
+                          </button>
+
+                          {openDropdownId === tenant.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setOpenDropdownId(null)}
+                              />
+
+                              <div className={`actions-dropdown-menu absolute right-0 ${isNearBottom ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-2 origin-top-right"} w-64 rounded-xl bg-white shadow-2xl border border-slate-200 py-1.5 z-50 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150 text-left`}>
+                                <div className="px-3.5 py-2 bg-slate-50/80">
+                                  <div className="text-[12px] font-bold text-slate-900 truncate">{tenant.businessName}</div>
+                                  <div className="text-[10px] text-slate-500 font-mono font-semibold">{tenant.code}</div>
+                                </div>
+
+                                <div className="py-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      openInspectionModal(tenant.id);
+                                    }}
+                                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 flex items-center space-x-3 transition-colors cursor-pointer group"
+                                  >
+                                    <div className="w-7 h-7 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                      <Building2 className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                      <div className="font-semibold text-slate-800 group-hover:text-indigo-600">Subscriber Details</div>
+                                      <div className="text-[10px] text-slate-500">View KYC, GST &amp; limits</div>
+                                    </div>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLoginAsStore(tenant)}
+                                    disabled={impersonatingTenantId === tenant.id}
+                                    className="w-full text-left px-3.5 py-2.5 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-50 flex items-center space-x-3 transition-colors cursor-pointer group"
+                                  >
+                                    <div className="w-7 h-7 rounded-lg bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center text-amber-600">
+                                      <Store className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                      <div className="font-bold flex items-center gap-1.5 text-amber-800 group-hover:text-amber-950">
+                                        Login as Store
+                                        <ExternalLink className="w-3 h-3 text-amber-600" />
+                                      </div>
+                                      <div className="text-[10px] text-amber-700/80">
+                                        {impersonatingTenantId === tenant.id ? "Connecting session..." : "1-Click store control without ID/pwd"}
+                                      </div>
+                                    </div>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => openSubModal(tenant)}
+                                    className="w-full text-left px-3.5 py-2.5 text-xs text-purple-700 hover:text-purple-900 hover:bg-purple-50 flex items-center space-x-3 transition-colors cursor-pointer group"
+                                  >
+                                    <div className="w-7 h-7 rounded-lg bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center text-purple-600">
+                                      <CreditCard className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                      <div className="font-bold flex items-center gap-1.5 text-purple-800 group-hover:text-purple-950">
+                                        Manage Package &amp; Add-ons
+                                      </div>
+                                      <div className="text-[10px] text-purple-600">
+                                        1-Click assign any plan &amp; add-on
+                                      </div>
+                                    </div>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => openSfaModal(tenant)}
+                                    className="w-full text-left px-3.5 py-2.5 text-xs text-teal-700 hover:text-teal-900 hover:bg-teal-50 flex items-center space-x-3 transition-colors cursor-pointer group"
+                                  >
+                                    <div className="w-7 h-7 rounded-lg bg-teal-100 group-hover:bg-teal-200 flex items-center justify-center text-teal-600">
+                                      <Stethoscope className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                      <div className="font-bold flex items-center gap-1.5 text-teal-800 group-hover:text-teal-950">
+                                        Pharma SFA &amp; Field Force
+                                      </div>
+                                      <div className="text-[10px] text-teal-600">
+                                        MR &amp; Manager seats grant/revoke
+                                      </div>
+                                    </div>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      setTrialModal({
+                                        isOpen: true,
+                                        tenant,
+                                        extensionDays: 15,
+                                        reason: "Customer trial extension",
+                                        saving: false,
+                                      });
+                                    }}
+                                    className="w-full text-left px-3.5 py-2.5 text-xs text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 flex items-center space-x-3 transition-colors cursor-pointer group"
+                                  >
+                                    <div className="w-7 h-7 rounded-lg bg-emerald-100 group-hover:bg-emerald-200 flex items-center justify-center text-emerald-600">
+                                      <Clock className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                      <div className="font-bold flex items-center gap-1.5 text-emerald-800 group-hover:text-emerald-950">
+                                        Extend Store Trial
+                                      </div>
+                                      <div className="text-[10px] text-emerald-600">
+                                        +7, +15 or +30 Days conversion boost
+                                      </div>
+                                    </div>
+                                  </button>
+                                </div>
+
+                                <div className="py-1">
+                                  {getStatusLabel(tenant.status) === "Suspended" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        setActionModal({
+                                          isOpen: true,
+                                          tenant,
+                                          action: "ACTIVATE",
+                                          reason: "",
+                                        });
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 flex items-center space-x-2.5 transition-colors cursor-pointer font-semibold"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                      <span>Reactivate Store</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        setActionModal({
+                                          isOpen: true,
+                                          tenant,
+                                          action: "SUSPEND",
+                                          reason: "",
+                                        });
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 flex items-center space-x-2.5 transition-colors cursor-pointer font-semibold"
+                                    >
+                                      <ShieldAlert className="w-4 h-4 text-amber-600" />
+                                      <span>Suspend Store</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      setDeleteConfirmTenant(tenant);
+                                    }}
+                                    className="w-full text-left px-3.5 py-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 flex items-center space-x-2.5 transition-colors cursor-pointer font-bold border-t border-slate-100"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-rose-600" />
+                                    <span>Delete Subscriber</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Quick Direct Delete Button */}
                         <button
                           type="button"
-                          onClick={() => setOpenDropdownId(openDropdownId === tenant.id ? null : tenant.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-400 transition-all shadow-sm cursor-pointer"
+                          onClick={() => setDeleteConfirmTenant(tenant)}
+                          title="Delete Tenant / Subscriber"
+                          className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors cursor-pointer"
                         >
-                          <span>Actions</span>
-                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdownId === tenant.id ? "rotate-180" : ""}`} />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
-
-                        {openDropdownId === tenant.id && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-40"
-                              onClick={() => setOpenDropdownId(null)}
-                            />
-
-                            <div className={`absolute right-0 ${isNearBottom ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-2 origin-top-right"} w-64 rounded-xl bg-slate-900/98 backdrop-blur-xl border border-slate-750 shadow-2xl py-1.5 z-50 divide-y divide-slate-800/80 animate-in fade-in zoom-in-95 duration-150`}>
-                              <div className="px-3.5 py-2">
-                                <div className="text-[11px] font-bold text-white truncate">{tenant.businessName}</div>
-                                <div className="text-[10px] text-slate-400 font-mono">{tenant.code}</div>
-                              </div>
-
-                              <div className="py-1">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenDropdownId(null);
-                                    openInspectionModal(tenant.id);
-                                  }}
-                                  className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center space-x-3 transition-colors cursor-pointer group"
-                                >
-                                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 group-hover:bg-indigo-500/25 flex items-center justify-center text-indigo-400">
-                                    <Building2 className="w-3.5 h-3.5" />
-                                  </div>
-                                  <div>
-                                    <div className="font-semibold">Subscriber Details</div>
-                                    <div className="text-[10px] text-slate-400">View KYC, GST & limits</div>
-                                  </div>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleLoginAsStore(tenant)}
-                                  disabled={impersonatingTenantId === tenant.id}
-                                  className="w-full text-left px-3.5 py-2.5 text-xs text-amber-300 hover:text-amber-100 hover:bg-amber-500/20 flex items-center space-x-3 transition-colors cursor-pointer group"
-                                >
-                                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/25 flex items-center justify-center text-amber-400">
-                                    <Store className="w-3.5 h-3.5" />
-                                  </div>
-                                  <div>
-                                    <div className="font-bold flex items-center gap-1.5 text-amber-300 group-hover:text-amber-100">
-                                      Login as Store
-                                      <ExternalLink className="w-3 h-3 text-amber-400" />
-                                    </div>
-                                    <div className="text-[10px] text-amber-300/70">
-                                      {impersonatingTenantId === tenant.id ? "Connecting session..." : "1-Click store control without ID/pwd"}
-                                    </div>
-                                  </div>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => openSubModal(tenant)}
-                                  className="w-full text-left px-3.5 py-2.5 text-xs text-purple-300 hover:text-white hover:bg-purple-600/20 flex items-center space-x-3 transition-colors cursor-pointer group"
-                                >
-                                  <div className="w-7 h-7 rounded-lg bg-purple-500/15 group-hover:bg-purple-500/30 flex items-center justify-center text-purple-400">
-                                    <CreditCard className="w-3.5 h-3.5" />
-                                  </div>
-                                  <div>
-                                    <div className="font-bold flex items-center gap-1.5 text-purple-300 group-hover:text-purple-100">
-                                      Manage Package &amp; Add-ons
-                                    </div>
-                                    <div className="text-[10px] text-purple-300/70">
-                                      1-Click assign any plan &amp; add-on
-                                    </div>
-                                  </div>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => openSfaModal(tenant)}
-                                  className="w-full text-left px-3.5 py-2.5 text-xs text-teal-300 hover:text-white hover:bg-teal-600/20 flex items-center space-x-3 transition-colors cursor-pointer group"
-                                >
-                                  <div className="w-7 h-7 rounded-lg bg-teal-500/15 group-hover:bg-teal-500/30 flex items-center justify-center text-teal-400">
-                                    <Stethoscope className="w-3.5 h-3.5" />
-                                  </div>
-                                  <div>
-                                    <div className="font-bold flex items-center gap-1.5 text-teal-300 group-hover:text-teal-100">
-                                      Pharma SFA &amp; Field Force
-                                    </div>
-                                    <div className="text-[10px] text-teal-300/70">
-                                      MR &amp; Manager seats grant/revoke
-                                    </div>
-                                  </div>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenDropdownId(null);
-                                    setTrialModal({
-                                      isOpen: true,
-                                      tenant,
-                                      extensionDays: 15,
-                                      reason: "Customer trial extension",
-                                      saving: false,
-                                    });
-                                  }}
-                                  className="w-full text-left px-3.5 py-2.5 text-xs text-emerald-300 hover:text-white hover:bg-emerald-600/20 flex items-center space-x-3 transition-colors cursor-pointer group"
-                                >
-                                  <div className="w-7 h-7 rounded-lg bg-emerald-500/15 group-hover:bg-emerald-500/30 flex items-center justify-center text-emerald-400">
-                                    <Clock className="w-3.5 h-3.5" />
-                                  </div>
-                                  <div>
-                                    <div className="font-bold flex items-center gap-1.5 text-emerald-300 group-hover:text-emerald-100">
-                                      Extend Store Trial
-                                    </div>
-                                    <div className="text-[10px] text-emerald-300/70">
-                                      +7, +15 or +30 Days conversion boost
-                                    </div>
-                                  </div>
-                                </button>
-
-                              </div>
-
-                              <div className="py-1">
-                                {getStatusLabel(tenant.status) === "Suspended" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenDropdownId(null);
-                                      setActionModal({
-                                        isOpen: true,
-                                        tenant,
-                                        action: "ACTIVATE",
-                                        reason: "",
-                                      });
-                                    }}
-                                    className="w-full text-left px-3.5 py-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 flex items-center space-x-2.5 transition-colors cursor-pointer"
-                                  >
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span className="font-medium">Reactivate Store</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenDropdownId(null);
-                                      setActionModal({
-                                        isOpen: true,
-                                        tenant,
-                                        action: "SUSPEND",
-                                        reason: "",
-                                      });
-                                    }}
-                                    className="w-full text-left px-3.5 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center space-x-2.5 transition-colors cursor-pointer"
-                                  >
-                                    <ShieldAlert className="w-4 h-4" />
-                                    <span className="font-medium">Suspend Store</span>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -1009,6 +1126,32 @@ export default function SuperAdminTenantsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Inspection Modal Footer */}
+                <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t = tenants.find((x) => x.id === selectedTenantId);
+                      if (t) {
+                        setSelectedTenantId(null);
+                        setDeleteConfirmTenant(t);
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Subscriber</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTenantId(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -1124,8 +1267,19 @@ export default function SuperAdminTenantsPage() {
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => setSubModal((prev) => ({ ...prev, selectedPlanId: p.id }))}
-                      className={"p-3 rounded-xl border text-left transition-all cursor-pointer " + (subModal.selectedPlanId === p.id ? "bg-purple-500/15 border-purple-500 text-purple-300 shadow-md shadow-purple-500/20" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white")}
+                      onClick={() =>
+                        setSubModal((prev) => ({
+                          ...prev,
+                          selectedPlanId: p.id,
+                          customAmount: p.price,
+                        }))
+                      }
+                      className={
+                        "p-3 rounded-xl border text-left transition-all cursor-pointer " +
+                        (subModal.selectedPlanId === p.id
+                          ? "bg-purple-500/15 border-purple-500 text-purple-300 shadow-md shadow-purple-500/20"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white")
+                      }
                     >
                       <div className="font-bold text-white truncate">{p.name}</div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">₹{p.price}/mo</div>
@@ -1137,18 +1291,24 @@ export default function SuperAdminTenantsPage() {
               {/* 2. Select Duration */}
               <div>
                 <label className="block text-slate-300 font-semibold mb-1.5">Package Validity Duration</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {[
-                    { label: "1 Month (30d)", days: 30 },
-                    { label: "3 Months (90d)", days: 90 },
+                    { label: "1 Mo (30d)", days: 30 },
+                    { label: "3 Mos (90d)", days: 90 },
+                    { label: "6 Mos (180d)", days: 180 },
                     { label: "1 Year (365d)", days: 365 },
-                    { label: "Lifetime (10y)", days: 3650 },
+                    { label: "2 Yrs (730d)", days: 730 },
                   ].map((dur) => (
                     <button
                       key={dur.days}
                       type="button"
                       onClick={() => setSubModal((prev) => ({ ...prev, durationDays: dur.days }))}
-                      className={"py-2 rounded-xl text-center font-bold border transition-all cursor-pointer " + (subModal.durationDays === dur.days ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white")}
+                      className={
+                        "py-2 rounded-xl text-center font-bold border transition-all cursor-pointer " +
+                        (subModal.durationDays === dur.days
+                          ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white")
+                      }
                     >
                       {dur.label}
                     </button>
@@ -1156,7 +1316,115 @@ export default function SuperAdminTenantsPage() {
                 </div>
               </div>
 
-              {/* 3. Multi-Select Add-ons */}
+              {/* 3. Offline Payment & Official GST Tax Invoice Generator */}
+              <div className="bg-slate-950 p-3.5 rounded-2xl border border-indigo-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white flex items-center gap-1.5 text-xs">
+                    <span>💰</span> Offline Payment &amp; Official GST Invoice Details
+                  </span>
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={subModal.generateInvoice}
+                      onChange={(e) => setSubModal((prev) => ({ ...prev, generateInvoice: e.target.checked }))}
+                      className="rounded border-slate-700 text-indigo-600 focus:ring-0"
+                    />
+                    <span>Auto-Generate Invoice</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Amount Input */}
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">
+                      Amount Collected / Negotiated (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="e.g. 5000"
+                      value={subModal.customAmount}
+                      onChange={(e) => setSubModal((prev) => ({ ...prev, customAmount: e.target.value }))}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono font-bold text-xs focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* Payment Mode */}
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">
+                      Payment Method
+                    </label>
+                    <select
+                      value={subModal.paymentMode}
+                      onChange={(e) => setSubModal((prev) => ({ ...prev, paymentMode: e.target.value }))}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="Cash">💵 Cash Payment</option>
+                      <option value="Direct Bank Transfer (NEFT/IMPS/RTGS)">🏦 Bank Transfer (NEFT / IMPS / RTGS)</option>
+                      <option value="UPI / QR (Current A/C)">📱 UPI / QR Transfer</option>
+                      <option value="Cheque">📑 Cheque Deposit</option>
+                      <option value="Corporate Bulk Contract">🏢 Corporate Bulk Contract</option>
+                      <option value="Complimentary / VIP">🎁 Complimentary / Founder Grant (₹0)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Reference & GST Options */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                  <div>
+                    <label className="block text-slate-400 text-[11px] font-medium mb-1">
+                      Transaction Ref / UTR / Receipt #
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. UTR123456 / Cash Receipt #04"
+                      value={subModal.paymentReference}
+                      onChange={(e) => setSubModal((prev) => ({ ...prev, paymentReference: e.target.value }))}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 sm:pt-4">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-slate-300 text-[11px]">
+                      <input
+                        type="checkbox"
+                        checked={subModal.isGstInclusive}
+                        onChange={(e) => setSubModal((prev) => ({ ...prev, isGstInclusive: e.target.checked }))}
+                        className="rounded border-slate-700 text-indigo-600 focus:ring-0"
+                      />
+                      <span>Amount includes 18% GST</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Live Invoice Preview Pill */}
+                {subModal.generateInvoice && (
+                  (() => {
+                    const rawVal = Number(subModal.customAmount) || 0;
+                    const isInc = subModal.isGstInclusive;
+                    const tot = isInc ? rawVal : rawVal * 1.18;
+                    const base = isInc ? rawVal / 1.18 : rawVal;
+                    const gst = tot - base;
+                    return (
+                      <div className="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/20 text-[11px] flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-indigo-300">Subscriber Portal Invoice Preview:</span>
+                          <div className="text-slate-400 text-[10px]">
+                            Base: ₹{base.toFixed(2)} + 18% GST: ₹{gst.toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-mono font-bold text-emerald-400 text-sm">₹{tot.toFixed(2)}</span>
+                          <span className="block text-[10px] text-slate-400">{subModal.paymentMode}</span>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+
+              {/* 4. Multi-Select Add-ons */}
               <div>
                 <label className="block text-slate-300 font-semibold mb-1.5">Include Industry Add-ons (Multi-Select)</label>
                 <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
@@ -1174,7 +1442,12 @@ export default function SuperAdminTenantsPage() {
                     return (
                       <label
                         key={add.code}
-                        className={"flex items-center space-x-2.5 p-2 rounded-xl border cursor-pointer transition-colors " + (isChecked ? "bg-purple-900/20 border-purple-500/50 text-white" : "border-slate-800/80 text-slate-400 hover:border-slate-700")}
+                        className={
+                          "flex items-center space-x-2.5 p-2 rounded-xl border cursor-pointer transition-colors " +
+                          (isChecked
+                            ? "bg-purple-900/20 border-purple-500/50 text-white"
+                            : "border-slate-800/80 text-slate-400 hover:border-slate-700")
+                        }
                       >
                         <input
                           type="checkbox"
@@ -1195,12 +1468,12 @@ export default function SuperAdminTenantsPage() {
                 </div>
               </div>
 
-              {/* 4. Notes */}
+              {/* 5. Notes */}
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Super Admin Notes</label>
+                <label className="block text-slate-300 font-semibold mb-1">Super Admin Notes / Agreement Remarks</label>
                 <input
                   type="text"
-                  placeholder="e.g. Granted promotional license by Sales Team"
+                  placeholder="e.g. Cash collected by Saurabh on-site; Client requested annual retail deal"
                   value={subModal.notes}
                   onChange={(e) => setSubModal((prev) => ({ ...prev, notes: e.target.value }))}
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
@@ -1219,9 +1492,10 @@ export default function SuperAdminTenantsPage() {
                   type="button"
                   disabled={subModal.saving || !subModal.selectedPlanId}
                   onClick={handleAssignSubSubmit}
-                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
-                  {subModal.saving ? "Activating..." : "⚡ 1-Click Activate Package"}
+                  <span>⚡</span>
+                  <span>{subModal.saving ? "Activating & Generating Invoice..." : "Activate Plan & Generate Official Invoice"}</span>
                 </button>
               </div>
             </div>
@@ -1424,6 +1698,60 @@ export default function SuperAdminTenantsPage() {
         </div>
       )}
 
-</div>
+      {/* Delete Subscriber Confirmation Modal */}
+      {deleteConfirmTenant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-100 rounded-xl text-rose-600">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Delete Subscriber &amp; Tenant?</h3>
+                <p className="text-xs text-slate-500 font-medium">This will permanently remove the tenant from the platform.</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+              <div className="font-bold text-slate-900 text-sm">{deleteConfirmTenant.businessName}</div>
+              <div className="text-indigo-600 font-mono text-[11px] font-bold">
+                Code: {deleteConfirmTenant.code}
+              </div>
+              <div className="text-slate-700 font-medium">
+                Admin: {deleteConfirmTenant.adminEmail} • +91 {deleteConfirmTenant.primaryPhone}
+              </div>
+              <div className="text-slate-500 text-[11px]">
+                Status: {getStatusLabel(deleteConfirmTenant.status)} • Industry: {deleteConfirmTenant.industryName || deleteConfirmTenant.industryCode}
+              </div>
+            </div>
+
+            <p className="text-[11px] text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200 font-medium">
+              ⚠️ Inactive ya trial stores jinhone aage use nahi kiya unka record permanent clean ho jayega. Store ke sabhi users aur sessions revoke ho jayenge.
+            </p>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmTenant(null)}
+                disabled={deletingTenant}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteTenant(deleteConfirmTenant.id)}
+                disabled={deletingTenant}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{deletingTenant ? "Deleting Subscriber..." : "Yes, Delete Subscriber"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 }
