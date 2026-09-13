@@ -184,19 +184,19 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
   if (licenses.length === 0) {
     return (
       <div className={`space-y-1.5 ${className}`}>
-        <div className="flex items-center justify-between text-xs text-slate-300">
-          <span className="font-semibold flex items-center space-x-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300">
+          <span className="font-bold flex items-center space-x-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>Business Licenses &amp; Registrations</span>
-            <span className="text-[10px] text-slate-500 font-normal">(DL, FSSAI, ISO, IEC, etc.)</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(DL, FSSAI, ISO, IEC, etc.)</span>
           </span>
         </div>
         <button
           type="button"
           onClick={addLicense}
-          className="w-full py-2 px-3 border border-dashed border-slate-700/80 hover:border-indigo-500/60 rounded-xl bg-slate-950/40 hover:bg-slate-900/60 text-xs text-slate-400 hover:text-indigo-300 transition-all flex items-center justify-center space-x-2 cursor-pointer group"
+          className="w-full py-2.5 px-3 border-2 border-dashed border-indigo-200 hover:border-indigo-400 dark:border-slate-700/80 dark:hover:border-indigo-500/60 rounded-xl bg-indigo-50/50 hover:bg-indigo-50 dark:bg-slate-950/40 dark:hover:bg-slate-900/60 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-2xs"
         >
-          <Plus className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
+          <Plus className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
           <span>+ Add License / Registration No. (DL, FSSAI, ISO, IEC, Trade, MSME)</span>
         </button>
       </div>
@@ -204,19 +204,19 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
   }
 
   return (
-    <div className={`space-y-2 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 ${className}`}>
+    <div className={`space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 ${className}`}>
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-slate-200 flex items-center space-x-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+        <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
           <span>Licenses &amp; Certifications</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono">
+          <span className="px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 text-[10px] font-mono font-bold">
             {licenses.length}
           </span>
         </span>
         <button
           type="button"
           onClick={addLicense}
-          className="inline-flex items-center space-x-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors"
+          className="inline-flex items-center space-x-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer transition-colors"
         >
           <Plus className="w-3 h-3" />
           <span>Add Another</span>
@@ -231,14 +231,14 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
           return (
             <div
               key={lic.id}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs"
             >
               {/* License Type Selector */}
               <div className="sm:w-[220px] shrink-0">
                 <select
                   value={lic.type}
                   onChange={(e) => updateLicense(lic.id, { type: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   {LICENSE_PRESETS.map((p) => (
                     <option key={p.value} value={p.value}>
@@ -256,7 +256,7 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
                     placeholder="License Name (e.g. AYUSH)"
                     value={lic.customName || ""}
                     onChange={(e) => updateLicense(lic.id, { customName: e.target.value })}
-                    className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               )}
@@ -268,7 +268,7 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
                   placeholder={currentPreset?.placeholder || "License / Registration Number"}
                   value={lic.number}
                   onChange={(e) => updateLicense(lic.id, { number: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -276,7 +276,7 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
               <button
                 type="button"
                 onClick={() => removeLicense(lic.id)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors self-end sm:self-center cursor-pointer shrink-0"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors self-end sm:self-center cursor-pointer shrink-0"
                 title="Remove this license"
               >
                 <Trash2 className="w-3.5 h-3.5" />
