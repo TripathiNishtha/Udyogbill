@@ -143,6 +143,23 @@ public class TenantPharmaSfaController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPut("territories/{id:guid}")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateTerritory(Guid id, [FromBody] UpdateTerritoryRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sfaService.UpdateTerritoryAsync(id, request, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpDelete("territories/{id:guid}")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteTerritory(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sfaService.DeleteTerritoryAsync(id, cancellationToken);
+        return HandleResult(result);
+    }
+
+
     [HttpGet("patches")]
     [ProducesResponseType(typeof(IReadOnlyList<SfaPatchDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPatches(

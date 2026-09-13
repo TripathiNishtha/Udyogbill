@@ -321,6 +321,63 @@ public class PharmaSfaService : IPharmaSfaService
         return Result<Guid>.Success(territory.Id);
     }
 
+    public async Task<Result<bool>> UpdateTerritoryAsync(Guid id, UpdateTerritoryRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var territory = await _context.SfaTerritories
+            .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == tenantId, cancellationToken);
+
+        if (territory == null)
+            return Result<bool>.Failure("Territory not found.");
+
+        territory.Code = request.Code.Trim().ToUpperInvariant();
+        territory.Name = request.Name.Trim();
+        territory.Type = request.Type;
+        territory.ParentTerritoryId = request.ParentTerritoryId;
+        territory.State = request.State;
+        territory.City = request.City;
+        territory.CoveredPincodes = request.CoveredPincodes;
+        territory.IsActive = request.IsActive;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<bool>> DeleteTerritoryAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var territory = await _context.SfaTerritories
+            .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == tenantId, cancellationToken);
+
+        if (territory == null)
+            return Result<bool>.Failure("Territory not found.");
+
+        var linkedPatchesCount = await _context.SfaPatches
+            .CountAsync(p => p.AreaTerritoryId == id && p.TenantId == tenantId, cancellationToken);
+        if (linkedPatchesCount > 0)
+        {
+            return Result<bool>.Failure($"Cannot delete: {linkedPatchesCount} Calling Patch(es) are linked to this Territory. Reassign or delete the patches first.");
+        }
+
+        var linkedDoctorsCount = await _context.SfaDoctors
+            .CountAsync(d => d.TerritoryId == id && d.TenantId == tenantId, cancellationToken);
+        if (linkedDoctorsCount > 0)
+        {
+            return Result<bool>.Failure($"Cannot delete: {linkedDoctorsCount} Doctor(s) are linked to this Territory.");
+        }
+
+        var linkedChemistsCount = await _context.SfaChemists
+            .CountAsync(c => c.TerritoryId == id && c.TenantId == tenantId, cancellationToken);
+        if (linkedChemistsCount > 0)
+        {
+            return Result<bool>.Failure($"Cannot delete: {linkedChemistsCount} Chemist(s) are linked to this Territory.");
+        }
+
+        _context.SfaTerritories.Remove(territory);
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
+    }
+
     public async Task<Result<IReadOnlyList<SfaPatchDto>>> GetPatchesAsync(Guid? divisionId = null, Guid? areaTerritoryId = null, CancellationToken cancellationToken = default)
     {
         var tenantId = RequireTenantId();

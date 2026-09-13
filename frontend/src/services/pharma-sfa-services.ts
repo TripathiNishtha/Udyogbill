@@ -575,6 +575,17 @@ export const pharmaSfaService = {
     return res.data;
   },
 
+  async updateTerritory(id: string, data: Partial<SfaTerritory>): Promise<boolean> {
+    const res = await apiClient.put<boolean>(`/tenant/sfa/territories/${id}`, data);
+    return res.data;
+  },
+
+  async deleteTerritory(id: string): Promise<boolean> {
+    const res = await apiClient.delete<boolean>(`/tenant/sfa/territories/${id}`);
+    return res.data;
+  },
+
+
   // Patches
   async getPatches(divisionId?: string, areaTerritoryId?: string): Promise<SfaPatch[]> {
     const params = new URLSearchParams();

@@ -65,6 +65,18 @@ public record CreateTerritoryRequest(
     string? CoveredPincodes
 );
 
+public record UpdateTerritoryRequest(
+    string Code,
+    string Name,
+    SfaTerritoryType Type,
+    Guid? ParentTerritoryId,
+    string? State,
+    string? City,
+    string? CoveredPincodes,
+    bool IsActive = true
+);
+
+
 // --- Divisions, Patches & Beats DTOs ---
 public record SfaDivisionDto(
     Guid Id,

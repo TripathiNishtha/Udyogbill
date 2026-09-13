@@ -45,6 +45,8 @@ public interface IPharmaSfaService
     // Masters: Territory, Patches & Beats
     Task<Result<IReadOnlyList<SfaTerritoryDto>>> GetTerritoriesAsync(CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreateTerritoryAsync(CreateTerritoryRequest request, CancellationToken cancellationToken = default);
+    Task<Result<bool>> UpdateTerritoryAsync(Guid id, UpdateTerritoryRequest request, CancellationToken cancellationToken = default);
+    Task<Result<bool>> DeleteTerritoryAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<Result<IReadOnlyList<SfaPatchDto>>> GetPatchesAsync(Guid? divisionId = null, Guid? areaTerritoryId = null, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreatePatchAsync(CreatePatchRequest request, CancellationToken cancellationToken = default);
