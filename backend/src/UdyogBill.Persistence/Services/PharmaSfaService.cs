@@ -144,20 +144,20 @@ public class PharmaSfaService : IPharmaSfaService
         if (tenant == null)
             return Result<SeatQuotaStatusDto>.Failure("Tenant not found.", "NOT_FOUND");
 
-        var activeMrCount = await _context.Users
+        var activeMrCount = await _context.SfaEmployeeProfiles
             .IgnoreQueryFilters()
-            .CountAsync(u => u.TenantId == tenantId && !u.IsDeleted && u.IsActive && u.Designation == "MedicalRepresentative", cancellationToken);
+            .CountAsync(p => p.TenantId == tenantId && !p.IsDeleted && p.IsActive && p.DesignationRole == SfaDesignationRole.MedicalRepresentative, cancellationToken);
 
-        var activeManagerCount = await _context.Users
+        var activeManagerCount = await _context.SfaEmployeeProfiles
             .IgnoreQueryFilters()
-            .CountAsync(u => u.TenantId == tenantId && !u.IsDeleted && u.IsActive && (u.Designation == "AreaManager" || u.Designation == "RegionalManager"), cancellationToken);
+            .CountAsync(p => p.TenantId == tenantId && !p.IsDeleted && p.IsActive && p.DesignationRole > SfaDesignationRole.MedicalRepresentative, cancellationToken);
 
         var maxMr = tenant.MaxAllowedMrUsers > 0 ? tenant.MaxAllowedMrUsers : 15;
         var maxMgr = tenant.MaxAllowedManagerUsers > 0 ? tenant.MaxAllowedManagerUsers : 5;
         var isPharmaIndustry = string.Equals(tenant.IndustryTypeCode, "PHARMA", StringComparison.OrdinalIgnoreCase) ||
                                string.Equals(tenant.ActiveIndustryModule, "PHARMA", StringComparison.OrdinalIgnoreCase) ||
                                string.Equals(tenant.Industry?.Code, "PHARMA", StringComparison.OrdinalIgnoreCase);
-        var isSfaActive = isPharmaIndustry && tenant.IsPharmaSfaActive;
+        var isSfaActive = tenant.IsPharmaSfaActive || (isPharmaIndustry && (activeMrCount > 0 || activeManagerCount > 0));
 
         var status = new SeatQuotaStatusDto(
             IsPharmaSfaActive: isSfaActive,
