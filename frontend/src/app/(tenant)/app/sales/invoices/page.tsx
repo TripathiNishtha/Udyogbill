@@ -42,6 +42,7 @@ import {
   ShoppingCart,
   Edit,
   ExternalLink,
+  Boxes,
 } from "lucide-react";
 import { salesService, CreateSalesInvoiceInput, CreateInvoiceItemInput } from "@/services/sales-services";
 import { inventoryService } from "@/services/inventory-services";
@@ -52,6 +53,7 @@ import { printTemplateService } from "@/services/print-template-services";
 import { printRawHtml } from "@/lib/print-helper";
 import { SalesInvoiceList, MasterItem, PartyList } from "@/types";
 import { QuickAddCustomerModal } from "@/components/sales/quick-add-customer-modal";
+import { QuickAddProductModal } from "@/components/sales/quick-add-product-modal";
 import { useAddons } from "@/context/addon-context";
 import { Badge, Button, EmptyState, TableSkeleton } from "@/components/ui";
 import { OnboardingTour, LaunchTourButton, TourStep } from "@/components/onboarding/onboarding-tour";
@@ -219,6 +221,9 @@ function TenantInvoicesPageContent() {
   // Create Invoice Drawer & Form States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [addProductInitialName, setAddProductInitialName] = useState("");
+  const [addProductTargetLineIdx, setAddProductTargetLineIdx] = useState<number | null>(null);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -477,6 +482,11 @@ function TenantInvoicesPageContent() {
         e.preventDefault();
         setIsAddCustomerModalOpen(true);
       }
+      // F4 or Alt+P: Quick Product Modal
+      else if (e.key === "F4" || (e.altKey && (e.key === "p" || e.key === "P"))) {
+        e.preventDefault();
+        handleOpenAddProductModal();
+      }
       // F7: Cycle Payment Mode
       else if (e.key === "F7") {
         e.preventDefault();
@@ -503,6 +513,7 @@ function TenantInvoicesPageContent() {
       // Esc: Dismiss modals
       else if (e.key === "Escape") {
         if (isShortcutsHelpOpen) setIsShortcutsHelpOpen(false);
+        else if (isAddProductModalOpen) setIsAddProductModalOpen(false);
         else if (isAddCustomerModalOpen) setIsAddCustomerModalOpen(false);
         else if (isDrawerOpen) setIsDrawerOpen(false);
       }
@@ -510,7 +521,7 @@ function TenantInvoicesPageContent() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen, invoiceLines, submitting, isShortcutsHelpOpen, isAddCustomerModalOpen]);
+  }, [isDrawerOpen, invoiceLines, submitting, isShortcutsHelpOpen, isAddCustomerModalOpen, isAddProductModalOpen]);
 
   const loadData = async () => {
     try {
@@ -1075,6 +1086,28 @@ function TenantInvoicesPageContent() {
           : line
       )
     );
+  };
+
+  const handleOpenAddProductModal = (initialName?: string, lineIdx?: number) => {
+    setAddProductInitialName(initialName || quickProductSearch || "");
+    setAddProductTargetLineIdx(lineIdx ?? null);
+    setIsAddProductModalOpen(true);
+  };
+
+  const handleProductCreated = (newItem: MasterItem) => {
+    setItems((prev) => [newItem, ...prev]);
+
+    if (addProductTargetLineIdx !== null && addProductTargetLineIdx < invoiceLines.length) {
+      handleLineItemChange(addProductTargetLineIdx, newItem.id);
+    } else {
+      if (invoiceLines.length === 1 && !invoiceLines[0].itemId) {
+        handleLineItemChange(0, newItem.id);
+      } else {
+        handleAddLineWithItem(newItem);
+      }
+    }
+
+    setQuickProductSearch("");
   };
 
   const handleBatchSelect = (idx: number, batchId: string) => {
@@ -2482,9 +2515,38 @@ function TenantInvoicesPageContent() {
                           (item) =>
                             item.name.toLowerCase().includes(quickProductSearch.toLowerCase()) ||
                             item.sku.toLowerCase().includes(quickProductSearch.toLowerCase())
+                        ).length > 0 && (
+                          <div
+                            onClick={() => handleOpenAddProductModal(quickProductSearch)}
+                            className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 cursor-pointer transition-colors border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-emerald-700 dark:text-emerald-300 text-xs font-bold"
+                          >
+                            <span className="flex items-center space-x-1.5">
+                              <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                              <span>Naya Product Banayein: &quot;{quickProductSearch}&quot;</span>
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-semibold">
+                              + Create New Item
+                            </span>
+                          </div>
+                        )}
+
+                        {items.filter(
+                          (item) =>
+                            item.name.toLowerCase().includes(quickProductSearch.toLowerCase()) ||
+                            item.sku.toLowerCase().includes(quickProductSearch.toLowerCase())
                         ).length === 0 && (
-                          <div className="p-3 text-xs text-slate-400 text-center">
-                            No matching product found for &quot;{quickProductSearch}&quot;
+                          <div className="p-4 text-center space-y-2.5 bg-white dark:bg-slate-950">
+                            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                              Product list me &quot;<strong className="text-slate-900 dark:text-white">{quickProductSearch}</strong>&quot; nahi mila.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAddProductModal(quickProductSearch)}
+                              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all active:scale-95 cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>+ Naya Product Add Karein (&quot;{quickProductSearch}&quot;)</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2492,6 +2554,16 @@ function TenantInvoicesPageContent() {
                   </div>
 
                   <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddProductModal()}
+                      className="flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center space-x-1.5 border border-emerald-500 shadow-md shadow-emerald-600/20 shrink-0 whitespace-nowrap transition-all active:scale-95 cursor-pointer"
+                      title="Naya Product Add Karein (Instant Item Creation)"
+                    >
+                      <Boxes className="w-3.5 h-3.5" />
+                      <span>+ Add Product</span>
+                    </button>
+
                     <button
                       id="tour-demo-item-btn"
                       type="button"
@@ -2616,18 +2688,37 @@ function TenantInvoicesPageContent() {
                               {idx + 1}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <select
-                                value={line.itemId}
-                                onChange={(e) => handleLineItemChange(idx, e.target.value)}
-                                className="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-indigo-500 truncate"
-                              >
-                                <option value="">-- Select Product / Service --</option>
-                                {items.map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.name} {item.sku ? `(${item.sku})` : ""} - ₹{item.sellingPrice || item.mrp || 0}
+                              <div className="flex items-center space-x-1">
+                                <select
+                                  value={line.itemId}
+                                  onChange={(e) => {
+                                    if (e.target.value === "__new__") {
+                                      handleOpenAddProductModal("", idx);
+                                    } else {
+                                      handleLineItemChange(idx, e.target.value);
+                                    }
+                                  }}
+                                  className="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-indigo-500 truncate"
+                                >
+                                  <option value="">-- Select Product / Service --</option>
+                                  <option value="__new__" className="text-emerald-400 font-bold">
+                                    ➕ + Add New Product...
                                   </option>
-                                ))}
-                              </select>
+                                  {items.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                      {item.name} {item.sku ? `(${item.sku})` : ""} - ₹{item.sellingPrice || item.mrp || 0}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAddProductModal("", idx)}
+                                  className="h-8 px-2 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 border border-emerald-500/40 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                                  title="Add New Product"
+                                >
+                                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                           <button
@@ -2850,18 +2941,38 @@ function TenantInvoicesPageContent() {
                           </td>
 
                           {/* 1. Item Selection */}
-                          <td className="p-0.5 px-1 align-middle min-w-[180px]">
-                            <select
-                              value={line.itemId}
-                              onChange={(e) => handleLineItemChange(idx, e.target.value)}
-                              className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium h-7 shadow-2xs"
-                            >
-                              {items.map((i) => (
-                                <option key={i.id} value={i.id}>
-                                  {i.name} ({i.sku})
+                          <td className="p-0.5 px-1 align-middle min-w-[190px]">
+                            <div className="flex items-center space-x-1">
+                              <select
+                                value={line.itemId}
+                                onChange={(e) => {
+                                  if (e.target.value === "__new__") {
+                                    handleOpenAddProductModal("", idx);
+                                  } else {
+                                    handleLineItemChange(idx, e.target.value);
+                                  }
+                                }}
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium h-7 shadow-2xs"
+                              >
+                                <option value="">-- Select Product --</option>
+                                <option value="__new__" className="text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/60">
+                                  ➕ + Add New Product...
                                 </option>
-                              ))}
-                            </select>
+                                {items.map((i) => (
+                                  <option key={i.id} value={i.id}>
+                                    {i.name} ({i.sku})
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAddProductModal("", idx)}
+                                className="h-7 px-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40 rounded flex items-center justify-center shrink-0 transition-colors shadow-2xs cursor-pointer"
+                                title="Naya Product Add Karein"
+                              >
+                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                              </button>
+                            </div>
                             {(line.availableBatches?.length > 1 || line.batchNumber || customerDealHistoryMap[line.itemId]?.[0]) && (
                               <div className="flex items-center gap-1 mt-0.5 text-[9px] truncate max-w-[210px] leading-tight">
                                 {line.availableBatches && line.availableBatches.length > 1 ? (
@@ -3449,6 +3560,15 @@ function TenantInvoicesPageContent() {
           setBillingAddress((newParty as any).billingAddress?.addressLine1 || newParty.tradeName || "");
           setBillingStateCode((newParty as any).stateCode || "27");
         }}
+      />
+
+      {/* Quick Add Product / Item Modal */}
+      <QuickAddProductModal
+        isOpen={isAddProductModalOpen}
+        onClose={() => setIsAddProductModalOpen(false)}
+        initialName={addProductInitialName}
+        isPharma={isPharma}
+        onProductCreated={handleProductCreated}
       />
 
       {/* Keyboard Shortcuts Cheatsheet Modal (F1) */}
