@@ -43,6 +43,7 @@ import { barcodeService } from "@/services/barcode-services";
 import { printTemplateService, PrintTemplate } from "@/services/print-template-services";
 import { SalesInvoiceDetails, TenantDetails, UpiQrPayload, SalesInvoicePayment } from "@/types";
 import { printRawHtml } from "@/lib/print-helper";
+import { generateInvoicePdfBlob, downloadBlob } from "@/lib/invoice-pdf-helper";
 import { useAddons } from "@/context/addon-context";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -1048,6 +1049,12 @@ export default function SalesInvoiceDetailsPage({
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
+  // PDF & WhatsApp Share State
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [whatsAppGuideModalOpen, setWhatsAppGuideModalOpen] = useState(false);
+  const [downloadedPdfName, setDownloadedPdfName] = useState("");
+
   // Credit Note Modal State
   const [creditNoteModalOpen, setCreditNoteModalOpen] = useState(false);
   const [issuingCreditNote, setIssuingCreditNote] = useState(false);
@@ -1273,22 +1280,99 @@ export default function SalesInvoiceDetailsPage({
     }
   };
 
-  const handleSendWhatsApp = () => {
-    if (!invoice) return;
+  const getInvoicePdfBlob = async (): Promise<{ blob: Blob; fileName: string } | null> => {
+    if (!invoice) return null;
+    const cleanInvNum = invoice.invoiceNumber.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const fileName = `Tax_Invoice_${cleanInvNum}.pdf`;
+    const targetElement = document.getElementById("invoice-printable-area");
+    if (!targetElement) {
+      showToast("Invoice content area not ready for PDF conversion.", "error");
+      return null;
+    }
+    const blob = await generateInvoicePdfBlob(targetElement);
+    return { blob, fileName };
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!invoice || downloadingPdf) return;
+    try {
+      setDownloadingPdf(true);
+      showToast("Generating PDF invoice...", "info");
+      const result = await getInvoicePdfBlob();
+      if (!result) return;
+      downloadBlob(result.blob, result.fileName);
+      showToast("Invoice PDF downloaded successfully!", "success");
+    } catch (err: any) {
+      console.error("PDF generation failed:", err);
+      showToast("Failed to generate PDF. You can still use Print -> Save as PDF.", "error");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!invoice || generatingPdf) return;
     const merchantName = profile?.tradeName || profile?.businessName || "UdyogBill";
     const upiId = (profile as any)?.upiId || profile?.bankAccountNumber ? `${(profile as any)?.upiId || "merchant@upi"}` : "";
     const upiDeepLink = upiId
       ? `\n\n*Click to Pay via UPI (GPay/PhonePe):*\nupi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${invoice.balanceAmount > 0 ? invoice.balanceAmount.toFixed(2) : invoice.totalAmount.toFixed(2)}&tn=Inv_${invoice.invoiceNumber}`
       : "";
 
-    const msg = encodeURIComponent(
-      `Dear ${invoice.customerName},\n\nYour Tax Invoice *${invoice.invoiceNumber}* for ₹${invoice.totalAmount.toFixed(2)} has been issued by ${merchantName}.\n\nBalance Due: *₹${invoice.balanceAmount.toFixed(2)}*\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Immediate"}${upiDeepLink}\n\nThank you for your business!\n\n— ${merchantName}`
-    );
+    const rawMsg = `Dear ${invoice.customerName},\n\nYour Tax Invoice *${invoice.invoiceNumber}* for ₹${invoice.totalAmount.toFixed(2)} has been issued by ${merchantName}.\n\nBalance Due: *₹${invoice.balanceAmount.toFixed(2)}*\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Immediate"}${upiDeepLink}\n\nInvoice PDF is attached.\nThank you for your business!\n\n— ${merchantName}`;
+    const msg = encodeURIComponent(rawMsg);
     const phone = invoice.customerPhone?.replace(/\D/g, "") || "";
-    const url = phone
+    const waUrl = phone
       ? `https://wa.me/91${phone}?text=${msg}`
       : `https://web.whatsapp.com/send?text=${msg}`;
-    window.open(url, "_blank");
+
+    try {
+      setGeneratingPdf(true);
+      showToast("Preparing Invoice PDF for WhatsApp...", "info");
+      const result = await getInvoicePdfBlob();
+
+      if (result) {
+        // Check if device supports Web Share API with files (Mobile/Tablet Chrome & Safari)
+        if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
+          const pdfFile = new File([result.blob], result.fileName, { type: "application/pdf" });
+          if (navigator.canShare({ files: [pdfFile] })) {
+            try {
+              await navigator.share({
+                title: `Tax Invoice - ${invoice.invoiceNumber}`,
+                text: rawMsg,
+                files: [pdfFile],
+              });
+              showToast("Shared invoice PDF successfully via WhatsApp!", "success");
+              return;
+            } catch (shareErr: any) {
+              // User cancelled share or fallback needed
+              if (shareErr.name === "AbortError") {
+                return;
+              }
+              console.warn("navigator.share failed, falling back to desktop flow:", shareErr);
+            }
+          }
+        }
+
+        // Desktop / Fallback flow:
+        // 1. Auto-download the PDF so it's directly available on user's computer
+        downloadBlob(result.blob, result.fileName);
+        setDownloadedPdfName(result.fileName);
+
+        // 2. Open WhatsApp Web chat in a new tab
+        window.open(waUrl, "_blank");
+
+        // 3. Open guidance modal instructing user to drag/attach the downloaded PDF
+        setWhatsAppGuideModalOpen(true);
+        showToast("PDF downloaded! WhatsApp Web opened. Attach the PDF file in chat.", "success");
+        return;
+      }
+    } catch (err: any) {
+      console.error("Failed to generate PDF for WhatsApp:", err);
+      showToast("PDF generation encountered an issue, opening WhatsApp with details.", "info");
+      window.open(waUrl, "_blank");
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   const handleSendEmail = () => {
@@ -1602,6 +1686,24 @@ export default function SalesInvoiceDetailsPage({
               </button>
             )}
 
+            {/* 1.2 DOWNLOAD PDF */}
+            {activeDoc === "invoice" && (
+              <button
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf}
+                style={{ color: "#ffffff" }}
+                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black shadow-lg shadow-slate-950/30 transition-all cursor-pointer disabled:opacity-60 border border-slate-700"
+                title="Download High-Resolution PDF Invoice"
+              >
+                {downloadingPdf ? (
+                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 text-white" />
+                )}
+                <span className="text-white">{downloadingPdf ? "Generating PDF..." : "Download PDF"}</span>
+              </button>
+            )}
+
             {/* 1.5 RECORD PAYMENT */}
             {hasBalance && !isCancelled && (
               <button
@@ -1626,11 +1728,17 @@ export default function SalesInvoiceDetailsPage({
             {/* 2. SEND ON WHATSAPP */}
             <button
               onClick={handleSendWhatsApp}
+              disabled={generatingPdf}
               style={{ color: "#ffffff" }}
-              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg shadow-emerald-600/30 transition-all cursor-pointer disabled:opacity-60"
+              title="Send Invoice PDF via WhatsApp"
             >
-              <MessageCircle className="w-4 h-4 text-white" />
-              <span className="text-white">WhatsApp</span>
+              {generatingPdf ? (
+                <RefreshCw className="w-4 h-4 text-white animate-spin" />
+              ) : (
+                <MessageCircle className="w-4 h-4 text-white" />
+              )}
+              <span className="text-white">{generatingPdf ? "Preparing PDF..." : "WhatsApp"}</span>
             </button>
 
             {/* 3. SEND EMAIL */}
@@ -1932,7 +2040,7 @@ export default function SalesInvoiceDetailsPage({
 
         {/* ─── Dynamic Active Template Invoice Renderer ───────────────────────────── */}
         {activeDoc === "invoice" && dynamicInvoiceHtml ? (
-          <div className="bg-white text-slate-900 rounded-none sm:rounded-xl p-3 sm:p-6 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-5xl mx-auto overflow-x-auto">
+          <div id="invoice-printable-area" className="bg-white text-slate-900 rounded-none sm:rounded-xl p-3 sm:p-6 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-5xl mx-auto overflow-x-auto">
             <style jsx global>{`
               @media print {
                 @page {
@@ -1955,7 +2063,7 @@ export default function SalesInvoiceDetailsPage({
             <div dangerouslySetInnerHTML={{ __html: dynamicInvoiceHtml }} />
           </div>
         ) : activeDoc === "invoice" && printFormat === "compact_a5" ? (
-          <div className="bg-white text-slate-900 rounded-none sm:rounded-xl p-3 sm:p-6 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-5xl mx-auto overflow-x-auto">
+          <div id="invoice-printable-area" className="bg-white text-slate-900 rounded-none sm:rounded-xl p-3 sm:p-6 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-5xl mx-auto overflow-x-auto">
             <div dangerouslySetInnerHTML={{ __html: generateCashMemoA5Html(invoice, profile, upiQr) }} />
           </div>
         ) : activeDoc === "invoice" && printFormat === "a4" && (() => {
@@ -1997,7 +2105,7 @@ export default function SalesInvoiceDetailsPage({
           const emptyRowsCount = Math.max(0, 12 - invoice.items.length);
 
           return (
-            <div id="invoice-print-area" className="bg-white text-slate-900 rounded-none sm:rounded-xl p-4 sm:p-8 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-4xl mx-auto">
+            <div id="invoice-printable-area" className="bg-white text-slate-900 rounded-none sm:rounded-xl p-4 sm:p-8 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-4xl mx-auto">
               {/* Strict Clean Print Override */}
               <style jsx global>{`
                 @media print {
@@ -2647,6 +2755,71 @@ export default function SalesInvoiceDetailsPage({
               <div className="font-bold">THANK YOU FOR YOUR VISIT!</div>
               <div>Goods once sold will not be returned.</div>
               <div className="text-[8px] text-slate-600">Powered by UdyogBill</div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── WhatsApp PDF Sharing Guidance Modal ─── */}
+        {whatsAppGuideModalOpen && (
+          <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 text-white relative">
+              <button
+                onClick={() => setWhatsAppGuideModalOpen(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                  <MessageCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Invoice PDF Ready for WhatsApp</h3>
+                  <p className="text-xs text-slate-400">PDF download ho chuki hai</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 space-y-2.5">
+                <div className="flex items-center space-x-2 text-xs font-semibold text-emerald-400">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="truncate">{downloadedPdfName}</span>
+                </div>
+                <div className="text-xs text-slate-300 space-y-2 leading-relaxed">
+                  <p>
+                    1. <b>WhatsApp Web</b> naye tab me khul chuka hai.
+                  </p>
+                  <p>
+                    2. Browser ke downloads folder se is <b>PDF file ko WhatsApp chat me drag karein</b> ya chat ke <b>📎 (Attach) &gt; 📄 Document</b> option par click karke attach kar dein.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const phone = invoice?.customerPhone?.replace(/\D/g, "") || "";
+                    const rawMsg = `Dear ${invoice?.customerName},\n\nYour Tax Invoice *${invoice?.invoiceNumber}* for ₹${invoice?.totalAmount.toFixed(2)} has been issued.\nInvoice PDF is attached.`;
+                    const waUrl = phone
+                      ? `https://wa.me/91${phone}?text=${encodeURIComponent(rawMsg)}`
+                      : `https://web.whatsapp.com/send?text=${encodeURIComponent(rawMsg)}`;
+                    window.open(waUrl, "_blank");
+                  }}
+                  className="w-full sm:flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/30"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Open WhatsApp Web</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadPdf()}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Again</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
