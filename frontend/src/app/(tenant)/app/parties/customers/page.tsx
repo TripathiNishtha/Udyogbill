@@ -75,19 +75,21 @@ export default function TenantCustomersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [fetchingGst, setFetchingGst] = useState(false);
 
-  const handleGstLookup = async () => {
-    if (!form.gstin || form.gstin.trim().length !== 15) {
+  const handleGstLookup = async (overrideGst?: string) => {
+    const gstToFetch = (overrideGst || form.gstin || "").trim().toUpperCase();
+    if (!gstToFetch || gstToFetch.length !== 15) {
       alert("Please enter a valid 15-character GSTIN first.");
       return;
     }
     try {
       setFetchingGst(true);
-      const res = await onboardingService.lookupGstin(form.gstin.trim());
+      const res = await onboardingService.lookupGstin(gstToFetch);
       if (res) {
         setForm((prev) => ({
           ...prev,
+          gstin: gstToFetch,
           legalName: res.legalName || prev.legalName,
-          tradeName: res.tradeName || prev.tradeName,
+          tradeName: res.tradeName || prev.tradeName || res.legalName,
           pan: res.pan || prev.pan,
           billingAddress: {
             addressType: prev.billingAddress?.addressType ?? 1,
@@ -567,7 +569,7 @@ export default function TenantCustomersPage() {
                     <button
                       type="button"
                       disabled={fetchingGst || !form.gstin || form.gstin.length !== 15}
-                      onClick={handleGstLookup}
+                      onClick={() => handleGstLookup()}
                       className="inline-flex items-center space-x-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 disabled:opacity-40 transition"
                     >
                       <Sparkles className={`w-3 h-3 ${fetchingGst ? "animate-spin" : ""}`} />
@@ -579,7 +581,13 @@ export default function TenantCustomersPage() {
                     maxLength={15}
                     placeholder="e.g. 27AABCA1234A1Z5"
                     value={form.gstin || ""}
-                    onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15);
+                      setForm({ ...form, gstin: val });
+                      if (val.length === 15) {
+                        handleGstLookup(val);
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
                   />
                 </div>
@@ -626,6 +634,127 @@ export default function TenantCustomersPage() {
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
                   />
+                </div>
+              </div>
+
+              {/* Registered / Billing Address (Auto-populated from GSTIN) */}
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Registered Billing Address (From GSTIN)
+                  </span>
+                  {form.billingAddress?.state && (
+                    <span className="text-[10px] text-indigo-400 font-medium">
+                      State Code: {form.billingAddress.stateCode || "--"}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-slate-400">Address Line (Shop / Building / Street)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Shop No. 12, Main Market Road"
+                    value={form.billingAddress?.addressLine1 || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        billingAddress: {
+                          ...(form.billingAddress || {
+                            addressType: 1,
+                            label: "Billing Address",
+                            city: "",
+                            state: "Maharashtra",
+                            stateCode: "27",
+                            pincode: "",
+                            country: "India",
+                          }),
+                          addressLine1: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-slate-400">City / District</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mumbai"
+                      value={form.billingAddress?.city || ""}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          billingAddress: {
+                            ...(form.billingAddress || {
+                              addressType: 1,
+                              label: "Billing Address",
+                              addressLine1: "",
+                              state: "Maharashtra",
+                              stateCode: "27",
+                              pincode: "",
+                              country: "India",
+                            }),
+                            city: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-slate-400">State</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Maharashtra"
+                      value={form.billingAddress?.state || ""}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          billingAddress: {
+                            ...(form.billingAddress || {
+                              addressType: 1,
+                              label: "Billing Address",
+                              addressLine1: "",
+                              city: "",
+                              stateCode: "27",
+                              pincode: "",
+                              country: "India",
+                            }),
+                            state: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-slate-400">Pincode</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="e.g. 400001"
+                      value={form.billingAddress?.pincode || ""}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          billingAddress: {
+                            ...(form.billingAddress || {
+                              addressType: 1,
+                              label: "Billing Address",
+                              addressLine1: "",
+                              city: "",
+                              state: "Maharashtra",
+                              stateCode: "27",
+                              country: "India",
+                            }),
+                            pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
+                          },
+                        })
+                      }
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
                 </div>
               </div>
 

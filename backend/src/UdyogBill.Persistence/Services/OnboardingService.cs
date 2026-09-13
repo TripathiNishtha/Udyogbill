@@ -62,14 +62,18 @@ public class OnboardingService : IOnboardingService
         { "97", "Other Territory" }
     };
 
+    private readonly ISandboxGstService _sandboxGstService;
+
     public OnboardingService(
         AppDbContext context,
         ITenantContext tenantContext,
-        ICurrentUserContext currentUserContext)
+        ICurrentUserContext currentUserContext,
+        ISandboxGstService sandboxGstService)
     {
         _context = context;
         _tenantContext = tenantContext;
         _currentUserContext = currentUserContext;
+        _sandboxGstService = sandboxGstService;
     }
 
     private Guid RequireTenantId()
@@ -86,11 +90,11 @@ public class OnboardingService : IOnboardingService
         return tenantId;
     }
 
-    public Task<Result<GstinLookupResponse>> LookupGstinAsync(GstinLookupRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<GstinLookupResponse>> LookupGstinAsync(GstinLookupRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.Gstin))
         {
-            return Task.FromResult(Result<GstinLookupResponse>.Failure("GSTIN number is required.", "INVALID_INPUT"));
+            return Result<GstinLookupResponse>.Failure("GSTIN number is required.", "INVALID_INPUT");
         }
 
         var cleanGstin = request.Gstin.Trim().ToUpperInvariant();
@@ -98,12 +102,50 @@ public class OnboardingService : IOnboardingService
 
         if (!gstinRegex.IsMatch(cleanGstin))
         {
-            return Task.FromResult(Result<GstinLookupResponse>.Failure("Invalid 15-character GSTIN format. Example: 09AAACH7409R1ZZ", "INVALID_GSTIN_FORMAT"));
+            return Result<GstinLookupResponse>.Failure("Invalid 15-character GSTIN format. Example: 09AAACH7409R1ZZ", "INVALID_GSTIN_FORMAT");
         }
 
         var stateCode = cleanGstin.Substring(0, 2);
         var pan = cleanGstin.Substring(2, 10);
         var stateName = StateMap.TryGetValue(stateCode, out var state) ? state : "India";
+
+        // Try live GST portal lookup first via SandboxGstService
+        try
+        {
+            var liveResult = await _sandboxGstService.LookupGstinAsync(cleanGstin, cancellationToken);
+            if (liveResult.IsSuccess && liveResult.Data != null && (!string.IsNullOrEmpty(liveResult.Data.LegalName) || !string.IsNullOrEmpty(liveResult.Data.TradeName)))
+            {
+                var data = liveResult.Data;
+                var resolvedState = !string.IsNullOrWhiteSpace(data.State) ? data.State : stateName;
+                var resolvedStateCode = !string.IsNullOrWhiteSpace(data.StateCode) ? data.StateCode : stateCode;
+
+                var fullAddressParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(data.AddressLine1)) fullAddressParts.Add(data.AddressLine1);
+                if (!string.IsNullOrWhiteSpace(data.City)) fullAddressParts.Add(data.City);
+                if (!string.IsNullOrWhiteSpace(resolvedState)) fullAddressParts.Add(resolvedState);
+                if (!string.IsNullOrWhiteSpace(data.Pincode)) fullAddressParts.Add(data.Pincode);
+
+                var resolvedAddress = fullAddressParts.Count > 0 ? string.Join(", ", fullAddressParts) : $"{resolvedState}, India";
+
+                return Result<GstinLookupResponse>.Success(new GstinLookupResponse(
+                    Gstin: cleanGstin,
+                    LegalName: data.LegalName ?? "",
+                    TradeName: data.TradeName ?? data.LegalName ?? "",
+                    Pan: pan,
+                    State: resolvedState,
+                    StateCode: resolvedStateCode,
+                    Address: resolvedAddress,
+                    Pincode: data.Pincode ?? "",
+                    GstType: data.Status ?? "Regular",
+                    IsActive: string.Equals(data.Status, "Active", StringComparison.OrdinalIgnoreCase),
+                    IsComposition: false
+                ));
+            }
+        }
+        catch
+        {
+            // Fallback to offline parsing gracefully
+        }
 
         var response = new GstinLookupResponse(
             Gstin: cleanGstin,
@@ -119,7 +161,7 @@ public class OnboardingService : IOnboardingService
             IsComposition: false
         );
 
-        return Task.FromResult(Result<GstinLookupResponse>.Success(response));
+        return Result<GstinLookupResponse>.Success(response);
     }
 
     public async Task<Result<SeedIndustryCatalogResult>> SeedIndustryCatalogAsync(SeedIndustryCatalogRequest request, CancellationToken cancellationToken = default)
