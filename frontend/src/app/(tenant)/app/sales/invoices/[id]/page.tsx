@@ -1495,7 +1495,7 @@ export default function SalesInvoiceDetailsPage({
         onClose={() => setCreditNoteModalOpen(false)}
       />
 
-      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
+      <div className="px-2 sm:px-4 py-3 sm:py-4 max-w-7xl mx-auto space-y-4">
         {/* ── Back + Status strip ── */}
         <div className="flex items-center justify-between print:hidden">
           <Link
@@ -1578,7 +1578,7 @@ export default function SalesInvoiceDetailsPage({
         {/* ══════════════════════════════════════════════════════════════
             PRIMARY ACTION TOOLBAR — The Heart of the Billing Software
         ══════════════════════════════════════════════════════════════ */}
-        <div className="print:hidden bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-xl space-y-4">
+        <div className="print:hidden bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5 shadow-xl space-y-3">
           {/* Row 1: Document type tabs + Print format */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             {/* Document Selector */}
