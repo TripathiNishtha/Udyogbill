@@ -158,6 +158,34 @@ export default function FieldForceManagementPage() {
     setAssignedSubordinateUserIds([]);
   };
 
+  const getAreaPatches = (targetTerId: string) => {
+    if (!targetTerId) return [];
+    const ter = territories.find((t) => t.id === targetTerId);
+    if (!ter) return [];
+
+    const cleanTerName = ter.name.toLowerCase().replace(/\s*\(.*?\)\s*/g, "").trim();
+
+    return patches.filter((p) => {
+      // 1. If patch is explicitly assigned to another territory by ID, exclude it
+      if (p.areaTerritoryId && p.areaTerritoryId !== targetTerId) {
+        return false;
+      }
+      // 2. Direct territory linkage by ID
+      if (p.areaTerritoryId === targetTerId) {
+        return true;
+      }
+      // 3. Direct territory linkage by name
+      if (p.areaTerritoryName && p.areaTerritoryName.toLowerCase() === ter.name.toLowerCase()) {
+        return true;
+      }
+      // 4. If patch name explicitly includes this area name (e.g. "CENTRAL DELHI PATCH 1" matches "Central Delhi")
+      if (p.name && cleanTerName && p.name.toLowerCase().includes(cleanTerName)) {
+        return true;
+      }
+      return false;
+    });
+  };
+
   const openAddModal = (defaultRole: number = 1) => {
     resetForm();
     setEditingEmployeeId(null);
@@ -791,14 +819,7 @@ export default function FieldForceManagementPage() {
                           if (ter && (!hqCity || hqCity.trim() === "")) {
                             setHqCity(ter.city || ter.name);
                           }
-                          const matching = patches.filter(
-                            (p) =>
-                              p.areaTerritoryId === newTerId ||
-                              (ter &&
-                                p.headquarterCity &&
-                                (ter.city === p.headquarterCity ||
-                                  ter.name.toLowerCase().includes(p.headquarterCity.toLowerCase())))
-                          );
+                          const matching = getAreaPatches(newTerId);
                           if (matching.length > 0) {
                             setPatchId(matching[0].id);
                           } else {
@@ -823,18 +844,7 @@ export default function FieldForceManagementPage() {
                         <label className="block text-[11px] font-semibold text-gray-700">Primary Calling Patch / Beat</label>
                         {territoryId && (
                           <span className="text-[10px] text-emerald-600 font-medium">
-                            {patches.filter(
-                              (p) =>
-                                p.areaTerritoryId === territoryId ||
-                                (territories.find((t) => t.id === territoryId) &&
-                                  p.headquarterCity &&
-                                  (territories.find((t) => t.id === territoryId)?.city === p.headquarterCity ||
-                                    territories
-                                      .find((t) => t.id === territoryId)
-                                      ?.name.toLowerCase()
-                                      .includes(p.headquarterCity.toLowerCase())))
-                            ).length}{" "}
-                            in this Area
+                            {getAreaPatches(territoryId).length} in this Area
                           </span>
                         )}
                       </div>
@@ -845,36 +855,14 @@ export default function FieldForceManagementPage() {
                       >
                         {!territoryId ? (
                           <option value="">Select Territory / Area first</option>
-                        ) : patches.filter(
-                            (p) =>
-                              p.areaTerritoryId === territoryId ||
-                              (territories.find((t) => t.id === territoryId) &&
-                                p.headquarterCity &&
-                                (territories.find((t) => t.id === territoryId)?.city === p.headquarterCity ||
-                                  territories
-                                    .find((t) => t.id === territoryId)
-                                    ?.name.toLowerCase()
-                                    .includes(p.headquarterCity.toLowerCase())))
-                          ).length === 0 ? (
+                        ) : getAreaPatches(territoryId).length === 0 ? (
                           <option value="">No calling patches created for this Area yet</option>
                         ) : (
                           <>
                             <option value="">Select Calling Patch</option>
-                            {patches
-                              .filter(
-                                (p) =>
-                                  p.areaTerritoryId === territoryId ||
-                                  (territories.find((t) => t.id === territoryId) &&
-                                    p.headquarterCity &&
-                                    (territories.find((t) => t.id === territoryId)?.city === p.headquarterCity ||
-                                      territories
-                                        .find((t) => t.id === territoryId)
-                                        ?.name.toLowerCase()
-                                        .includes(p.headquarterCity.toLowerCase())))
-                              )
-                              .map((p) => (
-                                <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                              ))}
+                            {getAreaPatches(territoryId).map((p) => (
+                              <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                            ))}
                           </>
                         )}
                       </select>
