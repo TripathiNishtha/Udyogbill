@@ -13,6 +13,7 @@ public record GstinLookupResponse(
     string State,
     string StateCode,
     string Address,
+    string City,
     string Pincode,
     string GstType,
     bool IsActive,

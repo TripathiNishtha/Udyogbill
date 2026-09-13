@@ -9,6 +9,7 @@ export interface GstinLookupData {
   state: string;
   stateCode: string;
   address: string;
+  city?: string;
   pincode: string;
   gstType: string;
   isActive: boolean;

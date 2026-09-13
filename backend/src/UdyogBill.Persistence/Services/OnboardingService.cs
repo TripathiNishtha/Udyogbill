@@ -123,9 +123,9 @@ public class OnboardingService : IOnboardingService
                 if (!string.IsNullOrWhiteSpace(data.AddressLine1)) fullAddressParts.Add(data.AddressLine1);
                 if (!string.IsNullOrWhiteSpace(data.City)) fullAddressParts.Add(data.City);
                 if (!string.IsNullOrWhiteSpace(resolvedState)) fullAddressParts.Add(resolvedState);
-                if (!string.IsNullOrWhiteSpace(data.Pincode)) fullAddressParts.Add(data.Pincode);
-
-                var resolvedAddress = fullAddressParts.Count > 0 ? string.Join(", ", fullAddressParts) : $"{resolvedState}, India";
+                var streetAddress = !string.IsNullOrWhiteSpace(data.AddressLine1)
+                    ? data.AddressLine1
+                    : (fullAddressParts.Count > 0 ? string.Join(", ", fullAddressParts) : $"{resolvedState}, India");
 
                 return Result<GstinLookupResponse>.Success(new GstinLookupResponse(
                     Gstin: cleanGstin,
@@ -134,7 +134,8 @@ public class OnboardingService : IOnboardingService
                     Pan: pan,
                     State: resolvedState,
                     StateCode: resolvedStateCode,
-                    Address: resolvedAddress,
+                    Address: streetAddress,
+                    City: data.City ?? "",
                     Pincode: data.Pincode ?? "",
                     GstType: data.Status ?? "Regular",
                     IsActive: string.Equals(data.Status, "Active", StringComparison.OrdinalIgnoreCase),
@@ -155,6 +156,7 @@ public class OnboardingService : IOnboardingService
             State: stateName,
             StateCode: stateCode,
             Address: $"{stateName}, India",
+            City: "",
             Pincode: "",
             GstType: "Regular",
             IsActive: true,

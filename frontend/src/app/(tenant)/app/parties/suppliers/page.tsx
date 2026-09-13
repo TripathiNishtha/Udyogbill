@@ -86,7 +86,7 @@ export default function TenantSuppliersPage() {
             label: prev.billingAddress?.label ?? "Vendor Office",
             addressLine1: res.address || prev.billingAddress?.addressLine1 || "",
             addressLine2: prev.billingAddress?.addressLine2 || "",
-            city: prev.billingAddress?.city || "",
+            city: res.city || prev.billingAddress?.city || "",
             state: res.state || prev.billingAddress?.state || "Maharashtra",
             stateCode: res.stateCode || prev.billingAddress?.stateCode || "27",
             pincode: res.pincode || prev.billingAddress?.pincode || "",
