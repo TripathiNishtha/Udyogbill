@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import {
   Phone,
@@ -56,32 +56,33 @@ export default function ContactClient() {
     const industry = detectIndustryCode(window.location.pathname, form.businessType);
 
     try {
-      await fetch(
-        (process.env.NEXT_PUBLIC_API_URL || "https://udyogbill.com") + "/api/v1/public/leads",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: form.name.trim(),
-            businessName: form.businessName.trim(),
-            mobile: form.mobile.trim(),
-            email: form.email.trim(),
-            city: form.city.trim(),
-            businessType: form.businessType,
-            message: form.message.trim(),
-            source: "contact_page",
-            industryCode: industry,
-            utmSource: attr.utmSource,
-            utmMedium: attr.utmMedium,
-            utmCampaign: attr.utmCampaign,
-            landingPage: attr.landingPage || window.location.pathname,
-            citySlug: attr.citySlug,
-            referrerUrl: attr.referrerUrl,
-            searchKeyword: attr.searchKeyword,
-            deviceType: attr.deviceType,
-          }),
-        }
-      );
+      const res = await fetch("/api/backend/public/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          businessName: form.businessName.trim(),
+          mobile: form.mobile.trim(),
+          email: form.email.trim(),
+          city: form.city.trim(),
+          businessType: form.businessType,
+          message: form.message.trim(),
+          source: "contact_page",
+          industryCode: industry,
+          utmSource: attr.utmSource,
+          utmMedium: attr.utmMedium,
+          utmCampaign: attr.utmCampaign,
+          landingPage: attr.landingPage || window.location.pathname,
+          citySlug: attr.citySlug,
+          referrerUrl: attr.referrerUrl,
+          searchKeyword: attr.searchKeyword,
+          deviceType: attr.deviceType,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Lead submission returned error status:", res.status);
+      }
 
       // Fire GA4 conversion event
       trackLeadConversion({
@@ -89,8 +90,8 @@ export default function ContactClient() {
         industryCode: industry,
         source: "contact-page",
       });
-    } catch {
-      // Continue to submitted state even if network glitch occurs
+    } catch (err) {
+      console.error("Lead submission network error:", err);
     }
     setLoading(false);
     setSubmitted(true);

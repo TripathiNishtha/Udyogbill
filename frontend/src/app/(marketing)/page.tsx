@@ -69,33 +69,26 @@ export default function HomePage() {
       const attr = getAttributionData();
       const industry = detectIndustryCode(window.location.pathname, leadForm.businessType);
 
-      const apiBase =
-        process.env.NEXT_PUBLIC_API_URL ||
-        (typeof window !== "undefined" ? window.location.origin : "https://udyogbill.com");
-
-      const res = await fetch(
-        `${apiBase}/api/v1/public/leads`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: leadForm.name.trim(),
-            mobile: leadForm.mobile.trim(),
-            businessType: leadForm.businessType,
-            industryCode: industry,
-            city: leadForm.city.trim(),
-            source: "homepage_lead_form",
-            utmSource: attr.utmSource,
-            utmMedium: attr.utmMedium,
-            utmCampaign: attr.utmCampaign,
-            landingPage: attr.landingPage || window.location.pathname,
-            citySlug: attr.citySlug,
-            referrerUrl: attr.referrerUrl,
-            searchKeyword: attr.searchKeyword,
-            deviceType: attr.deviceType,
-          })
-        }
-      );
+      const res = await fetch("/api/backend/public/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: leadForm.name.trim(),
+          mobile: leadForm.mobile.trim(),
+          businessType: leadForm.businessType,
+          industryCode: industry,
+          city: leadForm.city.trim(),
+          source: "homepage_lead_form",
+          utmSource: attr.utmSource,
+          utmMedium: attr.utmMedium,
+          utmCampaign: attr.utmCampaign,
+          landingPage: attr.landingPage || window.location.pathname,
+          citySlug: attr.citySlug,
+          referrerUrl: attr.referrerUrl,
+          searchKeyword: attr.searchKeyword,
+          deviceType: attr.deviceType,
+        }),
+      });
       if (res.ok) {
         setLeadStatus({
           submitting: false,

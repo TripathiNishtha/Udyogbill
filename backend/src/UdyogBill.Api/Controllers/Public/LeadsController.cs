@@ -11,6 +11,8 @@ namespace UdyogBill.Api.Controllers;
 [EnableRateLimiting("PublicLeadPolicy")]
 [Route("api/v1/public/leads")]
 [Route("api/public/leads")]
+[Route("public/leads")]
+[Route("api/v1/api/v1/public/leads")]
 public class PublicLeadsController : BaseApiController
 {
     private readonly AppDbContext _db;

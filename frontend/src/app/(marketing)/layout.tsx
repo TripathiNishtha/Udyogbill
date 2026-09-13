@@ -81,26 +81,27 @@ function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void })
     const attr = getAttributionData();
     const industry = detectIndustryCode(window.location.pathname, form.businessType);
     try {
-      await fetch(
-        (process.env.NEXT_PUBLIC_API_URL || "https://udyogbill.com") + "/api/v1/public/leads",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...form,
-            source: "contact-popup",
-            industryCode: industry,
-            utmSource: attr.utmSource,
-            utmMedium: attr.utmMedium,
-            utmCampaign: attr.utmCampaign,
-            landingPage: attr.landingPage || window.location.pathname,
-            citySlug: attr.citySlug,
-            referrerUrl: attr.referrerUrl,
-            searchKeyword: attr.searchKeyword,
-            deviceType: attr.deviceType,
-          }),
-        }
-      );
+      const res = await fetch("/api/backend/public/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          source: "contact-popup",
+          industryCode: industry,
+          utmSource: attr.utmSource,
+          utmMedium: attr.utmMedium,
+          utmCampaign: attr.utmCampaign,
+          landingPage: attr.landingPage || window.location.pathname,
+          citySlug: attr.citySlug,
+          referrerUrl: attr.referrerUrl,
+          searchKeyword: attr.searchKeyword,
+          deviceType: attr.deviceType,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Demo modal lead submission returned error status:", res.status);
+      }
 
       // Track conversion event in GA4
       trackLeadConversion({
@@ -108,7 +109,9 @@ function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void })
         industryCode: industry,
         source: "contact-popup",
       });
-    } catch {}
+    } catch (err) {
+      console.error("Demo modal lead submission network error:", err);
+    }
     setLoading(false);
     setSubmitted(true);
   };
