@@ -168,7 +168,12 @@ public record SfaEmployeeProfileDto(
     decimal DailyAllowanceRate,
     decimal MonthlyExpenseLimit,
     decimal MonthlyTargetAmount,
-    bool IsActive
+    bool IsActive,
+    decimal RollupTargetAmount = 0m,
+    bool IsTargetAutoCalculated = false,
+    int DirectReporteesCount = 0,
+    int TotalSubordinateMrsCount = 0,
+    string? CoveredTerritorySummary = null
 );
 
 public record CreateOrUpdateEmployeeRequest(
@@ -190,7 +195,8 @@ public record CreateOrUpdateEmployeeRequest(
     decimal DailyAllowanceRate = 350m,
     decimal MonthlyExpenseLimit = 15000m,
     decimal MonthlyTargetAmount = 250000m,
-    bool IsActive = true
+    bool IsActive = true,
+    List<Guid>? AssignedSubordinateUserIds = null
 );
 
 public record ReallocateDoctorRequest(

@@ -489,14 +489,16 @@ public class PharmaSfaService : IPharmaSfaService
     public async Task<Result<IReadOnlyList<SfaEmployeeProfileDto>>> GetEmployeesAsync(Guid? divisionId = null, SfaDesignationRole? role = null, CancellationToken cancellationToken = default)
     {
         var tenantId = RequireTenantId();
-        var query = _context.SfaEmployeeProfiles
+        var allProfiles = await _context.SfaEmployeeProfiles
             .Where(e => e.TenantId == tenantId)
             .Include(e => e.User)
             .Include(e => e.Division)
             .Include(e => e.Territory)
             .Include(e => e.Patch)
             .Include(e => e.ReportingToUser)
-            .AsQueryable();
+            .ToListAsync(cancellationToken);
+
+        var query = allProfiles.AsEnumerable();
 
         if (divisionId.HasValue)
             query = query.Where(e => e.DivisionId == divisionId.Value);
@@ -504,36 +506,111 @@ public class PharmaSfaService : IPharmaSfaService
         if (role.HasValue)
             query = query.Where(e => e.DesignationRole == role.Value);
 
-        var list = await query
+        var list = query
             .OrderBy(e => e.User.FullName)
-            .Select(e => new SfaEmployeeProfileDto(
-                e.Id,
-                e.UserId,
-                e.EmployeeCode,
-                e.User.FullName,
-                e.User.Email,
-                e.Mobile ?? e.User.PhoneNumber,
-                e.Gender,
-                e.DesignationRole,
-                e.DesignationTitle,
-                e.DivisionId,
-                e.Division != null ? e.Division.Name : null,
-                e.TerritoryId,
-                e.Territory != null ? e.Territory.Name : null,
-                e.PatchId,
-                e.Patch != null ? e.Patch.Name : null,
-                e.ReportingToUserId,
-                e.ReportingToUser != null ? e.ReportingToUser.FullName : null,
-                e.HeadquarterCity,
-                e.JoiningDate,
-                e.DailyAllowanceRate,
-                e.MonthlyExpenseLimit,
-                e.MonthlyTargetAmount,
-                e.IsActive
-            ))
-            .ToListAsync(cancellationToken);
+            .Select(e =>
+            {
+                var isManager = e.DesignationRole > SfaDesignationRole.MedicalRepresentative;
+                var directReportees = allProfiles.Where(x => x.ReportingToUserId == e.UserId).ToList();
+                var subordinateMrs = isManager ? GetSubordinateMrs(e.UserId, allProfiles) : new List<SfaEmployeeProfile>();
+
+                decimal rollupTarget;
+                bool isAutoCalculated;
+
+                if (isManager)
+                {
+                    rollupTarget = subordinateMrs.Count > 0
+                        ? subordinateMrs.Sum(m => m.MonthlyTargetAmount)
+                        : e.MonthlyTargetAmount;
+                    isAutoCalculated = subordinateMrs.Count > 0;
+                }
+                else
+                {
+                    rollupTarget = e.MonthlyTargetAmount;
+                    isAutoCalculated = false;
+                }
+
+                string? territorySummary;
+                if (isManager && subordinateMrs.Count > 0)
+                {
+                    var territoryNames = subordinateMrs
+                        .Select(m => m.Territory?.Name ?? m.HeadquarterCity)
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Distinct()
+                        .ToList();
+
+                    territorySummary = territoryNames.Count > 0
+                        ? $"{subordinateMrs.Count} MRs: {string.Join(", ", territoryNames.Take(3))}{(territoryNames.Count > 3 ? "..." : "")}"
+                        : $"{subordinateMrs.Count} MRs Covered";
+                }
+                else
+                {
+                    territorySummary = e.Territory?.Name ?? e.HeadquarterCity;
+                }
+
+                return new SfaEmployeeProfileDto(
+                    e.Id,
+                    e.UserId,
+                    e.EmployeeCode,
+                    e.User.FullName,
+                    e.User.Email,
+                    e.Mobile ?? e.User.PhoneNumber,
+                    e.Gender,
+                    e.DesignationRole,
+                    e.DesignationTitle,
+                    e.DivisionId,
+                    e.Division?.Name,
+                    e.TerritoryId,
+                    e.Territory?.Name,
+                    e.PatchId,
+                    e.Patch?.Name,
+                    e.ReportingToUserId,
+                    e.ReportingToUser?.FullName,
+                    e.HeadquarterCity,
+                    e.JoiningDate,
+                    e.DailyAllowanceRate,
+                    e.MonthlyExpenseLimit,
+                    e.MonthlyTargetAmount,
+                    e.IsActive,
+                    RollupTargetAmount: rollupTarget,
+                    IsTargetAutoCalculated: isAutoCalculated,
+                    DirectReporteesCount: directReportees.Count,
+                    TotalSubordinateMrsCount: subordinateMrs.Count,
+                    CoveredTerritorySummary: territorySummary
+                );
+            })
+            .ToList();
 
         return Result<IReadOnlyList<SfaEmployeeProfileDto>>.Success(list);
+    }
+
+    private static List<SfaEmployeeProfile> GetSubordinateMrs(Guid managerUserId, List<SfaEmployeeProfile> allEmployees)
+    {
+        var result = new List<SfaEmployeeProfile>();
+        var queue = new Queue<Guid>();
+        queue.Enqueue(managerUserId);
+
+        var visited = new HashSet<Guid> { managerUserId };
+
+        while (queue.Count > 0)
+        {
+            var currentManagerId = queue.Dequeue();
+            var directSubordinates = allEmployees.Where(x => x.ReportingToUserId == currentManagerId).ToList();
+
+            foreach (var sub in directSubordinates)
+            {
+                if (sub.DesignationRole == SfaDesignationRole.MedicalRepresentative)
+                {
+                    result.Add(sub);
+                }
+                else if (visited.Add(sub.UserId))
+                {
+                    queue.Enqueue(sub.UserId);
+                }
+            }
+        }
+
+        return result;
     }
 
     public async Task<Result<Guid>> CreateOrUpdateEmployeeAsync(CreateOrUpdateEmployeeRequest request, CancellationToken cancellationToken = default)
@@ -555,7 +632,7 @@ public class PharmaSfaService : IPharmaSfaService
             profile.DesignationTitle = string.IsNullOrWhiteSpace(request.DesignationTitle) ? request.DesignationRole.ToString() : request.DesignationTitle.Trim();
             profile.DivisionId = request.DivisionId;
             profile.TerritoryId = request.TerritoryId;
-            profile.PatchId = request.PatchId;
+            profile.PatchId = request.DesignationRole > SfaDesignationRole.MedicalRepresentative ? null : request.PatchId;
             profile.ReportingToUserId = request.ReportingToUserId;
             profile.HeadquarterCity = request.HeadquarterCity?.Trim() ?? string.Empty;
             profile.DailyAllowanceRate = request.DailyAllowanceRate;
@@ -617,7 +694,7 @@ public class PharmaSfaService : IPharmaSfaService
                 DesignationTitle = string.IsNullOrWhiteSpace(request.DesignationTitle) ? request.DesignationRole.ToString() : request.DesignationTitle.Trim(),
                 DivisionId = request.DivisionId,
                 TerritoryId = request.TerritoryId,
-                PatchId = request.PatchId,
+                PatchId = request.DesignationRole > SfaDesignationRole.MedicalRepresentative ? null : request.PatchId,
                 ReportingToUserId = request.ReportingToUserId,
                 HeadquarterCity = request.HeadquarterCity?.Trim() ?? string.Empty,
                 JoiningDate = request.JoiningDate ?? DateTime.UtcNow,
@@ -630,6 +707,31 @@ public class PharmaSfaService : IPharmaSfaService
                 IsActive = request.IsActive
             };
             _context.SfaEmployeeProfiles.Add(profile);
+        }
+
+        // Subordinate MR mapping if provided
+        if (request.AssignedSubordinateUserIds != null && request.AssignedSubordinateUserIds.Count > 0)
+        {
+            var subordinates = await _context.SfaEmployeeProfiles
+                .Where(p => p.TenantId == tenantId && request.AssignedSubordinateUserIds.Contains(p.UserId))
+                .ToListAsync(cancellationToken);
+
+            foreach (var sub in subordinates)
+            {
+                sub.ReportingToUserId = profile.UserId;
+                if (profile.DesignationRole == SfaDesignationRole.AreaBusinessManager)
+                {
+                    sub.ReportingAbmUserId = profile.UserId;
+                }
+                else if (profile.DesignationRole == SfaDesignationRole.RegionalSalesManager)
+                {
+                    sub.ReportingRsmUserId = profile.UserId;
+                }
+                else if (profile.DesignationRole == SfaDesignationRole.ZonalSalesManager)
+                {
+                    sub.ReportingZsmUserId = profile.UserId;
+                }
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);

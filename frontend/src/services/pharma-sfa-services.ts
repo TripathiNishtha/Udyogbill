@@ -88,6 +88,12 @@ export interface SfaEmployeeProfile {
   monthlyExpenseLimit: number;
   monthlyTargetAmount: number;
   isActive: boolean;
+  rollupTargetAmount?: number;
+  isTargetAutoCalculated?: boolean;
+  directReporteesCount?: number;
+  totalSubordinateMrsCount?: number;
+  coveredTerritorySummary?: string;
+  assignedSubordinateUserIds?: string[];
 }
 
 export interface SfaDoctorAllocationHistory {
