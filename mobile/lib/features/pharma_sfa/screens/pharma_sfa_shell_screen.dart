@@ -6,6 +6,9 @@ import '../../../core/database/daos/sfa_dao.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../auth/screens/login_screen.dart';
 import '../services/sfa_gps_service.dart';
+import '../../hrm/screens/hrm_attendance_screen.dart';
+import '../../hrm/screens/hrm_leave_apply_screen.dart';
+import '../../hrm/screens/hrm_expense_claim_screen.dart';
 
 class PharmaSfaShellScreen extends StatefulWidget {
   final bool isSfaOnly;
@@ -215,6 +218,52 @@ class _PharmaSfaShellScreenState extends State<PharmaSfaShellScreen> {
                 ),
               ),
             ),
+          ),
+          // HRM Quick Menu (Attendance, Leave, Expenses)
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.badge_outlined, color: AppTheme.primary, size: 22),
+            tooltip: 'HRM & Expenses',
+            onSelected: (val) {
+              if (val == 'attendance') {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HrmAttendanceScreen()));
+              } else if (val == 'leave') {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HrmLeaveApplyScreen()));
+              } else if (val == 'expense') {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HrmExpenseClaimScreen()));
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'attendance',
+                child: Row(
+                  children: [
+                    Icon(Icons.touch_app_outlined, color: Color(0xFF2563EB), size: 18),
+                    SizedBox(width: 8),
+                    Text('Geo-Attendance Punch'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'leave',
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_outlined, color: Color(0xFFD97706), size: 18),
+                    SizedBox(width: 8),
+                    Text('Apply Leave (LMS)'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'expense',
+                child: Row(
+                  children: [
+                    Icon(Icons.receipt_outlined, color: Color(0xFF7C3AED), size: 18),
+                    SizedBox(width: 8),
+                    Text('DA/TA Expense Claims'),
+                  ],
+                ),
+              ),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Color(0xFF94A3B8), size: 20),

@@ -171,6 +171,18 @@ export function TenantAppSidebar({
       // Dynamically Injected Active Industry Add-ons
       ...activeNavGroups,
       {
+        id: "hrm",
+        title: "HRM & Field Governance",
+        icon: Users2,
+        items: [
+          { label: "HRM & Payroll Portal", href: "/app/hrm", icon: Award },
+          { label: "Employee Directory", href: "/app/hrm?tab=staff", icon: Users2 },
+          { label: "Leave Requests (LMS)", href: "/app/hrm?tab=leaves", icon: FileCheck2 },
+          { label: "Geo-Attendance Log", href: "/app/hrm?tab=attendance", icon: Clock },
+          { label: "CBO Expense Claims", href: "/app/hrm?tab=expenses", icon: Receipt },
+        ]
+      },
+      {
         id: "reports",
         title: "Reports & Intelligence",
         icon: FileSpreadsheet,

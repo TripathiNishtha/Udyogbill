@@ -10,6 +10,9 @@ import '../../features/billing_pos/screens/billing_pos_screen.dart';
 import '../../features/settings/screens/business_settings_screen.dart';
 import '../../features/ai_purchase_scanner/screens/ai_purchase_scanner_screen.dart';
 import '../../features/pharma_sfa/screens/pharma_sfa_shell_screen.dart';
+import '../../features/hrm/screens/hrm_attendance_screen.dart';
+import '../../features/hrm/screens/hrm_leave_apply_screen.dart';
+import '../../features/hrm/screens/hrm_expense_claim_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../constants/app_constants.dart';
@@ -297,6 +300,33 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
                 setState(() => _currentIndex = 4);
               },
             ),
+            const Divider(),
+            // Universal HRM & Attendance Suite
+            ListTile(
+              leading: const Icon(Icons.touch_app_outlined, color: Color(0xFF2563EB)),
+              title: const Text('Geo-Attendance (Punch)', style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HrmAttendanceScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined, color: Color(0xFFD97706)),
+              title: const Text('Apply Leave (LMS)'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HrmLeaveApplyScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_outlined, color: Color(0xFF7C3AED)),
+              title: const Text('DA/TA Expense Claims'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HrmExpenseClaimScreen()));
+              },
+            ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.settings_outlined, color: AppTheme.primary),
               title: const Text('Business & Invoice Settings'),

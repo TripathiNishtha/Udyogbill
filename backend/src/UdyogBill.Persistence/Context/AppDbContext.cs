@@ -15,6 +15,7 @@ using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Entities.CMS;
 using UdyogBill.Domain.Entities.Common;
 using UdyogBill.Domain.Entities.Pharma;
+using UdyogBill.Domain.Entities.HRM;
 using CatalogModule = UdyogBill.Domain.Entities.Catalog.Module;
 
 namespace UdyogBill.Persistence.Context;
@@ -191,6 +192,18 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<SfaUserHierarchy> SfaUserHierarchies => Set<SfaUserHierarchy>();
     public DbSet<SfaSchemeMaster> SfaSchemeMasters => Set<SfaSchemeMaster>();
     public DbSet<SfaSchemeSlab> SfaSchemeSlabs => Set<SfaSchemeSlab>();
+
+    // Universal CBO-Grade HRM & Field Force Suite
+    public DbSet<HrmEmployeeProfile> HrmEmployeeProfiles => Set<HrmEmployeeProfile>();
+    public DbSet<HrmLeaveType> HrmLeaveTypes => Set<HrmLeaveType>();
+    public DbSet<HrmLeaveBalance> HrmLeaveBalances => Set<HrmLeaveBalance>();
+    public DbSet<HrmLeaveApplication> HrmLeaveApplications => Set<HrmLeaveApplication>();
+    public DbSet<HrmAttendanceLog> HrmAttendanceLogs => Set<HrmAttendanceLog>();
+    public DbSet<HrmStationPolicy> HrmStationPolicies => Set<HrmStationPolicy>();
+    public DbSet<HrmExpenseClaim> HrmExpenseClaims => Set<HrmExpenseClaim>();
+    public DbSet<HrmSalaryStructure> HrmSalaryStructures => Set<HrmSalaryStructure>();
+    public DbSet<HrmPayrollCycle> HrmPayrollCycles => Set<HrmPayrollCycle>();
+    public DbSet<HrmPayslip> HrmPayslips => Set<HrmPayslip>();
 
     // Financial Accounting Suite
     public DbSet<Domain.Entities.Accounting.AccountGroup> AccountGroups => Set<Domain.Entities.Accounting.AccountGroup>();

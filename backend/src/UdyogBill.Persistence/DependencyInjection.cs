@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddScoped<IChequeService, ChequeService>();
         services.AddScoped<IBrokerService, BrokerService>();
         services.AddScoped<ISandboxGstService, SandboxGstService>();
+        services.AddScoped<IHrmService, HrmService>();
 
         return services;
     }
