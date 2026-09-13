@@ -3593,6 +3593,7 @@ function TenantInvoicesPageContent() {
                 { key: "F1", desc: "Open this Keyboard Shortcuts Guide" },
                 { key: "F2", desc: "Instant Focus to Item Search / Barcode Bar" },
                 { key: "F3", desc: "Open Quick Add Customer Modal" },
+                { key: "F4 / Alt+P", desc: "Open Quick Add Product / Item Modal" },
                 { key: "F7", desc: "Cycle Payment Mode (Cash → UPI → Card → Bank)" },
                 { key: "F9", desc: "Cycle Billing Mode (B2B ↔ Retail ↔ Thermal)" },
                 { key: "F10 / Ctrl+Enter", desc: "Direct Save & Generate Tax Invoice" },
@@ -3623,7 +3624,7 @@ function TenantInvoicesPageContent() {
       {/* Interactive Onboarding Spotlight Tour for Invoicing */}
       <OnboardingTour
         steps={invoiceTourSteps}
-        isOpen={isTourOpen}
+        isOpen={isTourOpen && !isAddCustomerModalOpen && !isAddProductModalOpen}
         onClose={() => setIsTourOpen(false)}
         tourKey="udyogbill_invoice_tour"
       />
