@@ -28,6 +28,10 @@ public interface IPharmaService
     // Doctor Prescribers & MR Network
     Task<Result<IReadOnlyList<DoctorPrescriberDto>>> GetDoctorPrescribersAsync(string? search, CancellationToken cancellationToken = default);
     Task<Result<DoctorPrescriberDto>> SaveDoctorPrescriberAsync(SaveDoctorPrescriberRequest request, CancellationToken cancellationToken = default);
+    Task<Result<int>> BulkApproveDoctorsAsync(List<Guid>? doctorIds, CancellationToken cancellationToken = default);
+    Task<Result<bool>> RequestDeleteDoctorAsync(Guid doctorId, string reason, CancellationToken cancellationToken = default);
+    Task<Result<int>> ApproveDeleteDoctorAsync(Guid doctorId, CancellationToken cancellationToken = default);
+    Task<Result<bool>> ApproveEditDoctorAsync(Guid doctorId, CancellationToken cancellationToken = default);
 
     // Patient Rapid Repeat Prescription History
     Task<Result<PatientPrescriptionHistoryDto>> GetPatientPrescriptionHistoryAsync(string mobileNumber, CancellationToken cancellationToken = default);

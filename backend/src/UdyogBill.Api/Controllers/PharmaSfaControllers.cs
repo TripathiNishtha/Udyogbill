@@ -394,6 +394,17 @@ public class TenantPharmaSfaController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpGet("dcrs/joint-work-mirror")]
+    [ProducesResponseType(typeof(JointWorkMirrorDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetJointWorkMirrorCalls(
+        [FromQuery] Guid mrUserId,
+        [FromQuery] DateTime date,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sfaService.GetJointWorkMirrorCallsAsync(mrUserId, date, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpGet("sample-stock")]
     [ProducesResponseType(typeof(IReadOnlyList<SfaSampleStockDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMrSampleStock([FromQuery] Guid? mrUserId = null, CancellationToken cancellationToken = default)

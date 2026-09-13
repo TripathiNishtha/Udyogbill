@@ -1890,6 +1890,20 @@ public class PharmaSfaService : IPharmaSfaService
         var tenantId = RequireTenantId();
         var userId = _currentUserContext.UserId ?? Guid.Empty;
 
+        // Verify Monthly Tour Plan (MTP) is approved before allowing DCR call logging
+        var dcrMonth = request.DcrDate.Month;
+        var dcrYear = request.DcrDate.Year;
+        var userTp = await _context.SfaTourPlans
+            .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.MrUserId == userId && p.Month == dcrMonth && p.Year == dcrYear, cancellationToken);
+
+        if (userTp != null && userTp.Status != SfaPlanStatus.Approved)
+        {
+            return Result<Guid>.Failure(
+                $"Daily Call Reporting (DCR) is locked. Your Monthly Tour Plan (MTP) for {request.DcrDate:MMMM yyyy} is currently '{userTp.Status}'. It must be approved by your reporting manager before submitting daily calls.",
+                "MTP_NOT_APPROVED"
+            );
+        }
+
         var countToday = await _context.SfaDailyCallReports.CountAsync(d => d.TenantId == tenantId, cancellationToken);
         var dcrNumber = $"DCR-{DateTime.UtcNow:yyyyMM}-{countToday + 1:D4}";
 
@@ -2048,6 +2062,71 @@ public class PharmaSfaService : IPharmaSfaService
         _context.SfaDailyCallReports.Add(dcr);
         await _context.SaveChangesAsync(cancellationToken);
         return Result<Guid>.Success(dcr.Id);
+    }
+
+    public async Task<Result<JointWorkMirrorDto>> GetJointWorkMirrorCallsAsync(Guid mrUserId, DateTime date, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var mrProfile = await _context.SfaEmployeeProfiles
+            .Include(e => e.User)
+            .FirstOrDefaultAsync(e => e.TenantId == tenantId && e.UserId == mrUserId, cancellationToken);
+
+        var mrName = mrProfile?.User?.FullName ?? "Field Executive";
+
+        var targetDate = date.Date;
+        var nextDate = targetDate.AddDays(1);
+        var dcr = await _context.SfaDailyCallReports
+            .Include(d => d.DoctorVisits)
+            .Include(d => d.ChemistVisits)
+            .FirstOrDefaultAsync(d => d.TenantId == tenantId && d.MrUserId == mrUserId && d.DcrDate >= targetDate && d.DcrDate < nextDate, cancellationToken);
+
+        if (dcr == null)
+        {
+            return Result<JointWorkMirrorDto>.Failure($"No Daily Call Report found for {mrName} on {date:dd MMM yyyy}.", "NO_DCR_FOUND");
+        }
+
+        var docVisits = dcr.DoctorVisits.Select(v => new SubmitDoctorVisitRequest(
+            v.DoctorId,
+            v.VisitTimeUtc,
+            v.Latitude,
+            v.Longitude,
+            v.ProductsDetailedJson,
+            v.SamplesGivenJson,
+            v.GiftsGivenJson,
+            v.DoctorFeedback,
+            v.NextVisitDate,
+            null,
+            true,
+            null,
+            false,
+            null,
+            null
+        )).ToList();
+
+        var chmVisits = dcr.ChemistVisits.Select(c => new SubmitChemistVisitRequest(
+            c.ChemistId,
+            c.VisitTimeUtc,
+            c.Latitude,
+            c.Longitude,
+            c.PobOrderBooked,
+            c.PobOrderAmount,
+            c.Feedback,
+            null,
+            true,
+            null,
+            false,
+            null,
+            null
+        )).ToList();
+
+        return Result<JointWorkMirrorDto>.Success(new JointWorkMirrorDto(
+            mrUserId,
+            mrName,
+            dcr.DcrDate,
+            dcr.RouteOrArea,
+            docVisits,
+            chmVisits
+        ));
     }
 
     public async Task<Result<IReadOnlyList<SfaSampleStockDto>>> GetMrSampleStockAsync(Guid? mrUserId = null, CancellationToken cancellationToken = default)

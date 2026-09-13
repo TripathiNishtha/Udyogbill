@@ -85,6 +85,7 @@ public interface IPharmaSfaService
     // Operations: DCR
     Task<Result<IReadOnlyList<SfaDailyCallReportDto>>> GetDcrsAsync(DateTime? fromDate = null, DateTime? toDate = null, Guid? mrUserId = null, CancellationToken cancellationToken = default);
     Task<Result<Guid>> SubmitDcrAsync(SubmitDcrRequest request, CancellationToken cancellationToken = default);
+    Task<Result<JointWorkMirrorDto>> GetJointWorkMirrorCallsAsync(Guid mrUserId, DateTime date, CancellationToken cancellationToken = default);
 
     // Operations: Sample Bag Ledger
     Task<Result<IReadOnlyList<SfaSampleStockDto>>> GetMrSampleStockAsync(Guid? mrUserId = null, CancellationToken cancellationToken = default);

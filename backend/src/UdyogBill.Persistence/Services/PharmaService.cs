@@ -758,7 +758,11 @@ public class PharmaService : IPharmaService
                 d.IncentivePercent,
                 0m,
                 0m,
-                0m
+                0m,
+                d.ApprovalStatus ?? "Approved",
+                d.IsLocked,
+                d.ChangeRemarks,
+                d.DeleteApprovalLevel
             ))
             .ToListAsync(cancellationToken);
 
@@ -786,6 +790,21 @@ public class PharmaService : IPharmaService
 
             if (doc == null)
                 return Result<DoctorPrescriberDto>.Failure("Doctor not found.", "NOT_FOUND");
+
+            if (doc.IsLocked && !string.Equals(request.ApprovalStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                doc.ApprovalStatus = "PendingEdit";
+                doc.ChangeRemarks = string.IsNullOrWhiteSpace(request.ChangeRemarks) ? "Field representative requested profile modification." : request.ChangeRemarks.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(request.ApprovalStatus))
+            {
+                doc.ApprovalStatus = request.ApprovalStatus.Trim();
+                if (doc.ApprovalStatus == "Approved")
+                {
+                    doc.IsLocked = true;
+                    doc.ChangeRemarks = null;
+                }
+            }
 
             doc.Code = string.IsNullOrWhiteSpace(request.Code) ? doc.Code : request.Code.Trim();
             doc.Name = request.Name.Trim();
@@ -818,7 +837,9 @@ public class PharmaService : IPharmaService
                 Email = request.Email?.Trim(),
                 IncentivePercent = incentive,
                 AssignedMrName = request.AssignedMrName?.Trim(),
-                IsActive = request.IsActive
+                IsActive = request.IsActive,
+                ApprovalStatus = request.ApprovalStatus ?? "Approved",
+                IsLocked = false
             };
             _context.DoctorPrescribers.Add(doc);
         }
@@ -843,8 +864,90 @@ public class PharmaService : IPharmaService
             CommissionPercent: doc.IncentivePercent,
             TotalPrescriptionsValue: 0m,
             TotalCommissionPaid: 0m,
-            BalanceCommission: 0m
+            BalanceCommission: 0m,
+            ApprovalStatus: doc.ApprovalStatus,
+            IsLocked: doc.IsLocked,
+            ChangeRemarks: doc.ChangeRemarks,
+            DeleteApprovalLevel: doc.DeleteApprovalLevel
         ));
+    }
+
+    public async Task<Result<int>> BulkApproveDoctorsAsync(List<Guid>? doctorIds, CancellationToken cancellationToken = default)
+    {
+        var query = _context.DoctorPrescribers.Where(d => d.TenantId == TenantId && !d.IsDeleted);
+        if (doctorIds != null && doctorIds.Count > 0)
+        {
+            query = query.Where(d => doctorIds.Contains(d.Id));
+        }
+        else
+        {
+            query = query.Where(d => d.ApprovalStatus != "Approved" || !d.IsLocked);
+        }
+
+        var docs = await query.ToListAsync(cancellationToken);
+        foreach (var d in docs)
+        {
+            d.ApprovalStatus = "Approved";
+            d.IsLocked = true;
+            d.ChangeRemarks = null;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<int>.Success(docs.Count);
+    }
+
+    public async Task<Result<bool>> RequestDeleteDoctorAsync(Guid doctorId, string reason, CancellationToken cancellationToken = default)
+    {
+        var doc = await _context.DoctorPrescribers.FirstOrDefaultAsync(d => d.Id == doctorId && d.TenantId == TenantId, cancellationToken);
+        if (doc == null)
+            return Result<bool>.Failure("Doctor not found.", "NOT_FOUND");
+
+        doc.ApprovalStatus = "PendingDelete";
+        doc.ChangeRemarks = string.IsNullOrWhiteSpace(reason) ? "Requested doctor removal from territory." : reason.Trim();
+        doc.DeleteApprovalLevel = 0; // Fresh delete request
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<int>> ApproveDeleteDoctorAsync(Guid doctorId, CancellationToken cancellationToken = default)
+    {
+        var doc = await _context.DoctorPrescribers.FirstOrDefaultAsync(d => d.Id == doctorId && d.TenantId == TenantId, cancellationToken);
+        if (doc == null)
+            return Result<int>.Failure("Doctor not found.", "NOT_FOUND");
+
+        doc.DeleteApprovalLevel += 1;
+        if (doc.DeleteApprovalLevel >= 3)
+        {
+            doc.IsDeleted = true;
+            doc.DeletedAtUtc = DateTime.UtcNow;
+            doc.ApprovalStatus = "Deleted";
+        }
+        else if (doc.DeleteApprovalLevel == 1)
+        {
+            doc.ChangeRemarks = $"ABM Approved deletion: {doc.ChangeRemarks}. Awaiting RSM approval.";
+        }
+        else if (doc.DeleteApprovalLevel == 2)
+        {
+            doc.ChangeRemarks = $"ABM & RSM Approved deletion: {doc.ChangeRemarks}. Awaiting Head Office approval.";
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<int>.Success(doc.DeleteApprovalLevel);
+    }
+
+    public async Task<Result<bool>> ApproveEditDoctorAsync(Guid doctorId, CancellationToken cancellationToken = default)
+    {
+        var doc = await _context.DoctorPrescribers.FirstOrDefaultAsync(d => d.Id == doctorId && d.TenantId == TenantId, cancellationToken);
+        if (doc == null)
+            return Result<bool>.Failure("Doctor not found.", "NOT_FOUND");
+
+        doc.ApprovalStatus = "Approved";
+        doc.IsLocked = true;
+        doc.ChangeRemarks = null;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
     }
 
     public async Task<Result<PatientPrescriptionHistoryDto>> GetPatientPrescriptionHistoryAsync(

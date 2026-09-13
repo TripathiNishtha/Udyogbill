@@ -607,6 +607,15 @@ public record SubmitStockistVisitRequest(
     string? OutstandingReviewRemarks
 );
 
+public record JointWorkMirrorDto(
+    Guid MrUserId,
+    string MrName,
+    DateTime Date,
+    string? RouteOrArea,
+    List<SubmitDoctorVisitRequest> DoctorVisits,
+    List<SubmitChemistVisitRequest> ChemistVisits
+);
+
 public record SfaSampleStockDto(
     Guid Id,
     Guid ItemId,

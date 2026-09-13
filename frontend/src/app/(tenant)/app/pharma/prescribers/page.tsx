@@ -26,7 +26,15 @@ import {
   Download,
   UploadCloud,
   FileSpreadsheet,
-  Compass
+  Compass,
+  Lock,
+  Unlock,
+  ShieldAlert,
+  Trash2,
+  ShieldCheck,
+  CheckCheck,
+  AlertTriangle,
+  Store
 } from "lucide-react";
 import {
   pharmaDeepService,
@@ -41,7 +49,8 @@ import {
   SfaEmployeeProfile,
   SfaDoctorAllocationHistory,
   BulkDoctorImportItem,
-  BulkImportResult
+  BulkImportResult,
+  SfaChemist
 } from "@/services/pharma-sfa-services";
 import { useAddons } from "@/context/addon-context";
 
@@ -49,8 +58,9 @@ export default function PharmaPrescribersPage() {
   const { isAddonActive, loading: addonLoading } = useAddons();
   const hasSfa = isAddonActive("pharma-sfa");
 
-  const [activeTab, setActiveTab] = useState<"doctors" | "mrs">("doctors");
+  const [activeTab, setActiveTab] = useState<"doctors" | "chemists" | "mrs">("doctors");
   const [doctors, setDoctors] = useState<DoctorPrescriber[]>([]);
+  const [chemists, setChemists] = useState<SfaChemist[]>([]);
   const [mrs, setMrs] = useState<MedicalRepresentative[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +73,14 @@ export default function PharmaPrescribersPage() {
   // Search and Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPatchFilter, setSelectedPatchFilter] = useState("");
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "approved" | "pending" | "pending_delete">("all");
+
+  // Governance & Approvals
+  const [isApproving, setIsApproving] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isSubmittingDelete, setIsSubmittingDelete] = useState(false);
 
   // Create Doctor Modal & State
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
@@ -115,13 +133,14 @@ export default function PharmaPrescribersPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [dList, mList, divList, patList, beatList, staffList] = await Promise.allSettled([
+      const [dList, mList, divList, patList, beatList, staffList, chemList] = await Promise.allSettled([
         pharmaDeepService.getDoctors(),
         pharmaDeepService.getMedicalReps(),
         pharmaSfaService.getDivisions(),
         pharmaSfaService.getPatches(),
         pharmaSfaService.getBeats(),
-        pharmaSfaService.getEmployees()
+        pharmaSfaService.getEmployees(),
+        pharmaSfaService.getChemists()
       ]);
 
       if (dList.status === "fulfilled") setDoctors(dList.value);
@@ -130,10 +149,86 @@ export default function PharmaPrescribersPage() {
       if (patList.status === "fulfilled") setPatches(patList.value);
       if (beatList.status === "fulfilled") setBeats(beatList.value);
       if (staffList.status === "fulfilled") setFieldStaff(staffList.value);
+      if (chemList.status === "fulfilled") setChemists(chemList.value);
     } catch (err) {
       console.error("Failed to load prescriber data", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    try {
+      setIsApproving(true);
+      setErrorMessage(null);
+      await pharmaDeepService.bulkApproveDoctors();
+      setSuccessMessage("All pending doctors approved and locked successfully!");
+      await loadData();
+    } catch (err: any) {
+      setErrorMessage(err?.response?.data?.message || err.message || "Failed to bulk approve doctors.");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleApproveSingle = async (docId: string, docName: string) => {
+    try {
+      setIsApproving(true);
+      setErrorMessage(null);
+      await pharmaDeepService.bulkApproveDoctors([docId]);
+      setSuccessMessage(`Dr. ${docName} approved and locked successfully!`);
+      await loadData();
+    } catch (err: any) {
+      setErrorMessage(err?.response?.data?.message || err.message || "Failed to approve doctor.");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleOpenDeleteModal = (doc: DoctorPrescriber) => {
+    setDeleteTarget({ id: doc.id, name: doc.name });
+    setDeleteReason("");
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmRequestDelete = async () => {
+    if (!deleteTarget) return;
+    if (!deleteReason.trim() || deleteReason.trim().length < 5) {
+      setErrorMessage("Please enter a clear reason for deletion (at least 5 characters).");
+      return;
+    }
+    try {
+      setIsSubmittingDelete(true);
+      setErrorMessage(null);
+      await pharmaDeepService.requestDeleteDoctor(deleteTarget.id, deleteReason.trim());
+      setIsDeleteModalOpen(false);
+      setDeleteTarget(null);
+      setDeleteReason("");
+      setSuccessMessage(`Deletion request submitted for Dr. ${deleteTarget.name}. It is now in Multi-Level Approval workflow (ABM -> RSM -> SuperAdmin).`);
+      await loadData();
+    } catch (err: any) {
+      setErrorMessage(err?.response?.data?.message || err.message || "Failed to submit deletion request.");
+    } finally {
+      setIsSubmittingDelete(false);
+    }
+  };
+
+  const handleApproveDelete = async (doc: DoctorPrescriber) => {
+    try {
+      setIsApproving(true);
+      setErrorMessage(null);
+      const nextLevel = (doc.deleteApprovalLevel || 0) + 1;
+      await pharmaDeepService.approveDeleteDoctor(doc.id);
+      if (nextLevel >= 3) {
+        setSuccessMessage(`Final Head Office approval complete. Dr. ${doc.name} has been permanently deleted/archived.`);
+      } else {
+        setSuccessMessage(`Level ${nextLevel} deletion approval recorded for Dr. ${doc.name}. Escalated to next management tier.`);
+      }
+      await loadData();
+    } catch (err: any) {
+      setErrorMessage(err?.response?.data?.message || err.message || "Failed to approve deletion.");
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -513,6 +608,10 @@ export default function PharmaPrescribersPage() {
   };
 
   const filteredDoctors = doctors.filter((doc) => {
+    if (approvalFilter === "approved" && !(doc.isLocked || doc.approvalStatus === "Approved")) return false;
+    if (approvalFilter === "pending" && (doc.isLocked || doc.approvalStatus === "Approved")) return false;
+    if (approvalFilter === "pending_delete" && doc.approvalStatus !== "PendingDelete") return false;
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -523,6 +622,22 @@ export default function PharmaPrescribersPage() {
       (doc.mobile && doc.mobile.includes(q))
     );
   });
+
+  const filteredChemists = chemists.filter((c) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      c.shopName.toLowerCase().includes(q) ||
+      c.contactPerson.toLowerCase().includes(q) ||
+      c.code.toLowerCase().includes(q) ||
+      c.mobile.includes(q)
+    );
+  });
+
+  const pendingDoctorsCount = doctors.filter(
+    (d) => d.approvalStatus === "PendingApproval" || (!d.isLocked && d.approvalStatus !== "Approved")
+  ).length;
+  const pendingDeleteCount = doctors.filter((d) => d.approvalStatus === "PendingDelete").length;
 
   if (!addonLoading && !hasSfa) {
     return (
@@ -670,6 +785,89 @@ export default function PharmaPrescribersPage() {
         </div>
       </div>
 
+      {/* Manager Bulk Approval Banner */}
+      {pendingDoctorsCount > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-500/5 backdrop-blur-md">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
+              <ShieldAlert className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>{pendingDoctorsCount} Prescriber Doctor(s) Awaiting Manager Review &amp; Locking</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Action Required</span>
+              </h4>
+              <p className="text-xs text-slate-300">
+                Uploaded doctor lists require reporting manager approval. Once approved, the list becomes strictly locked to prevent unauthorized route alterations.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleBulkApprove}
+            disabled={isApproving}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 flex items-center space-x-1.5 shrink-0 transition disabled:opacity-50 cursor-pointer"
+          >
+            {isApproving ? <Loader2 className="w-4 h-4 animate-spin text-slate-950" /> : <CheckCheck className="w-4 h-4" />}
+            <span>Approve &amp; Lock All ({pendingDoctorsCount})</span>
+          </button>
+        </div>
+      )}
+
+      {/* Search & Filter Bar */}
+      <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <div className="relative w-full lg:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <input
+            type="text"
+            placeholder="Search by name, clinic, mobile, code..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        {/* Approval Filter Pills */}
+        <div className="flex items-center gap-1.5 flex-wrap w-full lg:w-auto">
+          <button
+            onClick={() => setApprovalFilter("all")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              approvalFilter === "all" ? "bg-slate-700 text-white" : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            All Prescribers ({doctors.length})
+          </button>
+          <button
+            onClick={() => setApprovalFilter("approved")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
+              approvalFilter === "approved" ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40" : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Lock className="w-3 h-3 text-emerald-400" />
+            <span>Locked &amp; Final ({doctors.length - pendingDoctorsCount})</span>
+          </button>
+          <button
+            onClick={() => setApprovalFilter("pending")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
+              approvalFilter === "pending" ? "bg-amber-600/30 text-amber-300 border border-amber-500/40" : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Unlock className="w-3 h-3 text-amber-400" />
+            <span>Pending Approval ({pendingDoctorsCount})</span>
+          </button>
+          {pendingDeleteCount > 0 && (
+            <button
+              onClick={() => setApprovalFilter("pending_delete")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
+                approvalFilter === "pending_delete" ? "bg-rose-600/30 text-rose-300 border border-rose-500/40" : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Trash2 className="w-3 h-3 text-rose-400" />
+              <span>Pending Deletion ({pendingDeleteCount})</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex border-b border-slate-800 space-x-6">
         <button
@@ -682,6 +880,18 @@ export default function PharmaPrescribersPage() {
         >
           <Award className="w-4 h-4" />
           <span>Registered Doctors Directory ({filteredDoctors.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("chemists")}
+          className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition ${
+            activeTab === "chemists"
+              ? "border-amber-500 text-amber-400"
+              : "border-transparent text-slate-400 hover:text-white"
+          }`}
+        >
+          <Store className="w-4 h-4" />
+          <span>Chemist Retailers Master ({filteredChemists.length})</span>
         </button>
 
         <button
@@ -712,7 +922,7 @@ export default function PharmaPrescribersPage() {
                   setErrorMessage(null);
                   setIsDocModalOpen(true);
                 }}
-                className="mt-4 inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-lg transition"
+                className="mt-4 inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-lg transition cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Register First Doctor</span>
@@ -728,6 +938,7 @@ export default function PharmaPrescribersPage() {
                     <th className="py-3.5 px-4">Specialization</th>
                     <th className="py-3.5 px-4">Clinic / Hospital</th>
                     <th className="py-3.5 px-4">Assigned MR</th>
+                    <th className="py-3.5 px-4 text-center">Status / Security</th>
                     <th className="py-3.5 px-4 text-center">Commission %</th>
                     <th className="py-3.5 px-4 text-right">Prescriptions (₹)</th>
                     <th className="py-3.5 px-4 text-center">Actions</th>
@@ -767,6 +978,31 @@ export default function PharmaPrescribersPage() {
                           <span>{doc.assignedMrName || "Unassigned"}</span>
                         </div>
                       </td>
+                      <td className="py-3.5 px-4 text-center font-sans">
+                        {doc.approvalStatus === "PendingDelete" ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                              <AlertTriangle className="w-3 h-3 text-rose-400" />
+                              <span>Del Req (L{doc.deleteApprovalLevel || 0}/3)</span>
+                            </span>
+                            {doc.changeRemarks && (
+                              <span className="text-[10px] text-rose-300/80 max-w-[130px] truncate mt-0.5" title={doc.changeRemarks}>
+                                {doc.changeRemarks}
+                              </span>
+                            )}
+                          </div>
+                        ) : doc.isLocked || doc.approvalStatus === "Approved" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <Lock className="w-3 h-3 text-emerald-400" />
+                            <span>Locked &amp; Final</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <Unlock className="w-3 h-3 text-amber-400" />
+                            <span>Pending Approval</span>
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3.5 px-4 text-center font-bold text-amber-400">
                         {doc.commissionPercent}%
                       </td>
@@ -774,26 +1010,147 @@ export default function PharmaPrescribersPage() {
                         ₹{(doc.totalPrescriptionsValue || 0).toLocaleString("en-IN")}
                       </td>
                       <td className="py-3.5 px-4 text-center font-sans">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          {!doc.isLocked && doc.approvalStatus !== "Approved" && doc.approvalStatus !== "PendingDelete" && (
+                            <button
+                              onClick={() => handleApproveSingle(doc.id, doc.name)}
+                              disabled={isApproving}
+                              className="px-2 py-1 rounded bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                              title="Manager 1-Click Approval (Locks Doctor)"
+                            >
+                              <CheckCheck className="w-3 h-3" /> Approve
+                            </button>
+                          )}
+                          {doc.approvalStatus === "PendingDelete" && (
+                            <button
+                              onClick={() => handleApproveDelete(doc)}
+                              disabled={isApproving}
+                              className="px-2 py-1 rounded bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                              title={`Approve Deletion Level ${(doc.deleteApprovalLevel || 0) + 1} of 3`}
+                            >
+                              <ShieldCheck className="w-3 h-3 text-rose-400" />
+                              <span>Pass L{(doc.deleteApprovalLevel || 0) + 1}</span>
+                            </button>
+                          )}
+                          {(doc.isLocked || doc.approvalStatus === "Approved") && doc.approvalStatus !== "PendingDelete" && (
+                            <button
+                              onClick={() => handleOpenDeleteModal(doc)}
+                              className="px-2 py-1 rounded bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer"
+                              title="Request Prescriber Deletion (Requires Remark & Multi-tier approval)"
+                            >
+                              <Trash2 className="w-3 h-3" /> Delete
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setReallocateDoctorId(doc.id);
                               setReallocateDoctorName(doc.name);
                               setIsReallocateModalOpen(true);
                             }}
-                            className="px-2 py-1 rounded bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-[11px] font-semibold transition"
+                            className="px-2 py-1 rounded bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-[11px] font-semibold transition cursor-pointer"
                             title="Reallocate to another MR"
                           >
                             Reallocate
                           </button>
                           <button
                             onClick={() => handleViewHistory(doc.id, doc.name)}
-                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition flex items-center gap-1"
+                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer"
                             title="View Allocation Audit History"
                           >
                             <History className="w-3 h-3" /> History
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chemists Tab */}
+      {activeTab === "chemists" && (
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          {filteredChemists.length === 0 && !loading ? (
+            <div className="text-center py-16 px-4">
+              <Store className="w-12 h-12 mx-auto mb-3 text-slate-600 opacity-60" />
+              <p className="text-base font-semibold text-slate-300">No Chemist Retailers Found</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                Chemists are onboarded per beat by MRs and locked following manager review.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-300">
+                <thead className="bg-slate-950/80 text-xs uppercase text-slate-400 font-semibold border-b border-slate-800 tracking-wider">
+                  <tr>
+                    <th className="py-3.5 px-4">Chemist Code</th>
+                    <th className="py-3.5 px-4">Pharmacy / Shop Name</th>
+                    <th className="py-3.5 px-4">Contact Person</th>
+                    <th className="py-3.5 px-4">Calling Beat</th>
+                    <th className="py-3.5 px-4">Assigned MR</th>
+                    <th className="py-3.5 px-4 text-center">Status / Security</th>
+                    <th className="py-3.5 px-4 text-center">Potential</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                  {filteredChemists.map((chem) => (
+                    <tr key={chem.id} className="hover:bg-slate-800/40 transition">
+                      <td className="py-3.5 px-4 font-bold text-amber-400">{chem.code}</td>
+                      <td className="py-3.5 px-4 font-sans">
+                        <div className="font-bold text-white text-sm">{chem.shopName}</div>
+                        <div className="text-xs text-slate-400 flex items-center space-x-3 mt-0.5">
+                          {chem.drugLicenseNumber && (
+                            <span className="text-slate-400 text-[10px]">
+                              DL: <span className="font-mono text-slate-300">{chem.drugLicenseNumber}</span>
+                            </span>
+                          )}
+                          {chem.gstin && (
+                            <span className="text-slate-500 text-[10px]">GST: {chem.gstin}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-sans text-slate-300">
+                        <div className="font-medium text-slate-200">{chem.contactPerson}</div>
+                        {chem.mobile && (
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                            <Phone className="w-3 h-3 text-slate-500" />
+                            <span>{chem.mobile}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 font-sans text-slate-300">
+                        <div className="font-medium text-indigo-300 flex items-center gap-1">
+                          <Route className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>{chem.beatName || chem.patchName || "General Beat"}</span>
+                        </div>
+                        <div className="text-xs text-slate-500">{chem.city || "Field Zone"}</div>
+                      </td>
+                      <td className="py-3.5 px-4 font-sans">
+                        <div className="font-semibold text-emerald-300 flex items-center gap-1">
+                          <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{chem.assignedMrName || "Unassigned"}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-sans">
+                        {chem.isLocked || chem.approvalStatus === "Approved" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <Lock className="w-3 h-3 text-emerald-400" />
+                            <span>Locked &amp; Final</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <Unlock className="w-3 h-3 text-amber-400" />
+                            <span>Pending Approval</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-sans">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                          {chem.potentialCategory || "Category A"}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -1424,6 +1781,80 @@ export default function PharmaPrescribersPage() {
                 className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Delete Modal (Maker-Checker Multi-Level Governance) */}
+      {isDeleteModalOpen && deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-rose-500/40 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2 text-rose-400 font-bold text-base">
+                <ShieldAlert className="w-5 h-5 text-rose-400" />
+                <span>Submit Prescriber Deletion Request</span>
+              </div>
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeleteTarget(null);
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-rose-950/30 border border-rose-500/30 rounded-xl text-xs text-rose-200/90 space-y-1.5">
+              <p className="font-bold flex items-center gap-1.5 text-rose-300">
+                <Lock className="w-3.5 h-3.5" /> Doctor is Locked &amp; Verified
+              </p>
+              <p>
+                To prevent accidental deletion or unauthorized route tampering, Dr.{" "}
+                <span className="font-bold text-white">{deleteTarget.name}</span> cannot be deleted directly.
+              </p>
+              <p className="text-slate-400">
+                This deletion request requires a mandatory business justification and must be approved through a 3-tier hierarchy:{" "}
+                <span className="text-indigo-300 font-semibold">1. ABM (Area Manager)</span> ➔{" "}
+                <span className="text-indigo-300 font-semibold">2. RSM (Regional Manager)</span> ➔{" "}
+                <span className="text-emerald-400 font-semibold">3. SuperAdmin / Head Office</span>.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">
+                Mandatory Reason / Remarks for Deletion <span className="text-rose-400">*</span>
+              </label>
+              <textarea
+                rows={3}
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g., Doctor relocated to another state, closed private practice, duplicate entry with DMC-..."
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeleteTarget(null);
+                }}
+                className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRequestDelete}
+                disabled={isSubmittingDelete || !deleteReason.trim()}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-600/20 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isSubmittingDelete ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>Submit for 3-Tier Approval</span>
               </button>
             </div>
           </div>

@@ -779,12 +779,36 @@ export default function FieldForceManagementPage() {
 
                   <div>
                     <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      {designationRole > 1 ? "Assigned Territory / Cluster" : "Assigned Territory / Area"}
+                      {designationRole > 1 ? "Assigned Territory / Cluster" : "Assigned Territory / Area *"}
                     </label>
                     <select
                       value={territoryId}
-                      onChange={(e) => setTerritoryId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500"
+                      onChange={(e) => {
+                        const newTerId = e.target.value;
+                        setTerritoryId(newTerId);
+                        if (newTerId) {
+                          const ter = territories.find((t) => t.id === newTerId);
+                          if (ter && (!hqCity || hqCity.trim() === "")) {
+                            setHqCity(ter.city || ter.name);
+                          }
+                          const matching = patches.filter(
+                            (p) =>
+                              p.areaTerritoryId === newTerId ||
+                              (ter &&
+                                p.headquarterCity &&
+                                (ter.city === p.headquarterCity ||
+                                  ter.name.toLowerCase().includes(p.headquarterCity.toLowerCase())))
+                          );
+                          if (matching.length > 0) {
+                            setPatchId(matching[0].id);
+                          } else {
+                            setPatchId("");
+                          }
+                        } else {
+                          setPatchId("");
+                        }
+                      }}
+                      className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 font-medium"
                     >
                       <option value="">Select Territory</option>
                       {territories.map((t) => (
@@ -795,16 +819,64 @@ export default function FieldForceManagementPage() {
 
                   {designationRole === 1 ? (
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">Primary Calling Patch</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-semibold text-gray-700">Primary Calling Patch / Beat</label>
+                        {territoryId && (
+                          <span className="text-[10px] text-emerald-600 font-medium">
+                            {patches.filter(
+                              (p) =>
+                                p.areaTerritoryId === territoryId ||
+                                (territories.find((t) => t.id === territoryId) &&
+                                  p.headquarterCity &&
+                                  (territories.find((t) => t.id === territoryId)?.city === p.headquarterCity ||
+                                    territories
+                                      .find((t) => t.id === territoryId)
+                                      ?.name.toLowerCase()
+                                      .includes(p.headquarterCity.toLowerCase())))
+                            ).length}{" "}
+                            in this Area
+                          </span>
+                        )}
+                      </div>
                       <select
                         value={patchId}
                         onChange={(e) => setPatchId(e.target.value)}
                         className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500"
                       >
-                        <option value="">Select Calling Patch</option>
-                        {patches.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                        ))}
+                        {!territoryId ? (
+                          <option value="">Select Territory / Area first</option>
+                        ) : patches.filter(
+                            (p) =>
+                              p.areaTerritoryId === territoryId ||
+                              (territories.find((t) => t.id === territoryId) &&
+                                p.headquarterCity &&
+                                (territories.find((t) => t.id === territoryId)?.city === p.headquarterCity ||
+                                  territories
+                                    .find((t) => t.id === territoryId)
+                                    ?.name.toLowerCase()
+                                    .includes(p.headquarterCity.toLowerCase())))
+                          ).length === 0 ? (
+                          <option value="">No calling patches created for this Area yet</option>
+                        ) : (
+                          <>
+                            <option value="">Select Calling Patch</option>
+                            {patches
+                              .filter(
+                                (p) =>
+                                  p.areaTerritoryId === territoryId ||
+                                  (territories.find((t) => t.id === territoryId) &&
+                                    p.headquarterCity &&
+                                    (territories.find((t) => t.id === territoryId)?.city === p.headquarterCity ||
+                                      territories
+                                        .find((t) => t.id === territoryId)
+                                        ?.name.toLowerCase()
+                                        .includes(p.headquarterCity.toLowerCase())))
+                              )
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                              ))}
+                          </>
+                        )}
                       </select>
                     </div>
                   ) : (

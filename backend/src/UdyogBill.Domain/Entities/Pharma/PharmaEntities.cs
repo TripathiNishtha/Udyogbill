@@ -47,6 +47,10 @@ public class DoctorPrescriber : BaseTenantAuditableEntity
     public decimal IncentivePercent { get; set; }
     public string? AssignedMrName { get; set; }
     public bool IsActive { get; set; } = true;
+    public string ApprovalStatus { get; set; } = "Approved"; // "Draft", "PendingApproval", "Approved", "Rejected", "PendingEdit", "PendingDelete"
+    public bool IsLocked { get; set; } = false;
+    public string? ChangeRemarks { get; set; }
+    public int DeleteApprovalLevel { get; set; } = 0; // 0=None, 1=ABM Approved, 2=RSM Approved, 3=HO Approved
 }
 
 /// <summary>

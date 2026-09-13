@@ -18,6 +18,10 @@ export interface DoctorPrescriber {
   totalCommissionPaid: number;
   balanceCommission: number;
   isActive?: boolean;
+  approvalStatus?: "Draft" | "PendingApproval" | "Approved" | "Rejected" | "PendingEdit" | "PendingDelete";
+  isLocked?: boolean;
+  changeRemarks?: string;
+  deleteApprovalLevel?: number;
 }
 
 export interface MedicalRepresentative {
@@ -273,6 +277,26 @@ class PharmaDeepService {
       totalCommissionPaid: data?.totalCommissionPaid ?? 0,
       balanceCommission: data?.balanceCommission ?? 0,
     };
+  }
+
+  public async bulkApproveDoctors(doctorIds?: string[]): Promise<any> {
+    const res = await apiClient.post("/pharma/doctors/bulk-approve", { doctorIds });
+    return res.data?.data ?? res.data;
+  }
+
+  public async requestDeleteDoctor(doctorId: string, reason: string): Promise<any> {
+    const res = await apiClient.post(`/pharma/doctors/${doctorId}/request-delete`, { reason });
+    return res.data?.data ?? res.data;
+  }
+
+  public async approveDeleteDoctor(doctorId: string): Promise<any> {
+    const res = await apiClient.post(`/pharma/doctors/${doctorId}/approve-delete`);
+    return res.data?.data ?? res.data;
+  }
+
+  public async approveEditDoctor(doctorId: string): Promise<any> {
+    const res = await apiClient.post(`/pharma/doctors/${doctorId}/approve-edit`);
+    return res.data?.data ?? res.data;
   }
 
   public async getMedicalReps(search?: string): Promise<MedicalRepresentative[]> {

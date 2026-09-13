@@ -175,6 +175,10 @@ export interface SfaChemist {
   preferredVisitDay?: string;
   potentialCategory: string;
   isActive: boolean;
+  approvalStatus?: "Approved" | "PendingApproval" | "PendingEdit" | "PendingDelete";
+  isLocked?: boolean;
+  changeRemarks?: string;
+  deleteApprovalLevel?: number;
 }
 
 export interface BulkDoctorImportItem {
@@ -235,6 +239,33 @@ export interface BulkImportResult {
   skippedCount: number;
   errors: string[];
   warnings: string[];
+}
+
+export interface JointWorkMirrorDto {
+  mrUserId: string;
+  mrName: string;
+  date: string;
+  routeOrArea?: string;
+  doctorVisits: Array<{
+    doctorId: string;
+    visitTimeUtc: string;
+    latitude?: number;
+    longitude?: number;
+    doctorFeedback?: string;
+    nextVisitDate?: string;
+    productsDetailedJson?: string;
+    samplesGivenJson?: string;
+    giftsGivenJson?: string;
+  }>;
+  chemistVisits: Array<{
+    chemistId: string;
+    visitTimeUtc: string;
+    latitude?: number;
+    longitude?: number;
+    pobOrderBooked: boolean;
+    pobOrderAmount: number;
+    feedback?: string;
+  }>;
 }
 
 export interface SfaStockistAllocation {
@@ -779,6 +810,13 @@ export const pharmaSfaService = {
 
   async submitDcr(data: any): Promise<string> {
     const res = await apiClient.post<string>("/tenant/sfa/dcrs", data);
+    return res.data;
+  },
+
+  async getJointWorkMirrorCalls(mrUserId: string, date: string): Promise<JointWorkMirrorDto> {
+    const res = await apiClient.get<JointWorkMirrorDto>("/tenant/sfa/dcrs/joint-work-mirror", {
+      params: { mrUserId, date }
+    });
     return res.data;
   },
 

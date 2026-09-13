@@ -192,6 +192,10 @@ public class SfaDoctor : BaseTenantAuditableEntity
     public DateTime? DateOfBirth { get; set; }
     public DateTime? WeddingAnniversary { get; set; }
     public bool IsActive { get; set; } = true;
+    public string ApprovalStatus { get; set; } = "Approved"; // "Draft", "PendingApproval", "Approved", "Rejected", "PendingEdit", "PendingDelete"
+    public bool IsLocked { get; set; } = false;
+    public string? ChangeRemarks { get; set; }
+    public int DeleteApprovalLevel { get; set; } = 0; // 0=None, 1=ABM Approved, 2=RSM Approved, 3=HO Approved
 
     public ICollection<SfaDoctorAllocationHistory> AllocationHistories { get; set; } = new List<SfaDoctorAllocationHistory>();
 }
@@ -232,6 +236,10 @@ public class SfaChemist : BaseTenantAuditableEntity
     public string? PreferredVisitDay { get; set; }
     public string PotentialCategory { get; set; } = "B"; // A, B, C
     public bool IsActive { get; set; } = true;
+    public string ApprovalStatus { get; set; } = "Approved"; // "Draft", "PendingApproval", "Approved", "Rejected", "PendingEdit", "PendingDelete"
+    public bool IsLocked { get; set; } = false;
+    public string? ChangeRemarks { get; set; }
+    public int DeleteApprovalLevel { get; set; } = 0; // 0=None, 1=ABM Approved, 2=RSM Approved, 3=HO Approved
 }
 
 /// <summary>

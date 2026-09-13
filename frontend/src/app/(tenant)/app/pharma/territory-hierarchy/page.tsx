@@ -16,7 +16,10 @@ import {
   ArrowLeft,
   Edit2,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  ShieldCheck,
+  Lock,
+  Unlock
 } from "lucide-react";
 import {
   pharmaSfaService,
@@ -45,6 +48,27 @@ export default function TerritoryHierarchyPage() {
   const [isBeatModalOpen, setIsBeatModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Admin Master Security Toggle for Beat Creation
+  const [allowMrEditBeats, setAllowMrEditBeats] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sfa_allow_mr_beats") === "true";
+    }
+    return false;
+  });
+
+  const toggleAllowMrEditBeats = (enabled: boolean) => {
+    setAllowMrEditBeats(enabled);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sfa_allow_mr_beats", enabled ? "true" : "false");
+    }
+    setFeedbackMsg({
+      type: "success",
+      text: enabled
+        ? "Beat Policy: Medical Representatives are now permitted to create and edit calling beats."
+        : "Beat Policy: Beat creation and editing is now locked to Super Admin only to prevent route misuse."
+    });
+  };
 
   // Form states
   const [divCode, setDivCode] = useState("");
@@ -325,6 +349,39 @@ export default function TerritoryHierarchyPage() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Admin Beat Creation & Editing Control Banner */}
+      <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className={`p-2 rounded-lg ${allowMrEditBeats ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+            {allowMrEditBeats ? <Unlock className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+          </div>
+          <div>
+            <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+              MR Beat Creation & Editing Security Policy
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${allowMrEditBeats ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+                {allowMrEditBeats ? "MR Self-Service Active" : "Locked to Admin Only"}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500">
+              {allowMrEditBeats
+                ? "Medical Representatives have permission to add and edit calling beats."
+                : "MR route tampering disabled. Only Super Admin and Head Office can create/modify calling beats."}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => toggleAllowMrEditBeats(!allowMrEditBeats)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border flex items-center gap-1.5 whitespace-nowrap ${
+            allowMrEditBeats
+              ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
+              : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
+          }`}
+        >
+          {allowMrEditBeats ? "🔒 Lock Beat Editing (Admin Only)" : "🔓 Allow MRs to Edit Beats"}
+        </button>
       </div>
 
       {/* Tabs */}

@@ -206,7 +206,11 @@ public record DoctorPrescriberDto(
     decimal CommissionPercent = 0,
     decimal TotalPrescriptionsValue = 0,
     decimal TotalCommissionPaid = 0,
-    decimal BalanceCommission = 0
+    decimal BalanceCommission = 0,
+    string ApprovalStatus = "Approved",
+    bool IsLocked = false,
+    string? ChangeRemarks = null,
+    int DeleteApprovalLevel = 0
 );
 
 public record SaveDoctorPrescriberRequest(
@@ -224,7 +228,9 @@ public record SaveDoctorPrescriberRequest(
     decimal? IncentivePercent,
     string? AssignedMrName,
     bool IsActive = true,
-    decimal? CommissionPercent = null
+    decimal? CommissionPercent = null,
+    string? ApprovalStatus = null,
+    string? ChangeRemarks = null
 );
 
 // --- Patient Repeat Prescription Lookup DTO ---

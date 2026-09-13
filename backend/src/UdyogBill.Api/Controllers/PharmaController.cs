@@ -162,6 +162,34 @@ public class PharmaController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPost("doctors/bulk-approve")]
+    public async Task<ActionResult<int>> BulkApproveDoctors([FromBody] List<Guid>? doctorIds, CancellationToken cancellationToken = default)
+    {
+        var result = await _pharmaService.BulkApproveDoctorsAsync(doctorIds, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("doctors/{id:guid}/request-delete")]
+    public async Task<ActionResult<bool>> RequestDeleteDoctor(Guid id, [FromBody] RequestDeleteDto req, CancellationToken cancellationToken = default)
+    {
+        var result = await _pharmaService.RequestDeleteDoctorAsync(id, req?.Reason ?? "Requested deletion", cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("doctors/{id:guid}/approve-delete")]
+    public async Task<ActionResult<int>> ApproveDeleteDoctor(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _pharmaService.ApproveDeleteDoctorAsync(id, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("doctors/{id:guid}/approve-edit")]
+    public async Task<ActionResult<bool>> ApproveEditDoctor(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _pharmaService.ApproveEditDoctorAsync(id, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpGet("patient-repeat/{mobile}")]
     public async Task<ActionResult<PatientPrescriptionHistoryDto>> GetPatientRepeatHistory(
         string mobile,
@@ -173,3 +201,5 @@ public class PharmaController : BaseApiController
 
     #endregion
 }
+
+public record RequestDeleteDto(string Reason);

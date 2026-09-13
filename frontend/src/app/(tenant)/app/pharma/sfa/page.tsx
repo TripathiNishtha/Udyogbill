@@ -32,7 +32,8 @@ import {
   SfaTourPlan,
   SeatQuotaStatus,
   SfaGeofenceConfig,
-  SfaDoctor
+  SfaDoctor,
+  SfaEmployeeProfile
 } from "@/services/pharma-sfa-services";
 
 export default function PharmaSfaDashboardPage() {
@@ -69,6 +70,13 @@ export default function PharmaSfaDashboardPage() {
   const [outOfRangeReason, setOutOfRangeReason] = useState("");
   const [submittingDcr, setSubmittingDcr] = useState(false);
 
+  // Joint Work Reporting State
+  const [employeesList, setEmployeesList] = useState<SfaEmployeeProfile[]>([]);
+  const [isJointWork, setIsJointWork] = useState(false);
+  const [selectedJointMrId, setSelectedJointMrId] = useState("");
+  const [mirroring, setMirroring] = useState(false);
+  const [mirrorNotice, setMirrorNotice] = useState<string | null>(null);
+
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371000;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -84,12 +92,13 @@ export default function PharmaSfaDashboardPage() {
     try {
       setLoading(true);
       const now = new Date();
-      const [dcrList, tpList, quotaRes, geoRes, docRes] = await Promise.allSettled([
+      const [dcrList, tpList, quotaRes, geoRes, docRes, empRes] = await Promise.allSettled([
         pharmaSfaService.getDcrs(),
         pharmaSfaService.getTourPlans(now.getMonth() + 1, now.getFullYear()),
         pharmaSfaService.getQuotaStatus(),
         pharmaSfaService.getGeofenceConfig(),
-        pharmaSfaService.getDoctors()
+        pharmaSfaService.getDoctors(),
+        pharmaSfaService.getEmployees()
       ]);
 
       if (dcrList.status === "fulfilled") setDcrs(dcrList.value);
@@ -100,6 +109,7 @@ export default function PharmaSfaDashboardPage() {
         setGeofenceForm(geoRes.value);
       }
       if (docRes.status === "fulfilled") setDoctorsList(docRes.value);
+      if (empRes.status === "fulfilled") setEmployeesList(empRes.value);
     } catch (err) {
       console.error("Failed to load SFA dashboard data", err);
     } finally {
@@ -204,6 +214,7 @@ export default function PharmaSfaDashboardPage() {
         attendanceStatus: "Present",
         workType: "FieldWork",
         routeOrArea: doc.patchName || doc.city || "Field Territory",
+        accompaniedByUserId: isJointWork && selectedJointMrId ? selectedJointMrId : undefined,
         startLatitude: currentGps?.lat,
         startLongitude: currentGps?.lon,
         doctorVisits: [
@@ -224,6 +235,9 @@ export default function PharmaSfaDashboardPage() {
       setDoctorFeedback("");
       setOutOfRangeReason("");
       setCurrentGps(null);
+      setIsJointWork(false);
+      setSelectedJointMrId("");
+      setMirrorNotice(null);
       setGeofenceToast("Doctor Visit Call recorded & verified successfully!");
       setTimeout(() => setGeofenceToast(null), 4000);
       loadData();
@@ -231,6 +245,34 @@ export default function PharmaSfaDashboardPage() {
       alert(err.response?.data?.message || err.message || "Failed to submit DCR");
     } finally {
       setSubmittingDcr(false);
+    }
+  };
+
+  const handleMirrorMrCalls = async () => {
+    if (!selectedJointMrId) {
+      alert("Please select the Field Executive (MR) you worked jointly with.");
+      return;
+    }
+    try {
+      setMirroring(true);
+      setMirrorNotice(null);
+      const mirrorData = await pharmaSfaService.getJointWorkMirrorCalls(selectedJointMrId, new Date().toISOString());
+      if (mirrorData.doctorVisits && mirrorData.doctorVisits.length > 0) {
+        const firstDoc = mirrorData.doctorVisits[0];
+        setSelectedDoctorId(firstDoc.doctorId);
+        if (firstDoc.doctorFeedback) {
+          setDoctorFeedback(`[Joint Detailing with ${mirrorData.mrName}] ${firstDoc.doctorFeedback}`);
+        } else {
+          setDoctorFeedback(`[Joint Work with ${mirrorData.mrName}] Products detailed jointly.`);
+        }
+        setMirrorNotice(`✓ Auto-mirrored call from ${mirrorData.mrName} (${mirrorData.doctorVisits.length} doctor visit(s) logged today).`);
+      } else {
+        setMirrorNotice(`Notice: ${mirrorData.mrName} has not submitted any calls for today yet.`);
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || "Could not mirror MR calls.");
+    } finally {
+      setMirroring(false);
     }
   };
 
@@ -796,6 +838,68 @@ export default function PharmaSfaDashboardPage() {
                   </div>
                 ) : (
                   <div className="text-xs text-gray-500 italic">Click Refresh to capture your GPS coordinates.</div>
+                )}
+              </div>
+
+              {/* Joint Work & Auto-Mirroring Section */}
+              <div className="bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-indigo-200/80 rounded-xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-indigo-600" />
+                    <label htmlFor="jointWorkToggle" className="text-xs font-bold text-gray-800 cursor-pointer">
+                      Joint Working Call
+                    </label>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="jointWorkToggle"
+                    checked={isJointWork}
+                    onChange={(e) => {
+                      setIsJointWork(e.target.checked);
+                      if (!e.target.checked) {
+                        setSelectedJointMrId("");
+                        setMirrorNotice(null);
+                      }
+                    }}
+                    className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </div>
+
+                {isJointWork && (
+                  <div className="space-y-2 pt-1 animate-in fade-in">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <select
+                        value={selectedJointMrId}
+                        onChange={(e) => setSelectedJointMrId(e.target.value)}
+                        className="flex-1 border border-indigo-200 rounded-lg p-2 text-xs bg-white text-gray-800 focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">-- Select Field Colleague / MR --</option>
+                        {employeesList.map((emp) => (
+                          <option key={emp.userId} value={emp.userId}>
+                            {emp.fullName} ({emp.designationTitle || "MR"}) - {emp.employeeCode}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={handleMirrorMrCalls}
+                        disabled={mirroring || !selectedJointMrId}
+                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shrink-0 transition cursor-pointer"
+                        title="Auto-mirror all doctor detailing calls submitted by the MR for today"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{mirroring ? "Mirroring..." : "Auto-Mirror MR Calls"}</span>
+                      </button>
+                    </div>
+
+                    {mirrorNotice && (
+                      <div className="p-2 bg-indigo-100 border border-indigo-300 text-indigo-900 rounded-lg text-[11px] flex items-center gap-1.5 font-medium">
+                        <CheckCircle className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>{mirrorNotice}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
