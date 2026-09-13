@@ -62,6 +62,93 @@ interface NavGroup {
   }[];
 }
 
+const getGroupConfig = (id: string) => {
+  switch (id) {
+    case "overview":
+      return {
+        badgeBg: "bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800/90 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700",
+        iconColor: "text-emerald-600 dark:text-emerald-400",
+        iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+        treeBorder: "border-emerald-300/80 dark:border-emerald-700/60",
+        activeRing: "ring-emerald-500/40",
+        countBg: "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200",
+      };
+    case "sales":
+      return {
+        badgeBg: "bg-emerald-50 hover:bg-emerald-100/80 dark:bg-emerald-950/50 dark:hover:bg-emerald-950/70 text-emerald-950 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800/80",
+        iconColor: "text-emerald-600 dark:text-emerald-400",
+        iconBg: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
+        treeBorder: "border-emerald-300 dark:border-emerald-700/60",
+        activeRing: "ring-emerald-500/50",
+        countBg: "bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200",
+      };
+    case "banking":
+      return {
+        badgeBg: "bg-sky-50 hover:bg-sky-100/80 dark:bg-sky-950/50 dark:hover:bg-sky-950/70 text-sky-950 dark:text-sky-200 border-sky-300 dark:border-sky-800/80",
+        iconColor: "text-sky-600 dark:text-sky-400",
+        iconBg: "bg-sky-500/20 text-sky-700 dark:text-sky-300",
+        treeBorder: "border-sky-300 dark:border-sky-700/60",
+        activeRing: "ring-sky-500/50",
+        countBg: "bg-sky-200/80 dark:bg-sky-900 text-sky-900 dark:text-sky-200",
+      };
+    case "purchase":
+      return {
+        badgeBg: "bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/50 dark:hover:bg-amber-950/70 text-amber-950 dark:text-amber-200 border-amber-300 dark:border-amber-800/80",
+        iconColor: "text-amber-600 dark:text-amber-400",
+        iconBg: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+        treeBorder: "border-amber-300 dark:border-amber-700/60",
+        activeRing: "ring-amber-500/50",
+        countBg: "bg-amber-200/80 dark:bg-amber-900 text-amber-900 dark:text-amber-200",
+      };
+    case "inventory":
+      return {
+        badgeBg: "bg-purple-50 hover:bg-purple-100/80 dark:bg-purple-950/50 dark:hover:bg-purple-950/70 text-purple-950 dark:text-purple-200 border-purple-300 dark:border-purple-800/80",
+        iconColor: "text-purple-600 dark:text-purple-400",
+        iconBg: "bg-purple-500/20 text-purple-700 dark:text-purple-300",
+        treeBorder: "border-purple-300 dark:border-purple-700/60",
+        activeRing: "ring-purple-500/50",
+        countBg: "bg-purple-200/80 dark:bg-purple-900 text-purple-900 dark:text-purple-200",
+      };
+    case "pharma":
+    case "pharma-sfa":
+      return {
+        badgeBg: "bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/50 dark:hover:bg-rose-950/70 text-rose-950 dark:text-rose-200 border-rose-300 dark:border-rose-800/80",
+        iconColor: "text-rose-600 dark:text-rose-400",
+        iconBg: "bg-rose-500/20 text-rose-700 dark:text-rose-300",
+        treeBorder: "border-rose-300 dark:border-rose-700/60",
+        activeRing: "ring-rose-500/50",
+        countBg: "bg-rose-200/80 dark:bg-rose-900 text-rose-900 dark:text-rose-200",
+      };
+    case "reports":
+      return {
+        badgeBg: "bg-blue-50 hover:bg-blue-100/80 dark:bg-blue-950/50 dark:hover:bg-blue-950/70 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-blue-800/80",
+        iconColor: "text-blue-600 dark:text-blue-400",
+        iconBg: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
+        treeBorder: "border-blue-300 dark:border-blue-700/60",
+        activeRing: "ring-blue-500/50",
+        countBg: "bg-blue-200/80 dark:bg-blue-900 text-blue-900 dark:text-blue-200",
+      };
+    case "settings":
+      return {
+        badgeBg: "bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800/70 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700",
+        iconColor: "text-slate-600 dark:text-slate-400",
+        iconBg: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
+        treeBorder: "border-slate-300 dark:border-slate-700",
+        activeRing: "ring-slate-400/50",
+        countBg: "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200",
+      };
+    default:
+      return {
+        badgeBg: "bg-indigo-50 hover:bg-indigo-100/80 dark:bg-indigo-950/50 dark:hover:bg-indigo-950/70 text-indigo-950 dark:text-indigo-200 border-indigo-300 dark:border-indigo-800/80",
+        iconColor: "text-indigo-600 dark:text-indigo-400",
+        iconBg: "bg-indigo-500/20 text-indigo-700 dark:text-indigo-300",
+        treeBorder: "border-indigo-300 dark:border-indigo-700/60",
+        activeRing: "ring-indigo-500/50",
+        countBg: "bg-indigo-200/80 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-200",
+      };
+  }
+};
+
 export function TenantAppSidebar({
   isOpenMobile = false,
   onCloseMobile,
@@ -303,56 +390,58 @@ export function TenantAppSidebar({
         </div>
 
         {/* Navigation Groups (Categorized & Scrollable) */}
-        <nav className="flex-1 overflow-y-auto min-h-0 p-2.5 space-y-2 bg-sidebar">
+        <nav className="flex-1 overflow-y-auto min-h-0 p-2.5 space-y-3 bg-sidebar">
           {filteredGroups.map((group) => {
             const isCollapsed = Boolean(collapsedGroups[group.id]) && !searchQuery;
             const hasActiveItem = group.items.some(
               (item) => pathname === item.href || pathname?.startsWith(item.href + "/")
             );
+            const cfg = getGroupConfig(group.id);
+            const GroupIcon = group.icon || LayoutDashboard;
 
             return (
-              <div key={group.id} className="space-y-0.5">
-                {/* Group Header Button */}
+              <div key={group.id} className="space-y-1">
+                {/* Group Header Banner Button */}
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.id)}
-                  className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold tracking-wider text-muted-foreground hover:text-sidebar-foreground transition-colors group uppercase"
+                  aria-expanded={!isCollapsed}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left transition-all duration-150 cursor-pointer group ${
+                    cfg.badgeBg
+                  } ${
+                    hasActiveItem ? `ring-2 ${cfg.activeRing} font-extrabold shadow-2xs` : ""
+                  }`}
                 >
-                  <div className="flex items-center space-x-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      group.id === "sales" || group.id === "overview" ? "bg-emerald-500" :
-                      group.id === "purchase" ? "bg-amber-500" :
-                      group.id === "inventory" ? "bg-purple-500" :
-                      group.id === "pharma" ? "bg-rose-500" :
-                      group.id === "reports" ? "bg-blue-500" : "bg-slate-400"
-                    }`} />
-                    <span className={hasActiveItem ? "text-primary font-black" : "text-muted-foreground group-hover:text-sidebar-foreground"}>
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <span className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${cfg.iconBg}`}>
+                      <GroupIcon className="w-3.5 h-3.5 shrink-0" />
+                    </span>
+                    <span className="text-[11px] font-bold tracking-wider uppercase truncate">
                       {group.title}
                     </span>
                   </div>
-                  {!searchQuery && (
-                    <span className="text-muted-foreground/70 group-hover:text-sidebar-foreground">
-                      {isCollapsed ? (
-                        <ChevronRight className="w-3 h-3" />
-                      ) : (
-                        <ChevronDown className="w-3 h-3" />
-                      )}
+                  <div className="flex items-center space-x-1.5 shrink-0 ml-1">
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${cfg.countBg}`}>
+                      {group.items.length}
                     </span>
-                  )}
+                    {!searchQuery && (
+                      <span className="text-current/60 group-hover:text-current transition-transform">
+                        {isCollapsed ? (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </button>
 
-                {/* Group Items */}
+                {/* Group Items with Tree Guide Line */}
                 {!isCollapsed && (
-                  <div className="space-y-0.5">
+                  <div className={`ml-3.5 pl-2.5 my-1 border-l-2 ${cfg.treeBorder} space-y-0.5`}>
                     {group.items.map((item) => {
                       const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
                       const Icon = item.icon;
-                      const iconColor = 
-                        group.id === "sales" || group.id === "overview" ? "text-emerald-600 dark:text-emerald-400" :
-                        group.id === "purchase" ? "text-amber-600 dark:text-amber-400" :
-                        group.id === "inventory" ? "text-purple-600 dark:text-purple-400" :
-                        group.id === "pharma" ? "text-rose-600 dark:text-rose-400" :
-                        group.id === "reports" ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400";
 
                       return (
                         <Link
@@ -362,10 +451,10 @@ export function TenantAppSidebar({
                           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium tracking-normal transition-all ${
                             isActive
                               ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                              : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-hover"
+                              : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/70"
                           }`}
                         >
-                          <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-primary-foreground" : iconColor}`} />
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-primary-foreground" : cfg.iconColor}`} />
                           <span className="truncate flex-1">{item.label}</span>
                         </Link>
                       );
