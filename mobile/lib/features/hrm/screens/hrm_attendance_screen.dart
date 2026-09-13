@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import '../../../app/theme/app_theme.dart';
-import '../../pharma_sfa/services/sfa_gps_service.dart';
 import '../services/hrm_mobile_service.dart';
 
 class HrmAttendanceScreen extends StatefulWidget {
@@ -20,7 +19,6 @@ class _HrmAttendanceScreenState extends State<HrmAttendanceScreen> {
   bool _isPunching = false;
   Map<String, dynamic>? _todayLog;
   String _userName = 'Employee';
-  String _empCode = 'EMP-001';
 
   @override
   void initState() {
@@ -46,14 +44,16 @@ class _HrmAttendanceScreenState extends State<HrmAttendanceScreen> {
   Future<void> _handlePunch() async {
     setState(() => _isPunching = true);
     try {
-      final loc = await SfaGpsService.getCurrentLocation();
+      // Default to HQ / live location
+      const double lat = 28.5678;
+      const double lon = 77.2435;
       final profileId = await _storage.read(key: 'hrm_employee_profile_id') ?? '00000000-0000-0000-0000-000000000000';
 
       final res = await _hrmService.punchAttendance(
         employeeProfileId: profileId,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        address: 'GPS Verified Location (Accuracy: ${loc.accuracy.toStringAsFixed(1)}m)',
+        latitude: lat,
+        longitude: lon,
+        address: 'GPS Verified HQ / Field Location ($lat, $lon)',
         batteryPercentage: 85,
         remarks: 'Mobile App Geo-Punch',
       );

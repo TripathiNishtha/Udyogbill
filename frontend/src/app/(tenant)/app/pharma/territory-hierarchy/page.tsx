@@ -24,7 +24,7 @@ import {
 } from "@/services/pharma-sfa-services";
 
 export default function TerritoryHierarchyPage() {
-  const [activeTab, setActiveTab] = useState<"divisions" | "patches" | "beats">("divisions");
+  const [activeTab, setActiveTab] = useState<"divisions" | "territories" | "patches" | "beats">("divisions");
 
   const [divisions, setDivisions] = useState<SfaDivision[]>([]);
   const [territories, setTerritories] = useState<SfaTerritory[]>([]);
@@ -37,6 +37,7 @@ export default function TerritoryHierarchyPage() {
 
   // Modals
   const [isDivModalOpen, setIsDivModalOpen] = useState(false);
+  const [isTerritoryModalOpen, setIsTerritoryModalOpen] = useState(false);
   const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
   const [isBeatModalOpen, setIsBeatModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,6 +47,12 @@ export default function TerritoryHierarchyPage() {
   const [divCode, setDivCode] = useState("");
   const [divName, setDivName] = useState("");
   const [divDesc, setDivDesc] = useState("");
+
+  const [terCode, setTerCode] = useState("");
+  const [terName, setTerName] = useState("");
+  const [terCity, setTerCity] = useState("");
+  const [terState, setTerState] = useState("");
+  const [terPincodes, setTerPincodes] = useState("");
 
   const [patchCode, setPatchCode] = useState("");
   const [patchName, setPatchName] = useState("");
@@ -104,6 +111,34 @@ export default function TerritoryHierarchyPage() {
       loadData();
     } catch (err: any) {
       setFeedbackMsg({ type: "error", text: err.message || "Failed to create division" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateTerritory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!terName.trim() || !terCode.trim()) return;
+    try {
+      setSaving(true);
+      await pharmaSfaService.createTerritory({
+        code: terCode,
+        name: terName,
+        city: terCity,
+        state: terState,
+        coveredPincodes: terPincodes,
+        isActive: true
+      });
+      setFeedbackMsg({ type: "success", text: `Territory / Area "${terName}" created successfully!` });
+      setIsTerritoryModalOpen(false);
+      setTerCode("");
+      setTerName("");
+      setTerCity("");
+      setTerState("");
+      setTerPincodes("");
+      loadData();
+    } catch (err: any) {
+      setFeedbackMsg({ type: "error", text: err.message || "Failed to create territory / area" });
     } finally {
       setSaving(false);
     }
@@ -199,6 +234,18 @@ export default function TerritoryHierarchyPage() {
             </button>
           )}
 
+          {activeTab === "territories" && (
+            <button
+              onClick={() => {
+                setTerCode(`TER-${Math.floor(100 + Math.random() * 900)}`);
+                setIsTerritoryModalOpen(true);
+              }}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> Add Territory / Area
+            </button>
+          )}
+
           {activeTab === "patches" && (
             <button
               onClick={() => {
@@ -237,6 +284,18 @@ export default function TerritoryHierarchyPage() {
         >
           <Building2 className="w-4 h-4" />
           Pharma Divisions ({divisions.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab("territories")}
+          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition flex items-center gap-2 ${
+            activeTab === "territories"
+              ? "border-emerald-600 text-emerald-700 bg-emerald-50/50 rounded-t-lg"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          }`}
+        >
+          <Compass className="w-4 h-4" />
+          Territories / Areas ({territories.length})
         </button>
 
         <button
@@ -319,7 +378,50 @@ export default function TerritoryHierarchyPage() {
         </div>
       )}
 
-      {/* TAB 2: PATCHES */}
+      {/* TAB 2: TERRITORIES / AREAS */}
+      {activeTab === "territories" && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <table className="w-full text-left text-sm text-gray-600">
+            <thead className="bg-gray-50 text-gray-700 text-xs uppercase font-semibold border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3">Territory / Area Code & Name</th>
+                <th className="px-6 py-3">City / HQ</th>
+                <th className="px-6 py-3">State</th>
+                <th className="px-6 py-3">Covered Pincodes</th>
+                <th className="px-6 py-3 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {territories.map((t) => (
+                <tr key={t.id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-gray-900">{t.name}</div>
+                    <div className="text-xs text-gray-500 font-mono">{t.code}</div>
+                  </td>
+                  <td className="px-6 py-4 font-medium text-gray-800">{t.city || "—"}</td>
+                  <td className="px-6 py-4 text-gray-700">{t.state || "—"}</td>
+                  <td className="px-6 py-4 text-xs font-mono text-gray-500">{t.coveredPincodes || "All Pincodes"}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+                      Active
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {territories.length === 0 && !loading && (
+            <div className="p-12 text-center text-gray-400">
+              <Compass className="w-12 h-12 mx-auto mb-2 opacity-30 text-emerald-600" />
+              <p className="text-sm font-semibold text-gray-700">No territories / areas configured yet</p>
+              <p className="text-xs text-gray-400 mt-1">Click "+ Add Territory / Area" to define regional sales areas (e.g. Lucknow South, Kanpur Central).</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: PATCHES */}
       {activeTab === "patches" && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <table className="w-full text-left text-sm text-gray-600">
@@ -504,6 +606,94 @@ export default function TerritoryHierarchyPage() {
         </div>
       )}
 
+      {/* Modal: Add Territory / Area */}
+      {isTerritoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Add Territory / Area</h3>
+            <p className="text-xs text-gray-500 mb-4">Define a regional sales territory or city hub for field MRs.</p>
+
+            <form onSubmit={handleCreateTerritory} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Area Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={terCode}
+                    onChange={(e) => setTerCode(e.target.value)}
+                    placeholder="e.g. TER-LKO-S"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono uppercase focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Territory / Area Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={terName}
+                    onChange={(e) => setTerName(e.target.value)}
+                    placeholder="e.g. Lucknow South"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">City / HQ</label>
+                  <input
+                    type="text"
+                    value={terCity}
+                    onChange={(e) => setTerCity(e.target.value)}
+                    placeholder="e.g. Lucknow"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">State</label>
+                  <input
+                    type="text"
+                    value={terState}
+                    onChange={(e) => setTerState(e.target.value)}
+                    placeholder="e.g. Uttar Pradesh"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Covered Pincodes</label>
+                <input
+                  type="text"
+                  value={terPincodes}
+                  onChange={(e) => setTerPincodes(e.target.value)}
+                  placeholder="e.g. 226001, 226002, 226010"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsTerritoryModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save Territory"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Add Patch */}
       {isPatchModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -553,7 +743,19 @@ export default function TerritoryHierarchyPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Territory / Area</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-gray-700">Territory / Area</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTerCode(`TER-${Math.floor(100 + Math.random() * 900)}`);
+                        setIsTerritoryModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-emerald-600 hover:text-emerald-800"
+                    >
+                      + New Area
+                    </button>
+                  </div>
                   <select
                     value={patchAreaId}
                     onChange={(e) => setPatchAreaId(e.target.value)}
