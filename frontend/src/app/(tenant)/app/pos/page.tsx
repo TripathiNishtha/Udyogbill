@@ -373,6 +373,11 @@ export default function TenantPosPage() {
       return;
     }
 
+    if (phone && phone.length !== 10) {
+      alert("कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें (Please enter a valid 10-digit mobile number).");
+      return;
+    }
+
     try {
       setSavingCustomer(true);
       if (saveToDirectory) {
@@ -1702,16 +1707,32 @@ export default function TenantPosPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-foreground block mb-1">
-                  Mobile Number (Optional)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-foreground">
+                    Mobile Number (Optional)
+                  </label>
+                  {newCustPhone && (
+                    <span className={`text-[10px] font-mono font-bold ${newCustPhone.length === 10 ? "text-emerald-500" : "text-amber-500"}`}>
+                      {newCustPhone.length}/10 digits
+                    </span>
+                  )}
+                </div>
                 <input
                   type="tel"
-                  placeholder="e.g. 9876543210"
+                  maxLength={10}
+                  placeholder="e.g. 9876543210 (10 Digits)"
                   value={newCustPhone}
-                  onChange={(e) => setNewCustPhone(e.target.value)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setNewCustPhone(digits);
+                  }}
                   className="w-full px-3 py-2 bg-surface-muted border border-border rounded-xl text-xs font-mono font-semibold text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:bg-surface"
                 />
+                {newCustPhone.length > 0 && newCustPhone.length < 10 && (
+                  <p className="text-[10px] text-amber-500 mt-1">
+                    मोबाइल नंबर 10 अंकों का होना चाहिए ({10 - newCustPhone.length} अंक शेष)
+                  </p>
+                )}
               </div>
 
               <div>

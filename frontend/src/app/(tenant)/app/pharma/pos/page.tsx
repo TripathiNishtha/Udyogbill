@@ -624,11 +624,12 @@ export default function PharmaPOSPage() {
           <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
             <User className="w-4 h-4 text-slate-400" />
             <input
-              type="text"
-              placeholder="Patient Phone..."
+              type="tel"
+              maxLength={10}
+              placeholder="Patient Phone (10 Digits)..."
               value={patientPhone}
-              onChange={(e) => setPatientPhone(e.target.value)}
-              className="bg-transparent text-xs text-white focus:outline-none w-28 font-mono"
+              onChange={(e) => setPatientPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              className="bg-transparent text-xs text-white focus:outline-none w-32 font-mono"
             />
             <button
               onClick={() => setShowRepeatModal(true)}
