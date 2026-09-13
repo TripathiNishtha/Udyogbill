@@ -7,6 +7,7 @@ import { manufacturingAddonManifest } from "./manufacturing/manifest";
 import { fmcgAddonManifest } from "./fmcg/manifest";
 import { accountingAddonManifest } from "./accounting/manifest";
 import { whatsappAddonManifest } from "./whatsapp/manifest";
+import { hrmAddonManifest } from "./hrm/manifest";
 
 export interface NavItem {
   label: string;
@@ -22,7 +23,7 @@ export interface NavGroup {
 }
 
 export interface AddonManifest {
-  id: "pharma" | "pharma-sfa" | "garments" | "manufacturing" | "fmcg" | "accounting" | "whatsapp" | string;
+  id: "pharma" | "pharma-sfa" | "hrm" | "garments" | "manufacturing" | "fmcg" | "accounting" | "whatsapp" | string;
   name: string;
   titleHindi?: string;
   description: string;
@@ -37,6 +38,7 @@ export interface AddonManifest {
 export const ALL_ADDONS: AddonManifest[] = [
   pharmaAddonManifest,
   pharmaSfaAddonManifest,
+  hrmAddonManifest,
   whatsappAddonManifest,
   garmentsAddonManifest,
   manufacturingAddonManifest,

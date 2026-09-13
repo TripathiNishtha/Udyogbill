@@ -3,12 +3,18 @@ import { apiClient } from '@/lib/api-client';
 export interface AiScannedLineItem {
   itemName: string;
   hsnCode?: string;
+  batchNumber?: string;
+  expiryDate?: string;
   quantity: number;
+  freeQuantity?: number;
   unitPrice: number;
+  mrp?: number;
+  discountPercent?: number;
   gstRate: number;
   taxableAmount: number;
   totalAmount: number;
   confidence: number;
+  isMathVerified?: boolean;
 }
 
 export interface AiPurchaseScanResponse {
@@ -23,6 +29,7 @@ export interface AiPurchaseScanResponse {
   totalTaxableAmount: number;
   totalGstAmount: number;
   grandTotal: number;
+  mathStatus?: string;
   items: AiScannedLineItem[];
 }
 
@@ -31,6 +38,24 @@ export interface AiAddonStatus {
   scansLimit: number;
   scansUsed: number;
   scansRemaining: number;
+}
+
+export interface DirectImportInventoryPayload {
+  supplierName?: string;
+  supplierGstin?: string;
+  billNumber?: string;
+  billDate?: string;
+  branchId?: string;
+  warehouseId?: string;
+  items: AiScannedLineItem[];
+}
+
+export interface DirectImportInventoryResult {
+  success: boolean;
+  message: string;
+  billId?: string;
+  billNumber?: string;
+  itemsImportedCount: number;
 }
 
 export const aiService = {
@@ -53,6 +78,11 @@ export const aiService = {
         'Content-Type': 'multipart/form-data'
       }
     });
+    return response.data;
+  },
+
+  async directImportToInventory(payload: DirectImportInventoryPayload): Promise<DirectImportInventoryResult> {
+    const response = await apiClient.post<DirectImportInventoryResult>('/tenant/ai/direct-import-to-inventory', payload);
     return response.data;
   }
 };

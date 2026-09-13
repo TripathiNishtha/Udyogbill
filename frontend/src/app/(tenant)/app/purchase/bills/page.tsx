@@ -492,8 +492,13 @@ export default function PurchaseBillsPage() {
     items: Array<{
       name: string;
       hsn?: string;
+      batch?: string;
+      expiry?: string;
       qty: number;
+      free?: number;
       price: number;
+      mrp?: number;
+      discountPercent?: number;
       gstRate: number;
       total: number;
     }>;
@@ -583,7 +588,7 @@ export default function PurchaseBillsPage() {
             taxRate: scanned.gstRate || 18,
             purchasePrice: scanned.price || 50,
             sellingPrice: Math.round((scanned.price || 50) * 1.3),
-            mrp: Math.round((scanned.price || 50) * 1.5),
+            mrp: scanned.mrp || Math.round((scanned.price || 50) * 1.5),
             minimumStockAlert: 5,
             trackBatches: true
           });
@@ -592,26 +597,29 @@ export default function PurchaseBillsPage() {
         }
       }
 
-      const taxable = scanned.qty * scanned.price;
+      const discPercent = scanned.discountPercent || 0;
+      const gross = scanned.qty * scanned.price;
+      const discAmt = gross * (discPercent / 100);
+      const taxable = gross - discAmt;
       const taxAmt = taxable * (scanned.gstRate / 100);
 
       mappedItems.push({
         itemId: itemId || "00000000-0000-0000-0000-000000000000",
         itemName: scanned.name,
         sku: sku || "SKU-AUTO",
-        batchNumber: `BAT-${Math.floor(1000 + Math.random() * 9000)}`,
-        expiryDate: "12/28",
+        batchNumber: scanned.batch || `BAT-${Math.floor(1000 + Math.random() * 9000)}`,
+        expiryDate: scanned.expiry || "12/28",
         packing: "1x1",
         hsnCode: scanned.hsn || "30049099",
         quantity: scanned.qty,
-        freeQuantity: 0,
+        freeQuantity: scanned.free || 0,
         uomId: defaultUomId,
         uomCode: defaultUomCode,
-        mrp: scanned.price * 1.4,
+        mrp: scanned.mrp || Math.round(scanned.price * 1.4),
         unitPrice: scanned.price,
         discountType: "percent",
-        discountValue: 0,
-        discountAmount: 0,
+        discountValue: discPercent,
+        discountAmount: discAmt,
         taxableAmount: taxable,
         taxRate: scanned.gstRate,
         totalAmount: taxable + taxAmt
