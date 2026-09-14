@@ -71,12 +71,12 @@ body.theme-light {
   --table-row-hover: #faf6ee;
   --table-border: #ede8dd;
 
-  --sidebar: #e8f4ec;
+  --sidebar: #fff0e0;
   --sidebar-foreground: #1e293b;
   --sidebar-active: #16a34a;
   --sidebar-active-foreground: #ffffff;
-  --sidebar-border: #d2e7d7;
-  --sidebar-hover: #d7edd9;
+  --sidebar-border: #fed7aa;
+  --sidebar-hover: #ffe4cc;
 
   --navbar: #ffffff;
   --navbar-foreground: #0f172a;
