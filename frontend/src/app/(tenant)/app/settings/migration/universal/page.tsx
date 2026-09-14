@@ -237,41 +237,6 @@ export default function UniversalMultiSheetMigrationPage() {
         </div>
       )}
 
-      {/* Software Presets (Optional) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-            Select Source Software (Optional)
-          </label>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-            ✨ Agar aap select nahi bhi karenge, to hamara Smart Importer file dekh kar khud pehchan lega.
-          </span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {[
-            { id: "auto", name: "Auto Detect", icon: "✨", desc: "Sabhi Software ke liye" },
-            { id: "marg", name: "Marg ERP 9+", icon: "🟢", desc: "Pharma / FMCG Master" },
-            { id: "tally", name: "Tally Prime", icon: "🟡", desc: "Ledger & Inventory" },
-            { id: "vyapar", name: "Vyapar App", icon: "🔵", desc: "Company Backup" },
-            { id: "busy", name: "Busy Accounting", icon: "🟣", desc: "Excel Register" }
-          ].map((sw) => (
-            <button
-              key={sw.id}
-              onClick={() => setSelectedSoftware(sw.id)}
-              className={
-                selectedSoftware === sw.id
-                  ? "flex flex-col text-left p-3.5 rounded-xl border-2 transition-all border-blue-600 bg-blue-50/80 dark:bg-blue-950/50 dark:border-blue-500 shadow-sm ring-2 ring-blue-500/20 cursor-pointer"
-                  : "flex flex-col text-left p-3.5 rounded-xl border transition-all border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 shadow-2xs cursor-pointer"
-              }
-            >
-              <span className="text-xl mb-1">{sw.icon}</span>
-              <span className="text-xs font-bold text-slate-900 dark:text-white">{sw.name}</span>
-              <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium">{sw.desc}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Upload Dropzone */}
       <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-8 text-center hover:border-indigo-500 transition-colors shadow-sm">
         <input
