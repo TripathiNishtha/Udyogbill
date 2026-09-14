@@ -17,21 +17,21 @@
 :root,
 html.theme-light,
 body.theme-light {
-  --background: #f1f5f9;
+  --background: #fce7f3;
   --foreground: #0f172a;
 
   --surface: #ffffff;
   --surface-elevated: #ffffff;
-  --surface-muted: #f8fafc;
-  --surface-sunken: #e2e8f0;
+  --surface-muted: #fdf2f8;
+  --surface-sunken: #fbcfe8;
 
   --primary: #16a34a;
   --primary-foreground: #ffffff;
   --primary-hover: #15803d;
 
-  --secondary: #f1f5f9;
+  --secondary: #fdf2f8;
   --secondary-foreground: #1e293b;
-  --secondary-hover: #e2e8f0;
+  --secondary-hover: #fce7f3;
 
   --accent: #0284c7;
   --accent-foreground: #ffffff;
@@ -52,12 +52,12 @@ body.theme-light {
   --info-foreground: #ffffff;
   --info-muted: #dbeafe;
 
-  --muted: #e2e8f0;
+  --muted: #fce7f3;
   --muted-foreground: #475569;
 
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --border-subtle: #f1f5f9;
+  --border: #f3d5e5;
+  --border-strong: #e5b8d0;
+  --border-subtle: #fdf2f8;
 
   --input: #ffffff;
   --input-foreground: #0f172a;
@@ -65,22 +65,22 @@ body.theme-light {
 
   --ring: #16a34a;
 
-  --table-header: #f8fafc;
+  --table-header: #fdf2f8;
   --table-header-foreground: #475569;
   --table-row: #ffffff;
-  --table-row-hover: #f8fafc;
-  --table-border: #e2e8f0;
+  --table-row-hover: #fdf2f8;
+  --table-border: #f3d5e5;
 
   --sidebar: #ffffff;
   --sidebar-foreground: #475569;
   --sidebar-active: #16a34a;
   --sidebar-active-foreground: #ffffff;
-  --sidebar-border: #e2e8f0;
-  --sidebar-hover: #f1f5f9;
+  --sidebar-border: #f3d5e5;
+  --sidebar-hover: #fdf2f8;
 
   --navbar: #ffffff;
   --navbar-foreground: #0f172a;
-  --navbar-border: #e2e8f0;
+  --navbar-border: #f3d5e5;
 
   color-scheme: light;
 }
@@ -694,12 +694,12 @@ footer.footer a:hover,
    ========================================================================== */
 
 .super-admin-light-scope {
-  background-color: #f8fafc !important;
+  background-color: #fce7f3 !important;
   color: #0f172a !important;
 }
 
 .super-admin-light-scope main {
-  background-color: #f8fafc !important;
+  background-color: #fce7f3 !important;
   color: #0f172a !important;
 }
 

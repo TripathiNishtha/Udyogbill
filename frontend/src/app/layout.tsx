@@ -136,7 +136,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(globalSchema) }}
         />
       </head>
-      <body className="antialiased min-h-screen">
+      <body className="antialiased min-h-screen bg-background text-foreground">
         <GoogleAnalytics />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
