@@ -115,6 +115,21 @@ public class AiPurchaseScannerController : BaseApiController
         var tenant = await _dbContext.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
         if (tenant == null) return NotFound("Tenant not found");
 
+        var hasAiAddon = await _dbContext.TenantSubscriptionAddOns
+            .IgnoreQueryFilters()
+            .Include(sa => sa.AddOn)
+            .AnyAsync(sa => sa.TenantId == tenantId &&
+                            sa.AddOn.Code == "ADDON_AI_PRO" &&
+                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow, cancellationToken);
+
+        if (!hasAiAddon && tenant.CreatedAtUtc.AddDays(14) < DateTimeOffset.UtcNow)
+        {
+            return StatusCode(StatusCodes.Status402PaymentRequired, new
+            {
+                message = "AI Bill Scanner requires an active paid AI Pro Add-on subscription or admin license grant. Please subscribe from the Add-on Store."
+            });
+        }
+
         var config = await _dbContext.PlatformCommercialConfigs.OrderByDescending(c => c.CreatedAtUtc).FirstOrDefaultAsync(cancellationToken);
         var monthlyLimit = config?.AiProMonthlyScanLimit ?? 500;
 

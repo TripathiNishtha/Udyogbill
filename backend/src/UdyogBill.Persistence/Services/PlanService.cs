@@ -20,7 +20,7 @@ public class PlanService : IPlanService
         var plans = await _context.Plans
             .Include(p => p.Entitlements)
                 .ThenInclude(e => e.Feature)
-            .Where(p => p.IsActive && !p.IsDeleted)
+            .Where(p => p.IsActive && !p.IsDeleted && !p.IsHidden)
             .OrderBy(p => p.DisplayOrder)
             .Select(p => new PlanDto(
                 p.Id,
@@ -37,7 +37,8 @@ public class PlanService : IPlanService
                 p.MaxStorageMb,
                 p.IsPopular,
                 p.IsActive,
-                p.Entitlements.Select(e => e.Feature.Code).ToList()
+                p.Entitlements.Select(e => e.Feature.Code).ToList(),
+                p.IsHidden
             ))
             .ToListAsync(cancellationToken);
 
@@ -71,7 +72,8 @@ public class PlanService : IPlanService
             plan.MaxStorageMb,
             plan.IsPopular,
             plan.IsActive,
-            plan.Entitlements.Select(e => e.Feature.Code).ToList()
+            plan.Entitlements.Select(e => e.Feature.Code).ToList(),
+            plan.IsHidden
         );
 
         return Result<PlanDto>.Success(dto);

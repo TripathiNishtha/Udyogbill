@@ -89,23 +89,55 @@ public class RequireActiveSubscriptionFilter : IAsyncActionFilter
 
         var sub = await _context.TenantSubscriptions
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(s => s.TenantId == tenantId);
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId && !s.IsDeleted);
 
-        if (sub != null)
+        var now = DateTimeOffset.UtcNow;
+        bool isExpired = false;
+
+        if (sub == null)
         {
-            var now = DateTimeOffset.UtcNow;
-            if (sub.Status == SubscriptionStatus.Expired || (sub.EndsAtUtc < now && sub.TrialEndsAtUtc < now))
+            // If no subscription recorded, check if within default 14-day signup trial window
+            if (tenant.CreatedAtUtc.AddDays(14) < now)
             {
-                context.Result = new ObjectResult(new
-                {
-                    error = "Your subscription has expired. Please renew your plan to continue performing actions.",
-                    code = "SUBSCRIPTION_EXPIRED"
-                })
-                {
-                    StatusCode = StatusCodes.Status402PaymentRequired
-                };
-                return;
+                isExpired = true;
             }
+        }
+        else
+        {
+            if (sub.Status == SubscriptionStatus.Expired ||
+                sub.Status == SubscriptionStatus.Suspended ||
+                sub.Status == SubscriptionStatus.Cancelled)
+            {
+                isExpired = true;
+            }
+            else if (sub.Status == SubscriptionStatus.Trial)
+            {
+                var trialEnd = sub.TrialEndsAtUtc ?? sub.EndsAtUtc;
+                if (trialEnd < now)
+                {
+                    isExpired = true;
+                }
+            }
+            else // Active or others
+            {
+                if (sub.EndsAtUtc < now)
+                {
+                    isExpired = true;
+                }
+            }
+        }
+
+        if (isExpired)
+        {
+            context.Result = new ObjectResult(new
+            {
+                error = "Your subscription has expired or is inactive. Please subscribe or renew your plan to continue.",
+                code = "SUBSCRIPTION_EXPIRED"
+            })
+            {
+                StatusCode = StatusCodes.Status402PaymentRequired
+            };
+            return;
         }
 
         await next();
@@ -156,14 +188,103 @@ public class RequireAddonFilter : IAsyncActionFilter
             return;
         }
 
-        string moduleKey = _addonCode.Replace("ADDON_", "");
+        var now = DateTimeOffset.UtcNow;
 
-        // 1. Primary Industry Entitlement: If tenant's registered industry or active module matches this feature
+        // 1. First ensure the tenant's core subscription/trial is active
+        var sub = await _context.TenantSubscriptions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId && !s.IsDeleted);
+
         var tenant = await _context.Tenants
             .IgnoreQueryFilters()
             .Include(t => t.Industry)
             .FirstOrDefaultAsync(t => t.Id == tenantId);
 
+        bool isCoreActive = false;
+        if (sub != null)
+        {
+            if (sub.Status == SubscriptionStatus.Trial)
+            {
+                var trialEnd = sub.TrialEndsAtUtc ?? sub.EndsAtUtc;
+                isCoreActive = trialEnd > now;
+            }
+            else if (sub.Status == SubscriptionStatus.Active)
+            {
+                isCoreActive = sub.EndsAtUtc > now;
+            }
+        }
+        else
+        {
+            isCoreActive = tenant != null && tenant.CreatedAtUtc.AddDays(14) > now;
+        }
+
+        if (!isCoreActive)
+        {
+            context.Result = new ObjectResult(new
+            {
+                error = "Your core subscription has expired or is inactive. Please subscribe or renew your plan first.",
+                code = "SUBSCRIPTION_EXPIRED"
+            })
+            {
+                StatusCode = StatusCodes.Status402PaymentRequired
+            };
+            return;
+        }
+
+        string moduleKey = _addonCode.Replace("ADDON_", "");
+
+        // 2. Check Add-on Store Entitlement: active purchased addon in database
+        var hasActiveAddon = await _context.TenantSubscriptionAddOns
+            .IgnoreQueryFilters()
+            .Include(sa => sa.AddOn)
+            .AnyAsync(sa => sa.TenantId == tenantId &&
+                            sa.AddOn.Code.ToUpper() == _addonCode &&
+                            sa.ExpiresAtUtc > now);
+
+        if (hasActiveAddon)
+        {
+            await next();
+            return;
+        }
+
+        // 3. For dedicated/exclusive paid modules (Pharma SFA, AI Pro, WhatsApp, E-way Bill)
+        // Industry code alone CANNOT bypass payment! An active paid addon or explicit active flag is required.
+        bool isExclusivePaidAddon = _addonCode == "ADDON_PHARMA_SFA" || 
+                                    _addonCode == "ADDON_AI_PRO" || 
+                                    _addonCode == "ADDON_WHATSAPP" || 
+                                    _addonCode == "ADDON_EWAYBILL";
+
+        if (isExclusivePaidAddon)
+        {
+            bool hasAdminExplicitGrant = false;
+            if (_addonCode == "ADDON_PHARMA_SFA" && tenant?.IsPharmaSfaActive == true)
+            {
+                hasAdminExplicitGrant = true;
+            }
+            else if (_addonCode == "ADDON_AI_PRO" && tenant?.IsAiAddonActive == true)
+            {
+                hasAdminExplicitGrant = true;
+            }
+
+            if (!hasAdminExplicitGrant)
+            {
+                context.Result = new ObjectResult(new
+                {
+                    error = $"Access requires an active paid '{_addonCode}' subscription or admin license grant.",
+                    code = "ADDON_REQUIRED",
+                    addonCode = _addonCode
+                })
+                {
+                    StatusCode = StatusCodes.Status402PaymentRequired
+                };
+                return;
+            }
+
+            await next();
+            return;
+        }
+
+        // 4. Primary Industry Entitlement: Allowed only for standard industry vertical features if registered under that industry
         if (tenant != null)
         {
             if (string.Equals(tenant.Industry?.Code, moduleKey, StringComparison.OrdinalIgnoreCase) ||
@@ -175,49 +296,38 @@ public class RequireAddonFilter : IAsyncActionFilter
             }
         }
 
-        // 2. Add-on Store Entitlement: Check if tenant has active addon enrolled in database
-        var hasActiveAddon = await _context.TenantSubscriptionAddOns
+        // 5. ConfigurationJson override
+        var config = await _context.TenantIndustryConfigs
             .IgnoreQueryFilters()
-            .Include(sa => sa.AddOn)
-            .AnyAsync(sa => sa.TenantId == tenantId &&
-                            sa.AddOn.Code.ToUpper() == _addonCode &&
-                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow);
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId);
 
-        if (!hasActiveAddon)
+        string key = moduleKey.ToLower();
+        bool hasOverride = false;
+        if (config != null && !string.IsNullOrWhiteSpace(config.ConfigurationJson))
         {
-            // 3. ConfigurationJson override
-            var config = await _context.TenantIndustryConfigs
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId);
-
-            string key = moduleKey.ToLower();
-            bool hasOverride = false;
-            if (config != null && !string.IsNullOrWhiteSpace(config.ConfigurationJson))
+            try
             {
-                try
+                var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(config.ConfigurationJson);
+                if (dict != null && dict.TryGetValue(key, out var active))
                 {
-                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(config.ConfigurationJson);
-                    if (dict != null && dict.TryGetValue(key, out var active))
-                    {
-                        hasOverride = active;
-                    }
+                    hasOverride = active;
                 }
-                catch { }
             }
+            catch { }
+        }
 
-            if (!hasOverride)
+        if (!hasOverride)
+        {
+            context.Result = new ObjectResult(new
             {
-                context.Result = new ObjectResult(new
-                {
-                    error = $"Access to this feature requires an active '{_addonCode}' subscription. Please subscribe from the Add-on Store.",
-                    code = "ADDON_REQUIRED",
-                    addonCode = _addonCode
-                })
-                {
-                    StatusCode = StatusCodes.Status402PaymentRequired
-                };
-                return;
-            }
+                error = $"Access to this feature requires an active '{_addonCode}' subscription. Please subscribe from the Add-on Store.",
+                code = "ADDON_REQUIRED",
+                addonCode = _addonCode
+            })
+            {
+                StatusCode = StatusCodes.Status402PaymentRequired
+            };
+            return;
         }
 
         await next();

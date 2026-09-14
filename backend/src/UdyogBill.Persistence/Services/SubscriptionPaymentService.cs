@@ -80,8 +80,8 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(a => a.Code == request.AddonCode && a.IsActive, cancellationToken);
 
-            if (addon == null)
-                return Result<CreateSubscriptionOrderResponse>.Failure($"Add-on '{request.AddonCode}' not found or inactive.", "NOT_FOUND");
+            if (addon == null || addon.IsHidden)
+                return Result<CreateSubscriptionOrderResponse>.Failure($"Add-on '{request.AddonCode}' is private or unavailable for public checkout. Please contact platform administrator.", "NOT_AVAILABLE");
 
             bool isAnnual = request.BillingCycle.Equals("Annual", StringComparison.OrdinalIgnoreCase) || 
                             request.BillingCycle.Equals("Yearly", StringComparison.OrdinalIgnoreCase);
@@ -97,12 +97,13 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.Code == request.PlanCode && p.IsActive, cancellationToken);
 
-            if (plan == null)
-                return Result<CreateSubscriptionOrderResponse>.Failure($"Plan '{request.PlanCode}' not found or inactive.", "NOT_FOUND");
+            if (plan == null || plan.IsHidden)
+                return Result<CreateSubscriptionOrderResponse>.Failure($"Plan '{request.PlanCode}' is private or unavailable for public checkout. Please contact platform administrator.", "NOT_AVAILABLE");
 
             amount = plan.Price;
             itemName = plan.Name;
-            itemDesc = $"{plan.Name} Plan Subscription ({request.BillingCycle})";
+            var (_, cycleLabel) = ResolvePlanDurationAndCycle(plan.BillingCycle, request.BillingCycle, plan.Code, plan.Name);
+            itemDesc = $"{plan.Name} Plan Subscription ({cycleLabel})";
         }
         else
         {
@@ -290,7 +291,8 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
 
         decimal basePrice = 0;
         string itemDesc = string.Empty;
-        int durationDays = request.BillingCycle.Equals("Annual", StringComparison.OrdinalIgnoreCase) ? 365 : 30;
+        int durationDays = 30;
+        string effectiveBillingCycle = request.BillingCycle;
 
         // 1. Activate Add-on or Plan
         if (!string.IsNullOrWhiteSpace(request.AddonCode))
@@ -303,10 +305,12 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             {
                 bool isAnnual = request.BillingCycle.Equals("Annual", StringComparison.OrdinalIgnoreCase) || 
                                 request.BillingCycle.Equals("Yearly", StringComparison.OrdinalIgnoreCase);
+                durationDays = isAnnual ? 365 : 30;
+                effectiveBillingCycle = isAnnual ? "Annual" : "Monthly";
                 basePrice = isAnnual 
                     ? (addon.AnnualPrice > 0 ? addon.AnnualPrice : Math.Round(addon.Price * 10, 2))
                     : addon.Price;
-                itemDesc = $"{addon.Name} ({(isAnnual ? "Annual" : "Monthly")})";
+                itemDesc = $"{addon.Name} ({effectiveBillingCycle})";
 
                 await ActivateAddonFeaturesForTenantAsync(tenant, addon.Code, durationDays, cancellationToken);
             }
@@ -320,7 +324,8 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             if (plan != null)
             {
                 basePrice = plan.Price;
-                itemDesc = $"{plan.Name} Subscription ({request.BillingCycle})";
+                (durationDays, effectiveBillingCycle) = ResolvePlanDurationAndCycle(plan.BillingCycle, request.BillingCycle, plan.Code, plan.Name);
+                itemDesc = $"{plan.Name} Subscription ({effectiveBillingCycle})";
 
                 var existingSub = await _context.TenantSubscriptions
                     .IgnoreQueryFilters()
@@ -435,7 +440,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             ItemDescription = invoiceItemDesc,
             PlanCode = request.PlanCode,
             AddonCode = request.AddonCode,
-            BillingCycle = request.BillingCycle,
+            BillingCycle = effectiveBillingCycle,
             DurationDays = durationDays,
             SubTotal = basePrice,
             TaxRatePercent = 18m,
@@ -518,14 +523,16 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             .Include(s => s.Plan)
             .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken);
 
-        var allAddons = await _context.AddOns
-            .IgnoreQueryFilters()
-            .Where(a => a.IsActive)
-            .ToListAsync(cancellationToken);
-
         var subAddons = await _context.TenantSubscriptionAddOns
             .IgnoreQueryFilters()
             .Where(sa => sa.TenantId == tenantId && sa.ExpiresAtUtc > DateTimeOffset.UtcNow)
+            .ToListAsync(cancellationToken);
+
+        var subAddonIds = subAddons.Select(sa => sa.AddOnId).ToHashSet();
+
+        var allAddons = await _context.AddOns
+            .IgnoreQueryFilters()
+            .Where(a => a.IsActive && (!a.IsHidden || subAddonIds.Contains(a.Id)))
             .ToListAsync(cancellationToken);
 
         // Check industry config overrides
@@ -548,7 +555,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             if (configDict.TryGetValue(key, out var val)) isExplicitActive = val;
             else if (configDict.TryGetValue(key.Replace("_", "-"), out var valHyphen)) isExplicitActive = valHyphen;
 
-            if (a.Code == "ADDON_PHARMA_SFA" && tenant.IsPharmaSfaActive)
+            if (a.Code == "ADDON_PHARMA_SFA" && tenant.IsPharmaSfaActive && enr != null)
             {
                 isExplicitActive = true;
             }
@@ -567,7 +574,9 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 IsActive: a.IsActive,
                 IsEnrolled: isEnrolled,
                 EnrolledExpiresAtUtc: exp,
-                RemainingDays: remDays
+                RemainingDays: remDays,
+                AnnualPrice: a.AnnualPrice > 0 ? a.AnnualPrice : Math.Round(a.Price * 10, 2),
+                IsHidden: a.IsHidden
             );
         }).ToList();
 
@@ -704,7 +713,8 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             try
             {
                 await _context.Database.ExecuteSqlRawAsync(
-                    @"ALTER TABLE ""AddOns"" ADD COLUMN IF NOT EXISTS ""AnnualPrice"" numeric NOT NULL DEFAULT 0;",
+                    @"ALTER TABLE ""AddOns"" ADD COLUMN IF NOT EXISTS ""AnnualPrice"" numeric NOT NULL DEFAULT 0;
+                      ALTER TABLE ""AddOns"" ADD COLUMN IF NOT EXISTS ""IsHidden"" boolean NOT NULL DEFAULT FALSE;",
                     cancellationToken);
             }
             catch {}
@@ -719,12 +729,12 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 // Auto seed initial addons
                 var seedList = new List<AddOn>
                 {
-                    new() { Code = "ADDON_PHARMA", Name = "Pharma & Healthcare Suite", Description = "Generic Salt Substitutes, Multi-Batch FEFO, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims.", Price = 499m, AnnualPrice = 4990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
-                    new() { Code = "ADDON_PHARMA_SFA", Name = "Pharma SFA & MR Field Force Suite", Description = "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.", Price = 1999m, AnnualPrice = 19999m, BillingCycle = BillingCycle.Monthly, IsActive = true },
-                    new() { Code = "ADDON_GARMENTS", Name = "Apparel & Garments Matrix", Description = "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", Price = 399m, AnnualPrice = 3990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
-                    new() { Code = "ADDON_MANUFACTURING", Name = "Manufacturing & Bakery (BOM)", Description = "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", Price = 599m, AnnualPrice = 5990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
-                    new() { Code = "ADDON_FMCG", Name = "FMCG, Grocery & Distribution", Description = "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", Price = 399m, AnnualPrice = 3990m, BillingCycle = BillingCycle.Monthly, IsActive = true },
-                    new() { Code = "ADDON_ACCOUNTING", Name = "Dual-Entry Financial Accounting", Description = "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", Price = 499m, AnnualPrice = 4990m, BillingCycle = BillingCycle.Monthly, IsActive = true }
+                    new() { Code = "ADDON_PHARMA", Name = "Pharma & Healthcare Suite", Description = "Generic Salt Substitutes, Multi-Batch FEFO, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims.", Price = 499m, AnnualPrice = 4990m, BillingCycle = BillingCycle.Monthly, IsActive = true, IsHidden = false },
+                    new() { Code = "ADDON_PHARMA_SFA", Name = "Pharma SFA & MR Field Force Suite", Description = "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.", Price = 1999m, AnnualPrice = 19999m, BillingCycle = BillingCycle.Monthly, IsActive = true, IsHidden = false },
+                    new() { Code = "ADDON_GARMENTS", Name = "Apparel & Garments Matrix", Description = "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", Price = 399m, AnnualPrice = 3990m, BillingCycle = BillingCycle.Monthly, IsActive = true, IsHidden = false },
+                    new() { Code = "ADDON_MANUFACTURING", Name = "Manufacturing & Bakery (BOM)", Description = "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", Price = 599m, AnnualPrice = 5990m, BillingCycle = BillingCycle.Monthly, IsActive = true, IsHidden = false },
+                    new() { Code = "ADDON_FMCG", Name = "FMCG, Grocery & Distribution", Description = "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", Price = 399m, AnnualPrice = 3990m, BillingCycle = BillingCycle.Monthly, IsActive = true, IsHidden = false },
+                    new() { Code = "ADDON_ACCOUNTING", Name = "Dual-Entry Financial Accounting", Description = "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", Price = 499m, AnnualPrice = 4990m, BillingCycle = BillingCycle.Monthly, IsActive = true, IsHidden = false }
                 };
                 _context.AddOns.AddRange(seedList);
                 await _context.SaveChangesAsync(cancellationToken);
@@ -740,7 +750,8 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                     Price = 1999m,
                     AnnualPrice = 19999m,
                     BillingCycle = BillingCycle.Monthly,
-                    IsActive = true
+                    IsActive = true,
+                    IsHidden = false
                 };
                 _context.AddOns.Add(sfaAddon);
                 await _context.SaveChangesAsync(cancellationToken);
@@ -758,7 +769,8 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 IsEnrolled: false,
                 EnrolledExpiresAtUtc: null,
                 RemainingDays: 0,
-                AnnualPrice: a.AnnualPrice > 0 ? a.AnnualPrice : Math.Round(a.Price * 10, 2)
+                AnnualPrice: a.AnnualPrice > 0 ? a.AnnualPrice : Math.Round(a.Price * 10, 2),
+                IsHidden: a.IsHidden
             )).ToList();
 
             return Result<IReadOnlyList<AddonCatalogItemDto>>.Success(dtos);
@@ -774,12 +786,12 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
     {
         return new List<AddonCatalogItemDto>
         {
-            new(Guid.Parse("11111111-1111-1111-1111-111111111111"), "ADDON_PHARMA", "Pharma & Healthcare Suite", "Generic Salt Substitutes, Multi-Batch FEFO, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims.", 499m, "Monthly", true, false, null, 0, 4990m),
-            new(Guid.Parse("66666666-6666-6666-6666-666666666666"), "ADDON_PHARMA_SFA", "Pharma SFA & MR Field Force Suite", "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.", 1999m, "Monthly", true, false, null, 0, 19999m),
-            new(Guid.Parse("22222222-2222-2222-2222-222222222222"), "ADDON_GARMENTS", "Apparel & Garments Matrix", "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", 399m, "Monthly", true, false, null, 0, 3990m),
-            new(Guid.Parse("33333333-3333-3333-3333-333333333333"), "ADDON_MANUFACTURING", "Manufacturing & Bakery (BOM)", "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", 599m, "Monthly", true, false, null, 0, 5990m),
-            new(Guid.Parse("44444444-4444-4444-4444-444444444444"), "ADDON_FMCG", "FMCG, Grocery & Distribution", "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", 399m, "Monthly", true, false, null, 0, 3990m),
-            new(Guid.Parse("55555555-5555-5555-5555-555555555555"), "ADDON_ACCOUNTING", "Dual-Entry Financial Accounting", "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", 499m, "Monthly", true, false, null, 0, 4990m)
+            new(Guid.Parse("11111111-1111-1111-1111-111111111111"), "ADDON_PHARMA", "Pharma & Healthcare Suite", "Generic Salt Substitutes, Multi-Batch FEFO, Schedule H1 registers, Strip/Loose packaging, Expiry dumping claims.", 499m, "Monthly", true, false, null, 0, 4990m, false),
+            new(Guid.Parse("66666666-6666-6666-6666-666666666666"), "ADDON_PHARMA_SFA", "Pharma SFA & MR Field Force Suite", "Medical Representative Field Force, Daily Call Reports (DCR), Chemist POB, Doctor Detailing, Sample Bag & 3-Way Parity.", 1999m, "Monthly", true, false, null, 0, 19999m, false),
+            new(Guid.Parse("22222222-2222-2222-2222-222222222222"), "ADDON_GARMENTS", "Apparel & Garments Matrix", "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", 399m, "Monthly", true, false, null, 0, 3990m, false),
+            new(Guid.Parse("33333333-3333-3333-3333-333333333333"), "ADDON_MANUFACTURING", "Manufacturing & Bakery (BOM)", "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", 599m, "Monthly", true, false, null, 0, 5990m, false),
+            new(Guid.Parse("44444444-4444-4444-4444-444444444444"), "ADDON_FMCG", "FMCG, Grocery & Distribution", "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", 399m, "Monthly", true, false, null, 0, 3990m, false),
+            new(Guid.Parse("55555555-5555-5555-5555-555555555555"), "ADDON_ACCOUNTING", "Dual-Entry Financial Accounting", "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", 499m, "Monthly", true, false, null, 0, 4990m, false)
         };
     }
 
@@ -803,7 +815,8 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                     Price = request.Price,
                     AnnualPrice = request.AnnualPrice > 0 ? request.AnnualPrice : Math.Round(request.Price * 10, 2),
                     BillingCycle = BillingCycle.Monthly,
-                    IsActive = request.IsActive
+                    IsActive = request.IsActive,
+                    IsHidden = request.IsHidden
                 };
                 _context.AddOns.Add(addon);
             }
@@ -812,6 +825,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 addon.Price = request.Price;
                 addon.AnnualPrice = request.AnnualPrice > 0 ? request.AnnualPrice : Math.Round(request.Price * 10, 2);
                 addon.IsActive = request.IsActive;
+                addon.IsHidden = request.IsHidden;
                 if (!string.IsNullOrWhiteSpace(request.Description))
                 {
                     addon.Description = request.Description;
@@ -1249,6 +1263,48 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
         // If unknown or not specified, return empty string so it defaults to inter-state (IGST 18%)
         // Only if tenant is explicitly Haryana (06) will it match supplierStateCode ("06") and charge CGST+SGST.
         return "";
+    }
+
+    private static (int durationDays, string cycleLabel) ResolvePlanDurationAndCycle(BillingCycle planCycle, string? requestedCycle, string? planCode, string? planName)
+    {
+        // 1. Check heuristics for 2 Years / Biennial
+        if (planCycle == BillingCycle.Biennial ||
+            (!string.IsNullOrWhiteSpace(planCode) && planCode.Contains("BIENNIAL", StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(planName) && (planName.Contains("2 Year", StringComparison.OrdinalIgnoreCase) || planName.Contains("2 Years", StringComparison.OrdinalIgnoreCase) || planName.Contains("Biennial", StringComparison.OrdinalIgnoreCase))) ||
+            (!string.IsNullOrWhiteSpace(requestedCycle) && (requestedCycle.Contains("2 Year", StringComparison.OrdinalIgnoreCase) || requestedCycle.Equals("Biennial", StringComparison.OrdinalIgnoreCase))))
+        {
+            return (730, "2 Years");
+        }
+
+        // 2. Check heuristics for 1 Year / Annual
+        if (planCycle == BillingCycle.Annually ||
+            (!string.IsNullOrWhiteSpace(planCode) && (planCode.Contains("ANNUAL", StringComparison.OrdinalIgnoreCase) || planCode.Contains("YEAR", StringComparison.OrdinalIgnoreCase))) ||
+            (!string.IsNullOrWhiteSpace(planName) && (planName.Contains("1 Year", StringComparison.OrdinalIgnoreCase) || planName.Contains("Annual", StringComparison.OrdinalIgnoreCase) || planName.Contains("Yearly", StringComparison.OrdinalIgnoreCase))) ||
+            (!string.IsNullOrWhiteSpace(requestedCycle) && (requestedCycle.Equals("Annual", StringComparison.OrdinalIgnoreCase) || requestedCycle.Equals("Yearly", StringComparison.OrdinalIgnoreCase) || requestedCycle.Contains("1 Year", StringComparison.OrdinalIgnoreCase))))
+        {
+            return (365, "1 Year");
+        }
+
+        // 3. Lifetime
+        if (planCycle == BillingCycle.Lifetime)
+        {
+            return (3650, "Lifetime");
+        }
+
+        // 4. Semi-Annually (6 Months)
+        if (planCycle == BillingCycle.SemiAnnually)
+        {
+            return (180, "6 Months");
+        }
+
+        // 5. Quarterly
+        if (planCycle == BillingCycle.Quarterly)
+        {
+            return (90, "Quarterly");
+        }
+
+        // Default: Monthly
+        return (30, "Monthly");
     }
 
     #endregion

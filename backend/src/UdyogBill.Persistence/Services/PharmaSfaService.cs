@@ -154,10 +154,15 @@ public class PharmaSfaService : IPharmaSfaService
 
         var maxMr = tenant.MaxAllowedMrUsers > 0 ? tenant.MaxAllowedMrUsers : 15;
         var maxMgr = tenant.MaxAllowedManagerUsers > 0 ? tenant.MaxAllowedManagerUsers : 5;
-        var isPharmaIndustry = string.Equals(tenant.IndustryTypeCode, "PHARMA", StringComparison.OrdinalIgnoreCase) ||
-                               string.Equals(tenant.ActiveIndustryModule, "PHARMA", StringComparison.OrdinalIgnoreCase) ||
-                               string.Equals(tenant.Industry?.Code, "PHARMA", StringComparison.OrdinalIgnoreCase);
-        var isSfaActive = tenant.IsPharmaSfaActive || (isPharmaIndustry && (activeMrCount > 0 || activeManagerCount > 0));
+
+        var hasActiveSfaAddon = await _context.TenantSubscriptionAddOns
+            .IgnoreQueryFilters()
+            .Include(sa => sa.AddOn)
+            .AnyAsync(sa => sa.TenantId == tenantId &&
+                            sa.AddOn.Code == "ADDON_PHARMA_SFA" &&
+                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow, cancellationToken);
+
+        var isSfaActive = tenant.IsPharmaSfaActive && (hasActiveSfaAddon || tenant.CreatedAtUtc.AddDays(14) > DateTimeOffset.UtcNow);
 
         var status = new SeatQuotaStatusDto(
             IsPharmaSfaActive: isSfaActive,
@@ -189,6 +194,18 @@ public class PharmaSfaService : IPharmaSfaService
         if (!isPharmaIndustry)
         {
             return Result<bool>.Failure("Pharma SFA is an exclusive add-on only available for Pharma industry subscribers.", "FORBIDDEN");
+        }
+
+        var hasActiveSfaAddon = await _context.TenantSubscriptionAddOns
+            .IgnoreQueryFilters()
+            .Include(sa => sa.AddOn)
+            .AnyAsync(sa => sa.TenantId == tenantId &&
+                            sa.AddOn.Code == "ADDON_PHARMA_SFA" &&
+                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow, cancellationToken);
+
+        if (!hasActiveSfaAddon && tenant.CreatedAtUtc.AddDays(14) < DateTimeOffset.UtcNow)
+        {
+            return Result<bool>.Failure("Pharma SFA requires an active paid add-on subscription or admin license grant. Please subscribe from the Add-on Store.", "PAYMENT_REQUIRED");
         }
 
         tenant.IsPharmaSfaActive = true;

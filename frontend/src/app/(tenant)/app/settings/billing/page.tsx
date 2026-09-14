@@ -139,13 +139,36 @@ export default function TenantBillingPage() {
     setCouponError(null);
   };
 
+const formatBillingCycle = (cycle: number | string | undefined, planCode?: string, planName?: string) => {
+  const code = (planCode || "").toUpperCase();
+  const name = (planName || "").toLowerCase();
+
+  if (cycle === 24 || code.includes("BIENNIAL") || name.includes("2 year") || name.includes("2 yr") || name.includes("biennial")) {
+    return { label: "2 Years (730 Days Validity)", suffix: "/ 2 years", shortSuffix: "/ 2 yrs", cycleName: "2 Years", cycleStr: "Biennial", days: 730 };
+  }
+  if (cycle === 12 || code.includes("ANNUAL") || code.includes("YEAR") || name.includes("1 year") || name.includes("1 yr") || name.includes("annual") || name.includes("yearly")) {
+    return { label: "1 Year (365 Days Validity)", suffix: "/ year", shortSuffix: "/ yr", cycleName: "1 Year", cycleStr: "Annual", days: 365 };
+  }
+  if (cycle === 6 || name.includes("semi")) {
+    return { label: "6 Months (180 Days Validity)", suffix: "/ 6 months", shortSuffix: "/ 6 mo", cycleName: "6 Months", cycleStr: "SemiAnnually", days: 180 };
+  }
+  if (cycle === 3 || name.includes("quarter")) {
+    return { label: "Quarterly (90 Days Validity)", suffix: "/ quarter", shortSuffix: "/ qtr", cycleName: "Quarterly", cycleStr: "Quarterly", days: 90 };
+  }
+  if (cycle === 99 || name.includes("lifetime")) {
+    return { label: "Lifetime Access", suffix: "(One-time)", shortSuffix: "one-time", cycleName: "Lifetime", cycleStr: "Lifetime", days: 3650 };
+  }
+  return { label: "Monthly (30 Days Validity)", suffix: "/ mo (excl. GST)", shortSuffix: "/ month", cycleName: "Monthly", cycleStr: "Monthly", days: 30 };
+};
+
   const handleBuyPlan = async (plan: Plan, couponCode?: string) => {
     setPurchasingPlanId(plan.id);
     setErrorMsg(null);
+    const planCycleStr = formatBillingCycle(plan.billingCycle, plan.code, plan.name).cycleStr;
     try {
       const orderRes = await tenantAppService.createSubscriptionOrder({
         planCode: plan.code,
-        billingCycle: "Monthly",
+        billingCycle: planCycleStr,
         couponCode: couponCode || undefined,
       });
 
@@ -171,7 +194,7 @@ export default function TenantBillingPage() {
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature || "simulated_signature",
                 planCode: plan.code,
-                billingCycle: "Monthly",
+                billingCycle: planCycleStr,
                 couponCode: couponCode || undefined,
               });
               setCompletedInvoice(confirmRes);
@@ -195,7 +218,7 @@ export default function TenantBillingPage() {
           razorpayPaymentId: "pay_simulated_" + Date.now(),
           razorpaySignature: "simulated_sig",
           planCode: plan.code,
-          billingCycle: "Monthly",
+          billingCycle: planCycleStr,
           couponCode: couponCode || undefined,
         });
         setCompletedInvoice(confirmRes);
@@ -639,6 +662,7 @@ export default function TenantBillingPage() {
             const basePrice = Number(plan.price) || 0;
             const gstAmount = Number((basePrice * 0.18).toFixed(2));
             const totalWithGst = Number((basePrice + gstAmount).toFixed(2));
+            const cycleInfo = formatBillingCycle(plan.billingCycle, plan.code, plan.name);
             const isCurrentPlan = !subStatus?.isTrial && (
               subStatus?.currentPlanCode === plan.code ||
               (subStatus?.currentPlanName && subStatus.currentPlanName.toLowerCase() === plan.name.toLowerCase())
@@ -679,13 +703,13 @@ export default function TenantBillingPage() {
                   <div className="pt-2">
                     <div className="flex items-baseline space-x-1">
                       <span className="text-2xl font-black text-slate-900 dark:text-white">₹{basePrice.toLocaleString("en-IN")}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">/ mo (excl. GST)</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{cycleInfo.suffix}</span>
                     </div>
                     <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-1">
                       + 18% GST (₹{gstAmount}) will be additional
                     </div>
                     <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                      Total: <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{totalWithGst.toLocaleString("en-IN")} / month</span>
+                      Total: <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{totalWithGst.toLocaleString("en-IN")} {cycleInfo.shortSuffix}</span>
                     </div>
                   </div>
 
@@ -1152,7 +1176,9 @@ export default function TenantBillingPage() {
               <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs">
                 <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
                   <span>Billing Cycle:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">Monthly (30 Days Validity)</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {formatBillingCycle(pendingCheckoutPlan.billingCycle, pendingCheckoutPlan.code, pendingCheckoutPlan.name).label}
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">

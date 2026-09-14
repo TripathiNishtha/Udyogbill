@@ -686,7 +686,8 @@ public class SuperAdminService : ISuperAdminService
             MaxInvoicesPerMonth = request.MaxInvoicesPerMonth,
             MaxStorageMb = request.MaxStorageMb,
             IsPopular = request.IsPopular,
-            IsActive = true
+            IsActive = true,
+            IsHidden = request.IsHidden
         };
 
         if (request.EntitledFeatureIds != null && request.EntitledFeatureIds.Count > 0)
@@ -752,6 +753,7 @@ public class SuperAdminService : ISuperAdminService
         plan.MaxStorageMb = request.MaxStorageMb;
         plan.IsActive = request.IsActive;
         plan.IsPopular = request.IsPopular;
+        plan.IsHidden = request.IsHidden;
 
         // Sync entitlements
         _context.PlanEntitlements.RemoveRange(plan.Entitlements);
@@ -1281,7 +1283,8 @@ public class SuperAdminService : ISuperAdminService
                 p.MaxStorageMb,
                 p.IsPopular,
                 p.IsActive,
-                p.Entitlements.Where(e => e.IsIncluded).Select(e => e.Feature.Code).ToList()
+                p.Entitlements.Where(e => e.IsIncluded).Select(e => e.Feature.Code).ToList(),
+                p.IsHidden
             ))
             .ToListAsync(cancellationToken);
 

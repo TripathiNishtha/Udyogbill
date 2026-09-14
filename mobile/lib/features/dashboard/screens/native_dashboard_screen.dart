@@ -245,13 +245,18 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                         ),
                         child: Row(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                            Container(
+                              width: 50,
+                              height: 50,
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF2FF),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFC7D2FE)),
+                              ),
                               child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 48,
-                                height: 48,
-                                fit: BoxFit.cover,
+                                'assets/images/logo_icon.png',
+                                fit: BoxFit.contain,
                                 errorBuilder: (context, error, stackTrace) => CircleAvatar(
                                   radius: 24,
                                   backgroundColor: AppTheme.primaryLight,

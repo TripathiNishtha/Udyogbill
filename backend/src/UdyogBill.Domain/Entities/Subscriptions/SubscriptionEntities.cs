@@ -25,6 +25,7 @@ public class Plan : BaseAuditableEntity
 
     public bool IsPopular { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsHidden { get; set; } = false;
     public int DisplayOrder { get; set; }
 
     public ICollection<PlanEntitlement> Entitlements { get; set; } = new List<PlanEntitlement>();
@@ -79,6 +80,7 @@ public class AddOn : BaseAuditableEntity
     public int AdditionalStorageMb { get; set; }
 
     public bool IsActive { get; set; } = true;
+    public bool IsHidden { get; set; } = false;
 }
 
 public class TenantSubscriptionAddOn : BaseTenantAuditableEntity

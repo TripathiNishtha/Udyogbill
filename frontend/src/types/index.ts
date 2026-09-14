@@ -213,6 +213,7 @@ export interface Plan {
   maxStorageMb: number;
   isPopular: boolean;
   isActive: boolean;
+  isHidden?: boolean;
   entitledFeatureCodes?: string[];
 }
 

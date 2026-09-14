@@ -144,12 +144,18 @@ class _PharmaSfaShellScreenState extends State<PharmaSfaShellScreen> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F4EA),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              child: const Icon(Icons.medication_outlined, color: AppTheme.primary, size: 20),
+              child: Image.asset(
+                'assets/images/logo_icon.png',
+                width: 24,
+                height: 24,
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(width: 8),
             Column(

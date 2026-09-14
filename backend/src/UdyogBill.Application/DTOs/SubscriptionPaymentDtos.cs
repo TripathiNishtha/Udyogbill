@@ -119,14 +119,16 @@ public record AddonCatalogItemDto(
     bool IsEnrolled,
     DateTimeOffset? EnrolledExpiresAtUtc,
     int RemainingDays,
-    decimal AnnualPrice = 0
+    decimal AnnualPrice = 0,
+    bool IsHidden = false
 );
 
 public record UpdateAddonPriceRequest(
     decimal Price,
     bool IsActive,
     string? Description,
-    decimal AnnualPrice = 0
+    decimal AnnualPrice = 0,
+    bool IsHidden = false
 );
 
 public record ManualGrantAddonRequest(

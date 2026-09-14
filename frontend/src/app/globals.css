@@ -732,7 +732,12 @@ footer.footer a:hover,
 /* Card & container surfaces */
 .super-admin-light-scope [class*="bg-slate-950"],
 .super-admin-light-scope [class*="bg-slate-900"],
-.super-admin-light-scope [class*="bg-slate-850"] {
+.super-admin-light-scope [class*="bg-slate-850"],
+.super-admin-light-scope [class*="from-slate-"],
+.super-admin-light-scope [class*="via-slate-"],
+.super-admin-light-scope [class*="to-slate-"],
+.super-admin-light-scope [class*="to-indigo-950"] {
+  background-image: none !important;
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
 }

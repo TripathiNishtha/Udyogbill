@@ -213,7 +213,8 @@ public record PlanDto(
     int MaxStorageMb,
     bool IsPopular,
     bool IsActive,
-    IReadOnlyList<string> EntitledFeatureCodes
+    IReadOnlyList<string> EntitledFeatureCodes,
+    bool IsHidden = false
 );
 
 public record TenantSubscriptionSummaryDto(

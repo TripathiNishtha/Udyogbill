@@ -27,6 +27,7 @@ public enum BillingCycle
     Quarterly = 3,
     SemiAnnually = 6,
     Annually = 12,
+    Biennial = 24,
     Lifetime = 99
 }
 

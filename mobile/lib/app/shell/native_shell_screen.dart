@@ -138,21 +138,21 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
               child: remoteConfig.headerLogoUrl.isNotEmpty
                   ? Image.network(
                       remoteConfig.headerLogoUrl,
-                      width: 28,
-                      height: 28,
-                      fit: BoxFit.cover,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
                       errorBuilder: (_, _, _) => Image.asset(
-                        'assets/images/logo.png',
-                        width: 28,
-                        height: 28,
-                        fit: BoxFit.cover,
+                        'assets/images/logo_icon.png',
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.contain,
                       ),
                     )
                   : Image.asset(
-                      'assets/images/logo.png',
-                      width: 28,
-                      height: 28,
-                      fit: BoxFit.cover,
+                      'assets/images/logo_icon.png',
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
                     ),
             ),
             const SizedBox(width: 10),
@@ -204,22 +204,29 @@ class _NativeShellScreenState extends State<NativeShellScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(8),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   child: remoteConfig.headerLogoUrl.isNotEmpty
                       ? Image.network(
                           remoteConfig.headerLogoUrl,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           errorBuilder: (_, _, _) => Image.asset(
-                            'assets/images/logo.png',
-                            fit: BoxFit.cover,
+                            'assets/images/logo_icon.png',
+                            fit: BoxFit.contain,
                           ),
                         )
                       : Image.asset(
-                          'assets/images/logo.png',
-                          fit: BoxFit.cover,
+                          'assets/images/logo_icon.png',
+                          fit: BoxFit.contain,
                         ),
                 ),
               ),

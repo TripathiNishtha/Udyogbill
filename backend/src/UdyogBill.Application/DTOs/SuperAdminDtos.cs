@@ -87,7 +87,8 @@ public record CreatePlanRequest(
     int MaxInvoicesPerMonth,
     int MaxStorageMb,
     bool IsPopular,
-    List<Guid> EntitledFeatureIds
+    List<Guid> EntitledFeatureIds,
+    bool IsHidden = false
 );
 
 public record UpdatePlanRequest(
@@ -104,7 +105,8 @@ public record UpdatePlanRequest(
     int MaxStorageMb,
     bool IsActive,
     bool IsPopular,
-    List<Guid> EntitledFeatureIds
+    List<Guid> EntitledFeatureIds,
+    bool IsHidden = false
 );
 
 // --- Super Admin Audit & Telemetry DTOs ---

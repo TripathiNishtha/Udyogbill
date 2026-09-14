@@ -40,6 +40,17 @@ import { Tenant, TenantDetails, Industry } from "@/types";
 import { authService, catalogService } from "@/services/api-services";
 import { apiClient } from "@/lib/api-client";
 
+const formatPlanCycleSuffix = (p: { billingCycle?: number; code?: string; name?: string }) => {
+  const code = (p.code || "").toUpperCase();
+  const name = (p.name || "").toLowerCase();
+  if (p.billingCycle === 24 || code.includes("BIENNIAL") || name.includes("2 year") || name.includes("2 yr") || name.includes("biennial")) return "/ 2 yrs";
+  if (p.billingCycle === 12 || code.includes("ANNUAL") || code.includes("YEAR") || name.includes("1 year") || name.includes("1 yr") || name.includes("annual")) return "/ yr";
+  if (p.billingCycle === 3) return "/ qtr";
+  if (p.billingCycle === 6) return "/ 6 mo";
+  if (p.billingCycle === 99) return " (One-time)";
+  return "/ mo";
+};
+
 export default function SuperAdminTenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [industries, setIndustries] = useState<Industry[]>([]);
@@ -1267,13 +1278,19 @@ export default function SuperAdminTenantsPage() {
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        const cycleDays = (p.billingCycle === 24 || (p.code && p.code.includes("BIENNIAL")) || (p.name && p.name.toLowerCase().includes("2 year")))
+                          ? 730
+                          : (p.billingCycle === 12 || (p.code && (p.code.includes("ANNUAL") || p.code.includes("YEAR"))) || (p.name && (p.name.toLowerCase().includes("1 year") || p.name.toLowerCase().includes("annual"))))
+                          ? 365
+                          : 30;
                         setSubModal((prev) => ({
                           ...prev,
                           selectedPlanId: p.id,
                           customAmount: p.price,
-                        }))
-                      }
+                          durationDays: cycleDays,
+                        }));
+                      }}
                       className={
                         "p-3 rounded-xl border text-left transition-all cursor-pointer " +
                         (subModal.selectedPlanId === p.id
@@ -1282,7 +1299,7 @@ export default function SuperAdminTenantsPage() {
                       }
                     >
                       <div className="font-bold text-white truncate">{p.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">₹{p.price}/mo</div>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">₹{p.price} {formatPlanCycleSuffix(p)}</div>
                     </button>
                   ))}
                 </div>
