@@ -1764,15 +1764,15 @@ function TenantInvoicesPageContent() {
       {/* Create Tax Invoice Modal / Drawer */}
       {isDrawerOpen && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-0 sm:p-2 z-[100000] overflow-hidden">
-          <div className="create-tax-invoice-modal bg-slate-950 text-foreground border-0 sm:border border-slate-800 rounded-none sm:rounded-2xl w-full sm:w-[99.5vw] sm:max-w-[1850px] h-[100dvh] sm:h-[98vh] max-h-[100dvh] sm:max-h-[98vh] p-2.5 sm:p-3 shadow-2xl relative flex flex-col overflow-hidden">
+          <div className="create-tax-invoice-modal bg-[#fff0e0] dark:bg-slate-950 text-foreground border-0 sm:border border-[#fed7aa] dark:border-slate-800 rounded-none sm:rounded-2xl w-full sm:w-[99.5vw] sm:max-w-[1850px] h-[100dvh] sm:h-[98vh] max-h-[100dvh] sm:max-h-[98vh] p-2.5 sm:p-3 shadow-2xl relative flex flex-col overflow-hidden">
             {/* Top Bar: Title, Industry Badge, Mode Selector, More Toggle, Hotkeys, Close */}
-            <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2 shrink-0">
+            <div className="flex items-center justify-between gap-2 border-b border-[#fed7aa] dark:border-slate-800/80 pb-2 shrink-0">
               <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
-                <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 shrink-0" />
-                <h3 className="text-xs sm:text-base font-bold text-white flex items-center space-x-1 sm:space-x-2 truncate">
+                <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <h3 className="text-xs sm:text-base font-bold text-slate-900 dark:text-white flex items-center space-x-1 sm:space-x-2 truncate">
                   <span className="truncate">{editingInvoiceId ? `Edit (${editingInvoiceNumber || "Draft"})` : "Create Invoice"}</span>
                   {!isOther && (
-                    <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase font-mono font-bold shrink-0">
+                    <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-500/30 uppercase font-mono font-bold shrink-0">
                       {activeIndustry}
                     </span>
                   )}
@@ -1780,14 +1780,14 @@ function TenantInvoicesPageContent() {
               </div>
 
               {/* Billing Mode Buttons */}
-              <div className="flex items-center space-x-1 bg-slate-900 p-0.5 sm:p-1 rounded-lg border border-slate-800 shrink-0">
+              <div className="flex items-center space-x-1 bg-white dark:bg-slate-900 p-0.5 sm:p-1 rounded-lg border border-[#fed7aa] dark:border-slate-800 shrink-0 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => handleSetBillingMode("b2b")}
                   className={`px-2 sm:px-2.5 py-1 rounded text-[11px] sm:text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer ${
                     billingMode === "b2b"
                       ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <Building2 className="w-3.5 h-3.5 hidden sm:inline" />
@@ -1800,7 +1800,7 @@ function TenantInvoicesPageContent() {
                   className={`px-2 sm:px-2.5 py-1 rounded text-[11px] sm:text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer ${
                     billingMode === "retail"
                       ? "bg-emerald-600 text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5 hidden sm:inline" />
@@ -1813,7 +1813,7 @@ function TenantInvoicesPageContent() {
                   className={`px-2 sm:px-2.5 py-1 rounded text-[11px] sm:text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer ${
                     billingMode === "thermal"
                       ? "bg-amber-600 text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <Printer className="w-3.5 h-3.5 hidden sm:inline" />
@@ -1826,10 +1826,10 @@ function TenantInvoicesPageContent() {
                 <button
                   type="button"
                   onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
-                  className={`text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-lg border flex items-center space-x-1 transition-colors font-medium cursor-pointer ${
+                  className={`text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-lg border flex items-center space-x-1 transition-colors font-medium cursor-pointer shadow-2xs ${
                     isHeaderExpanded
-                      ? "bg-indigo-600/30 border-indigo-500/50 text-indigo-200"
-                      : "bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700"
+                      ? "bg-indigo-600/20 border-indigo-400 text-indigo-800 dark:text-indigo-200"
+                      : "bg-white dark:bg-slate-900 border-[#fed7aa] dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <span>{isHeaderExpanded ? "▲ Hide Options" : "⚙️ More"}</span>
@@ -1838,10 +1838,10 @@ function TenantInvoicesPageContent() {
                 <button
                   type="button"
                   onClick={() => setIsShortcutsHelpOpen(true)}
-                  className="hidden sm:flex px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs border border-slate-800 items-center space-x-1 cursor-pointer"
+                  className="hidden sm:flex px-2 py-1 rounded-lg bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs border border-[#fed7aa] dark:border-slate-800 items-center space-x-1 cursor-pointer shadow-2xs"
                   title="Keyboard Shortcuts (F1)"
                 >
-                  <Keyboard className="w-3.5 h-3.5 text-amber-400" />
+                  <Keyboard className="w-3.5 h-3.5 text-amber-500" />
                   <span>F1</span>
                 </button>
                 <button
@@ -1852,7 +1852,7 @@ function TenantInvoicesPageContent() {
                     setEditingInvoiceNumber("");
                     if (editIdFromUrl) router.replace("/app/sales/invoices");
                   }}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-900 cursor-pointer"
+                  className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-slate-900 cursor-pointer"
                   title="Close (Esc)"
                 >
                   <X className="w-5 h-5" />
@@ -1864,7 +1864,7 @@ function TenantInvoicesPageContent() {
               {/* Scrollable Form Body (Ensures Pinned Header & Pinned Bottom Footer on mobile) */}
               <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5 sm:pr-1 pb-16 sm:pb-4">
                 {/* 1. Customer & Invoice Meta Row (Blue/Indigo Themed - Zero Overlap ERP Style) */}
-                <div id="tour-customer-box" className="p-2 sm:p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/95 border border-slate-200 dark:border-blue-500/30 shadow-xs shrink-0 space-y-2">
+                <div id="tour-customer-box" className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900/95 border border-[#fed7aa] dark:border-blue-500/30 shadow-xs shrink-0 space-y-2">
                 {/* Row 1: Party / Customer Selection + Date & Branch */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[300px]">
@@ -2415,7 +2415,7 @@ function TenantInvoicesPageContent() {
               {/* Line Items Table Container */}
               <div className="flex-1 min-h-0 flex flex-col space-y-1">
                 {/* 2. Search Bar & Quick Add Row */}
-                <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 shrink-0 p-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-purple-500/30 shadow-2xs">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 shrink-0 p-1.5 rounded-xl bg-white dark:bg-slate-900/90 border border-[#fed7aa] dark:border-purple-500/30 shadow-2xs">
                   <div className="relative w-full sm:flex-1 min-w-[200px]">
                     <Search className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
@@ -2886,9 +2886,9 @@ function TenantInvoicesPageContent() {
                 </div>
 
                 {/* 4. Line Items Table (Dense ERP Layout - 10+ Items Fit Viewport) */}
-                <div className="hidden lg:block flex-1 min-h-[360px] border border-slate-200 dark:border-slate-700/80 rounded-xl overflow-y-auto overflow-x-auto shadow-sm bg-white dark:bg-slate-950/95">
+                <div className="hidden lg:block flex-1 min-h-[360px] border border-[#fed7aa] dark:border-slate-700/80 rounded-xl overflow-y-auto overflow-x-auto shadow-sm bg-[#fff0e0]/30 dark:bg-slate-950/95">
                   <table className="w-full text-left text-xs min-w-[1020px]">
-                    <thead className="bg-slate-100 dark:bg-slate-900/95 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 text-[11px] sticky top-0 z-10 font-bold shadow-2xs backdrop-blur-sm">
+                    <thead className="bg-[#ffedd5] dark:bg-slate-900/95 text-slate-800 dark:text-slate-300 border-b border-[#fed7aa] dark:border-slate-700 text-[11px] sticky top-0 z-10 font-bold shadow-2xs backdrop-blur-sm">
                       <tr>
                         <th className="px-1 py-1.5 w-8 text-center text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/95">#</th>
                         <th className="px-1.5 py-1.5 min-w-[180px] text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95">Product / Item *</th>
@@ -3431,7 +3431,7 @@ function TenantInvoicesPageContent() {
               </div> {/* End Scrollable Form Body */}
 
               {/* 5. Sleek Docked Footer: Tender & Mode + Summary Metrics + Net Payable + F10 Save */}
-              <div className="shrink-0 p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t-2 border-indigo-500 dark:border-indigo-500/50 border-x border-b border-slate-200 dark:border-slate-800 rounded-b-xl sm:rounded-xl shadow-xl space-y-1.5 z-20">
+              <div className="shrink-0 p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t-2 border-indigo-500 dark:border-indigo-500/50 border-x border-b border-[#fed7aa] dark:border-slate-800 rounded-b-xl sm:rounded-xl shadow-xl space-y-1.5 z-20">
                 {/* Top Row: Tender, Mode & Metrics */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center space-x-2">

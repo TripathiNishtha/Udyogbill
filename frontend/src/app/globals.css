@@ -358,6 +358,32 @@ html.theme-light div[class*="bg-slate-950"] {
   color: #0f172a !important;
 }
 
+/* Create Invoice Modal / Drawer Canvas (Bilkul Light Orange #fff0e0 - Same as Sidebar) */
+html:not(.dark) .create-tax-invoice-modal,
+html.theme-light .create-tax-invoice-modal {
+  background-color: #fff0e0 !important;
+  border-color: #fed7aa !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal .border-b,
+html.theme-light .create-tax-invoice-modal .border-b {
+  border-color: #fed7aa !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal table thead,
+html:not(.dark) .create-tax-invoice-modal table thead th,
+html.theme-light .create-tax-invoice-modal table thead,
+html.theme-light .create-tax-invoice-modal table thead th {
+  background-color: #ffedd5 !important;
+  color: #1e293b !important;
+  border-color: #fed7aa !important;
+}
+
+html:not(.dark) .create-tax-invoice-modal table tbody tr,
+html.theme-light .create-tax-invoice-modal table tbody tr {
+  background-color: #ffffff !important;
+}
+
 /* Headings inside any container in light theme */
 html:not(.dark) h1.text-white,
 html:not(.dark) h2.text-white,
