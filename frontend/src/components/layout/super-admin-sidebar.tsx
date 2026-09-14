@@ -137,14 +137,14 @@ export function SuperAdminSidebar({
       )}
 
       <aside
-        className={`bg-white text-slate-800 flex flex-col h-full border-r border-slate-200 shrink-0 shadow-sm transition-transform duration-300 ease-in-out z-50 ${
+        className={`bg-[#e8f4ec] text-slate-800 flex flex-col h-full border-r border-[#d2e7d7] shrink-0 shadow-sm transition-transform duration-300 ease-in-out z-50 ${
           isOpenMobile
             ? "fixed inset-y-0 left-0 w-72 translate-x-0 shadow-2xl"
             : "fixed inset-y-0 left-0 w-72 -translate-x-full lg:static lg:translate-x-0"
         }`}
       >
         {/* Brand Header */}
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+        <div className="p-5 border-b border-[#d2e7d7] flex items-center justify-between bg-[#dcf0e2]/60">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
               <Sparkles className="w-5 h-5 text-white" />
