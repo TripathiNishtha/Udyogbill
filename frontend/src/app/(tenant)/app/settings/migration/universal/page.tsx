@@ -161,75 +161,49 @@ export default function UniversalMultiSheetMigrationPage() {
         </div>
       </div>
 
-      {/* 2 Clear Paths: Direct Upload vs Download Template */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Option A: Already have file from Marg/Tally/Vyapar/Busy */}
-        <div className="lg:col-span-6 bg-gradient-to-br from-blue-50/70 via-indigo-50/30 to-white dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-900 border border-blue-200 dark:border-blue-900/40 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-2xs">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider">
-              🚀 Option 1 • Sabse Aasaan
-            </div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Purane Software se Export File Ready Hai?
-            </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              Agar aapne <strong>Marg, Tally, Vyapar, Busy ya purani Excel</strong> se file export kar li hai, to <span className="text-blue-700 dark:text-blue-400 font-bold">template download karne ki koi zaroorat nahi hai</span>. Aap seedha neeche apni file upload karein — hamara AI system columns khud pehchan lega.
-            </p>
+      {/* Single Clean Action Card: Download Official Migration Template */}
+      <div className="bg-gradient-to-br from-emerald-50/80 via-teal-50/40 to-white dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-200 dark:border-emerald-900/40 rounded-2xl p-6 shadow-2xs space-y-4">
+        <div className="space-y-2 max-w-3xl">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
+            📥 Official Migration Template
           </div>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full sm:w-auto self-start px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition cursor-pointer"
-          >
-            <UploadCloud className="w-4 h-4" />
-            <span>Seedha File Upload Karein</span>
-          </button>
+          <h2 className="text-lg font-black text-slate-900 dark:text-white">
+            Naye Sire Se Excel Me Data Bharna Hai?
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+            UdyogBill ka official Excel workbook download karein. Isme demo data ke sath <strong>Items, Customers, Suppliers aur Opening Stock</strong> ke bane-banaye columns milenge jisme aap apna data fill kar sakte hain.
+          </p>
         </div>
 
-        {/* Option B: Need Excel Template */}
-        <div className="lg:col-span-6 bg-gradient-to-br from-emerald-50/70 via-teal-50/30 to-white dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-200 dark:border-emerald-900/40 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-2xs">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
-              📥 Option 2 • Naya Format Chahiye
-            </div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Naye Sire Se Excel Me Data Bharna Hai?
-            </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              UdyogBill ka official Excel workbook download karein. Isme demo data ke sath <strong>Items, Customers, Suppliers aur Opening Stock</strong> ke bane-banaye columns milenge jisme aap apna data fill kar sakte hain.
-            </p>
+        <div className="space-y-3 pt-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => downloadMasterMigrationTemplate({ includeSampleData: true })}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-2 transition cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Excel Template (.xlsx)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadMasterMigrationTemplate({ includeSampleData: false })}
+              className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl shadow-2xs transition cursor-pointer"
+            >
+              Blank Template (Khaali File)
+            </button>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => downloadMasterMigrationTemplate({ includeSampleData: true })}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-2 transition cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Excel Template (.xlsx)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => downloadMasterMigrationTemplate({ includeSampleData: false })}
-                className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 hover:underline cursor-pointer"
-              >
-                Blank Template (Khaali File)
-              </button>
-            </div>
-
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowSheetsInfo(!showSheetsInfo)}
-                className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer pt-1"
-              >
-                <Info className="w-3.5 h-3.5" />
-                <span>{showSheetsInfo ? "Hide Included Sheets" : "Dekhein template me kaun si sheets shamil hain (7 Sheets)"}</span>
-                {showSheetsInfo ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-            </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowSheetsInfo(!showSheetsInfo)}
+              className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1.5 cursor-pointer pt-1"
+            >
+              <Info className="w-4 h-4" />
+              <span>{showSheetsInfo ? "Hide Included Sheets" : "Dekhein template me kaun si sheets shamil hain (7 Sheets)"}</span>
+              {showSheetsInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
       </div>
