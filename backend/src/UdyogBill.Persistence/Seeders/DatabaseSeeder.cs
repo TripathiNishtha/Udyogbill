@@ -1608,14 +1608,17 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
                     ""EnableExitIntent"" boolean NOT NULL DEFAULT TRUE,
                     ""DismissCooldownHours"" integer NOT NULL DEFAULT 24,
                     ""WhatsappNumber"" text NOT NULL DEFAULT '919473807622',
-                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    ""CreatedBy"" text NULL,
-                    ""LastModifiedAt"" timestamp with time zone NULL,
-                    ""LastModifiedBy"" text NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""CreatedBy"" uuid NULL,
+                    ""UpdatedAtUtc"" timestamp with time zone NULL,
+                    ""UpdatedBy"" uuid NULL,
                     ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
-                    ""DeletedAt"" timestamp with time zone NULL,
-                    ""DeletedBy"" text NULL
-                );"
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" uuid NULL
+                );",
+                @"ALTER TABLE ""PlatformLeadPopupConfigs"" ADD COLUMN IF NOT EXISTS ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;",
+                @"ALTER TABLE ""PlatformLeadPopupConfigs"" ADD COLUMN IF NOT EXISTS ""UpdatedAtUtc"" timestamp with time zone NULL;",
+                @"ALTER TABLE ""PlatformLeadPopupConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedAtUtc"" timestamp with time zone NULL;"
             };
 
             foreach (var alterStmt in alterStatements)
