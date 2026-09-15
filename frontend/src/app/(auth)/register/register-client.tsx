@@ -106,9 +106,6 @@ function RegisterContent() {
         );
         const finalIndustries = canonical.length > 0 ? canonical : data;
         setIndustries(finalIndustries);
-        if (finalIndustries.length > 0) {
-          setFormData((prev) => ({ ...prev, industryId: finalIndustries[0].id }));
-        }
       } catch (err) {
         setIndustries([
           { id: "1", code: "PHARMA", name: "Pharmaceuticals & Healthcare (Batch, Expiry, H1)", description: "Batch & Expiry", icon: "activity", displayOrder: 1, isActive: true, modules: [] },
@@ -465,10 +462,15 @@ function RegisterContent() {
                       value={formData.industryId}
                       onChange={(e) => setFormData({ ...formData, industryId: e.target.value })}
                       required
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 text-xs font-semibold focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs cursor-pointer"
+                      className={`w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs cursor-pointer ${
+                        !formData.industryId ? "text-slate-400 font-medium" : "text-slate-900 font-semibold"
+                      }`}
                     >
+                      <option value="" disabled className="text-slate-400">
+                        -- Select Your Business Category --
+                      </option>
                       {industries.map((ind) => (
-                        <option key={ind.id} value={ind.id}>
+                        <option key={ind.id} value={ind.id} className="text-slate-900 font-medium py-1">
                           {ind.name}
                         </option>
                       ))}
