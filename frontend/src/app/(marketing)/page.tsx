@@ -414,28 +414,35 @@ export default function HomePage() {
       </section>
 
       {/* ── 2. METRICS & AUTHORITY BAR (COMPACT) ─────────────────────────── */}
-      <section className="border-y border-orange-200/80 bg-gradient-to-r from-orange-100/50 via-[#fff7ed] to-amber-100/50 py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-            <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-              <div className="text-2xl sm:text-3xl font-black text-slate-950">10,000+</div>
-              <div className="text-xs font-bold text-slate-700 mt-0.5">Active Indian MSMEs</div>
-              <div className="text-[10px] text-orange-600 font-semibold">Retailers &amp; Wholesalers</div>
+      <section className="border-y border-orange-200/80 bg-gradient-to-r from-orange-100/60 via-[#fff7ed] to-amber-100/60 py-7 relative overflow-hidden">
+        {/* Subtle decorative glow */}
+        <div className="absolute -top-12 -left-12 w-48 h-48 bg-orange-200/40 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-amber-200/40 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 relative z-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 text-center">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white via-orange-50/40 to-amber-50/30 border-2 border-orange-200/80 shadow-md shadow-orange-950/5 hover:border-orange-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+              <div className="text-2xl sm:text-4xl font-black bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">10,000+</div>
+              <div className="text-xs sm:text-sm font-black text-slate-800 mt-1">Active Indian MSMEs</div>
+              <div className="text-[11px] text-orange-600 font-bold mt-0.5">Retailers &amp; Wholesalers</div>
             </div>
-            <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-              <div className="text-2xl sm:text-3xl font-black text-slate-950">₹500 Cr+</div>
-              <div className="text-xs font-bold text-slate-700 mt-0.5">Annual Value Billed</div>
-              <div className="text-[10px] text-emerald-600 font-semibold">100% Calculation Match</div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white via-emerald-50/30 to-teal-50/20 border-2 border-emerald-200/80 shadow-md shadow-emerald-950/5 hover:border-emerald-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+              <div className="text-2xl sm:text-4xl font-black text-emerald-700">₹500 Cr+</div>
+              <div className="text-xs sm:text-sm font-black text-slate-800 mt-1">Annual Value Billed</div>
+              <div className="text-[11px] text-emerald-600 font-bold mt-0.5">100% Calculation Match</div>
             </div>
-            <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-              <div className="text-2xl sm:text-3xl font-black text-slate-950">48+ Cities</div>
-              <div className="text-xs font-bold text-slate-700 mt-0.5">Across 28 Indian States</div>
-              <div className="text-[10px] text-blue-600 font-semibold">State GST Compliant</div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white via-blue-50/30 to-indigo-50/20 border-2 border-blue-200/80 shadow-md shadow-blue-950/5 hover:border-blue-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+              <div className="text-2xl sm:text-4xl font-black text-blue-700">48+ Cities</div>
+              <div className="text-xs sm:text-sm font-black text-slate-800 mt-1">Across 28 Indian States</div>
+              <div className="text-[11px] text-blue-600 font-bold mt-0.5">State GST Compliant</div>
             </div>
-            <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-              <div className="text-2xl sm:text-3xl font-black text-emerald-600">99.98%</div>
-              <div className="text-xs font-bold text-slate-700 mt-0.5">Cloud Uptime SLA</div>
-              <div className="text-[10px] text-emerald-700 font-semibold">Zero Downtime Guarantee</div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white via-emerald-50/30 to-amber-50/20 border-2 border-emerald-200/80 shadow-md shadow-emerald-950/5 hover:border-emerald-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+              <div className="text-2xl sm:text-4xl font-black text-emerald-600">99.98%</div>
+              <div className="text-xs sm:text-sm font-black text-slate-800 mt-1">Cloud Uptime SLA</div>
+              <div className="text-[11px] text-emerald-700 font-bold mt-0.5">Zero Downtime Guarantee</div>
             </div>
           </div>
         </div>
@@ -443,60 +450,64 @@ export default function HomePage() {
 
       {/* ── 3. 4-STEP AUTOMATION WORKFLOW (COMPACT) ───────────────────────── */}
       <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="text-center max-w-2xl mx-auto mb-6">
-          <span className="text-[11px] uppercase font-black tracking-wider px-3 py-1 rounded-full bg-orange-100 text-orange-800 border border-orange-300">
+        <div className="text-center max-w-2xl mx-auto mb-7">
+          <span className="text-[11px] uppercase font-black tracking-wider px-3 py-1 rounded-full bg-orange-100 text-orange-900 border border-orange-300 shadow-2xs">
             Simplicity by Design
           </span>
-          <h2 className="text-xl sm:text-3xl font-black text-slate-950 tracking-tight mt-2">
+          <h2 className="text-xl sm:text-3xl font-black text-slate-950 tracking-tight mt-2.5">
             How UdyogBill Automates Your Daily Vyapar in 4 Steps
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-orange-500 shadow-2xs transition-all group">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 text-white font-black text-lg flex items-center justify-center mb-3 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left">
+          <div className="bg-gradient-to-br from-white via-orange-50/35 to-amber-50/20 p-6 rounded-2xl border-2 border-orange-200/70 hover:border-orange-500 shadow-md shadow-orange-950/5 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200/20 rounded-full blur-xl pointer-events-none group-hover:bg-orange-300/30 transition-all" />
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white font-black text-lg flex items-center justify-center mb-4 shadow-md shadow-orange-500/30 group-hover:scale-105 transition-transform">
               1
             </div>
             <h3 className="text-base font-black text-slate-950 group-hover:text-orange-600 transition-colors">
               Scan Barcode or Search
             </h3>
-            <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-700 mt-2 leading-relaxed font-medium">
               Scan barcode or type name. Price, batch, tax slab, and godown stock populate instantly.
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-orange-500 shadow-2xs transition-all group">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 text-white font-black text-lg flex items-center justify-center mb-3 shadow-sm">
+          <div className="bg-gradient-to-br from-white via-orange-50/35 to-amber-50/20 p-6 rounded-2xl border-2 border-orange-200/70 hover:border-orange-500 shadow-md shadow-orange-950/5 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200/20 rounded-full blur-xl pointer-events-none group-hover:bg-orange-300/30 transition-all" />
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white font-black text-lg flex items-center justify-center mb-4 shadow-md shadow-orange-500/30 group-hover:scale-105 transition-transform">
               2
             </div>
             <h3 className="text-base font-black text-slate-950 group-hover:text-orange-600 transition-colors">
               Print Bill in 5 Seconds
             </h3>
-            <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-700 mt-2 leading-relaxed font-medium">
               Hit Enter or F2 to print on 2&quot;/3&quot; thermal roll or A4 laser sheet with your logo and UPI QR.
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-orange-500 shadow-2xs transition-all group">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 text-white font-black text-lg flex items-center justify-center mb-3 shadow-sm">
+          <div className="bg-gradient-to-br from-white via-orange-50/35 to-amber-50/20 p-6 rounded-2xl border-2 border-orange-200/70 hover:border-orange-500 shadow-md shadow-orange-950/5 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200/20 rounded-full blur-xl pointer-events-none group-hover:bg-orange-300/30 transition-all" />
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white font-black text-lg flex items-center justify-center mb-4 shadow-md shadow-orange-500/30 group-hover:scale-105 transition-transform">
               3
             </div>
             <h3 className="text-base font-black text-slate-950 group-hover:text-orange-600 transition-colors">
               WhatsApp PDF &amp; Pay Link
             </h3>
-            <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-700 mt-2 leading-relaxed font-medium">
               Bill sends directly to customer&apos;s WhatsApp with UPI link for 1-click payment via GPay or PhonePe.
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-orange-500 shadow-2xs transition-all group">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 text-white font-black text-lg flex items-center justify-center mb-3 shadow-sm">
+          <div className="bg-gradient-to-br from-white via-orange-50/35 to-amber-50/20 p-6 rounded-2xl border-2 border-orange-200/70 hover:border-orange-500 shadow-md shadow-orange-950/5 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200/20 rounded-full blur-xl pointer-events-none group-hover:bg-orange-300/30 transition-all" />
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white font-black text-lg flex items-center justify-center mb-4 shadow-md shadow-orange-500/30 group-hover:scale-105 transition-transform">
               4
             </div>
             <h3 className="text-base font-black text-slate-950 group-hover:text-orange-600 transition-colors">
               Auto GSTR-1 &amp; E-Way Bill
             </h3>
-            <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-700 mt-2 leading-relaxed font-medium">
               Every invoice automatically updates stock, party ledger, and GSTR-1 returns.
             </p>
           </div>
