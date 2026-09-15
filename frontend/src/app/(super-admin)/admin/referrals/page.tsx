@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { 
@@ -143,28 +143,28 @@ export default function SuperAdminReferralsPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 text-slate-900">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border-2 border-orange-200/80 shadow-sm">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-2">
-            <Gift className="w-4 h-4" /> Affiliate & Referral Management
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 border border-orange-300 text-orange-900 text-xs font-bold uppercase tracking-wider mb-2">
+            <Gift className="w-4 h-4 text-orange-600" /> Affiliate &amp; Referral Management
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Tenant Referral Network & Payouts</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <h1 className="text-2xl font-black text-slate-950 tracking-tight">Tenant Referral Network &amp; Payouts</h1>
+          <p className="text-xs text-slate-600 mt-1 font-medium">
             Configure partner rewards, view who referred whom, track paid subscription conversions, and disburse payouts.
           </p>
         </div>
 
         <button
           onClick={loadAll}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-all self-start sm:self-auto"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold border border-orange-200 shadow-2xs transition-all self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </button>
@@ -172,83 +172,83 @@ export default function SuperAdminReferralsPage() {
 
       {feedback && (
         <div
-          className={`p-4 rounded-xl flex items-center gap-3 text-sm ${
+          className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${
             feedback.type === "success"
-              ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-              : "bg-rose-500/10 border border-rose-500/30 text-rose-400"
+              ? "bg-emerald-50 border border-emerald-300 text-emerald-800"
+              : "bg-rose-50 border border-rose-300 text-rose-800"
           }`}
         >
-          {feedback.type === "success" ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+          {feedback.type === "success" ? <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-600" /> : <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600" />}
           <span>{feedback.message}</span>
         </div>
       )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Signups</span>
-          <div className="mt-2 text-2xl font-bold text-white">{analytics?.totalReferralsRegistered || 0}</div>
-          <div className="text-[11px] text-slate-500 mt-1">Referred registrations</div>
+        <div className="bg-white border-2 border-slate-200 hover:border-orange-300 rounded-2xl p-5 shadow-sm transition-all">
+          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Total Signups</span>
+          <div className="mt-2 text-3xl font-black text-slate-950">{analytics?.totalReferralsRegistered || 0}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">Referred registrations</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Paid Subscribers</span>
-          <div className="mt-2 text-2xl font-bold text-emerald-400">{analytics?.totalPaidConversions || 0}</div>
-          <div className="text-[11px] text-slate-500 mt-1">Converted to paid plans</div>
+        <div className="bg-white border-2 border-emerald-200/90 rounded-2xl p-5 shadow-sm transition-all">
+          <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Paid Subscribers</span>
+          <div className="mt-2 text-3xl font-black text-emerald-600">{analytics?.totalPaidConversions || 0}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">Converted to paid plans</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Commission</span>
-          <div className="mt-2 text-2xl font-bold text-white">₹{(analytics?.totalCommissionsAccrued || 0).toLocaleString("en-IN")}</div>
-          <div className="text-[11px] text-slate-500 mt-1">Total reward accrued</div>
+        <div className="bg-white border-2 border-slate-200 hover:border-orange-300 rounded-2xl p-5 shadow-sm transition-all">
+          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Total Commission</span>
+          <div className="mt-2 text-3xl font-black text-slate-950">₹{(analytics?.totalCommissionsAccrued || 0).toLocaleString("en-IN")}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">Total reward accrued</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Disbursed</span>
-          <div className="mt-2 text-2xl font-bold text-indigo-400">₹{(analytics?.totalCommissionsPaidOut || 0).toLocaleString("en-IN")}</div>
-          <div className="text-[11px] text-slate-500 mt-1">Paid to referrers</div>
+        <div className="bg-white border-2 border-orange-200 rounded-2xl p-5 shadow-sm transition-all">
+          <span className="text-xs font-bold text-orange-700 uppercase tracking-wider">Total Disbursed</span>
+          <div className="mt-2 text-3xl font-black text-orange-600">₹{(analytics?.totalCommissionsPaidOut || 0).toLocaleString("en-IN")}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">Paid to referrers</div>
         </div>
 
-        <div className="bg-slate-900 border border-amber-500/30 bg-amber-500/5 rounded-xl p-5">
-          <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Pending Payouts</span>
-          <div className="mt-2 text-2xl font-bold text-amber-400">₹{(analytics?.pendingPayoutsAmount || 0).toLocaleString("en-IN")}</div>
-          <div className="text-[11px] text-amber-300/80 mt-1">Due for next-day release</div>
+        <div className="bg-amber-50/60 border-2 border-amber-300 rounded-2xl p-5 shadow-sm transition-all">
+          <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">Pending Payouts</span>
+          <div className="mt-2 text-3xl font-black text-amber-600">₹{(analytics?.pendingPayoutsAmount || 0).toLocaleString("en-IN")}</div>
+          <div className="text-[11px] text-amber-700 mt-1 font-semibold">Due for next-day release</div>
         </div>
       </div>
 
-      {/* Program Configuration Panel (SuperAdmin Edit & Fix Amount) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      {/* Program Configuration Panel */}
+      <div className="bg-white border-2 border-orange-200/80 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-2">
-          <Sliders className="w-5 h-5 text-indigo-400" />
-          <h2 className="text-lg font-bold text-white">Global Referral Reward Rules & Pricing</h2>
+          <Sliders className="w-5 h-5 text-orange-600" />
+          <h2 className="text-lg font-black text-slate-950">Global Referral Reward Rules &amp; Pricing</h2>
         </div>
-        <p className="text-xs text-slate-400 mb-6">
+        <p className="text-xs text-slate-600 mb-6 font-medium">
           Set the referral reward amount that referrers earn when their invited business purchases a subscription.
         </p>
 
         <form onSubmit={handleSaveConfig} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Program Status
             </label>
             <select
               value={configForm.isEnabled ? "true" : "false"}
               onChange={(e) => setConfigForm({ ...configForm, isEnabled: e.target.value === "true" })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 text-sm font-semibold focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20"
             >
-              <option value="true">Active & Rewarding</option>
+              <option value="true">Active &amp; Rewarding</option>
               <option value="false">Paused / Disabled</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Reward Type
             </label>
             <select
               value={configForm.rewardType}
               onChange={(e) => setConfigForm({ ...configForm, rewardType: Number(e.target.value) })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 text-sm font-semibold focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20"
             >
               <option value={1}>Fixed Amount (₹ INR)</option>
               <option value={2}>Percentage of Order (%)</option>
@@ -256,7 +256,7 @@ export default function SuperAdminReferralsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Default Reward ({configForm.rewardType === 1 ? "₹ Flat" : "% Cut"})
             </label>
             <div className="relative">
@@ -267,7 +267,7 @@ export default function SuperAdminReferralsPage() {
                 required
                 value={configForm.defaultRewardAmount}
                 onChange={(e) => setConfigForm({ ...configForm, defaultRewardAmount: parseFloat(e.target.value) || 0 })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm font-bold focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 text-sm font-black focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20"
               />
               <span className="absolute right-3.5 top-2.5 text-xs text-slate-500 font-bold">
                 {configForm.rewardType === 1 ? "₹ INR" : "%"}
@@ -279,7 +279,7 @@ export default function SuperAdminReferralsPage() {
             <button
               type="submit"
               disabled={savingConfig}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer"
             >
               {savingConfig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               <span>Save Referral Pricing</span>
@@ -289,52 +289,52 @@ export default function SuperAdminReferralsPage() {
       </div>
 
       {/* Top Referrers Leaderboard */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-        <h2 className="text-lg font-bold text-white mb-1">Top Referrers & Store Earnings</h2>
-        <p className="text-xs text-slate-400 mb-4">List of active store owners promoting UdyogBill</p>
+      <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h2 className="text-lg font-black text-slate-950 mb-1">Top Referrers &amp; Store Earnings</h2>
+        <p className="text-xs text-slate-600 mb-4 font-medium">List of active store owners promoting UdyogBill</p>
 
         {!analytics?.topReferrers || analytics.topReferrers.length === 0 ? (
-          <div className="text-center py-8 text-slate-500 text-xs">No registered referrers found yet.</div>
+          <div className="text-center py-8 text-slate-500 text-xs font-medium">No registered referrers found yet.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 text-slate-800 uppercase tracking-wider border-b border-slate-200 font-bold">
                 <tr>
-                  <th className="py-3 px-3">Referrer Store</th>
-                  <th className="py-3 px-3">Referral Code</th>
-                  <th className="py-3 px-3">Contact</th>
-                  <th className="py-3 px-3">Payout Destination</th>
-                  <th className="py-3 px-3 text-center">Invited</th>
-                  <th className="py-3 px-3 text-center">Paid</th>
-                  <th className="py-3 px-3 text-right">Earned</th>
-                  <th className="py-3 px-3 text-right">Pending</th>
+                  <th className="py-3 px-3.5">Referrer Store</th>
+                  <th className="py-3 px-3.5">Referral Code</th>
+                  <th className="py-3 px-3.5">Contact</th>
+                  <th className="py-3 px-3.5">Payout Destination</th>
+                  <th className="py-3 px-3.5 text-center">Invited</th>
+                  <th className="py-3 px-3.5 text-center">Paid</th>
+                  <th className="py-3 px-3.5 text-right">Earned</th>
+                  <th className="py-3 px-3.5 text-right">Pending</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100">
                 {analytics.topReferrers.map((r) => (
-                  <tr key={r.tenantId} className="hover:bg-slate-850/50 transition-colors">
-                    <td className="py-3 px-3 font-medium text-white">
+                  <tr key={r.tenantId} className="hover:bg-orange-50/40 transition-colors">
+                    <td className="py-3 px-3.5 font-bold text-slate-900">
                       <div>{r.storeName}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">{r.storeCode}</div>
+                      <div className="text-[11px] text-slate-500 font-mono font-normal">{r.storeCode}</div>
                     </td>
-                    <td className="py-3 px-3 font-mono font-bold text-indigo-300">{r.referralCode}</td>
-                    <td className="py-3 px-3 text-slate-400">
+                    <td className="py-3 px-3.5 font-mono font-black text-orange-600">{r.referralCode}</td>
+                    <td className="py-3 px-3.5 text-slate-600 font-medium">
                       <div>{r.adminEmail}</div>
                       <div className="text-[11px] text-slate-500">{r.primaryPhone}</div>
                     </td>
-                    <td className="py-3 px-3 font-mono text-[11px]">
+                    <td className="py-3 px-3.5 font-mono text-[11px]">
                       {r.upiId ? (
-                        <span className="text-emerald-400 font-semibold">{r.upiId}</span>
+                        <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{r.upiId}</span>
                       ) : r.bankAccountNumber ? (
-                        <span className="text-slate-300">A/C: {r.bankAccountNumber} ({r.bankIfsc})</span>
+                        <span className="text-slate-800 font-semibold">A/C: {r.bankAccountNumber} ({r.bankIfsc})</span>
                       ) : (
-                        <span className="text-slate-600 italic">Not configured</span>
+                        <span className="text-slate-400 italic">Not configured</span>
                       )}
                     </td>
-                    <td className="py-3 px-3 text-center font-bold text-white">{r.totalReferrals}</td>
-                    <td className="py-3 px-3 text-center font-bold text-emerald-400">{r.paidConversions}</td>
-                    <td className="py-3 px-3 text-right font-semibold text-white">₹{r.totalEarned.toLocaleString("en-IN")}</td>
-                    <td className="py-3 px-3 text-right font-bold text-amber-400">
+                    <td className="py-3 px-3.5 text-center font-bold text-slate-900">{r.totalReferrals}</td>
+                    <td className="py-3 px-3.5 text-center font-bold text-emerald-700">{r.paidConversions}</td>
+                    <td className="py-3 px-3.5 text-right font-black text-slate-900">₹{r.totalEarned.toLocaleString("en-IN")}</td>
+                    <td className="py-3 px-3.5 text-right font-black text-amber-600">
                       {r.pendingBalance > 0 ? `₹${r.pendingBalance.toLocaleString("en-IN")}` : "₹0"}
                     </td>
                   </tr>
@@ -346,29 +346,29 @@ export default function SuperAdminReferralsPage() {
       </div>
 
       {/* Referral Conversions & Payout Action Ledger */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Referral Conversions & Payout Processing</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Approve, disburse, and enter UTR / Payment references for next-day payouts</p>
+            <h2 className="text-lg font-black text-slate-950">Referral Conversions &amp; Payout Processing</h2>
+            <p className="text-xs text-slate-600 mt-0.5 font-medium">Approve, disburse, and enter UTR / Payment references for next-day payouts</p>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search referrer, referee, code..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 font-medium"
               />
             </div>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-orange-500"
             >
               <option value="all">All Statuses</option>
               <option value="due">Due for Payout</option>
@@ -379,74 +379,74 @@ export default function SuperAdminReferralsPage() {
         </div>
 
         {filteredConversions.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+          <div className="text-center py-12 text-slate-500 text-xs border border-dashed border-slate-300 rounded-xl font-medium">
             No referral conversion records match the selected filter.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 text-slate-800 uppercase tracking-wider border-b border-slate-200 font-bold">
                 <tr>
-                  <th className="py-3 px-3">Referrer Partner</th>
-                  <th className="py-3 px-3">Referred New Store</th>
-                  <th className="py-3 px-3">Registration</th>
-                  <th className="py-3 px-3">Status</th>
-                  <th className="py-3 px-3">Plan Price</th>
-                  <th className="py-3 px-3">Reward</th>
-                  <th className="py-3 px-3">Scheduled Date</th>
-                  <th className="py-3 px-3 text-right">Action</th>
+                  <th className="py-3 px-3.5">Referrer Partner</th>
+                  <th className="py-3 px-3.5">Referred New Store</th>
+                  <th className="py-3 px-3.5">Registration</th>
+                  <th className="py-3 px-3.5">Status</th>
+                  <th className="py-3 px-3.5">Plan Price</th>
+                  <th className="py-3 px-3.5">Reward</th>
+                  <th className="py-3 px-3.5">Scheduled Date</th>
+                  <th className="py-3 px-3.5 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100">
                 {filteredConversions.map((item) => {
                   const isPaid = item.status === 4;
                   const isDue = item.status === 2 || item.status === 3;
 
                   return (
-                    <tr key={item.id} className="hover:bg-slate-850/50 transition-colors">
-                      <td className="py-3 px-3">
-                        <div className="font-semibold text-white">{item.referrerStoreName}</div>
-                        <div className="text-[11px] text-indigo-400 font-mono">Code: {item.referralCodeUsed}</div>
+                    <tr key={item.id} className="hover:bg-orange-50/40 transition-colors">
+                      <td className="py-3 px-3.5">
+                        <div className="font-bold text-slate-900">{item.referrerStoreName}</div>
+                        <div className="text-[11px] text-orange-600 font-mono font-semibold">Code: {item.referralCodeUsed}</div>
                         {item.referrerUpi && (
-                          <div className="text-[10px] text-emerald-400 font-mono">UPI: {item.referrerUpi}</div>
+                          <div className="text-[10px] text-emerald-700 font-mono font-medium">UPI: {item.referrerUpi}</div>
                         )}
                       </td>
-                      <td className="py-3 px-3 font-medium text-white">
+                      <td className="py-3 px-3.5 font-bold text-slate-900">
                         <div>{item.refereeStoreName}</div>
-                        <div className="text-[11px] text-slate-500 font-mono">{item.refereeStoreCode}</div>
+                        <div className="text-[11px] text-slate-500 font-mono font-normal">{item.refereeStoreCode}</div>
                       </td>
-                      <td className="py-3 px-3 text-slate-400">
+                      <td className="py-3 px-3.5 text-slate-600 font-medium">
                         {new Date(item.registrationDateUtc).toLocaleDateString("en-IN", {
                           day: "numeric",
                           month: "short",
                           year: "numeric",
                         })}
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-3.5">
                         {isPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold">
-                            <CheckCircle2 className="w-3 h-3" /> Paid Out
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid Out
                           </span>
                         ) : isDue ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[11px] font-semibold">
-                            <Clock className="w-3 h-3" /> Payout Due
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-[11px] font-bold">
+                            <Clock className="w-3 h-3 text-amber-600" /> Payout Due
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[11px] font-medium">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300 text-[11px] font-medium">
                             Free Trial
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 font-medium text-white">
+                      <td className="py-3 px-3.5 font-bold text-slate-900">
                         {item.subscriptionAmount && item.subscriptionAmount > 0 ? `₹${item.subscriptionAmount}` : "-"}
                       </td>
-                      <td className="py-3 px-3 font-bold text-emerald-400 text-sm">
+                      <td className="py-3 px-3.5 font-black text-emerald-700 text-sm">
                         {item.commissionRewardAmount > 0 ? `₹${item.commissionRewardAmount}` : "-"}
                       </td>
-                      <td className="py-3 px-3 text-slate-400">
+                      <td className="py-3 px-3.5 text-slate-600 font-medium">
                         {item.scheduledPayoutDateUtc ? (
                           <div>
-                            <div className="text-amber-400 font-medium">
+                            <div className="text-amber-700 font-bold">
                               {new Date(item.scheduledPayoutDateUtc).toLocaleDateString("en-IN", {
                                 day: "numeric",
                                 month: "short",
@@ -461,18 +461,18 @@ export default function SuperAdminReferralsPage() {
                           "-"
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-3 px-3.5 text-right">
                         {isDue ? (
                           <button
                             onClick={() => handleOpenPayoutModal(item)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-emerald-600/30 transition-all active:scale-95"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
                           >
                             <Send className="w-3 h-3" /> Process Payout
                           </button>
                         ) : isPaid ? (
-                          <span className="text-[11px] font-mono text-emerald-400/80">UTR: {item.payoutReference}</span>
+                          <span className="text-[11px] font-mono text-emerald-700 font-bold">UTR: {item.payoutReference}</span>
                         ) : (
-                          <span className="text-[11px] text-slate-600">Awaiting Upgrade</span>
+                          <span className="text-[11px] text-slate-400">Awaiting Upgrade</span>
                         )}
                       </td>
                     </tr>
@@ -486,54 +486,54 @@ export default function SuperAdminReferralsPage() {
 
       {/* Payout Processing Modal */}
       {selectedConversion && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                <CheckCircle2 className="w-5 h-5" /> Mark Referral Payout as Disbursed
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border-2 border-orange-200 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-emerald-700 font-black">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Mark Referral Payout as Disbursed
               </div>
               <button
                 onClick={() => setSelectedConversion(null)}
-                className="text-slate-400 hover:text-white text-sm"
+                className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-3 bg-slate-950 rounded-xl space-y-2 text-xs">
+            <div className="p-3.5 bg-orange-50/50 rounded-2xl border border-orange-200/60 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">Referrer Store:</span>
-                <span className="text-white font-medium">{selectedConversion.referrerStoreName}</span>
+                <span className="text-slate-600 font-medium">Referrer Store:</span>
+                <span className="text-slate-950 font-bold">{selectedConversion.referrerStoreName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Referred Store:</span>
-                <span className="text-white font-medium">{selectedConversion.refereeStoreName}</span>
+                <span className="text-slate-600 font-medium">Referred Store:</span>
+                <span className="text-slate-950 font-bold">{selectedConversion.refereeStoreName}</span>
               </div>
-              <div className="flex justify-between font-bold text-sm pt-2 border-t border-slate-800">
-                <span className="text-slate-300">Reward Commission:</span>
-                <span className="text-emerald-400">₹{selectedConversion.commissionRewardAmount}</span>
+              <div className="flex justify-between font-black text-sm pt-2 border-t border-orange-200/60">
+                <span className="text-slate-700">Reward Commission:</span>
+                <span className="text-emerald-700">₹{selectedConversion.commissionRewardAmount}</span>
               </div>
               <div className="pt-1 text-[11px]">
-                <span className="text-slate-400">Beneficiary UPI: </span>
-                <span className="font-mono text-indigo-300">{selectedConversion.referrerUpi || "Not set"}</span>
+                <span className="text-slate-600">Beneficiary UPI: </span>
+                <span className="font-mono text-orange-600 font-bold">{selectedConversion.referrerUpi || "Not set"}</span>
               </div>
               {selectedConversion.referrerBank && (
                 <div className="text-[11px]">
-                  <span className="text-slate-400">Bank Details: </span>
-                  <span className="text-slate-300">{selectedConversion.referrerBank}</span>
+                  <span className="text-slate-600">Bank Details: </span>
+                  <span className="text-slate-800 font-medium">{selectedConversion.referrerBank}</span>
                 </div>
               )}
             </div>
 
-            <form onSubmit={handleExecutePayout} className="space-y-3">
+            <form onSubmit={handleExecutePayout} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Payout Channel / Mode
                 </label>
                 <select
                   value={payoutForm.payoutMode}
                   onChange={(e) => setPayoutForm({ ...payoutForm, payoutMode: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 text-xs font-semibold focus:outline-none focus:border-orange-500"
                 >
                   <option value="UPI">UPI Transfer (Google Pay / PhonePe / Paytm)</option>
                   <option value="IMPS">IMPS / NEFT Bank Transfer</option>
@@ -542,7 +542,7 @@ export default function SuperAdminReferralsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   UTR / Transaction Reference (Mandatory)
                 </label>
                 <input
@@ -551,20 +551,20 @@ export default function SuperAdminReferralsPage() {
                   placeholder="e.g. UTR-402910481029"
                   value={payoutForm.payoutReference}
                   onChange={(e) => setPayoutForm({ ...payoutForm, payoutReference: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-mono text-xs font-bold focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Admin Internal Notes
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Paid via HDFC Corporate Netbanking"
+                  placeholder="e.g. Paid via Corporate Netbanking"
                   value={payoutForm.adminNotes}
                   onChange={(e) => setPayoutForm({ ...payoutForm, adminNotes: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 text-xs font-medium focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -572,14 +572,14 @@ export default function SuperAdminReferralsPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedConversion(null)}
-                  className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-medium rounded-xl"
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={processingPayout}
-                  className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {processingPayout ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>Confirm Payout</span>
