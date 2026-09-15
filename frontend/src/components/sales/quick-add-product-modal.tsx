@@ -255,7 +255,7 @@ export function QuickAddProductModal({
                   onClick={() => setItemType(2)}
                   className={`px-2 py-0.5 rounded-md transition-all ${
                     itemType === 2
-                      ? "bg-indigo-600 text-white shadow-xs"
+                      ? "bg-orange-500 text-white shadow-xs"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
@@ -384,7 +384,7 @@ export function QuickAddProductModal({
                 <select
                   value={taxRate}
                   onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-indigo-700 dark:text-indigo-300 font-bold focus:outline-none focus:border-emerald-500"
+                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-orange-700 dark:text-orange-300 font-bold focus:outline-none focus:border-emerald-500"
                 >
                   <option value="0">0% (Exempt)</option>
                   <option value="5">5% GST</option>

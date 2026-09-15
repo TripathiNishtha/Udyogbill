@@ -118,7 +118,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
         {/* Header */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950/60 shrink-0">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+            <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-600/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/30">
               <UserPlus className="w-4 h-4" />
             </div>
             <div>
@@ -159,19 +159,19 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="e.g. Apex Medicos & Healthcare"
                   value={legalName}
                   onChange={(e) => setLegalName(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-medium transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-medium transition-all"
                 />
               </div>
 
               {/* Customer Type / Billing Category */}
               <div className="space-y-1 sm:col-span-2">
-                <label className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                <label className="text-xs font-bold text-orange-700 dark:text-orange-400">
                   Customer Type (Billing Category) *
                 </label>
                 <select
                   value={customerType}
                   onChange={(e) => setCustomerType(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-indigo-300 dark:border-indigo-500/40 rounded-xl text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-orange-300 dark:border-orange-500/40 rounded-xl text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                 >
                   <option value={1}>B2B - Business to Business (Wholesale Rate / GST)</option>
                   <option value={2}>B2C - Business to Consumer (Retail MRP)</option>
@@ -189,14 +189,14 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="e.g. Apex Meds"
                   value={tradeName}
                   onChange={(e) => setTradeName(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-medium transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-medium transition-all"
                 />
               </div>
 
               {/* Mobile / Phone */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1">
-                  <Phone className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <Phone className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                   <span>Primary Mobile (10 Digits) *</span>
                 </label>
                 <input
@@ -206,14 +206,14 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="9876543210"
                   value={primaryPhone}
                   onChange={(e) => setPrimaryPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-mono font-medium transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-mono font-medium transition-all"
                 />
               </div>
 
               {/* Email ID */}
               <div className="space-y-1 sm:col-span-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1">
-                  <Mail className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <Mail className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                   <span>Customer Email ID (Optional)</span>
                 </label>
                 <input
@@ -221,7 +221,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="e.g. billing@apexmeds.com (Optional)"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-medium transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-medium transition-all"
                 />
               </div>
 
@@ -234,7 +234,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="27AAAAA0000A1Z5"
                   value={gstin}
                   onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 font-mono font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 font-mono font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                 />
               </div>
 
@@ -249,7 +249,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
               {/* Address */}
               <div className="space-y-1 sm:col-span-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center space-x-1">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <MapPin className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                   <span>Billing / Shipping Address</span>
                 </label>
                 <input
@@ -257,7 +257,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="Shop / Unit No, Building, Street, Area"
                   value={addressLine1}
                   onChange={(e) => setAddressLine1(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-medium transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-medium transition-all"
                 />
               </div>
 
@@ -269,7 +269,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="City"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-medium transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 font-medium transition-all"
                 />
               </div>
 
@@ -282,7 +282,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                   placeholder="e.g. 27"
                   value={stateCode}
                   onChange={(e) => setStateCode(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 font-mono font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 font-mono font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                 />
               </div>
             </div>
@@ -300,7 +300,7 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/25 flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold transition-all shadow-md shadow-orange-500/25 flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               <span>{submitting ? "Saving Customer..." : "Save & Select Customer"}</span>

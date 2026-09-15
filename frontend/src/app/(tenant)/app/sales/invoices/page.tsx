@@ -1768,7 +1768,7 @@ function TenantInvoicesPageContent() {
             {/* Top Bar: Title, Industry Badge, Mode Selector, More Toggle, Hotkeys, Close */}
             <div className="flex items-center justify-between gap-2 border-b border-[#fed7aa] dark:border-slate-800/80 pb-2 shrink-0">
               <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
-                <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400 shrink-0" />
                 <h3 className="text-xs sm:text-base font-bold text-slate-900 dark:text-white flex items-center space-x-1 sm:space-x-2 truncate">
                   <span className="truncate">{editingInvoiceId ? `Edit (${editingInvoiceNumber || "Draft"})` : "Create Invoice"}</span>
                   {!isOther && (
@@ -1786,7 +1786,7 @@ function TenantInvoicesPageContent() {
                   onClick={() => handleSetBillingMode("b2b")}
                   className={`px-2 sm:px-2.5 py-1 rounded text-[11px] sm:text-xs font-bold transition-all flex items-center space-x-1 cursor-pointer ${
                     billingMode === "b2b"
-                      ? "bg-indigo-600 text-white shadow-sm"
+                      ? "bg-orange-500 text-white shadow-sm"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
@@ -1828,7 +1828,7 @@ function TenantInvoicesPageContent() {
                   onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
                   className={`text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-lg border flex items-center space-x-1 transition-colors font-medium cursor-pointer shadow-2xs ${
                     isHeaderExpanded
-                      ? "bg-indigo-600/20 border-indigo-400 text-indigo-800 dark:text-indigo-200"
+                      ? "bg-orange-500/20 border-orange-400 text-orange-800 dark:text-orange-200"
                       : "bg-white dark:bg-slate-900 border-[#fed7aa] dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
@@ -1863,7 +1863,7 @@ function TenantInvoicesPageContent() {
             <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 h-full min-h-0 space-y-2 overflow-hidden">
               {/* Scrollable Form Body (Ensures Pinned Header & Pinned Bottom Footer on mobile) */}
               <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5 sm:pr-1 pb-16 sm:pb-4">
-                {/* 1. Customer & Invoice Meta Row (Blue/Indigo Themed - Zero Overlap ERP Style) */}
+                {/* 1. Customer & Invoice Meta Row (Orange Themed - Zero Overlap ERP Style) */}
                 <div id="tour-customer-box" className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900/95 border border-[#fed7aa] dark:border-blue-500/30 shadow-xs shrink-0 space-y-2">
                 {/* Row 1: Party / Customer Selection + Date & Branch */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1922,7 +1922,7 @@ function TenantInvoicesPageContent() {
                             }
                           }
                         }}
-                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium shadow-2xs"
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 font-medium shadow-2xs"
                       >
                         <option value="">-- One-time Walk-in Customer --</option>
                         {customers.map((c) => {
@@ -1942,7 +1942,7 @@ function TenantInvoicesPageContent() {
                           e.stopPropagation();
                           setIsAddCustomerModalOpen(true);
                         }}
-                        className="p-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors shrink-0 cursor-pointer"
+                        className="p-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white rounded-lg shadow-sm transition-colors shrink-0 cursor-pointer"
                         title="Quick Add Customer (+ or F3)"
                       >
                         <Plus className="w-4 h-4 pointer-events-none" />
@@ -1952,7 +1952,7 @@ function TenantInvoicesPageContent() {
                     {selectedCustomerId ? (
                       <div className="flex items-center space-x-1.5 text-[11px] font-mono shrink-0">
                         {customerGstin && (
-                          <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold">
+                          <span className="px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-950/70 border border-orange-200 dark:border-orange-500/40 text-orange-700 dark:text-orange-300 font-bold">
                             GST: {customerGstin}
                           </span>
                         )}
@@ -2059,7 +2059,7 @@ function TenantInvoicesPageContent() {
                           onClick={() => handleSwitchPharmaTradeTier("company_to_stockist")}
                           className={`px-2 py-0.5 rounded font-bold transition-all ${
                             pharmaTradeTier === "company_to_stockist"
-                              ? "bg-indigo-600 text-white shadow-xs"
+                              ? "bg-orange-500 text-white shadow-xs"
                               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                           }`}
                           title="PTS + PTR + MRP"
@@ -2150,12 +2150,12 @@ function TenantInvoicesPageContent() {
 
                     {/* Electronics Tier */}
                     {isElectronics && (
-                      <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-indigo-500/40 text-[11px] shadow-2xs">
+                      <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-orange-500/40 text-[11px] shadow-2xs">
                         <button
                           type="button"
                           onClick={() => setElectronicsTradeTier("distributor_to_dealer")}
                           className={`px-2 py-0.5 rounded font-bold ${
-                            electronicsTradeTier === "distributor_to_dealer" ? "bg-indigo-600 text-white" : "text-slate-600 dark:text-slate-400"
+                            electronicsTradeTier === "distributor_to_dealer" ? "bg-orange-500 text-white" : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           🚚 Dist ➔ Dealer
@@ -2233,15 +2233,15 @@ function TenantInvoicesPageContent() {
                       onClick={() => setIsTransportOpen(!isTransportOpen)}
                       className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold flex items-center space-x-1 border transition-colors whitespace-nowrap shadow-2xs cursor-pointer ${
                         isTransportOpen || transporterName || vehicleNumber || lrNumber || poNumber || eWayBillNumber
-                          ? "bg-indigo-50 dark:bg-indigo-600/30 border-indigo-300 dark:border-indigo-500/50 text-indigo-700 dark:text-indigo-200"
+                          ? "bg-orange-50 dark:bg-orange-600/30 border-orange-300 dark:border-orange-500/50 text-orange-700 dark:text-orange-200"
                           : "bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
                       title="Add Transporter, Vehicle, LR, PO details"
                     >
-                      <Truck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      <Truck className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
                       <span>{isTransportOpen ? "Hide Transport" : "+ Transport Detail"}</span>
                       {(transporterName || vehicleNumber || lrNumber || poNumber || eWayBillNumber) && (
-                        <span className="px-1 py-0.2 rounded text-[9px] bg-indigo-500/40 text-indigo-800 dark:text-indigo-200 font-mono font-bold">
+                        <span className="px-1 py-0.2 rounded text-[9px] bg-orange-500/40 text-orange-800 dark:text-orange-200 font-mono font-bold">
                           ✓
                         </span>
                       )}
@@ -2252,10 +2252,10 @@ function TenantInvoicesPageContent() {
                 {/* Transport, LR & PO Details Card */}
                 {isTransportOpen && (
                   <div className="pt-2 border-t border-slate-800 animate-in fade-in duration-150">
-                    <div className="p-2.5 rounded-lg bg-indigo-950/20 border border-indigo-500/30 space-y-2">
-                      <div className="flex items-center justify-between pb-1.5 border-b border-indigo-500/20">
-                        <div className="flex items-center space-x-1.5 text-xs font-bold text-indigo-300">
-                          <Truck className="w-3.5 h-3.5 text-indigo-400" />
+                    <div className="p-2.5 rounded-lg bg-orange-950/20 border border-orange-500/30 space-y-2">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-orange-500/20">
+                        <div className="flex items-center space-x-1.5 text-xs font-bold text-orange-300">
+                          <Truck className="w-3.5 h-3.5 text-orange-400" />
                           <span>Transport, LR (Bilty), Vehicle & Buyer PO Details</span>
                         </div>
                         <label className="flex items-center space-x-1 cursor-pointer text-[11px] text-slate-300">
@@ -2263,7 +2263,7 @@ function TenantInvoicesPageContent() {
                             type="checkbox"
                             checked={isReverseCharge}
                             onChange={(e) => setIsReverseCharge(e.target.checked)}
-                            className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0 w-3 h-3"
+                            className="rounded bg-slate-950 border-slate-700 text-orange-600 focus:ring-0 w-3 h-3"
                           />
                           <span>RCM (Reverse Charge)</span>
                         </label>
@@ -2385,7 +2385,7 @@ function TenantInvoicesPageContent() {
                       <div>
                         <div className="flex items-center justify-between mb-0.5">
                           <label className="text-[10px] font-semibold text-slate-400">Shipping Address</label>
-                          <label className="text-[10px] text-indigo-400 cursor-pointer flex items-center space-x-1">
+                          <label className="text-[10px] text-orange-400 cursor-pointer flex items-center space-x-1">
                             <input
                               type="checkbox"
                               checked={isSameAsBilling}
@@ -2393,7 +2393,7 @@ function TenantInvoicesPageContent() {
                                 setIsSameAsBilling(e.target.checked);
                                 if (e.target.checked) setShippingAddress(billingAddress);
                               }}
-                              className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0 w-3 h-3"
+                              className="rounded bg-slate-950 border-slate-700 text-orange-600 focus:ring-0 w-3 h-3"
                             />
                             <span>Same</span>
                           </label>
@@ -2465,7 +2465,7 @@ function TenantInvoicesPageContent() {
 
                     {/* Dropdown popup with matching products and their batch count */}
                     {quickProductSearch.trim().length > 0 && (
-                      <div className="absolute z-30 top-full mt-1.5 left-0 right-0 max-h-72 overflow-y-auto bg-slate-900 border border-indigo-500/30 rounded-xl shadow-2xl divide-y divide-slate-800 animate-in fade-in">
+                      <div className="absolute z-30 top-full mt-1.5 left-0 right-0 max-h-72 overflow-y-auto bg-slate-900 border border-orange-500/30 rounded-xl shadow-2xl divide-y divide-slate-800 animate-in fade-in">
                         {items
                           .filter(
                             (item) =>
@@ -2480,10 +2480,10 @@ function TenantInvoicesPageContent() {
                                 handleAddLineWithItem(item);
                                 setQuickProductSearch("");
                               }}
-                              className="p-2.5 hover:bg-indigo-950/40 cursor-pointer transition-colors group flex items-center justify-between"
+                              className="p-2.5 hover:bg-orange-950/40 cursor-pointer transition-colors group flex items-center justify-between"
                             >
                               <div>
-                                <div className="font-bold text-white text-xs group-hover:text-indigo-300 flex items-center space-x-2">
+                                <div className="font-bold text-white text-xs group-hover:text-orange-300 flex items-center space-x-2">
                                   <span>{item.name}</span>
                                   {item.sku && (
                                     <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
@@ -2504,7 +2504,7 @@ function TenantInvoicesPageContent() {
                               </div>
                               <button
                                 type="button"
-                                className="px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold group-hover:bg-indigo-600 group-hover:text-white transition-colors"
+                                className="px-2.5 py-1 rounded-lg bg-orange-600/20 text-orange-300 border border-orange-500/30 text-[11px] font-bold group-hover:bg-orange-600 group-hover:text-white transition-colors"
                               >
                                 {hasBatchTracking ? "+ Add & Autofill Batch" : "+ Add Item"}
                               </button>
@@ -2591,7 +2591,7 @@ function TenantInvoicesPageContent() {
                     <button
                       type="button"
                       onClick={handleAddLine}
-                      className="flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center space-x-1.5 border border-purple-400/40 shadow-md shadow-purple-600/20 shrink-0 whitespace-nowrap transition-all"
+                      className="flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-bold flex items-center justify-center space-x-1.5 border border-orange-400/40 shadow-md shadow-orange-500/20 shrink-0 whitespace-nowrap transition-all"
                     >
                       <Plus className="w-4 h-4" />
                       <span>+ Add Row</span>
@@ -2684,7 +2684,7 @@ function TenantInvoicesPageContent() {
                         {/* Header: Item # and Name/Select & Delete */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center space-x-2 flex-1 min-w-0">
-                            <span className="w-5 h-5 rounded-full bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                            <span className="w-5 h-5 rounded-full bg-orange-950 border border-orange-500/40 text-orange-300 text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
                               {idx + 1}
                             </span>
                             <div className="flex-1 min-w-0">
@@ -2698,7 +2698,7 @@ function TenantInvoicesPageContent() {
                                       handleLineItemChange(idx, e.target.value);
                                     }
                                   }}
-                                  className="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-indigo-500 truncate"
+                                  className="w-full px-2 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-semibold focus:outline-none focus:border-orange-500 truncate"
                                 >
                                   <option value="">-- Select Product / Service --</option>
                                   <option value="__new__" className="text-emerald-400 font-bold">
@@ -2741,7 +2741,7 @@ function TenantInvoicesPageContent() {
                                   <select
                                     value={line.batchId || ""}
                                     onChange={(e) => handleBatchSelect(idx, e.target.value)}
-                                    className="w-full px-1.5 py-1 bg-slate-900 border border-indigo-500/40 rounded text-xs text-indigo-300 font-mono focus:outline-none focus:border-indigo-500"
+                                    className="w-full px-1.5 py-1 bg-slate-900 border border-orange-500/40 rounded text-xs text-orange-300 font-mono focus:outline-none focus:border-orange-500"
                                   >
                                     {line.availableBatches.map((b) => (
                                       <option key={b.id} value={b.id}>
@@ -2826,7 +2826,7 @@ function TenantInvoicesPageContent() {
                               step="0.01"
                               value={line.unitPrice}
                               onChange={(e) => updateLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono font-bold focus:outline-none focus:border-indigo-500"
+                              className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono font-bold focus:outline-none focus:border-orange-500"
                             />
                           </div>
 
@@ -2839,7 +2839,7 @@ function TenantInvoicesPageContent() {
                               value={line.discountValue || ""}
                               placeholder="0"
                               onChange={(e) => updateLineField(idx, "discountValue", parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-amber-300 font-mono text-center focus:outline-none focus:border-indigo-500"
+                              className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-amber-300 font-mono text-center focus:outline-none focus:border-orange-500"
                             />
                           </div>
                         </div>
@@ -2877,9 +2877,9 @@ function TenantInvoicesPageContent() {
                     <button
                       type="button"
                       onClick={handleAddLine}
-                      className="w-full py-2.5 rounded-xl border border-dashed border-indigo-500/50 bg-indigo-950/30 hover:bg-indigo-950/60 text-indigo-300 text-xs font-bold flex items-center justify-center space-x-2 transition-all active:scale-98 cursor-pointer shadow-xs"
+                      className="w-full py-2.5 rounded-xl border border-dashed border-orange-500/50 bg-orange-950/30 hover:bg-orange-950/60 text-orange-300 text-xs font-bold flex items-center justify-center space-x-2 transition-all active:scale-98 cursor-pointer shadow-xs"
                     >
-                      <Plus className="w-4 h-4 text-indigo-400" />
+                      <Plus className="w-4 h-4 text-orange-400" />
                       <span>+ Add Another Item</span>
                     </button>
                   )}
@@ -2898,11 +2898,11 @@ function TenantInvoicesPageContent() {
 
                         {/* Electronics Columns */}
                         {isElectronics && <th className="px-1.5 py-1.5 min-w-[130px] text-cyan-800 dark:text-cyan-300 bg-slate-100 dark:bg-slate-900/95">IMEI / Serial No *</th>}
-                        {isElectronics && <th className="px-1 py-1.5 w-16 text-cyan-800 dark:text-cyan-300 text-center bg-slate-100 dark:bg-slate-900/95">Warranty (M)</th>}
+                        {isElectronics && <th className="px-1.5 py-1.5 w-16 text-cyan-800 dark:text-cyan-300 text-center bg-slate-100 dark:bg-slate-900/95">Warranty (M)</th>}
 
                         {/* Hardware Columns */}
                         {isHardware && <th className="px-1.5 py-1.5 min-w-[130px] text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Dimensions</th>}
-                        {isHardware && <th className="px-1 py-1.5 w-20 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Rate Basis</th>}
+                        {isHardware && <th className="px-1.5 py-1.5 w-20 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Rate Basis</th>}
 
                         {/* Garments Columns */}
                         {isGarments && <th className="px-1 py-1.5 w-14 text-rose-800 dark:text-rose-300 text-center bg-slate-100 dark:bg-slate-900/95">Size</th>}
@@ -2922,12 +2922,12 @@ function TenantInvoicesPageContent() {
                         {hasPackingFreeQty && <th className="px-1.5 py-1.5 min-w-[55px] w-14 text-center text-teal-800 dark:text-cyan-300 bg-slate-100 dark:bg-slate-900/95">Free</th>}
                         {showMrpColumn && <th className="px-1.5 py-1.5 min-w-[80px] w-20 text-right text-amber-800 dark:text-yellow-300 bg-slate-100 dark:bg-slate-900/95">MRP (₹)</th>}
                         {showPtrColumn && <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-teal-800 dark:text-teal-300 text-right bg-slate-100 dark:bg-slate-900/95">PTR (₹)</th>}
-                        {showPtsColumn && <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-indigo-800 dark:text-indigo-300 text-right bg-slate-100 dark:bg-slate-900/95">PTS (₹)</th>}
+                        {showPtsColumn && <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-orange-800 dark:text-orange-300 text-right bg-slate-100 dark:bg-slate-900/95">PTS (₹)</th>}
                         <th className="px-1 py-1.5 min-w-[50px] w-14 text-center text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/95">Unit</th>
                         <th className="px-1.5 py-1.5 min-w-[95px] w-24 text-right text-emerald-800 dark:text-emerald-300 bg-slate-100 dark:bg-slate-900/95">Rate (₹) *</th>
                         <th className="px-1.5 py-1.5 min-w-[90px] w-24 text-right text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Disc % / ₹</th>
                         <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-right text-sky-800 dark:text-sky-300 bg-slate-100 dark:bg-slate-900/95">Taxable</th>
-                        <th className="px-1 py-1.5 min-w-[55px] w-14 text-center text-indigo-800 dark:text-indigo-300 bg-slate-100 dark:bg-slate-900/95">GST %</th>
+                        <th className="px-1 py-1.5 min-w-[55px] w-14 text-center text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">GST %</th>
                         <th className="px-2 py-1.5 min-w-[90px] w-24 text-right text-emerald-800 dark:text-emerald-400 font-extrabold bg-slate-100 dark:bg-slate-900/95">Amount (₹)</th>
                         <th className="px-1 py-1.5 w-8 bg-slate-100 dark:bg-slate-900/95"></th>
                       </tr>
@@ -2952,7 +2952,7 @@ function TenantInvoicesPageContent() {
                                     handleLineItemChange(idx, e.target.value);
                                   }
                                 }}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium h-7 shadow-2xs"
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 font-medium h-7 shadow-2xs"
                               >
                                 <option value="">-- Select Product --</option>
                                 <option value="__new__" className="text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/60">
@@ -3003,7 +3003,7 @@ function TenantInvoicesPageContent() {
                                 <select
                                   value={line.batchId || ""}
                                   onChange={(e) => handleBatchSelect(idx, e.target.value)}
-                                  className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-500/40 rounded text-xs text-indigo-800 dark:text-indigo-300 font-mono focus:outline-none focus:border-indigo-500 h-7 shadow-2xs font-medium"
+                                  className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 rounded text-xs text-orange-800 dark:text-orange-300 font-mono focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
                                 >
                                   {line.availableBatches.map((b) => {
                                     const exp = b.expiryDate
@@ -3031,7 +3031,7 @@ function TenantInvoicesPageContent() {
                                   placeholder="Batch No"
                                   value={line.batchNumber || ""}
                                   onChange={(e) => updateLineField(idx, "batchNumber", e.target.value)}
-                                  className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono focus:outline-none focus:border-indigo-500 h-7 shadow-2xs font-medium"
+                                  className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
                                 />
                               )}
                             </td>
@@ -3045,7 +3045,7 @@ function TenantInvoicesPageContent() {
                                 placeholder="MM/YY"
                                 value={line.expiryDate || ""}
                                 onChange={(e) => updateLineField(idx, "expiryDate", e.target.value)}
-                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-indigo-500 h-7 shadow-2xs font-medium"
+                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
                               />
                             </td>
                           )}
@@ -3058,7 +3058,7 @@ function TenantInvoicesPageContent() {
                                 placeholder="10x10"
                                 value={line.packing || ""}
                                 onChange={(e) => updateLineField(idx, "packing", e.target.value)}
-                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 text-center focus:outline-none focus:border-indigo-500 h-7 shadow-2xs font-medium"
+                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 text-center focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
                               />
                             </td>
                           )}
@@ -3230,7 +3230,7 @@ function TenantInvoicesPageContent() {
                               placeholder="HSN"
                               value={line.hsnCode || ""}
                               onChange={(e) => updateLineField(idx, "hsnCode", e.target.value)}
-                              className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-indigo-500 h-7 shadow-2xs font-medium"
+                              className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
                             />
                           </td>
 
@@ -3267,7 +3267,7 @@ function TenantInvoicesPageContent() {
                                 placeholder="0"
                                 value={line.freeQuantity || ""}
                                 onChange={(e) => updateLineField(idx, "freeQuantity", parseFloat(e.target.value) || 0)}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-emerald-700 dark:text-emerald-400 font-mono text-center focus:outline-none focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-emerald-700 dark:text-emerald-400 font-mono text-center focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
                             </td>
                           )}
@@ -3281,7 +3281,7 @@ function TenantInvoicesPageContent() {
                                 placeholder="0.00"
                                 value={line.mrp || ""}
                                 onChange={(e) => updateLineField(idx, "mrp", parseFloat(e.target.value) || 0)}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-200 font-mono text-right focus:outline-none focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-200 font-mono text-right focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
                             </td>
                           )}
@@ -3311,7 +3311,7 @@ function TenantInvoicesPageContent() {
                                 placeholder="PTS"
                                 value={line.pts || ""}
                                 onChange={(e) => updateLineField(idx, "pts", parseFloat(e.target.value) || 0)}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-500/40 rounded text-xs text-indigo-800 dark:text-indigo-300 font-mono text-right font-bold focus:outline-none focus:border-indigo-500 placeholder:text-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 rounded text-xs text-orange-800 dark:text-orange-300 font-mono text-right font-bold focus:outline-none focus:border-orange-500 placeholder:text-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
                               />
                             </td>
                           )}
@@ -3373,7 +3373,7 @@ function TenantInvoicesPageContent() {
                                     }
                                   }
                                 }}
-                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-orange-800 dark:text-amber-400 font-mono font-semibold text-right focus:outline-none focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
+                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-orange-800 dark:text-amber-400 font-mono font-semibold text-right focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
                               />
                               <button
                                 type="button"
@@ -3431,28 +3431,28 @@ function TenantInvoicesPageContent() {
               </div> {/* End Scrollable Form Body */}
 
               {/* 5. Sleek Docked Footer: Tender & Mode + Summary Metrics + Net Payable + F10 Save */}
-              <div className="shrink-0 p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t-2 border-indigo-500 dark:border-indigo-500/50 border-x border-b border-[#fed7aa] dark:border-slate-800 rounded-b-xl sm:rounded-xl shadow-xl space-y-1.5 z-20">
+              <div className="shrink-0 p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t-2 border-orange-500 dark:border-orange-500/50 border-x border-b border-[#fed7aa] dark:border-slate-800 rounded-b-xl sm:rounded-xl shadow-xl space-y-1.5 z-20">
                 {/* Top Row: Tender, Mode & Metrics */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-950 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-300 dark:border-indigo-500/40 shadow-inner">
-                      <CreditCard className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-950 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-300 dark:border-orange-500/40 shadow-inner">
+                      <CreditCard className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
                       <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-semibold whitespace-nowrap">Tender:</span>
                       <input
                         type="number"
                         placeholder="0.00"
                         value={paidAmount || ""}
                         onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
-                        className="w-16 sm:w-20 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-indigo-500"
+                        className="w-16 sm:w-20 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-orange-500"
                       />
                     </div>
 
-                    <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-950 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-300 dark:border-blue-500/40 shadow-inner">
+                    <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-950 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-300 dark:border-orange-500/40 shadow-inner">
                       <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-semibold whitespace-nowrap">Mode:</span>
                       <select
                         value={primaryPaymentMode}
                         onChange={(e) => setPrimaryPaymentMode(parseInt(e.target.value))}
-                        className="bg-transparent border-0 text-xs text-indigo-700 dark:text-blue-200 font-bold focus:outline-none cursor-pointer pr-1"
+                        className="bg-transparent border-0 text-xs text-orange-700 dark:text-orange-300 font-bold focus:outline-none cursor-pointer pr-1"
                       >
                         <option value="1" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Cash</option>
                         <option value="2" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">UPI / QR</option>
@@ -3488,7 +3488,7 @@ function TenantInvoicesPageContent() {
                     <div className="px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-500/30 text-sky-800 dark:text-sky-200 hidden md:block">
                       Taxable: ₹{totalTaxable.toFixed(2)}
                     </div>
-                    <div className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hidden sm:block font-bold">
+                    <div className="px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-300 hidden sm:block font-bold">
                       GST: +₹{totalTax.toFixed(2)}
                     </div>
                     {Math.abs(roundOff) > 0 && (
@@ -3526,7 +3526,7 @@ function TenantInvoicesPageContent() {
                       id="tour-save-invoice-btn"
                       type="submit"
                       disabled={submitting}
-                      className="flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-lg text-xs font-black text-white bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 hover:from-indigo-500 hover:to-blue-500 shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 border border-indigo-400/30 active:scale-95"
+                      className="flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-lg text-xs font-black text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/30 transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 border border-orange-400/30 active:scale-95"
                     >
                       <FileSpreadsheet className="w-3.5 h-3.5" />
                       <span>
@@ -3612,7 +3612,7 @@ function TenantInvoicesPageContent() {
             <div className="pt-2 text-center">
               <button
                 onClick={() => setIsShortcutsHelpOpen(false)}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all w-full"
+                className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-all w-full cursor-pointer"
               >
                 Got It (Esc)
               </button>

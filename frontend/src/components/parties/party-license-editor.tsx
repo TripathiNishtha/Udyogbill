@@ -186,7 +186,7 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
       <div className={`space-y-1.5 ${className}`}>
         <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300">
           <span className="font-bold flex items-center space-x-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
             <span>Business Licenses &amp; Registrations</span>
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(DL, FSSAI, ISO, IEC, etc.)</span>
           </span>
@@ -194,9 +194,9 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
         <button
           type="button"
           onClick={addLicense}
-          className="w-full py-2.5 px-3 border-2 border-dashed border-indigo-200 hover:border-indigo-400 dark:border-slate-700/80 dark:hover:border-indigo-500/60 rounded-xl bg-indigo-50/50 hover:bg-indigo-50 dark:bg-slate-950/40 dark:hover:bg-slate-900/60 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-2xs"
+          className="w-full py-2.5 px-3 border-2 border-dashed border-orange-200 hover:border-orange-400 dark:border-slate-700/80 dark:hover:border-orange-500/60 rounded-xl bg-orange-50/50 hover:bg-orange-50 dark:bg-slate-950/40 dark:hover:bg-slate-900/60 text-xs font-semibold text-orange-700 dark:text-orange-300 transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-2xs"
         >
-          <Plus className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
+          <Plus className="w-4 h-4 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform" />
           <span>+ Add License / Registration No. (DL, FSSAI, ISO, IEC, Trade, MSME)</span>
         </button>
       </div>
@@ -207,16 +207,16 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
     <div className={`space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 ${className}`}>
       <div className="flex items-center justify-between text-xs">
         <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+          <ShieldCheck className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
           <span>Licenses &amp; Certifications</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 text-[10px] font-mono font-bold">
+          <span className="px-1.5 py-0.2 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300 text-[10px] font-mono font-bold">
             {licenses.length}
           </span>
         </span>
         <button
           type="button"
           onClick={addLicense}
-          className="inline-flex items-center space-x-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer transition-colors"
+          className="inline-flex items-center space-x-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 cursor-pointer transition-colors"
         >
           <Plus className="w-3 h-3" />
           <span>Add Another</span>
@@ -238,7 +238,7 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
                 <select
                   value={lic.type}
                   onChange={(e) => updateLicense(lic.id, { type: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   {LICENSE_PRESETS.map((p) => (
                     <option key={p.value} value={p.value}>
@@ -256,7 +256,7 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
                     placeholder="License Name (e.g. AYUSH)"
                     value={lic.customName || ""}
                     onChange={(e) => updateLicense(lic.id, { customName: e.target.value })}
-                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               )}
@@ -268,7 +268,7 @@ export function PartyLicenseEditor({ licenses, onChange, className = "" }: Props
                   placeholder={currentPreset?.placeholder || "License / Registration Number"}
                   value={lic.number}
                   onChange={(e) => updateLicense(lic.id, { number: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500"
                 />
               </div>
 
