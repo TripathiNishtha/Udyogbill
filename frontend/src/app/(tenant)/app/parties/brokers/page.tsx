@@ -87,6 +87,11 @@ export default function BrokersPage() {
       return;
     }
 
+    if (mobile && mobile.length !== 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
     try {
       await brokerService.createBroker({
         brokerCode,
@@ -105,6 +110,11 @@ export default function BrokersPage() {
       setBrokerCode("");
       setFullName("");
       setMobile("");
+      setEmail("");
+      setAddress("");
+      setPan("");
+      setGstin("");
+      setNotes("");
       setNotification("Broker master registered successfully.");
       setTimeout(() => setNotification(""), 4000);
       loadData();
@@ -147,7 +157,7 @@ export default function BrokersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <Users2 className="w-7 h-7 text-indigo-600" />
+            <Users2 className="w-7 h-7 text-orange-600" />
             Brokers & Commission Agents
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -164,7 +174,7 @@ export default function BrokersPage() {
           </button>
           <button
             onClick={() => setIsAddBrokerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-sm font-semibold rounded-lg shadow-sm transition shadow-orange-500/20"
           >
             <Plus className="w-4 h-4" />
             Add Broker / Agent
@@ -192,7 +202,7 @@ export default function BrokersPage() {
         <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Accrued (All-time)</span>
-            <TrendingUp className="w-4 h-4 text-indigo-500" />
+            <TrendingUp className="w-4 h-4 text-orange-500" />
           </div>
           <p className="text-2xl font-bold mt-2 text-slate-900 dark:text-white">₹{totalAccruedAll.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
           <p className="text-xs text-slate-500 mt-1">Earned via invoices brokered</p>
@@ -214,7 +224,7 @@ export default function BrokersPage() {
           onClick={() => setActiveTab("brokers")}
           className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
             activeTab === "brokers"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+              ? "border-orange-500 text-orange-600 dark:text-orange-400"
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
@@ -224,7 +234,7 @@ export default function BrokersPage() {
           onClick={() => setActiveTab("commissions")}
           className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
             activeTab === "commissions"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+              ? "border-orange-500 text-orange-600 dark:text-orange-400"
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
@@ -275,7 +285,7 @@ export default function BrokersPage() {
                       <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
                         <td className="p-3">
                           <div className="font-semibold text-slate-900 dark:text-white">{b.fullName}</div>
-                          <div className="text-xs font-mono text-indigo-600 dark:text-indigo-400">{b.brokerCode}</div>
+                          <div className="text-xs font-mono font-semibold text-orange-600 dark:text-orange-400">{b.brokerCode}</div>
                         </td>
                         <td className="p-3 text-xs">
                           <div>{b.mobile || "—"}</div>
@@ -311,7 +321,7 @@ export default function BrokersPage() {
                               setPayoutAmount(b.currentPayableBalance > 0 ? b.currentPayableBalance : 0);
                               setIsPayoutOpen(true);
                             }}
-                            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-300 transition"
+                            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-400 border border-orange-200/60 transition"
                           >
                             Disburse Payout
                           </button>
@@ -356,7 +366,7 @@ export default function BrokersPage() {
                         {new Date(e.transactionDate).toLocaleDateString("en-IN")}
                       </td>
                       <td className="p-3 font-semibold text-slate-900 dark:text-white">{e.brokerName}</td>
-                      <td className="p-3 font-mono text-xs text-indigo-600 dark:text-indigo-400">
+                      <td className="p-3 font-mono text-xs text-orange-600 dark:text-orange-400">
                         {e.salesInvoiceNumber || e.paymentReference || "—"}
                       </td>
                       <td className="p-3 text-xs">{e.partyName || "—"}</td>
@@ -391,7 +401,7 @@ export default function BrokersPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Users2 className="w-5 h-5 text-indigo-600" />
+                <Users2 className="w-5 h-5 text-orange-600" />
                 Register New Broker / Commission Agent
               </h3>
               <button onClick={() => setIsAddBrokerOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -406,7 +416,7 @@ export default function BrokersPage() {
                     placeholder="e.g. BRK-001"
                     value={brokerCode}
                     onChange={(e) => setBrokerCode(e.target.value)}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono font-bold"
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -417,20 +427,24 @@ export default function BrokersPage() {
                     placeholder="e.g. Ramesh Chandra & Sons"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-semibold"
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Mobile</label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    Mobile <span className="text-[11px] font-normal text-slate-400">({mobile.length}/10)</span>
+                  </label>
                   <input
                     type="tel"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     placeholder="10-digit mobile"
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -440,7 +454,7 @@ export default function BrokersPage() {
                     placeholder="broker@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -450,20 +464,22 @@ export default function BrokersPage() {
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">PAN (for TDS 194H)</label>
                   <input
                     type="text"
+                    maxLength={10}
                     placeholder="e.g. ABCDE1234F"
                     value={pan}
-                    onChange={(e) => setPan(e.target.value.toUpperCase())}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono"
+                    onChange={(e) => setPan(e.target.value.toUpperCase().slice(0, 10))}
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">GSTIN (Optional)</label>
                   <input
                     type="text"
+                    maxLength={15}
                     placeholder="15-digit GSTIN"
                     value={gstin}
-                    onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono"
+                    onChange={(e) => setGstin(e.target.value.toUpperCase().slice(0, 15))}
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -474,7 +490,7 @@ export default function BrokersPage() {
                   <select
                     value={commissionBasis}
                     onChange={(e) => setCommissionBasis(Number(e.target.value))}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium"
+                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   >
                     <option value="1">% of Taxable</option>
                     <option value="2">% of Total Bill</option>
@@ -489,7 +505,7 @@ export default function BrokersPage() {
                     min="0"
                     value={defaultRate}
                     onChange={(e) => setDefaultRate(Number(e.target.value))}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold"
+                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -500,7 +516,7 @@ export default function BrokersPage() {
                     min="0"
                     value={tdsPercent}
                     onChange={(e) => setTdsPercent(Number(e.target.value))}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold"
+                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -509,13 +525,13 @@ export default function BrokersPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddBrokerOpen(false)}
-                  className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm"
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg shadow-sm transition shadow-orange-500/20"
                 >
                   Save Broker
                 </button>
@@ -530,7 +546,7 @@ export default function BrokersPage() {
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-5 space-y-4">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <WalletCards className="w-5 h-5 text-indigo-600" />
+              <WalletCards className="w-5 h-5 text-orange-600" />
               Disburse Commission to {selectedBroker.fullName}
             </h3>
             <p className="text-xs text-slate-500">
@@ -547,7 +563,7 @@ export default function BrokersPage() {
                   required
                   value={payoutAmount}
                   onChange={(e) => setPayoutAmount(Number(e.target.value))}
-                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-bold"
+                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                 />
               </div>
 
@@ -556,7 +572,7 @@ export default function BrokersPage() {
                 <select
                   value={paymentMode}
                   onChange={(e) => setPaymentMode(e.target.value)}
-                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                 >
                   <option value="BankTransfer">Bank Transfer (NEFT / RTGS / IMPS)</option>
                   <option value="UPI">UPI</option>
@@ -571,7 +587,7 @@ export default function BrokersPage() {
                   <select
                     value={payoutBankAccountId}
                     onChange={(e) => setPayoutBankAccountId(e.target.value)}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   >
                     {accounts.map(acc => (
                       <option key={acc.id} value={acc.id}>{acc.accountName} - Bal: ₹{acc.currentBalance.toLocaleString("en-IN")}</option>
@@ -587,7 +603,7 @@ export default function BrokersPage() {
                   placeholder="e.g. UTR / Cheque #00123"
                   value={payoutRef}
                   onChange={(e) => setPayoutRef(e.target.value)}
-                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono"
+                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                 />
               </div>
 
@@ -595,13 +611,13 @@ export default function BrokersPage() {
                 <button
                   type="button"
                   onClick={() => setIsPayoutOpen(false)}
-                  className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                  className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm"
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-semibold rounded-lg shadow-sm transition shadow-orange-500/20"
                 >
                   Confirm Payout
                 </button>
