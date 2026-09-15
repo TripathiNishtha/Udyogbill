@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { initAttribution, getAttributionData, detectIndustryCode } from "@/lib/attribution";
 import { trackLeadConversion } from "@/components/analytics/google-analytics";
+import { Smart3dLeadPopup } from "@/components/common/smart-3d-lead-popup";
 
 function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [form, setForm] = useState({
@@ -960,6 +961,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <Footer onDemoClick={() => setPopupOpen(true)} />
       <FloatingButtons onDemoClick={() => setPopupOpen(true)} />
       <ContactPopup open={popupOpen} onClose={() => setPopupOpen(false)} />
+      <Smart3dLeadPopup />
     </div>
   );
 }

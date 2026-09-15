@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using UdyogBill.Domain.Entities.CMS;
+using UdyogBill.Domain.Entities.Subscriptions;
 using UdyogBill.Persistence.Context;
 
 namespace UdyogBill.Api.Controllers;
@@ -79,6 +80,23 @@ public class PublicLeadsController : BaseApiController
         await _db.SaveChangesAsync(cancellationToken);
 
         return Ok(new { message = "Thank you! We will contact you within 24 hours." });
+    }
+
+    /// <summary>
+    /// Returns the current active configuration for the 3D marketing lead popup.
+    /// Public endpoint.
+    /// </summary>
+    [HttpGet("/api/public/lead-popup-config")]
+    [HttpGet("/api/v1/public/lead-popup-config")]
+    [ProducesResponseType(typeof(PlatformLeadPopupConfig), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLeadPopupConfig(CancellationToken cancellationToken)
+    {
+        var config = await _db.PlatformLeadPopupConfigs.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        if (config == null)
+        {
+            config = new PlatformLeadPopupConfig();
+        }
+        return Ok(config);
     }
 }
 

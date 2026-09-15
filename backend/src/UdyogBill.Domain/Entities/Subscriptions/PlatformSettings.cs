@@ -65,3 +65,17 @@ public class PlatformPasswordResetOtp : BaseAuditableEntity
     public DateTimeOffset ExpiresAtUtc { get; set; }
     public bool IsUsed { get; set; } = false;
 }
+
+public class PlatformLeadPopupConfig : BaseAuditableEntity
+{
+    public bool IsEnabled { get; set; } = true;
+    public string BadgeText { get; set; } = "Special Welcome Offer";
+    public string Heading { get; set; } = "Start Your 14-Day Free ERP Trial";
+    public string SubHeading { get; set; } = "Automated GST compliance, smart batch inventory & unified party ledgers. Instant setup on WhatsApp.";
+    public string CtaButtonText { get; set; } = "Claim Free Access & Live Demo";
+    public string OfferTag { get; set; } = "14-Day Free Access • Free Data Migration";
+    public int TriggerDelaySeconds { get; set; } = 25;
+    public bool EnableExitIntent { get; set; } = true;
+    public int DismissCooldownHours { get; set; } = 24;
+    public string WhatsappNumber { get; set; } = "919473807622";
+}

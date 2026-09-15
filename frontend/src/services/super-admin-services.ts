@@ -95,6 +95,20 @@ export interface UpdateCommercialConfigInput {
   managerSeatMonthlyPrice?: number;
 }
 
+export interface PlatformLeadPopupConfig {
+  id?: string;
+  isEnabled: boolean;
+  badgeText: string;
+  heading: string;
+  subHeading: string;
+  ctaButtonText: string;
+  offerTag: string;
+  triggerDelaySeconds: number;
+  enableExitIntent: boolean;
+  dismissCooldownHours: number;
+  whatsappNumber: string;
+}
+
 export const superAdminService = {
   // Platform Stats
   async getStats(): Promise<PlatformStats> {
@@ -381,6 +395,17 @@ export const superAdminService = {
 
   async getMobileDevices(): Promise<any> {
     const res = await apiClient.get<any>("/superadmin/mobile-app/devices");
+    return res.data;
+  },
+
+  // 3D Lead Popup Config
+  async getLeadPopupConfig(): Promise<PlatformLeadPopupConfig> {
+    const res = await apiClient.get<PlatformLeadPopupConfig>("/superadmin/lead-popup-config");
+    return res.data;
+  },
+
+  async updateLeadPopupConfig(data: Partial<PlatformLeadPopupConfig>): Promise<PlatformLeadPopupConfig> {
+    const res = await apiClient.put<PlatformLeadPopupConfig>("/superadmin/lead-popup-config", data);
     return res.data;
   },
 };

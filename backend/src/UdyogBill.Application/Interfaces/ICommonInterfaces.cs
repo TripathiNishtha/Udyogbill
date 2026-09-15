@@ -64,6 +64,7 @@ public interface IAppDbContext
     IQueryable<PlatformCommercialConfig> PlatformCommercialConfigs { get; }
     IQueryable<PlatformEmailConfig> PlatformEmailConfigs { get; }
     IQueryable<PlatformPasswordResetOtp> PlatformPasswordResetOtps { get; }
+    IQueryable<PlatformLeadPopupConfig> PlatformLeadPopupConfigs { get; }
     IQueryable<AuditLog> AuditLogs { get; }
 
     // Inventory Master & Stock Ledger

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using UdyogBill.Domain.Entities.Subscriptions;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared.Constants;
 
@@ -298,7 +299,63 @@ public class GrowthManagementController : BaseApiController
 
         return Ok(grouped);
     }
+
+    [HttpGet("/api/v1/superadmin/lead-popup-config")]
+    [HttpGet("/api/superadmin/lead-popup-config")]
+    [ProducesResponseType(typeof(PlatformLeadPopupConfig), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLeadPopupConfig(CancellationToken cancellationToken)
+    {
+        var config = await _db.PlatformLeadPopupConfigs.FirstOrDefaultAsync(cancellationToken);
+        if (config == null)
+        {
+            config = new PlatformLeadPopupConfig();
+            _db.PlatformLeadPopupConfigs.Add(config);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        return Ok(config);
+    }
+
+    [HttpPut("/api/v1/superadmin/lead-popup-config")]
+    [HttpPut("/api/superadmin/lead-popup-config")]
+    [ProducesResponseType(typeof(PlatformLeadPopupConfig), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateLeadPopupConfig(
+        [FromBody] UpdateLeadPopupConfigRequest request,
+        CancellationToken cancellationToken)
+    {
+        var config = await _db.PlatformLeadPopupConfigs.FirstOrDefaultAsync(cancellationToken);
+        if (config == null)
+        {
+            config = new PlatformLeadPopupConfig();
+            _db.PlatformLeadPopupConfigs.Add(config);
+        }
+
+        config.IsEnabled = request.IsEnabled;
+        config.BadgeText = request.BadgeText ?? config.BadgeText;
+        config.Heading = request.Heading ?? config.Heading;
+        config.SubHeading = request.SubHeading ?? config.SubHeading;
+        config.CtaButtonText = request.CtaButtonText ?? config.CtaButtonText;
+        config.OfferTag = request.OfferTag ?? config.OfferTag;
+        config.TriggerDelaySeconds = request.TriggerDelaySeconds > 0 ? request.TriggerDelaySeconds : 25;
+        config.EnableExitIntent = request.EnableExitIntent;
+        config.DismissCooldownHours = request.DismissCooldownHours >= 0 ? request.DismissCooldownHours : 24;
+        config.WhatsappNumber = !string.IsNullOrWhiteSpace(request.WhatsappNumber) ? request.WhatsappNumber.Trim() : config.WhatsappNumber;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return Ok(config);
+    }
 }
+
+public record UpdateLeadPopupConfigRequest(
+    bool IsEnabled,
+    string? BadgeText,
+    string? Heading,
+    string? SubHeading,
+    string? CtaButtonText,
+    string? OfferTag,
+    int TriggerDelaySeconds,
+    bool EnableExitIntent,
+    int DismissCooldownHours,
+    string? WhatsappNumber);
 
 public record FunnelDropOffDto(
     int TotalLeads,

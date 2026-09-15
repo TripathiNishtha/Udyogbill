@@ -1593,7 +1593,29 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
                 @"ALTER TABLE ""SfaPobOrders"" ADD COLUMN IF NOT EXISTS ""StockistRemarks"" text NULL;",
                 @"ALTER TABLE ""SfaPobOrders"" ADD COLUMN IF NOT EXISTS ""ExpectedDeliveryDate"" timestamp with time zone NULL;",
                 @"ALTER TABLE ""SfaPobOrderItems"" ADD COLUMN IF NOT EXISTS ""AppliedSchemeId"" uuid NULL;",
-                @"ALTER TABLE ""SfaPobOrderItems"" ADD COLUMN IF NOT EXISTS ""AppliedSchemeName"" text NULL;"
+                @"ALTER TABLE ""SfaPobOrderItems"" ADD COLUMN IF NOT EXISTS ""AppliedSchemeName"" text NULL;",
+
+                // Platform Lead Popup Config
+                @"CREATE TABLE IF NOT EXISTS ""PlatformLeadPopupConfigs"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""IsEnabled"" boolean NOT NULL DEFAULT TRUE,
+                    ""BadgeText"" text NOT NULL DEFAULT 'Special Welcome Offer',
+                    ""Heading"" text NOT NULL DEFAULT 'Start Your 14-Day Free ERP Trial',
+                    ""SubHeading"" text NOT NULL DEFAULT 'Automated GST compliance, smart batch inventory & unified party ledgers. Instant setup on WhatsApp.',
+                    ""CtaButtonText"" text NOT NULL DEFAULT 'Claim Free Access & Live Demo',
+                    ""OfferTag"" text NOT NULL DEFAULT '14-Day Free Access • Free Data Migration',
+                    ""TriggerDelaySeconds"" integer NOT NULL DEFAULT 25,
+                    ""EnableExitIntent"" boolean NOT NULL DEFAULT TRUE,
+                    ""DismissCooldownHours"" integer NOT NULL DEFAULT 24,
+                    ""WhatsappNumber"" text NOT NULL DEFAULT '919473807622',
+                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""CreatedBy"" text NULL,
+                    ""LastModifiedAt"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" text NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+                    ""DeletedAt"" timestamp with time zone NULL,
+                    ""DeletedBy"" text NULL
+                );"
             };
 
             foreach (var alterStmt in alterStatements)
@@ -2396,6 +2418,23 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
                 ReplyToEmail = "support@udyogbill.com",
                 EnableSsl = true,
                 IsActive = true
+            });
+        }
+
+        if (!await _context.PlatformLeadPopupConfigs.AnyAsync(cancellationToken))
+        {
+            _context.PlatformLeadPopupConfigs.Add(new PlatformLeadPopupConfig
+            {
+                IsEnabled = true,
+                BadgeText = "Special Welcome Offer",
+                Heading = "Start Your 14-Day Free ERP Trial",
+                SubHeading = "Automated GST compliance, smart batch inventory & unified party ledgers. Instant setup on WhatsApp.",
+                CtaButtonText = "Claim Free Access & Live Demo",
+                OfferTag = "14-Day Free Access • Free Data Migration",
+                TriggerDelaySeconds = 25,
+                EnableExitIntent = true,
+                DismissCooldownHours = 24,
+                WhatsappNumber = "919473807622"
             });
         }
     }

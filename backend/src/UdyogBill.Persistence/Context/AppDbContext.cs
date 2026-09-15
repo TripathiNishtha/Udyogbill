@@ -71,6 +71,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<PlatformCommercialConfig> PlatformCommercialConfigs => Set<PlatformCommercialConfig>();
     public DbSet<PlatformEmailConfig> PlatformEmailConfigs => Set<PlatformEmailConfig>();
     public DbSet<PlatformPasswordResetOtp> PlatformPasswordResetOtps => Set<PlatformPasswordResetOtp>();
+    public DbSet<PlatformLeadPopupConfig> PlatformLeadPopupConfigs => Set<PlatformLeadPopupConfig>();
 
     // Auditing
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -258,6 +259,7 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<PlatformCommercialConfig> IAppDbContext.PlatformCommercialConfigs => PlatformCommercialConfigs;
     IQueryable<PlatformEmailConfig> IAppDbContext.PlatformEmailConfigs => PlatformEmailConfigs;
     IQueryable<PlatformPasswordResetOtp> IAppDbContext.PlatformPasswordResetOtps => PlatformPasswordResetOtps;
+    IQueryable<PlatformLeadPopupConfig> IAppDbContext.PlatformLeadPopupConfigs => PlatformLeadPopupConfigs;
     IQueryable<AuditLog> IAppDbContext.AuditLogs => AuditLogs;
 
     // Inventory explicit properties
