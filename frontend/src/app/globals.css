@@ -533,12 +533,12 @@ div[data-nextjs-scroll-focus-boundary] + div:has(svg) {
 html.marketing-active,
 body.marketing-active,
 html.marketing-active body {
-  background-color: #ffffff !important;
+  background-color: #fff7ed !important;
   color: #0f172a !important;
 }
 
 .marketing-site-wrapper {
-  background-color: #ffffff !important;
+  background-color: #fff7ed !important;
   color: #0f172a !important;
 }
 
@@ -605,14 +605,14 @@ html.marketing-active body {
   color: transparent !important;
 }
 
-/* 100% Light Theme Footer (Aligned with UdyogBill Brand Colors) */
+/* 100% Light Theme Footer (Aligned with UdyogBill Light Orange Brand Colors) */
 .marketing-site-wrapper footer,
 footer.footer,
 .footer {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
+  background: #fff7ed !important;
+  background-color: #fff7ed !important;
   color: #334155 !important;
-  border-top: 1px solid #e2e8f0 !important;
+  border-top: 1px solid #fed7aa !important;
 }
 
 .marketing-site-wrapper footer h4,

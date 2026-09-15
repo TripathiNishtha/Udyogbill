@@ -414,7 +414,7 @@ export default function HomePage() {
       </section>
 
       {/* ── 2. METRICS & AUTHORITY BAR (COMPACT) ─────────────────────────── */}
-      <section className="border-y border-slate-200 bg-gradient-to-r from-orange-50/30 via-white to-amber-50/30 py-6">
+      <section className="border-y border-orange-200/80 bg-gradient-to-r from-orange-100/50 via-[#fff7ed] to-amber-100/50 py-6">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
             <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">

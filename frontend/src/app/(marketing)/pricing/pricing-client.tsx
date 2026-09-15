@@ -144,7 +144,7 @@ export default function PricingClient() {
   const yearly = billingCycle === "yearly";
 
   return (
-    <div className="bg-white text-slate-900 space-y-10 sm:space-y-12">
+    <div className="bg-transparent text-slate-900 space-y-10 sm:space-y-12">
       {/* Header */}
       <section className="pt-2 pb-6 sm:pb-8 border-b border-slate-200" style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffffff 50%, #fffbf5 100%)" }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">

@@ -377,8 +377,8 @@ function Navbar({ onDemoClick }: { onDemoClick: () => void }) {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-white/95 backdrop-blur-md shadow-xs border-b border-slate-200/90 py-2.5"
-          : "bg-white/95 backdrop-blur-xs border-b border-slate-200/60 py-3"
+          ? "bg-[#fff7ed]/95 backdrop-blur-md shadow-xs border-b border-orange-200/80 py-2.5"
+          : "bg-[#fff7ed]/95 backdrop-blur-xs border-b border-orange-200/60 py-3"
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between">
@@ -600,7 +600,7 @@ function Navbar({ onDemoClick }: { onDemoClick: () => void }) {
 
 function Footer({ onDemoClick }: { onDemoClick: () => void }) {
   return (
-    <footer className="bg-white text-slate-800 border-t border-slate-200/90 pt-16 pb-10">
+    <footer className="bg-[#fff7ed] text-slate-800 border-t border-orange-200/90 pt-16 pb-10">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 space-y-12">
         {/* Main 5-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
@@ -955,9 +955,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   }, []);
 
   return (
-    <div className="marketing-site-wrapper min-h-screen flex flex-col bg-white text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
+    <div className="marketing-site-wrapper min-h-screen flex flex-col bg-[#fff7ed] text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
       <Navbar onDemoClick={() => setPopupOpen(true)} />
-      <main className="flex-1 pt-16 pb-12 bg-white text-slate-900">{children}</main>
+      <main className="flex-1 pt-16 pb-12 bg-[#fff7ed] text-slate-900">{children}</main>
       <Footer onDemoClick={() => setPopupOpen(true)} />
       <FloatingButtons onDemoClick={() => setPopupOpen(true)} />
       <ContactPopup open={popupOpen} onClose={() => setPopupOpen(false)} />
