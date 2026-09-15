@@ -78,7 +78,7 @@ const STAGES = ["Lead", "Contacted", "Trial", "ConvertedPaid", "Dropped"];
 
 const INDUSTRY_BADGE_COLORS: Record<string, string> = {
   PHARMA: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
-  FMCG: "bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800",
+  FMCG: "bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-800",
   ELECTRONICS: "bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800",
   GARMENTS: "bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800",
   HARDWARE: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800",
@@ -87,9 +87,9 @@ const INDUSTRY_BADGE_COLORS: Record<string, string> = {
 };
 
 const STAGE_BADGE_COLORS: Record<string, string> = {
-  Lead: "bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800",
+  Lead: "bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-800",
   Contacted: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800",
-  Trial: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800",
+  Trial: "bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800",
   ConvertedPaid: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
   Dropped: "bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800",
 };
@@ -382,14 +382,14 @@ function LeadsCrmContent() {
         <div className="flex items-center gap-3">
           <Link
             href="/admin/growth"
-            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors shadow-xs"
+            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-orange-600 dark:hover:text-white transition-colors shadow-xs"
             title="Back to Command Center"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20">
                 SEO &amp; CRM ENGINE
               </span>
               <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Organic Leads &amp; Funnel CRM</h1>
@@ -406,10 +406,10 @@ function LeadsCrmContent() {
               fetchPopupConfig();
               setPopupModalOpen(true);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-all shadow-xs cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/80 text-xs font-bold hover:bg-orange-100 dark:hover:bg-orange-900/60 transition-all shadow-xs cursor-pointer"
             title="Manage 3D Lead Popup on Marketing Website"
           >
-            <Sliders className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <Sliders className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
             <span>3D Lead Popup</span>
             <span className={`w-2 h-2 rounded-full ${popupConfig.isEnabled ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
           </button>
@@ -419,12 +419,12 @@ function LeadsCrmContent() {
             disabled={loading}
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-indigo-600" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-orange-600" : ""}`} />
             Refresh
           </button>
           <Link
             href="/admin/growth"
-            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-indigo-600/20"
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-orange-500/20"
           >
             <TrendingUp className="w-3.5 h-3.5" />
             Growth Overview
@@ -457,16 +457,16 @@ function LeadsCrmContent() {
           <div className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{stats.total}</div>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-xs">
-          <span className="text-[11px] text-blue-600 dark:text-blue-400 uppercase font-bold tracking-wider">Active Trials</span>
-          <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5">{stats.trials}</div>
+          <span className="text-[11px] text-orange-600 dark:text-orange-400 uppercase font-bold tracking-wider">Active Trials</span>
+          <div className="text-2xl font-black text-orange-600 dark:text-orange-400 mt-0.5">{stats.trials}</div>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-xs">
           <span className="text-[11px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider">Paid Customers</span>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{stats.converted}</div>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-xs">
-          <span className="text-[11px] text-purple-600 dark:text-purple-400 uppercase font-bold tracking-wider">Attributed Revenue</span>
-          <div className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-0.5">
+          <span className="text-[11px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider">Attributed Revenue</span>
+          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
             ₹{stats.revenue.toLocaleString("en-IN")}
           </div>
         </div>
@@ -482,7 +482,7 @@ function LeadsCrmContent() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, phone, business, city..."
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-900 transition-colors"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 outline-none focus:border-orange-500 focus:bg-white dark:focus:bg-slate-900 transition-colors"
             />
           </div>
         </form>
@@ -493,7 +493,7 @@ function LeadsCrmContent() {
           <select
             value={industryFilter}
             onChange={(e) => setIndustryFilter(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-600 cursor-pointer"
+            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none focus:border-orange-500 cursor-pointer"
           >
             {INDUSTRY_OPTIONS.map((opt) => (
               <option key={opt.code} value={opt.code}>
@@ -509,7 +509,7 @@ function LeadsCrmContent() {
           <select
             value={stageFilter}
             onChange={(e) => setStageFilter(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-600 cursor-pointer"
+            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none focus:border-orange-500 cursor-pointer"
           >
             <option value="ALL">All Funnel Stages</option>
             {STAGES.map((s) => (
@@ -571,7 +571,7 @@ function LeadsCrmContent() {
                       <div className="flex items-center gap-2 mt-0.5">
                         <a
                           href={`tel:+91${lead.mobile}`}
-                          className="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-[11px] font-semibold"
+                          className="text-orange-600 dark:text-orange-400 hover:underline font-mono text-[11px] font-semibold"
                         >
                           +91 {lead.mobile}
                         </a>
@@ -615,13 +615,13 @@ function LeadsCrmContent() {
                     {/* Traffic Attribution */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 text-[11px] font-mono text-slate-700 dark:text-slate-300 font-medium">
-                        <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                        <Globe className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                         <span className="truncate max-w-[130px]">
                           {lead.utmSource || lead.source || "Direct"}
                         </span>
                       </div>
                       {lead.landingPage && (
-                        <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono truncate max-w-[130px]">
+                        <div className="text-[10px] text-orange-600 dark:text-orange-400 font-mono truncate max-w-[130px]">
                           {lead.landingPage}
                         </div>
                       )}
@@ -669,7 +669,7 @@ function LeadsCrmContent() {
                         </a>
                         <button
                           onClick={() => openEditModal(lead)}
-                          className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-indigo-300 border border-indigo-200 dark:border-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-orange-300 border border-orange-200 dark:border-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
                         >
                           Inspect &amp; Progress
                         </button>
@@ -693,11 +693,11 @@ function LeadsCrmContent() {
       {/* Inspect & Funnel Transition Drawer/Modal */}
       {inspectModalOpen && selectedLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border-2 border-orange-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest">
                   Lead Detail & Stage Transition
                 </span>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
@@ -715,8 +715,8 @@ function LeadsCrmContent() {
             <div className="p-5 space-y-4 text-xs">
               {/* Organic Attribution Specs */}
               <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2.5">
-                <div className="text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-blue-500" />
+                <div className="text-[11px] font-bold uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-orange-500" />
                   Traffic Attribution Parameters
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-[11px]">
@@ -746,14 +746,14 @@ function LeadsCrmContent() {
                   </div>
                   <div className="col-span-2">
                     <span className="text-slate-500 dark:text-slate-400">Landing Page:</span>
-                    <p className="font-mono text-indigo-700 dark:text-indigo-300 font-semibold mt-0.5 flex items-center gap-2">
+                    <p className="font-mono text-orange-700 dark:text-orange-400 font-semibold mt-0.5 flex items-center gap-2">
                       <span>{selectedLead.landingPage || "—"}</span>
                       {selectedLead.landingPage && (
                         <a
                           href={selectedLead.landingPage}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                          className="text-xs text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-1"
                         >
                           <ExternalLink className="w-3 h-3" />
                         </a>
@@ -809,7 +809,7 @@ function LeadsCrmContent() {
                     <select
                       value={editStage}
                       onChange={(e) => setEditStage(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                     >
                       {STAGES.map((st) => (
                         <option key={st} value={st}>
@@ -826,7 +826,7 @@ function LeadsCrmContent() {
                     <select
                       value={editIndustry}
                       onChange={(e) => setEditIndustry(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                     >
                       {INDUSTRY_OPTIONS.filter((o) => o.code !== "ALL").map((ind) => (
                         <option key={ind.code} value={ind.code}>
@@ -865,7 +865,7 @@ function LeadsCrmContent() {
                     value={editNotes}
                     onChange={(e) => setEditNotes(e.target.value)}
                     placeholder="e.g., Demo scheduled on Monday, user interested in multi-branch sync..."
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-indigo-500 resize-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 resize-none"
                   />
                 </div>
               </div>
@@ -894,7 +894,7 @@ function LeadsCrmContent() {
                   <button
                     onClick={handleSaveLead}
                     disabled={saving}
-                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold transition-all shadow-sm shadow-orange-500/20 cursor-pointer disabled:opacity-50"
                   >
                     {saving ? "Saving..." : "Save Progression"}
                   </button>
@@ -983,7 +983,7 @@ function LeadsCrmContent() {
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
               {/* Toggle Master Switch */}
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/5 to-slate-50 dark:to-slate-900/40 border border-purple-200 dark:border-purple-900/50">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-slate-50 dark:to-slate-900/40 border border-orange-200 dark:border-orange-900/50">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-slate-900 dark:text-white">Popup Active Status</span>
@@ -1005,7 +1005,7 @@ function LeadsCrmContent() {
                   type="button"
                   onClick={() => setPopupConfig({ ...popupConfig, isEnabled: !popupConfig.isEnabled })}
                   className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    popupConfig.isEnabled ? "bg-purple-600" : "bg-slate-300 dark:bg-slate-700"
+                    popupConfig.isEnabled ? "bg-orange-600" : "bg-slate-300 dark:bg-slate-700"
                   }`}
                 >
                   <span

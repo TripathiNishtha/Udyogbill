@@ -127,21 +127,21 @@ interface GrowthOverview {
 }
 
 const INDUSTRY_BADGE_COLORS: Record<string, string> = {
-  PHARMA: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  FMCG: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  ELECTRONICS: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  GARMENTS: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  HARDWARE: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  SERVICE_SECTOR: "bg-pink-500/10 text-pink-400 border-pink-500/20",
-  OTHER: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  PHARMA: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  FMCG: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+  ELECTRONICS: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+  GARMENTS: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+  HARDWARE: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  SERVICE_SECTOR: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20",
+  OTHER: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
 };
 
 const STAGE_BADGE_COLORS: Record<string, string> = {
-  Lead: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-  Contacted: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  Trial: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-  ConvertedPaid: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  Dropped: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+  Lead: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+  Contacted: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  Trial: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+  ConvertedPaid: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  Dropped: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
 };
 
 export default function GrowthCommandCenterPage() {
@@ -219,37 +219,37 @@ export default function GrowthCommandCenterPage() {
   }, [dateRange]);
 
   return (
-    <div className="p-6 bg-slate-950 text-slate-100 min-h-screen space-y-6">
+    <div className="space-y-6 pb-12 text-slate-900">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 rounded-2xl border-2 border-orange-200/80 shadow-sm">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1.5">
-              <Flame className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
-              SEO & Expansion Command Center
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-900 border border-orange-300 flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-orange-600 animate-pulse" />
+              SEO &amp; Expansion Command Center
             </span>
-            <span className="text-xs text-slate-400">• Super Admin Exclusive</span>
+            <span className="text-xs text-slate-500 font-medium">• Super Admin Exclusive</span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            Organic Growth & Conversion Engine
+          <h1 className="text-2xl font-black text-slate-950 tracking-tight">
+            Organic Growth &amp; Conversion Engine
           </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-600 mt-1 font-medium">
             Full-funnel attribution across all 7 official industries — zero tenant ERP disruption.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Date Range Selector */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 ml-2 mr-1.5" />
+          <div className="flex items-center bg-slate-100 border border-slate-300 rounded-xl p-1 text-xs">
+            <Calendar className="w-3.5 h-3.5 text-slate-500 ml-2 mr-1.5" />
             {(["today", "7d", "30d", "90d", "all"] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setDateRange(r)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
                   dateRange === r
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-orange-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 {r === "today"
@@ -268,14 +268,14 @@ export default function GrowthCommandCenterPage() {
           <button
             onClick={fetchOverview}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-800 hover:text-white transition-all shadow-sm"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all shadow-sm cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-orange-600" : ""}`} />
             Refresh
           </button>
           <Link
             href="/admin/growth/leads"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold hover:brightness-110 shadow-lg shadow-indigo-600/20 transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold hover:from-orange-600 hover:to-orange-700 shadow-sm shadow-orange-500/20 transition-all"
           >
             <Users className="w-3.5 h-3.5" />
             CRM Leads
@@ -285,29 +285,29 @@ export default function GrowthCommandCenterPage() {
       </div>
 
       {/* Navigation Tabs Bar */}
-      <div className="flex border-b border-slate-800 gap-2">
+      <div className="flex border-b border-slate-200 gap-2 bg-white px-2 rounded-xl shadow-xs">
         <button
           onClick={() => setActiveTab("overview")}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
             activeTab === "overview"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "border-orange-500 text-orange-600 bg-orange-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <TrendingUp className="w-4 h-4" />
-          Executive Overview & Funnel
+          <TrendingUp className="w-4 h-4 text-orange-600" />
+          Executive Overview &amp; Funnel
         </button>
         <button
           onClick={() => setActiveTab("cities")}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
             activeTab === "cities"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "border-orange-500 text-orange-600 bg-orange-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <MapPin className="w-4 h-4" />
+          <MapPin className="w-4 h-4 text-amber-600" />
           50-City Geo Performance
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-700 font-bold border border-slate-200">
             50
           </span>
         </button>
@@ -315,124 +315,124 @@ export default function GrowthCommandCenterPage() {
           onClick={() => setActiveTab("content")}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
             activeTab === "content"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "border-orange-500 text-orange-600 bg-orange-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <FileText className="w-4 h-4" />
-          Content & Blog Lead ROI
+          <FileText className="w-4 h-4 text-cyan-600" />
+          Content &amp; Blog Lead ROI
         </button>
         <button
           onClick={() => setActiveTab("channels")}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
             activeTab === "channels"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "border-orange-500 text-orange-600 bg-orange-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <Globe className="w-4 h-4" />
-          Traffic Channels & Keywords
+          <Globe className="w-4 h-4 text-orange-600" />
+          Traffic Channels &amp; Keywords
         </button>
         <button
           onClick={() => setActiveTab("google-integration")}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
             activeTab === "google-integration"
-              ? "border-emerald-500 text-emerald-400 bg-emerald-500/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
+              ? "border-emerald-500 text-emerald-600 bg-emerald-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <Activity className="w-4 h-4 text-emerald-400" />
-          Google GA4 & Search Console
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <Activity className="w-4 h-4 text-emerald-600" />
+          Google GA4 &amp; Search Console
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         </button>
       </div>
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Leads */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm relative overflow-hidden">
+        <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Total Organic Leads
             </span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-white tracking-tight">
+            <span className="text-3xl font-black text-slate-900 tracking-tight">
               {data?.totalLeads ?? 0}
             </span>
-            <span className="text-xs text-emerald-400 font-medium">
+            <span className="text-xs text-emerald-600 font-bold">
               +{data?.leadsLast7Days ?? 0} this week
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">
             {data?.leadsLast30Days ?? 0} acquired past 30 days
           </p>
         </div>
 
         {/* Card 2: Active Trials */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm relative overflow-hidden">
+        <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Active Trials
             </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-white tracking-tight">
+            <span className="text-3xl font-black text-slate-900 tracking-tight">
               {data?.trialCount ?? 0}
             </span>
-            <span className="text-xs text-blue-400 font-medium">
+            <span className="text-xs text-orange-600 font-bold">
               {data?.trialConversionRate ?? 0}% trial-to-paid
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">
             Contacted: {data?.contactedCount ?? 0} ({data?.leadToContactRate ?? 0}%)
           </p>
         </div>
 
         {/* Card 3: Converted Paid Customers */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm relative overflow-hidden">
+        <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Paid Conversions
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-white tracking-tight">
+            <span className="text-3xl font-black text-slate-900 tracking-tight">
               {data?.convertedPaidCount ?? 0}
             </span>
-            <span className="text-xs text-emerald-400 font-medium">
+            <span className="text-xs text-emerald-600 font-bold">
               {data?.overallConversionRate ?? 0}% win rate
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Directly attributed to organic & SEO</p>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">Directly attributed to organic &amp; SEO</p>
         </div>
 
         {/* Card 4: Total Revenue */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm relative overflow-hidden">
+        <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Attributed Revenue
             </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
               <CreditCard className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-white tracking-tight">
+            <span className="text-3xl font-black text-slate-900 tracking-tight">
               ₹{(data?.totalPaidRevenue ?? 0).toLocaleString("en-IN")}
             </span>
           </div>
-          <p className="text-[11px] text-purple-400 mt-1 font-medium">
-            From SEO & inbound conversions
+          <p className="text-[11px] text-amber-700 mt-1 font-bold">
+            From SEO &amp; inbound conversions
           </p>
         </div>
       </div>
@@ -441,36 +441,36 @@ export default function GrowthCommandCenterPage() {
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Conversion Funnel Bar */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-xs">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-indigo-400" />
-                End-to-End Growth Pipeline & Drop-off Rates
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-orange-600" />
+                End-to-End Growth Pipeline &amp; Drop-off Rates
               </h2>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500 font-medium">
                 Search &rarr; Landing Page &rarr; Lead &rarr; Trial &rarr; Paid Customer
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               {/* Step 1 */}
-              <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 relative">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase">1. Inbound Leads</div>
-                <div className="text-xl font-bold text-white mt-1">{data?.totalLeads ?? 0}</div>
-                <div className="text-[11px] text-indigo-400 mt-0.5">100% of pipeline</div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div className="bg-indigo-500 h-full rounded-full w-full" />
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 relative">
+                <div className="text-[11px] font-bold text-slate-500 uppercase">1. Inbound Leads</div>
+                <div className="text-2xl font-black text-slate-900 mt-1">{data?.totalLeads ?? 0}</div>
+                <div className="text-[11px] text-orange-600 font-bold mt-0.5">100% of pipeline</div>
+                <div className="w-full bg-slate-200 h-2 rounded-full mt-3 overflow-hidden">
+                  <div className="bg-orange-500 h-full rounded-full w-full" />
                 </div>
               </div>
 
               {/* Step 2 */}
-              <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 relative">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase">2. Contacted / Demo</div>
-                <div className="text-xl font-bold text-white mt-1">{data?.contactedCount ?? 0}</div>
-                <div className="text-[11px] text-amber-400 mt-0.5">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 relative">
+                <div className="text-[11px] font-bold text-slate-500 uppercase">2. Contacted / Demo</div>
+                <div className="text-2xl font-black text-slate-900 mt-1">{data?.contactedCount ?? 0}</div>
+                <div className="text-[11px] text-amber-600 font-bold mt-0.5">
                   {data?.leadToContactRate ?? 0}% contact rate
                 </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div className="w-full bg-slate-200 h-2 rounded-full mt-3 overflow-hidden">
                   <div
                     className="bg-amber-500 h-full rounded-full"
                     style={{ width: `${Math.min(100, data?.leadToContactRate ?? 0)}%` }}
@@ -479,15 +479,15 @@ export default function GrowthCommandCenterPage() {
               </div>
 
               {/* Step 3 */}
-              <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 relative">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase">3. Active Free Trials</div>
-                <div className="text-xl font-bold text-white mt-1">{data?.trialCount ?? 0}</div>
-                <div className="text-[11px] text-blue-400 mt-0.5">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 relative">
+                <div className="text-[11px] font-bold text-slate-500 uppercase">3. Active Free Trials</div>
+                <div className="text-2xl font-black text-slate-900 mt-1">{data?.trialCount ?? 0}</div>
+                <div className="text-[11px] text-orange-600 font-bold mt-0.5">
                   {data?.totalLeads ? Math.round(((data.trialCount) / data.totalLeads) * 100) : 0}% of leads
                 </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div className="w-full bg-slate-200 h-2 rounded-full mt-3 overflow-hidden">
                   <div
-                    className="bg-blue-500 h-full rounded-full"
+                    className="bg-orange-500 h-full rounded-full"
                     style={{
                       width: `${data?.totalLeads ? Math.min(100, Math.round(((data.trialCount) / data.totalLeads) * 100)) : 0}%`,
                     }}
@@ -496,15 +496,15 @@ export default function GrowthCommandCenterPage() {
               </div>
 
               {/* Step 4 */}
-              <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 relative">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase">4. Converted Paid</div>
-                <div className="text-xl font-bold text-emerald-400 mt-1">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 relative">
+                <div className="text-[11px] font-bold text-slate-500 uppercase">4. Converted Paid</div>
+                <div className="text-2xl font-black text-emerald-600 mt-1">
                   {data?.convertedPaidCount ?? 0}
                 </div>
-                <div className="text-[11px] text-emerald-400 mt-0.5">
+                <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
                   ₹{(data?.totalPaidRevenue ?? 0).toLocaleString("en-IN")} total closed
                 </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div className="w-full bg-slate-200 h-2 rounded-full mt-3 overflow-hidden">
                   <div
                     className="bg-emerald-500 h-full rounded-full"
                     style={{ width: `${Math.min(100, data?.overallConversionRate ?? 0)}%` }}
@@ -515,28 +515,28 @@ export default function GrowthCommandCenterPage() {
           </div>
 
           {/* 7 Official Industries Organic Matrix */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-purple-400" />
-                  7-Industry Performance & Penetration Matrix
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-orange-600" />
+                  7-Industry Performance &amp; Penetration Matrix
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
                   Organic demand, trials, and revenue breakdown across all official supported industry verticals.
                 </p>
               </div>
               <Link
                 href="/admin/growth/leads"
-                className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 self-start sm:self-auto"
+                className="text-xs text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 self-start sm:self-auto"
               >
                 Filter by industry in CRM &rarr;
               </Link>
             </div>
 
-            <div className="overflow-x-auto border border-slate-800 rounded-lg">
+            <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-xs text-left">
-                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase font-semibold text-[11px]">
+                <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 uppercase font-bold text-[11px]">
                   <tr>
                     <th className="px-4 py-3">Industry Vertical</th>
                     <th className="px-4 py-3">Code</th>
@@ -548,10 +548,10 @@ export default function GrowthCommandCenterPage() {
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100">
                   {data?.industries?.map((ind) => (
-                    <tr key={ind.code} className="hover:bg-slate-850/50 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-white">
+                    <tr key={ind.code} className="hover:bg-orange-50/40 transition-colors">
+                      <td className="px-4 py-3 font-bold text-slate-900">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-3.5 h-3.5 text-slate-400" />
                           <span>{ind.name}</span>
@@ -566,23 +566,23 @@ export default function GrowthCommandCenterPage() {
                           {ind.code}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center font-bold text-slate-200">
+                      <td className="px-4 py-3 text-center font-bold text-slate-800">
                         {ind.totalLeads}
                       </td>
-                      <td className="px-4 py-3 text-center font-medium text-blue-400">
+                      <td className="px-4 py-3 text-center font-bold text-orange-600">
                         {ind.activeTrials}
                       </td>
-                      <td className="px-4 py-3 text-center font-bold text-emerald-400">
+                      <td className="px-4 py-3 text-center font-bold text-emerald-600">
                         {ind.convertedPaid}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-200">
+                      <td className="px-4 py-3 text-right font-bold text-slate-800">
                         ₹{ind.totalRevenue.toLocaleString("en-IN")}
                       </td>
                       <td className="px-4 py-3 text-center font-medium">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             ind.conversionRate > 0
-                              ? "bg-emerald-500/10 text-emerald-400"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "text-slate-400"
                           }`}
                         >
@@ -592,7 +592,7 @@ export default function GrowthCommandCenterPage() {
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/admin/growth/leads?industry=${ind.code}`}
-                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-[11px] transition-colors"
+                          className="px-3 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold text-[11px] transition-colors"
                         >
                           View Leads
                         </Link>
@@ -608,14 +608,14 @@ export default function GrowthCommandCenterPage() {
 
       {/* TAB 2: 50-CITY GEO PERFORMANCE MATRIX */}
       {activeTab === "cities" && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+        <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-amber-400" />
-                50-City Local SEO & Regional Commercial Intelligence
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-orange-600" />
+                50-City Local SEO &amp; Regional Commercial Intelligence
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
                 Real-time attribution connecting all 50 live city landing pages to incoming leads, trials, and revenue.
               </p>
             </div>
@@ -627,20 +627,20 @@ export default function GrowthCommandCenterPage() {
                   value={citySearch}
                   onChange={(e) => setCitySearch(e.target.value)}
                   placeholder="Search city or state..."
-                  className="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 w-56"
+                  className="bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-orange-500 focus:bg-white w-56 font-medium"
                 />
               </div>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500 font-semibold">
                 Showing 50 Target Cities
               </span>
             </div>
           </div>
 
-          <div className="overflow-x-auto border border-slate-800 rounded-lg max-h-[600px] overflow-y-auto">
+          <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-[600px] overflow-y-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase font-semibold text-[11px] sticky top-0 z-10">
+              <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 uppercase font-bold text-[11px] sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3">City & State</th>
+                  <th className="px-4 py-3">City &amp; State</th>
                   <th className="px-4 py-3">Live URL</th>
                   <th className="px-4 py-3 text-center">Total Leads</th>
                   <th className="px-4 py-3 text-center">Contacted</th>
@@ -651,7 +651,7 @@ export default function GrowthCommandCenterPage() {
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100">
                 {Object.values(CITIES_DATA)
                   .filter((c) => {
                     if (!citySearch.trim()) return true;
@@ -668,46 +668,46 @@ export default function GrowthCommandCenterPage() {
                     const winRate = perf?.winRate ?? 0;
 
                     return (
-                      <tr key={city.slug} className="hover:bg-slate-850/50 transition-colors">
+                      <tr key={city.slug} className="hover:bg-orange-50/40 transition-colors">
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-white flex items-center gap-1.5">
+                          <div className="font-bold text-slate-900 flex items-center gap-1.5">
                             <span>{city.name}</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono font-bold">
                               {city.stateCode}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-400">{city.state}</div>
+                          <div className="text-[11px] text-slate-500">{city.state}</div>
                         </td>
                         <td className="px-4 py-3">
                           <a
                             href={`/city/${city.slug}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-mono text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                            className="font-mono text-[11px] text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
                           >
                             <span>/city/{city.slug}</span>
                             <ArrowUpRight className="w-3 h-3 opacity-70" />
                           </a>
                         </td>
-                        <td className="px-4 py-3 text-center font-bold text-slate-200">
+                        <td className="px-4 py-3 text-center font-bold text-slate-800">
                           {leadsCount}
                         </td>
-                        <td className="px-4 py-3 text-center font-medium text-amber-400">
+                        <td className="px-4 py-3 text-center font-bold text-amber-600">
                           {contactedCount}
                         </td>
-                        <td className="px-4 py-3 text-center font-medium text-blue-400">
+                        <td className="px-4 py-3 text-center font-bold text-orange-600">
                           {trialsCount}
                         </td>
-                        <td className="px-4 py-3 text-center font-bold text-emerald-400">
+                        <td className="px-4 py-3 text-center font-bold text-emerald-600">
                           {paidCount}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-200">
+                        <td className="px-4 py-3 text-right font-bold text-slate-800">
                           ₹{revenue.toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-3 text-center font-medium">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                              winRate > 0 ? "bg-emerald-500/10 text-emerald-400" : "text-slate-500"
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              winRate > 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "text-slate-400"
                             }`}
                           >
                             {winRate}%
@@ -716,7 +716,7 @@ export default function GrowthCommandCenterPage() {
                         <td className="px-4 py-3 text-right">
                           <Link
                             href={`/admin/growth/leads?search=${city.name}`}
-                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-[11px] transition-colors"
+                            className="px-3 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold text-[11px] transition-colors"
                           >
                             Filter Leads
                           </Link>
@@ -732,25 +732,25 @@ export default function GrowthCommandCenterPage() {
 
       {/* TAB 3: CONTENT & BLOG LEAD ROI */}
       {activeTab === "content" && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+        <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-cyan-400" />
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-orange-600" />
                 Content, Guides & Landing Page Lead Attribution
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Direct attribution showing which blog posts, landing pages, and industry solution pages generate paying clients.
               </p>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-600 font-medium">
               {contentData.length} Top Performing URLs
             </span>
           </div>
 
-          <div className="overflow-x-auto border border-slate-800 rounded-lg">
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase font-semibold text-[11px]">
+              <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 uppercase font-semibold text-[11px]">
                 <tr>
                   <th className="px-4 py-3">Content Landing URL</th>
                   <th className="px-4 py-3">Category</th>
@@ -761,48 +761,48 @@ export default function GrowthCommandCenterPage() {
                   <th className="px-4 py-3 text-center">Win Rate %</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200">
                 {contentData.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                       No content attribution captured for the selected date range.
                     </td>
                   </tr>
                 ) : (
                   contentData.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-850/50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-[11px] text-white">
+                    <tr key={idx} className="hover:bg-orange-50/40 transition-colors">
+                      <td className="px-4 py-3 font-mono text-[11px] text-slate-900">
                         <a
                           href={item.path}
                           target="_blank"
                           rel="noreferrer"
-                          className="hover:text-indigo-400 flex items-center gap-1.5"
+                          className="hover:text-orange-600 text-slate-800 flex items-center gap-1.5 transition-colors"
                         >
                           <span className="truncate max-w-sm">{item.path}</span>
-                          <ArrowUpRight className="w-3 h-3 opacity-60 shrink-0" />
+                          <ArrowUpRight className="w-3 h-3 text-slate-400 shrink-0" />
                         </a>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                           {item.contentType}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center font-bold text-slate-200">
+                      <td className="px-4 py-3 text-center font-bold text-slate-900">
                         {item.totalLeads}
                       </td>
-                      <td className="px-4 py-3 text-center font-medium text-blue-400">
+                      <td className="px-4 py-3 text-center font-bold text-orange-600">
                         {item.activeTrials}
                       </td>
-                      <td className="px-4 py-3 text-center font-bold text-emerald-400">
+                      <td className="px-4 py-3 text-center font-bold text-emerald-600">
                         {item.convertedPaid}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-200">
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900">
                         ₹{item.totalRevenue.toLocaleString("en-IN")}
                       </td>
                       <td className="px-4 py-3 text-center font-medium">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            item.winRate > 0 ? "bg-emerald-500/10 text-emerald-400" : "text-slate-500"
+                            item.winRate > 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "text-slate-400"
                           }`}
                         >
                           {item.winRate}%
@@ -821,35 +821,35 @@ export default function GrowthCommandCenterPage() {
       {activeTab === "channels" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Channels & UTM Sources */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Globe className="w-4 h-4 text-blue-400" />
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-orange-600" />
                 Top Acquisition Sources & Channels
               </h3>
-              <span className="text-[11px] text-slate-400">By Lead Volume</span>
+              <span className="text-[11px] text-slate-600 font-medium">By Lead Volume</span>
             </div>
 
             <div className="space-y-2">
               {!data?.topChannels || data.topChannels.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center">
+                <p className="text-xs text-slate-500 py-6 text-center">
                   No organic traffic channels captured yet.
                 </p>
               ) : (
                 data.topChannels.map((c, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800/80"
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-orange-200 transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center font-bold text-slate-400">
+                      <span className="w-5 h-5 rounded-full bg-slate-200 text-[10px] flex items-center justify-center font-bold text-slate-700">
                         {idx + 1}
                       </span>
-                      <span className="text-xs font-semibold text-slate-200">{c.channel}</span>
+                      <span className="text-xs font-semibold text-slate-900">{c.channel}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-400">{c.conversions} paid</span>
-                      <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                      <span className="text-xs text-slate-600">{c.conversions} paid</span>
+                      <span className="text-xs font-bold text-orange-700 bg-orange-50 px-2.5 py-0.5 rounded-lg border border-orange-200">
                         {c.count} leads
                       </span>
                     </div>
@@ -860,28 +860,28 @@ export default function GrowthCommandCenterPage() {
           </div>
 
           {/* Top Search Keywords */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Search className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Search className="w-4 h-4 text-orange-600" />
                 Top Captured Organic Search Keywords
               </h3>
-              <span className="text-[11px] text-slate-400">Search intent queries</span>
+              <span className="text-[11px] text-slate-600 font-medium">Search intent queries</span>
             </div>
 
             <div className="space-y-2">
               {!data?.topKeywords || data.topKeywords.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center">
+                <p className="text-xs text-slate-500 py-6 text-center">
                   Keyword attribution active — will populate as search query params are detected.
                 </p>
               ) : (
                 data.topKeywords.map((k, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800"
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-orange-200 transition-colors"
                   >
-                    <span className="text-xs font-mono text-cyan-300 truncate">&ldquo;{k.keyword}&rdquo;</span>
-                    <span className="text-xs font-bold text-slate-300">{k.count} queries</span>
+                    <span className="text-xs font-mono text-orange-700 font-medium truncate">&ldquo;{k.keyword}&rdquo;</span>
+                    <span className="text-xs font-bold text-slate-700">{k.count} queries</span>
                   </div>
                 ))
               )}
@@ -895,100 +895,100 @@ export default function GrowthCommandCenterPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Google Analytics 4 Card */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-sm">
                     GA4
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">Google Analytics 4 (Measurement Tag)</h3>
-                    <p className="text-xs text-slate-400">Live Client-Side Tagging & Funnel Stream</p>
+                    <h3 className="text-sm font-bold text-slate-900">Google Analytics 4 (Measurement Tag)</h3>
+                    <p className="text-xs text-slate-600">Live Client-Side Tagging & Funnel Stream</p>
                   </div>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Active
                 </span>
               </div>
 
-              <div className="bg-slate-950 border border-slate-800 rounded-lg p-3.5 space-y-2 text-xs">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Measurement ID:</span>
-                  <span className="font-mono text-emerald-400 font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                  <span className="text-slate-600 font-medium">Measurement ID:</span>
+                  <span className="font-mono text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
                     G-8L95Z01Q0C
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Script Strategy:</span>
-                  <span className="text-slate-200">afterInteractive (next/script)</span>
+                  <span className="text-slate-600 font-medium">Script Strategy:</span>
+                  <span className="text-slate-900 font-medium">afterInteractive (next/script)</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Custom Conversion Events:</span>
-                  <span className="text-slate-200 font-mono">generate_lead, view_city_landing</span>
+                  <span className="text-slate-600 font-medium">Custom Conversion Events:</span>
+                  <span className="text-slate-900 font-mono font-semibold">generate_lead, view_city_landing</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Full Pipeline Attribution:</span>
-                  <span className="text-indigo-400 font-medium">Enabled on all 50 City Pages</span>
+                  <span className="text-slate-600 font-medium">Full Pipeline Attribution:</span>
+                  <span className="text-orange-600 font-bold">Enabled on all 50 City Pages</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20 text-xs text-slate-300">
-                💡 <span className="font-semibold text-white">Real-Time Data:</span> GA4 tag is injected across all 471 prerendered pages and marketing forms. All form submissions automatically fire <code className="text-indigo-300 font-mono">generate_lead</code> with city, industry, and UTM context.
+              <div className="p-3 rounded-xl bg-orange-50/60 border border-orange-200/70 text-xs text-slate-700">
+                💡 <span className="font-semibold text-slate-900">Real-Time Data:</span> GA4 tag is injected across all 471 prerendered pages and marketing forms. All form submissions automatically fire <code className="text-orange-700 font-semibold font-mono">generate_lead</code> with city, industry, and UTM context.
               </div>
             </div>
 
             {/* Google Search Console Card */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-sm">
                     GSC
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">Google Search Console Integration</h3>
-                    <p className="text-xs text-slate-400">Crawling, Sitemaps & Ownership Verification</p>
+                    <h3 className="text-sm font-bold text-slate-900">Google Search Console Integration</h3>
+                    <p className="text-xs text-slate-600">Crawling, Sitemaps & Ownership Verification</p>
                   </div>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Verified
                 </span>
               </div>
 
-              <div className="bg-slate-950 border border-slate-800 rounded-lg p-3.5 space-y-2 text-xs">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Site Verification:</span>
-                  <span className="font-mono text-cyan-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 truncate max-w-[200px]">
+                  <span className="text-slate-600 font-medium">Site Verification:</span>
+                  <span className="font-mono text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200 truncate max-w-[200px]">
                     google-site-verification (Active)
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">XML Sitemap:</span>
+                  <span className="text-slate-600 font-medium">XML Sitemap:</span>
                   <a
                     href="https://udyogbill.com/sitemap.xml"
                     target="_blank"
                     rel="noreferrer"
-                    className="font-mono text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                    className="font-mono text-orange-600 hover:text-orange-700 flex items-center gap-1 font-semibold"
                   >
                     <span>https://udyogbill.com/sitemap.xml</span>
                     <ArrowUpRight className="w-3 h-3" />
                   </a>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Indexed Pages:</span>
-                  <span className="text-slate-200 font-bold">471 Production URLs</span>
+                  <span className="text-slate-600 font-medium">Indexed Pages:</span>
+                  <span className="text-slate-900 font-bold">471 Production URLs</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Crawler Ping Engine:</span>
-                  <span className="text-emerald-400 font-medium">Google & Bing Ping Ready</span>
+                  <span className="text-slate-600 font-medium">Crawler Ping Engine:</span>
+                  <span className="text-emerald-700 font-semibold">Google & Bing Ping Ready</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-1">
                 <Link
                   href="/admin/growth/ai-studio"
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
+                  className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   Open Live Autocomplete & Ping Studio &rarr;
@@ -997,10 +997,10 @@ export default function GrowthCommandCenterPage() {
                   href="https://search.google.com/search-console"
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold flex items-center gap-1 transition-colors"
+                  className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors"
                 >
                   <span>Open GSC Portal</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
               </div>
             </div>
@@ -1009,23 +1009,23 @@ export default function GrowthCommandCenterPage() {
       )}
 
       {/* Recent Organic Leads */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
+      <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <PhoneCall className="w-4 h-4 text-indigo-400" />
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <PhoneCall className="w-4 h-4 text-orange-600" />
             Recent Organic Inbound Captures
           </h3>
           <Link
             href="/admin/growth/leads"
-            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold"
+            className="text-xs text-orange-600 hover:text-orange-700 font-semibold"
           >
             View all leads &rarr;
           </Link>
         </div>
 
-        <div className="overflow-x-auto border border-slate-800 rounded-lg">
+        <div className="overflow-x-auto border border-slate-200 rounded-xl">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-950 text-slate-400 uppercase font-semibold text-[11px]">
+            <thead className="bg-slate-50 text-slate-700 uppercase font-semibold text-[11px] border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Lead Name</th>
                 <th className="px-4 py-3">Business</th>
@@ -1036,19 +1036,19 @@ export default function GrowthCommandCenterPage() {
                 <th className="px-4 py-3">Captured At</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-200">
               {!data?.recentLeads || data.recentLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
                     No leads captured yet.
                   </td>
                 </tr>
               ) : (
                 data.recentLeads.map((l) => (
-                  <tr key={l.id} className="hover:bg-slate-850/50">
-                    <td className="px-4 py-3 font-semibold text-white">{l.name}</td>
-                    <td className="px-4 py-3 text-slate-300">{l.businessName || "—"}</td>
-                    <td className="px-4 py-3 text-slate-400">{l.city || "—"}</td>
+                  <tr key={l.id} className="hover:bg-orange-50/40 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-slate-900">{l.name}</td>
+                    <td className="px-4 py-3 text-slate-700">{l.businessName || "—"}</td>
+                    <td className="px-4 py-3 text-slate-600">{l.city || "—"}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
@@ -1067,10 +1067,10 @@ export default function GrowthCommandCenterPage() {
                         {l.conversionStage}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-400 text-[11px] font-mono">
+                    <td className="px-4 py-3 text-slate-600 text-[11px] font-mono">
                       {l.channel || "Direct"}
                     </td>
-                    <td className="px-4 py-3 text-slate-400">
+                    <td className="px-4 py-3 text-slate-600">
                       {new Date(l.createdAt).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
