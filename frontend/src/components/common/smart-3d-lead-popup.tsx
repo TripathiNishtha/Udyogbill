@@ -254,10 +254,22 @@ export function Smart3dLeadPopup() {
   )}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      {/* Semi-transparent dark frosted glass backdrop so background page remains visible */}
+      <div
+        className="fixed inset-0 transition-opacity duration-300 cursor-pointer"
+        style={{
+          backgroundColor: "rgba(15, 23, 42, 0.65)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+        }}
+        onClick={handleDismiss}
+        aria-hidden="true"
+      />
+
       {/* 3D Perspective Box Wrapper */}
       <div
-        className="relative w-full max-w-lg"
+        className="relative z-10 w-full max-w-lg my-auto pointer-events-auto"
         style={{ perspective: "1200px" }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeaveCard}
