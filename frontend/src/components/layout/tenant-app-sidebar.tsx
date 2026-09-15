@@ -168,8 +168,6 @@ export function TenantAppSidebar({
   const [selectedBranch, setSelectedBranch] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Collapsible state for each section
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -292,11 +290,24 @@ export function TenantAppSidebar({
     ];
   }, [activeNavGroups]);
 
+  // Accordion state: which section is currently expanded (null if all closed)
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+
+  // Auto-open group matching active pathname on route change
+  useEffect(() => {
+    if (!pathname) return;
+    const matchingGroup = navGroups.find((g) =>
+      g.items.some((item) => pathname === item.href || pathname?.startsWith(item.href + "/"))
+    );
+    if (matchingGroup) {
+      setOpenGroupId(matchingGroup.id);
+    }
+  }, [pathname, navGroups]);
+
   const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId]
-    }));
+    // If currently open group is clicked again, toggle it closed (accordion style)
+    // If a different group is clicked, open that one and close the previous one
+    setOpenGroupId((prev) => (prev === groupId ? null : groupId));
   };
 
   // Filter groups if search query exists
@@ -392,7 +403,8 @@ export function TenantAppSidebar({
         {/* Navigation Groups (Categorized & Scrollable) */}
         <nav className="flex-1 overflow-y-auto min-h-0 p-2.5 space-y-3 bg-sidebar">
           {filteredGroups.map((group) => {
-            const isCollapsed = Boolean(collapsedGroups[group.id]) && !searchQuery;
+            // In search mode, keep all matching groups open. Otherwise, open ONLY the currently selected group.
+            const isCollapsed = searchQuery ? false : openGroupId !== group.id;
             const hasActiveItem = group.items.some(
               (item) => pathname === item.href || pathname?.startsWith(item.href + "/")
             );
