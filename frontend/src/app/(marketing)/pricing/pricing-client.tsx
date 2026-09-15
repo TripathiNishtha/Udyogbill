@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircle,
   ArrowRight,
@@ -9,116 +9,37 @@ import {
   Sparkles,
   HelpCircle,
   PhoneCall,
+  Users,
+  Building,
+  HardDrive,
+  FileText,
+  Clock,
+  Loader2,
 } from "lucide-react";
+import { planService } from "@/services/api-services";
+import { Plan } from "@/types";
 
-const plans = [
-  {
-    name: "Starter",
-    monthlyPrice: 499,
-    yearlyPrice: 399,
-    desc: "Engineered for single-counter retailers, independent chemists, and emerging traders.",
-    accentColor: "#f97316",
-    badge: "Solo Business",
-    features: [
-      "1 Staff User, 1 Operating Branch",
-      "Unlimited GST Tax Invoices & Bills",
-      "Real-Time Stock & Inventory Tracking",
-      "Customer & Supplier Khata (Ledger)",
-      "Daily Sales, Purchase & P&L Reports",
-      "Instant PDF & Thermal Print (2\" / 3\")",
-      "Standard WhatsApp & Email Support",
-      "Automated Daily Cloud Backups",
-    ],
-    notIncluded: [
-      "Multi-Branch Centralized Sync",
-      "POS Barcode Gun Scanning",
-      "Role-Based Staff Access Matrix",
-      "Dedicated Enterprise Account Manager"
-    ],
-    cta: "Start 14-Day Free Trial",
-    popular: false,
-  },
-  {
-    name: "Professional",
-    monthlyPrice: 999,
-    yearlyPrice: 799,
-    desc: "The complete operating system for high-volume retail stores, supermarkets, and wholesale stockists.",
-    accentColor: "#ea580c",
-    badge: "Most Popular • 14-Day Free Trial",
-    features: [
-      "5 Staff Users, Up to 3 Branch Locations",
-      "All Starter Plan Features Included",
-      "High-Speed Thermal POS Counter Billing",
-      "1D & 2D Barcode Scanner Gun Support",
-      "Inter-Branch Stock Transfer Tracking",
-      "Purchase Orders, GRN & Vendor Bills",
-      "GSTR-1, GSTR-3B & Tax Audit Export (Excel/JSON)",
-      "Direct WhatsApp Invoicing & Payment Reminders",
-      "Priority Phone & Remote Screen-Share Support",
-      "20GB High-Speed Cloud Storage",
-    ],
-    notIncluded: [],
-    cta: "Claim 14-Day Free Trial",
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    monthlyPrice: null,
-    yearlyPrice: null,
-    desc: "Custom architecture for pharma distributors, retail chains, and multi-state warehouse networks.",
-    accentColor: "#059669",
-    badge: "Custom Scale",
-    features: [
-      "Unlimited Staff Users, Unlimited Branches",
-      "All Professional Plan Features Included",
-      "Pharma Batch, Expiry Claims & Salt Search",
-      "Custom Bill Formats & ERP Integrations",
-      "High-Performance REST API & Webhook Access",
-      "Dedicated Senior Account Onboarding Manager",
-      "Full On-Site / Remote Staff Training Program",
-      "Unlimited Scalable Cloud Infrastructure",
-      "99.9% Uptime Service Level Agreement (SLA)",
-    ],
-    notIncluded: [],
-    cta: "Talk to Enterprise Specialist",
-    popular: false,
-  },
-];
+const formatBillingCycle = (cycle: number | string | undefined, planCode?: string, planName?: string) => {
+  const code = (planCode || "").toUpperCase();
+  const name = (planName || "").toLowerCase();
 
-const featureMatrix = [
-  {
-    category: "Billing & Invoicing",
-    items: [
-      { name: "Unlimited GST Invoices", starter: true, pro: true, ent: true },
-      { name: "Custom Invoice Branding & Logos", starter: true, pro: true, ent: true },
-      { name: "Thermal Receipt Printing (2\" & 3\")", starter: true, pro: true, ent: true },
-      { name: "Quotation & Delivery Challans", starter: true, pro: true, ent: true },
-      { name: "E-Way Bill & B2B E-Invoicing", starter: false, pro: true, ent: true },
-      { name: "WhatsApp Direct Invoice Dispatch", starter: false, pro: true, ent: true },
-    ],
-  },
-  {
-    category: "Inventory & Hardware",
-    items: [
-      { name: "Real-Time Stock Tracking", starter: true, pro: true, ent: true },
-      { name: "Low Stock & Reorder Alerts", starter: true, pro: true, ent: true },
-      { name: "Barcode Scanner Gun Integration", starter: false, pro: true, ent: true },
-      { name: "Batch & Expiry Date Management", starter: false, pro: "Add-on", ent: true },
-      { name: "Multi-Godown Stock Transfers", starter: false, pro: true, ent: true },
-      { name: "Electronic Weighing Scale Integration", starter: false, pro: true, ent: true },
-    ],
-  },
-  {
-    category: "Security, Roles & Support",
-    items: [
-      { name: "Cloud Backup & 256-Bit SSL", starter: true, pro: true, ent: true },
-      { name: "Role-Based Staff Access (RBAC)", starter: false, pro: true, ent: true },
-      { name: "Multi-Branch Centralized Reporting", starter: false, pro: true, ent: true },
-      { name: "Phone & WhatsApp Technical Support", starter: "Standard", pro: "Priority", ent: "Dedicated VIP" },
-      { name: "Onboarding & Assisted Data Migration", starter: "Self-Serve", pro: "Guided", ent: "Dedicated Expert" },
-    ],
-  },
-];
+  if (cycle === 24 || code.includes("BIENNIAL") || name.includes("2 year") || name.includes("2 yr") || name.includes("biennial")) {
+    return { label: "2 Years (730 Days)", suffix: "/ 2 years", shortSuffix: "/ 2 yrs", cycleName: "2 Years", cycleNum: 24, days: 730 };
+  }
+  if (cycle === 12 || code.includes("ANNUAL") || code.includes("YEAR") || name.includes("1 year") || name.includes("1 yr") || name.includes("annual") || name.includes("yearly")) {
+    return { label: "1 Year (365 Days)", suffix: "/ year", shortSuffix: "/ yr", cycleName: "1 Year", cycleNum: 12, days: 365 };
+  }
+  if (cycle === 6 || name.includes("semi")) {
+    return { label: "6 Months (180 Days)", suffix: "/ 6 months", shortSuffix: "/ 6 mo", cycleName: "6 Months", cycleNum: 6, days: 180 };
+  }
+  if (cycle === 3 || name.includes("quarter")) {
+    return { label: "Quarterly (90 Days)", suffix: "/ quarter", shortSuffix: "/ qtr", cycleName: "Quarterly", cycleNum: 3, days: 90 };
+  }
+  if (cycle === 99 || name.includes("lifetime")) {
+    return { label: "Lifetime Deal", suffix: "(One-time)", shortSuffix: "one-time", cycleName: "Lifetime", cycleNum: 99, days: 3650 };
+  }
+  return { label: "Monthly (30 Days)", suffix: "/ month", shortSuffix: "/ mo", cycleName: "Monthly", cycleNum: 1, days: 30 };
+};
 
 const pricingFaqs = [
   {
@@ -140,266 +61,285 @@ const pricingFaqs = [
 ];
 
 export default function PricingClient() {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
-  const yearly = billingCycle === "yearly";
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadPlans() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await planService.getPlans();
+        // Only keep active and non-hidden plans as set by SuperAdmin
+        const activePlans = (data || []).filter(
+          (p) => p.isActive !== false && !(p as any).isHidden
+        );
+        setPlans(activePlans);
+      } catch (err: any) {
+        console.error("Failed to load plans:", err);
+        setError("Unable to load latest subscription plans. Please refresh or contact support.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPlans();
+  }, []);
 
   return (
     <div className="bg-transparent text-slate-900 space-y-10 sm:space-y-12">
       {/* Header */}
-      <section className="pt-2 pb-6 sm:pb-8 border-b border-slate-200" style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffffff 50%, #fffbf5 100%)" }}>
+      <section
+        className="pt-4 pb-8 sm:pb-10 border-b border-orange-100"
+        style={{
+          background: "linear-gradient(135deg, #fff7ed 0%, #ffffff 50%, #fffbf5 100%)",
+        }}
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 border border-orange-200 bg-orange-50 text-orange-900 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 text-orange-600" />
-            100% Transparent B2B Pricing — Zero Hidden Surcharges
+            100% Transparent B2B Pricing — Live from SuperAdmin
           </div>
 
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-950 mb-3 tracking-tight">
-            Predictable Pricing for Every{" "}
+            Transparent Pricing Plans for{" "}
             <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-              Growing Business
+              Every Business
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-700 font-medium max-w-2xl mx-auto mb-6 leading-relaxed">
-            Select the plan tailored to your business scale. Experience unrestricted access with our 14-day free trial — no credit card needed.
+          <p className="text-sm sm:text-base text-slate-700 font-medium max-w-2xl mx-auto mb-2 leading-relaxed">
+            Choose the official subscription plan configured for your business growth. Start your unrestricted 14-day free trial — no credit card needed.
           </p>
-
-          {/* Billing Cycle Switcher */}
-          <div className="inline-flex items-center gap-3 bg-white p-1.5 rounded-2xl border-2 border-slate-200 shadow-sm">
-            <button
-              onClick={() => setBillingCycle("monthly")}
-              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                billingCycle === "monthly"
-                  ? "bg-orange-500 text-white shadow-xs"
-                  : "text-slate-600 hover:text-orange-600"
-              }`}
-            >
-              Monthly Billing
-            </button>
-            <button
-              onClick={() => setBillingCycle("yearly")}
-              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                billingCycle === "yearly"
-                  ? "bg-orange-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-950"
-              }`}
-            >
-              Annual Billing
-              <span className="bg-emerald-500 text-white text-[11px] px-2 py-0.5 rounded-full font-black">
-                SAVE 20%
-              </span>
-            </button>
-          </div>
         </div>
       </section>
 
-      {/* Pricing Cards Grid */}
+      {/* Dynamic Pricing Cards Grid */}
       <section className="py-4 sm:py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative rounded-2xl flex flex-col transition-all duration-200 ${
-                  plan.popular
-                    ? "bg-white border-2 border-orange-500 shadow-xl ring-4 ring-orange-500/10 scale-[1.01]"
-                    : "bg-white border-2 border-slate-200 hover:border-slate-300 shadow-sm"
-                } p-6 sm:p-7`}
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+              <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
+              <p className="text-sm font-bold text-slate-600">Loading current subscription plans...</p>
+            </div>
+          ) : error ? (
+            <div className="p-8 rounded-2xl bg-white border border-red-200 text-center max-w-lg mx-auto shadow-sm">
+              <p className="text-red-700 font-semibold mb-4 text-sm">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
               >
-                {plan.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-white text-xs font-black shadow-md bg-gradient-to-r from-orange-600 to-amber-600 tracking-wide uppercase">
-                    ⭐ Recommended Choice
-                  </div>
-                )}
+                Retry Loading Plans
+              </button>
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="p-10 rounded-2xl bg-white border border-slate-200 text-center max-w-lg mx-auto shadow-sm space-y-4">
+              <p className="text-slate-700 font-medium text-sm">
+                No public plans are currently available. Please contact our team for custom pricing.
+              </p>
+              <a
+                href="https://wa.me/919473807622?text=Hi%2C%20I%20would%20like%20to%20know%20about%20UdyogBill%20subscription%20plans"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-bold py-2.5 px-5 rounded-xl text-xs text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-sm"
+              >
+                <MessageCircle className="w-4 h-4" /> Contact Sales on WhatsApp
+              </a>
+            </div>
+          ) : (
+            <div
+              className={`grid gap-6 lg:gap-8 items-stretch justify-center ${
+                plans.length === 1
+                  ? "grid-cols-1 max-w-md mx-auto"
+                  : plans.length === 2
+                  ? "grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto"
+                  : "grid-cols-1 md:grid-cols-3"
+              }`}
+            >
+              {plans.map((plan) => {
+                const basePrice = Number(plan.price) || 0;
+                const gstAmount = Number((basePrice * 0.18).toFixed(2));
+                const totalWithGst = Number((basePrice + gstAmount).toFixed(2));
+                const cycleInfo = formatBillingCycle(plan.billingCycle, plan.code, plan.name);
 
-                <div className="mb-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl sm:text-2xl font-black text-slate-950">
-                      {plan.name}
-                    </h2>
-                    <span
-                      className="text-xs font-bold px-2.5 py-1 rounded-md border"
-                      style={{
-                        backgroundColor: `${plan.accentColor}12`,
-                        color: plan.accentColor,
-                        borderColor: `${plan.accentColor}30`,
-                      }}
-                    >
-                      {plan.badge}
-                    </span>
-                  </div>
-                  <p className="text-slate-600 text-xs sm:text-sm leading-relaxed min-h-[38px]">{plan.desc}</p>
-
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    {plan.monthlyPrice ? (
-                      <div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-3xl sm:text-4xl font-black text-slate-950">
-                            ₹{yearly ? plan.yearlyPrice : plan.monthlyPrice}
-                          </span>
-                          <span className="text-slate-500 font-bold text-xs sm:text-sm">/month + GST</span>
-                        </div>
-                        {yearly ? (
-                          <div className="text-xs font-bold text-emerald-700 mt-1 flex items-center gap-1">
-                            <Zap className="w-3.5 h-3.5" /> Billed annually • ₹{(plan.monthlyPrice - plan.yearlyPrice) * 12}/yr savings
-                          </div>
-                        ) : (
-                          <div className="text-xs text-slate-500 font-medium mt-1">Flexible month-to-month billing</div>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="text-2xl sm:text-3xl font-black text-slate-950">
-                          Custom Pricing
-                        </span>
-                        <div className="text-xs font-bold text-slate-600 mt-1">Tailored to branch count and user volume</div>
+                return (
+                  <div
+                    key={plan.id}
+                    className={`relative rounded-3xl flex flex-col justify-between transition-all duration-200 ${
+                      plan.isPopular
+                        ? "bg-white border-2 border-orange-500 shadow-xl ring-4 ring-orange-500/10 scale-[1.01]"
+                        : "bg-white border-2 border-slate-200 hover:border-orange-300 shadow-sm"
+                    } p-6 sm:p-8`}
+                  >
+                    {plan.isPopular && (
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-white text-xs font-black shadow-md bg-gradient-to-r from-orange-600 to-amber-600 tracking-wide uppercase">
+                        ⭐ Recommended Choice
                       </div>
                     )}
-                  </div>
-                </div>
 
-                {/* Features List */}
-                <div className="space-y-2.5 mb-6 flex-1">
-                  <div className="text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Included Capabilities:</div>
-                  {plan.features.map((f) => (
-                    <div key={f} className="flex items-start gap-2.5">
-                      <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
-                      <span className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">{f}</span>
-                    </div>
-                  ))}
-                  {plan.notIncluded && plan.notIncluded.length > 0 && (
-                    <div className="pt-3 mt-3 border-t border-slate-100 space-y-1.5 opacity-60">
-                      {plan.notIncluded.map((nf) => (
-                        <div key={nf} className="flex items-start gap-2.5 text-xs text-slate-500">
-                          <span className="w-4 text-center font-bold text-slate-400">—</span>
-                          <span>{nf}</span>
+                    <div className="space-y-5">
+                      {/* Plan Header */}
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <h2 className="text-xl sm:text-2xl font-black text-slate-950">
+                            {plan.name}
+                          </h2>
+                          <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-md border bg-orange-50 text-orange-700 border-orange-200 whitespace-nowrap">
+                            {cycleInfo.cycleName}
+                          </span>
                         </div>
-                      ))}
+                        {plan.description && (
+                          <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                            {plan.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Pricing block */}
+                      <div className="pt-4 border-t border-slate-100">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-3xl sm:text-4xl font-black text-slate-950">
+                            ₹{basePrice.toLocaleString("en-IN")}
+                          </span>
+                          <span className="text-slate-500 font-bold text-xs sm:text-sm">
+                            {cycleInfo.suffix} + GST
+                          </span>
+                        </div>
+
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-orange-50/70 border border-orange-200/80 space-y-1">
+                          <div className="text-[11px] text-orange-950 font-semibold flex items-center justify-between">
+                            <span>+ 18% GST (₹{gstAmount.toLocaleString("en-IN")}):</span>
+                            <span className="font-bold text-slate-800">Additional</span>
+                          </div>
+                          <div className="text-[11px] text-slate-700 flex items-center justify-between pt-1 border-t border-orange-200/60 font-bold">
+                            <span>Total Payable:</span>
+                            <span className="text-emerald-700 font-black">
+                              ₹{totalWithGst.toLocaleString("en-IN")} {cycleInfo.shortSuffix}
+                            </span>
+                          </div>
+                        </div>
+
+                        {plan.trialDays ? (
+                          <div className="text-xs font-bold text-emerald-700 mt-2.5 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" /> Includes {plan.trialDays}-day unrestricted free trial
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Plan Quotas & Capabilities */}
+                      <div className="pt-4 border-t border-slate-100 space-y-3 flex-1">
+                        <div className="text-xs font-black uppercase tracking-wider text-slate-500 mb-1">
+                          Included Plan Limits & Features:
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-slate-600 flex items-center gap-2">
+                            <Users className="w-4 h-4 text-orange-600 shrink-0" />
+                            <span>Staff User Accounts:</span>
+                          </span>
+                          <span className="font-bold text-slate-950">
+                            {plan.maxUsers >= 100 ? "Unlimited" : `${plan.maxUsers} Users`}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-slate-600 flex items-center gap-2">
+                            <Building className="w-4 h-4 text-orange-600 shrink-0" />
+                            <span>Branches & Godowns:</span>
+                          </span>
+                          <span className="font-bold text-slate-950">
+                            {plan.maxBranches} Branch{plan.maxBranches > 1 ? "es" : ""} / {plan.maxWarehouses} Warehouse{plan.maxWarehouses > 1 ? "s" : ""}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-slate-600 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-orange-600 shrink-0" />
+                            <span>Invoices Quota:</span>
+                          </span>
+                          <span className="font-bold text-slate-950">
+                            {plan.maxInvoicesPerMonth >= 100000
+                              ? "Unlimited"
+                              : `${plan.maxInvoicesPerMonth.toLocaleString("en-IN")} /mo`}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-slate-600 flex items-center gap-2">
+                            <HardDrive className="w-4 h-4 text-orange-600 shrink-0" />
+                            <span>Secure Cloud Storage:</span>
+                          </span>
+                          <span className="font-bold text-slate-950">
+                            {plan.maxStorageMb >= 1024
+                              ? `${(plan.maxStorageMb / 1024).toFixed(0)} GB`
+                              : `${plan.maxStorageMb} MB`}
+                          </span>
+                        </div>
+
+                        {/* Standard Core Entitlements */}
+                        <div className="pt-2 space-y-2">
+                          <div className="flex items-start gap-2 text-xs sm:text-sm">
+                            <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                            <span className="text-slate-800 font-medium">
+                              Industry Pack Configured (Pharma, Retail, FMCG, etc.)
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-xs sm:text-sm">
+                            <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                            <span className="text-slate-800 font-medium">
+                              GST Invoices, E-Way Bill & B2B E-Invoicing Ready
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-xs sm:text-sm">
+                            <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                            <span className="text-slate-800 font-medium">
+                              Customer & Supplier Khata, Ledger & Thermal Printing
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-xs sm:text-sm">
+                            <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                            <span className="text-slate-800 font-medium">
+                              Direct WhatsApp & Phone Technical Support Included
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Action CTA */}
-                <div className="mt-auto pt-2">
-                  {plan.monthlyPrice ? (
-                    <Link
-                      href="/register"
-                      className={`block text-center font-bold py-3 px-4 rounded-xl text-sm transition-all shadow-sm hover:shadow-md ${
-                        plan.popular
-                          ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-500/25"
-                          : "bg-white hover:bg-orange-50 text-orange-600 border-2 border-orange-400 hover:border-orange-500 font-extrabold"
-                      }`}
-                    >
-                      {plan.cta} <ArrowRight className="inline w-4 h-4 ml-1" />
-                    </Link>
-                  ) : (
-                    <a
-                      href="https://wa.me/919473807622?text=Hi%2C%20I%20would%20like%20to%20discuss%20the%20UdyogBill%20Enterprise%20Plan"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 font-bold py-3 px-4 rounded-xl text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-sm"
-                    >
-                      <MessageCircle className="w-4 h-4" /> Discuss Enterprise Architecture
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Comparison Matrix */}
-      <section className="py-4 sm:py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="text-center max-w-3xl mx-auto mb-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-950 mb-2">
-              Comprehensive Feature Comparison Matrix
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600">
-              Detailed technical breakdown of capabilities across all UdyogBill subscription tiers.
-            </p>
-          </div>
-
-          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[650px]">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-900 text-xs font-black uppercase tracking-wider">
-                    <th className="py-3.5 px-5 w-2/5">Capabilities</th>
-                    <th className="py-3.5 px-4 text-center w-1/5">Starter</th>
-                    <th className="py-3.5 px-4 text-center w-1/5 text-orange-700 bg-orange-50/50">Professional</th>
-                    <th className="py-3.5 px-4 text-center w-1/5">Enterprise</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs sm:text-sm text-slate-700">
-                  {featureMatrix.map((section) => (
-                    <tbody key={section.category} className="divide-y divide-slate-100">
-                      <tr className="bg-slate-100/60 font-black text-slate-900 text-xs uppercase tracking-wider">
-                        <td colSpan={4} className="py-2.5 px-5 text-orange-950 font-bold">
-                          {section.category}
-                        </td>
-                      </tr>
-                      {section.items.map((row) => (
-                        <tr key={row.name} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="py-3 px-5 font-semibold text-slate-800">{row.name}</td>
-                          <td className="py-3 px-4 text-center">
-                            {typeof row.starter === "boolean" ? (
-                              row.starter ? (
-                                <CheckCircle className="w-4 h-4 mx-auto text-emerald-600" />
-                              ) : (
-                                <span className="text-slate-300 font-bold">—</span>
-                              )
-                            ) : (
-                              <span className="font-bold text-slate-700 text-xs">{row.starter}</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center bg-orange-50/20">
-                            {typeof row.pro === "boolean" ? (
-                              row.pro ? (
-                                <CheckCircle className="w-4 h-4 mx-auto text-orange-600" />
-                              ) : (
-                                <span className="text-slate-300 font-bold">—</span>
-                              )
-                            ) : (
-                              <span className="font-bold text-orange-800 text-xs">{row.pro}</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {typeof row.ent === "boolean" ? (
-                              row.ent ? (
-                                <CheckCircle className="w-4 h-4 mx-auto text-emerald-600" />
-                              ) : (
-                                <span className="text-slate-300 font-bold">—</span>
-                              )
-                            ) : (
-                              <span className="font-bold text-slate-900 text-xs">{row.ent}</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  ))}
-                </tbody>
-              </table>
+                    {/* Action CTA */}
+                    <div className="mt-8 pt-4 border-t border-slate-100">
+                      <Link
+                        href={`/register?plan=${encodeURIComponent(plan.code)}`}
+                        className={`block text-center font-bold py-3.5 px-4 rounded-xl text-sm transition-all shadow-sm hover:shadow-md cursor-pointer ${
+                          plan.isPopular
+                            ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-500/25"
+                            : "bg-white hover:bg-orange-50 text-orange-600 border-2 border-orange-400 hover:border-orange-500 font-extrabold"
+                        }`}
+                      >
+                        Start 14-Day Free Trial <ArrowRight className="inline w-4 h-4 ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
       {/* Need Help Choosing Box */}
       <section className="py-4 sm:py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="rounded-2xl p-6 sm:p-8 border-2 border-orange-200 bg-orange-50/40 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-2xl p-6 sm:p-8 border-2 border-orange-200 bg-orange-50/50 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
             <div>
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 mb-2">
                 <HelpCircle className="w-4 h-4" /> Need Expert Guidance?
               </div>
               <h3 className="text-lg sm:text-xl font-black text-slate-950 mb-1.5">
-                Unsure which plan matches your operational volume?
+                Have custom multi-branch or enterprise requirements?
               </h3>
               <p className="text-slate-700 text-xs sm:text-sm max-w-2xl leading-relaxed">
-                Connect directly with our billing specialists. We will evaluate your branch setup, transaction count, and hardware infrastructure to recommend the optimal tier.
+                Connect directly with our billing specialists. We will evaluate your branch setup, transaction count, and hardware infrastructure to configure the exact plan you need.
               </p>
             </div>
             <div className="flex gap-3 flex-wrap shrink-0">
@@ -436,7 +376,10 @@ export default function PricingClient() {
 
           <div className="space-y-3">
             {pricingFaqs.map((faq) => (
-              <div key={faq.q} className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-2xs">
+              <div
+                key={faq.q}
+                className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-2xs"
+              >
                 <h3 className="font-bold text-slate-900 text-sm sm:text-base mb-1.5 flex items-start gap-2">
                   <span className="text-orange-600 font-black">Q.</span>
                   <span>{faq.q}</span>
