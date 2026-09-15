@@ -223,26 +223,26 @@ function RegisterContent() {
   };
 
   return (
-    <div className="min-h-screen lg:h-screen w-screen overflow-y-auto lg:overflow-hidden bg-slate-50 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/50 via-slate-50 to-slate-100 flex flex-col justify-between font-sans relative selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen lg:h-screen w-screen overflow-y-auto lg:overflow-hidden bg-[#fff7ed] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-100/60 via-[#fff7ed] to-amber-50/80 flex flex-col justify-between font-sans relative selection:bg-orange-500 selection:text-white">
       {/* Background Subtle Accent Grids & Glows */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.4]"
+        className="absolute inset-0 pointer-events-none opacity-[0.35]"
         style={{
-          backgroundImage: `radial-gradient(rgba(148, 163, 184, 0.4) 1px, transparent 1px), radial-gradient(rgba(99, 102, 241, 0.2) 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(rgba(249, 115, 22, 0.25) 1px, transparent 1px), radial-gradient(rgba(234, 88, 12, 0.15) 1px, transparent 1px)`,
           backgroundSize: '32px 32px',
           backgroundPosition: '0 0, 16px 16px',
         }}
       />
 
       {/* Ambient Soft Orbs */}
-      <div className="absolute -top-28 -left-28 w-[500px] h-[500px] bg-indigo-200/40 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/3 -right-28 w-[450px] h-[450px] bg-purple-200/35 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute -bottom-28 left-1/4 w-[550px] h-[550px] bg-emerald-200/30 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute -top-28 -left-28 w-[500px] h-[500px] bg-orange-200/40 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/3 -right-28 w-[450px] h-[450px] bg-amber-200/35 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute -bottom-28 left-1/4 w-[550px] h-[550px] bg-orange-100/50 rounded-full blur-[130px] pointer-events-none" />
 
       {/* Top Header Bar */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 relative z-10 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 relative z-10 border-b border-orange-200/80 bg-[#fff7ed]/90 backdrop-blur-xl">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-white rounded-xl px-2.5 py-1 border border-slate-200 shadow-sm transition-transform group-hover:scale-105">
+          <div className="bg-white rounded-xl px-2.5 py-1 border border-orange-200 shadow-sm transition-transform group-hover:scale-105">
             <img
               src="/udyogbill-brand-logo.png"
               alt="UdyogBill Logo"
@@ -255,7 +255,7 @@ function RegisterContent() {
           <span className="hidden sm:inline-block text-slate-600 font-medium">Already have an account?</span>
           <Link
             href="/login"
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-sm shadow-orange-500/25 transition-all active:scale-95 flex items-center gap-1.5"
           >
             <span>Sign In</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -269,15 +269,15 @@ function RegisterContent() {
           
           {/* LEFT COLUMN: Feature Highlights (Desktop) */}
           <div className="hidden lg:flex lg:col-span-5 flex-col justify-center space-y-5 text-slate-900 pr-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-100/80 border border-indigo-200 text-indigo-700 text-xs font-bold w-fit shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-800 text-xs font-bold w-fit shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-orange-600" />
               <span>14-Day Free Trial • No Credit Card Required</span>
             </div>
 
             <div>
               <h1 className="text-3xl xl:text-4xl font-black text-slate-900 tracking-tight leading-tight">
                 India&apos;s Fastest Multi-Industry{" "}
-                <span className="text-indigo-600">
+                <span className="text-orange-600">
                   GST Billing &amp; ERP
                 </span>
               </h1>
@@ -288,8 +288,8 @@ function RegisterContent() {
 
             {/* Feature Cards Grid */}
             <div className="grid grid-cols-1 gap-3">
-              <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-200 shadow-sm hover:shadow-md transition-all flex items-center gap-3.5 group">
-                <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shrink-0 group-hover:scale-105 transition-transform">
+              <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 shadow-sm hover:shadow-md transition-all flex items-center gap-3.5 group">
+                <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-100 shrink-0 group-hover:scale-105 transition-transform">
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
@@ -344,7 +344,7 @@ function RegisterContent() {
                 <div>
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                     <span>Register Business Tenant</span>
-                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                    <span className="text-[10px] font-bold bg-orange-100 text-orange-800 px-2.5 py-0.5 rounded-full border border-orange-200">
                       14-Day Free Trial
                     </span>
                   </h2>
@@ -390,10 +390,10 @@ function RegisterContent() {
                   )}
 
                   {/* Instant GST Auto-Fill Card (High Visibility) */}
-                  <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-2xl space-y-2">
+                  <div className="p-3 bg-orange-50/70 border border-orange-200/80 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-indigo-600" />
+                        <Zap className="w-3.5 h-3.5 text-orange-600" />
                         <span>Instant Auto-Fill with GSTIN</span>
                         <span className="text-[9px] font-semibold text-slate-500 bg-white border border-slate-200 px-1.5 py-0.2 rounded">Optional</span>
                       </span>
@@ -413,13 +413,13 @@ function RegisterContent() {
                           }
                         }}
                         placeholder="ENTER 15-DIGIT GSTIN (E.G. 06AAMCD2668N1Z2)"
-                        className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-wider text-slate-900 placeholder-slate-400 uppercase focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs"
+                        className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-wider text-slate-900 placeholder-slate-400 uppercase focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs"
                       />
                       <button
                         type="button"
                         onClick={() => handleFetchGst()}
                         disabled={fetchingGst || gstinInput.trim().length !== 15}
-                        className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-600/20 cursor-pointer shrink-0"
+                        className="bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/25 cursor-pointer shrink-0"
                       >
                         {fetchingGst ? (
                           <>
@@ -428,7 +428,7 @@ function RegisterContent() {
                           </>
                         ) : (
                           <>
-                            <Zap className="w-3.5 h-3.5 text-amber-300" />
+                            <Zap className="w-3.5 h-3.5 text-amber-200" />
                             <span>Auto-Fill</span>
                           </>
                         )}
@@ -455,14 +455,14 @@ function RegisterContent() {
                   {/* Business Category Dropdown */}
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1 flex items-center gap-1.5">
-                      <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                      <Briefcase className="w-3.5 h-3.5 text-orange-600" />
                       <span>Business Category *</span>
                     </label>
                     <select
                       value={formData.industryId}
                       onChange={(e) => setFormData({ ...formData, industryId: e.target.value })}
                       required
-                      className={`w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs cursor-pointer ${
+                      className={`w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs cursor-pointer ${
                         !formData.industryId ? "text-slate-400 font-medium" : "text-slate-900 font-semibold"
                       }`}
                     >
@@ -490,7 +490,7 @@ function RegisterContent() {
                         value={formData.businessName}
                         onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                         placeholder="e.g. Apex Pharma Care Pvt Ltd"
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs"
                       />
                     </div>
 
@@ -503,7 +503,7 @@ function RegisterContent() {
                         value={formData.tradeName}
                         onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })}
                         placeholder="e.g. Apex Meds"
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs"
                       />
                     </div>
                   </div>
@@ -520,7 +520,7 @@ function RegisterContent() {
                         value={formData.adminFullName}
                         onChange={(e) => setFormData({ ...formData, adminFullName: e.target.value })}
                         placeholder="e.g. Rahul Sharma"
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs"
                       />
                     </div>
 
@@ -536,7 +536,7 @@ function RegisterContent() {
                         value={formData.primaryPhone}
                         onChange={(e) => setFormData({ ...formData, primaryPhone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                         placeholder="9876543210"
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-mono font-medium focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-mono font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs"
                       />
                     </div>
                   </div>
@@ -554,7 +554,7 @@ function RegisterContent() {
                         value={formData.adminEmail}
                         onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
                         placeholder="owner@company.com"
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs"
                       />
                     </div>
 
@@ -570,7 +570,7 @@ function RegisterContent() {
                           value={formData.adminPassword}
                           onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
                           placeholder="Min 6 characters"
-                          className="w-full bg-white border border-slate-300 rounded-xl px-3 pr-9 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-xs"
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 pr-9 py-2 text-slate-900 placeholder-slate-400 text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 shadow-xs"
                         />
                         <button
                           type="button"
@@ -588,7 +588,7 @@ function RegisterContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
+                    className="w-full mt-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition-all shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
                   >
                     {loading ? (
                       <>
@@ -613,7 +613,7 @@ function RegisterContent() {
                 </div>
                 <div>
                   Already registered?{" "}
-                  <Link href="/login" className="text-indigo-600 hover:underline font-bold">
+                  <Link href="/login" className="text-orange-600 hover:underline font-bold">
                     Sign In
                   </Link>
                 </div>
