@@ -2498,7 +2498,7 @@ function TenantInvoicesPageContent() {
 
                     {/* Dropdown popup with matching products and their batch count */}
                     {quickProductSearch.trim().length > 0 && (
-                      <div className="absolute z-30 top-full mt-1.5 left-0 right-0 max-h-72 overflow-y-auto bg-slate-900 border border-orange-500/30 rounded-xl shadow-2xl divide-y divide-slate-800 animate-in fade-in">
+                      <div className="quick-search-dropdown absolute z-50 top-full mt-1.5 left-0 right-0 max-h-80 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xl divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in">
                         {items
                           .filter(
                             (item) =>
@@ -2514,31 +2514,31 @@ function TenantInvoicesPageContent() {
                                 handleAddLineWithItem(item);
                                 setQuickProductSearch("");
                               }}
-                              className="p-2.5 hover:bg-orange-950/40 cursor-pointer transition-colors group flex items-center justify-between"
+                              className="dropdown-item-row p-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 cursor-pointer transition-colors group flex items-center justify-between gap-3"
                             >
-                              <div>
-                                <div className="font-bold text-white text-xs group-hover:text-orange-300 flex items-center space-x-2">
-                                  <span>{item.name}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="product-name font-bold text-slate-900 dark:text-white text-sm group-hover:text-orange-600 dark:group-hover:text-orange-400 flex items-center space-x-2">
+                                  <span className="font-extrabold text-slate-900 dark:text-white">{item.name}</span>
                                   {item.sku && (
-                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
+                                    <span className="product-sku text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-semibold border border-slate-200 dark:border-slate-700">
                                       {item.sku}
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[11px] text-slate-400 mt-0.5 flex items-center space-x-3">
+                                <div className="product-meta text-xs text-slate-600 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                                   <span>
-                                    MRP: <strong className="text-slate-200 font-mono">₹{item.mrp || 0}</strong>
+                                    MRP: <strong className="text-slate-800 dark:text-slate-200 font-mono font-semibold">₹{item.mrp || 0}</strong>
                                   </span>
                                   <span>
-                                    Rate: <strong className="text-emerald-400 font-mono">₹{item.sellingPrice || item.mrp || 0}</strong>
+                                    Rate: <strong className="rate-value text-emerald-700 dark:text-emerald-400 font-mono font-bold">₹{item.sellingPrice || item.mrp || 0}</strong>
                                   </span>
-                                  {item.hsnCode && <span>HSN: {item.hsnCode}</span>}
-                                  {item.taxRate !== undefined && <span>GST: {item.taxRate}%</span>}
+                                  {item.hsnCode && <span className="bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded text-[11px] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">HSN: {item.hsnCode}</span>}
+                                  {item.taxRate !== undefined && <span className="bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded text-[11px] font-bold">GST {item.taxRate}%</span>}
                                 </div>
                               </div>
                               <button
                                 type="button"
-                                className="px-2.5 py-1 rounded-lg bg-orange-600/20 text-orange-300 border border-orange-500/30 text-[11px] font-bold group-hover:bg-orange-600 group-hover:text-white transition-colors"
+                                className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all shrink-0 cursor-pointer"
                               >
                                 {hasBatchTracking ? "+ Add & Autofill Batch" : "+ Add Item"}
                               </button>

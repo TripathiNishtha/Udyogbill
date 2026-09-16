@@ -1409,3 +1409,85 @@ html:not(.dark) .record-vendor-bill-modal thead th {
 :root {
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Quick Product Search Dropdown 100% High-Contrast Visibility */
+.quick-search-dropdown {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.dark .quick-search-dropdown,
+body.dark .quick-search-dropdown {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+.quick-search-dropdown .product-name,
+.quick-search-dropdown .product-name span {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+html.dark .quick-search-dropdown .product-name,
+html.dark .quick-search-dropdown .product-name span,
+body.dark .quick-search-dropdown .product-name,
+body.dark .quick-search-dropdown .product-name span {
+  color: #ffffff !important;
+}
+
+.quick-search-dropdown .product-sku {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html.dark .quick-search-dropdown .product-sku,
+body.dark .quick-search-dropdown .product-sku {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+.quick-search-dropdown .product-meta {
+  color: #475569 !important;
+}
+
+html.dark .quick-search-dropdown .product-meta,
+body.dark .quick-search-dropdown .product-meta {
+  color: #94a3b8 !important;
+}
+
+.quick-search-dropdown .product-meta strong {
+  color: #0f172a !important;
+}
+
+html.dark .quick-search-dropdown .product-meta strong {
+  color: #e2e8f0 !important;
+}
+
+.quick-search-dropdown .product-meta .rate-value {
+  color: #047857 !important;
+  font-weight: 800 !important;
+}
+
+html.dark .quick-search-dropdown .product-meta .rate-value {
+  color: #34d399 !important;
+}
+
+.quick-search-dropdown .dropdown-item-row {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.quick-search-dropdown .dropdown-item-row:hover {
+  background-color: #fff7ed !important;
+}
+
+html.dark .quick-search-dropdown .dropdown-item-row {
+  border-bottom-color: #1e293b !important;
+}
+
+html.dark .quick-search-dropdown .dropdown-item-row:hover {
+  background-color: #431407 !important;
+}
+
