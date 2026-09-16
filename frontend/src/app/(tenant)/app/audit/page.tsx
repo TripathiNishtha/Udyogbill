@@ -91,7 +91,7 @@ export default function TenantAuditPage() {
     if (name.includes("update") || name.includes("edit") || name.includes("assign")) {
       return "bg-amber-500/10 text-amber-400 border-amber-500/20";
     }
-    return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+    return "bg-orange-500/10 text-orange-400 border-orange-500/20";
   };
 
   return (
@@ -100,7 +100,7 @@ export default function TenantAuditPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2.5">
-            <ShieldAlert className="w-7 h-7 text-indigo-400" />
+            <ShieldAlert className="w-7 h-7 text-orange-400" />
             <span>Audit Trail & Security Logs</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -113,7 +113,7 @@ export default function TenantAuditPage() {
           disabled={exporting}
           className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
         >
-          <Download className="w-4 h-4 text-indigo-400" />
+          <Download className="w-4 h-4 text-orange-400" />
           <span>{exporting ? "Exporting CSV..." : "Export Audit CSV"}</span>
         </button>
       </div>
@@ -124,7 +124,7 @@ export default function TenantAuditPage() {
           <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80 backdrop-blur-sm">
             <div className="flex items-center justify-between text-slate-400 text-xs">
               <span>Total Audit Events</span>
-              <Activity className="w-4 h-4 text-indigo-400" />
+              <Activity className="w-4 h-4 text-orange-400" />
             </div>
             <div className="text-2xl font-bold font-mono text-white mt-2">
               {summary.totalLogs.toLocaleString()}
@@ -146,9 +146,9 @@ export default function TenantAuditPage() {
           <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80 backdrop-blur-sm">
             <div className="flex items-center justify-between text-slate-400 text-xs">
               <span>Events This Week</span>
-              <Calendar className="w-4 h-4 text-cyan-400" />
+              <Calendar className="w-4 h-4 text-orange-400" />
             </div>
-            <div className="text-2xl font-bold font-mono text-cyan-400 mt-2">
+            <div className="text-2xl font-bold font-mono text-orange-400 mt-2">
               {summary.logsThisWeek}
             </div>
             <div className="text-[11px] text-slate-500 mt-1">Past 7 days volume</div>
@@ -178,7 +178,7 @@ export default function TenantAuditPage() {
             placeholder="Search by action, email, entity ID, or IP..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
           />
         </form>
 
@@ -190,7 +190,7 @@ export default function TenantAuditPage() {
               setEntityFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+            className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-orange-500"
           >
             <option value="">All Entities</option>
             <option value="SalesInvoice">Sales Invoices</option>
@@ -267,7 +267,7 @@ export default function TenantAuditPage() {
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => setSelectedLog(log)}
-                        className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-750 text-indigo-400 hover:text-indigo-300 transition-colors"
+                        className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-750 text-orange-400 hover:text-orange-300 transition-colors"
                         title="View JSON Payload"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -312,7 +312,7 @@ export default function TenantAuditPage() {
           <div className="w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
             <div className="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Terminal className="w-4 h-4 text-indigo-400" />
+                <Terminal className="w-4 h-4 text-orange-400" />
                 <span className="font-bold text-sm text-white">
                   {selectedLog.actionName} — {selectedLog.entityName} Payload
                 </span>

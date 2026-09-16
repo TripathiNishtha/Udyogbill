@@ -210,12 +210,12 @@ export default function AiSeoStudioPage() {
             href="/admin/growth/seo"
             className="px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-850 hover:text-white transition-all flex items-center gap-1.5"
           >
-            <Globe className="w-3.5 h-3.5 text-indigo-400" />
+            <Globe className="w-3.5 h-3.5 text-orange-400" />
             SEO Pages Matrix
           </Link>
           <Link
             href="/admin/growth"
-            className="px-3.5 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-xs font-bold hover:bg-indigo-600/30 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-lg bg-orange-600/20 text-orange-400 border border-orange-500/30 text-xs font-bold hover:bg-orange-600/30 transition-all flex items-center gap-1.5"
           >
             <TrendingUp className="w-3.5 h-3.5" />
             Growth Overview
@@ -229,7 +229,7 @@ export default function AiSeoStudioPage() {
           onClick={() => setActiveTab("ai-generator")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
             activeTab === "ai-generator"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+              ? "bg-orange-600 text-white shadow-md shadow-orange-600/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
           }`}
         >
@@ -241,7 +241,7 @@ export default function AiSeoStudioPage() {
           onClick={() => setActiveTab("google-suggest")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
             activeTab === "google-suggest"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+              ? "bg-orange-600 text-white shadow-md shadow-orange-600/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
           }`}
         >
@@ -253,7 +253,7 @@ export default function AiSeoStudioPage() {
           onClick={() => setActiveTab("ping")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
             activeTab === "ping"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+              ? "bg-orange-600 text-white shadow-md shadow-orange-600/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
           }`}
         >
@@ -280,7 +280,7 @@ export default function AiSeoStudioPage() {
                 <select
                   value={selectedIndustry}
                   onChange={(e) => setSelectedIndustry(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-orange-500"
                 >
                   {INDUSTRIES.map((ind) => (
                     <option key={ind.code} value={ind.code}>
@@ -297,7 +297,7 @@ export default function AiSeoStudioPage() {
                 <select
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-orange-500"
                 >
                   <option value="India">All India (National Campaign)</option>
                   {Object.values(CITIES_DATA).map((c) => (
@@ -317,14 +317,14 @@ export default function AiSeoStudioPage() {
                   value={focusKeyword}
                   onChange={(e) => setFocusKeyword(e.target.value)}
                   placeholder="e.g. mobile shop billing software"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-orange-500"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={generating}
-                className="w-full py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:brightness-110 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition-all"
+                className="w-full py-2.5 rounded-lg bg-gradient-to-r from-orange-600 to-purple-600 hover:brightness-110 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-600/20 transition-all"
               >
                 {generating ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -340,7 +340,7 @@ export default function AiSeoStudioPage() {
           <div className="lg:col-span-2 space-y-4">
             {!generatedResult ? (
               <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-12 text-center text-slate-400">
-                <Sparkles className="w-10 h-10 mx-auto mb-3 text-indigo-400 opacity-60" />
+                <Sparkles className="w-10 h-10 mx-auto mb-3 text-orange-400 opacity-60" />
                 <h3 className="text-base font-bold text-white mb-1">
                   Ready to Generate Organic Landing Page Copy
                 </h3>
@@ -363,7 +363,7 @@ export default function AiSeoStudioPage() {
                       <span className="font-semibold text-gray-900">UdyogBill</span>
                       <span className="text-gray-400">https://udyogbill.com</span>
                     </div>
-                    <h3 className="text-base text-blue-800 hover:underline font-medium cursor-pointer leading-snug">
+                    <h3 className="text-base text-orange-800 hover:underline font-medium cursor-pointer leading-snug">
                       {generatedResult.metaTitle}
                     </h3>
                     <p className="text-xs text-gray-600 mt-1 leading-relaxed">
@@ -383,7 +383,7 @@ export default function AiSeoStudioPage() {
                           "all-meta"
                         )
                       }
-                      className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
+                      className="text-xs text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-1"
                     >
                       {copiedKey === "all-meta" ? (
                         <Check className="w-3 h-3 text-emerald-400" />
@@ -433,7 +433,7 @@ export default function AiSeoStudioPage() {
                     {generatedResult.lsiKeywords.map((kw, i) => (
                       <span
                         key={i}
-                        className="px-2 py-1 rounded text-xs bg-slate-950 border border-slate-800 text-cyan-300 font-mono"
+                        className="px-2 py-1 rounded text-xs bg-slate-950 border border-slate-800 text-orange-300 font-mono"
                       >
                         {kw}
                       </span>
@@ -502,7 +502,7 @@ export default function AiSeoStudioPage() {
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
             <div>
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Search className="w-4 h-4 text-cyan-400" />
+                <Search className="w-4 h-4 text-orange-400" />
                 Live Google Organic Search Autocomplete (Free API)
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -518,13 +518,13 @@ export default function AiSeoStudioPage() {
                   value={suggestQuery}
                   onChange={(e) => setSuggestQuery(e.target.value)}
                   placeholder="e.g. billing software for, chemist pos software, mobile shop billing..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white outline-none focus:border-orange-500"
                 />
               </div>
               <button
                 type="submit"
                 disabled={suggestLoading}
-                className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20"
+                className="px-5 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-orange-600/20"
               >
                 {suggestLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                 {suggestLoading ? "Querying Google..." : "Fetch Queries"}
@@ -598,7 +598,7 @@ export default function AiSeoStudioPage() {
                           setFocusKeyword(s);
                           setActiveTab("ai-generator");
                         }}
-                        className="px-2 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold"
+                        className="px-2 py-1 rounded bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-[10px] font-bold"
                         title="Use in AI Content Generator"
                       >
                         Use in AI &rarr;
@@ -622,20 +622,20 @@ export default function AiSeoStudioPage() {
             </h2>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">
               Notify Google Search Console and Bing Webmaster bots whenever new landing pages or cities are added to re-crawl{" "}
-              <code className="text-indigo-300 font-mono">https://udyogbill.com/sitemap.xml</code>.
+              <code className="text-orange-300 font-mono">https://udyogbill.com/sitemap.xml</code>.
             </p>
           </div>
 
           <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
             <div>
               <span className="text-slate-400 font-semibold">Active Sitemap URL:</span>
-              <p className="text-indigo-300 font-mono mt-0.5">https://udyogbill.com/sitemap.xml</p>
+              <p className="text-orange-300 font-mono mt-0.5">https://udyogbill.com/sitemap.xml</p>
             </div>
             <a
               href="/sitemap.xml"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-indigo-400 hover:underline flex items-center gap-1"
+              className="text-xs text-orange-400 hover:underline flex items-center gap-1"
             >
               Inspect XML <ExternalLink className="w-3 h-3" />
             </a>
@@ -664,7 +664,7 @@ export default function AiSeoStudioPage() {
                       className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         r.statusCode >= 200 && r.statusCode < 300
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                          : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                       }`}
                     >
                       Status: {r.statusCode} ({r.statusMessage})

@@ -584,13 +584,13 @@ export default function PartyLedgerStatementPage({
         <div className="space-y-1">
           <Link
             href={isCustomer ? "/app/parties/customers" : "/app/parties/suppliers"}
-            className="inline-flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors"
+            className="inline-flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to {isCustomer ? "Customers" : "Suppliers"} Directory</span>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
-            <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <FileText className="w-6 h-6 text-orange-600 dark:text-orange-400" />
             <span>Customer Statement & Multi-Type Ledger</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -602,7 +602,7 @@ export default function PartyLedgerStatementPage({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setIsPayModalOpen(true)}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02]"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-md shadow-orange-600/20 transition-all hover:scale-[1.02]"
           >
             <CreditCard className="w-4 h-4" />
             <span>{isCustomer ? "Receive Payment" : "Record Payment"}</span>
@@ -616,7 +616,7 @@ export default function PartyLedgerStatementPage({
           <div className="space-y-1.5">
             <div className="flex items-center space-x-2.5">
               <span className="text-xl font-bold text-slate-900 dark:text-white">{party.legalName}</span>
-              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-semibold">
+              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 font-semibold">
                 {party.code || "PARTY"}
               </span>
               <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
@@ -663,9 +663,9 @@ export default function PartyLedgerStatementPage({
                         key={i}
                         className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300"
                       >
-                        <ShieldCheck className="w-3 h-3 text-indigo-500" />
+                        <ShieldCheck className="w-3 h-3 text-orange-500" />
                         <span className="font-medium text-slate-500">{label}:</span>
-                        <span className="font-mono text-indigo-600 dark:text-indigo-300 font-semibold">{lic.number}</span>
+                        <span className="font-mono text-orange-600 dark:text-orange-300 font-semibold">{lic.number}</span>
                       </span>
                     );
                   })}
@@ -700,41 +700,41 @@ export default function PartyLedgerStatementPage({
           {/* Quick presets */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-slate-500 dark:text-slate-400 font-medium mr-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+              <Calendar className="w-3.5 h-3.5 text-orange-500" />
               Quick Range:
             </span>
             <button
               type="button"
               onClick={() => applyPreset("30days")}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 border border-slate-200 dark:border-slate-800 transition font-medium"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-800 transition font-medium"
             >
               Last 30 Days
             </button>
             <button
               type="button"
               onClick={() => applyPreset("thisMonth")}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 border border-slate-200 dark:border-slate-800 transition font-medium"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-800 transition font-medium"
             >
               This Month
             </button>
             <button
               type="button"
               onClick={() => applyPreset("3months")}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 border border-slate-200 dark:border-slate-800 transition font-medium"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-800 transition font-medium"
             >
               Last Quarter (3 Mo)
             </button>
             <button
               type="button"
               onClick={() => applyPreset("fy")}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 border border-slate-200 dark:border-slate-800 transition font-medium"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-800 transition font-medium"
             >
               Financial Year (FY)
             </button>
             <button
               type="button"
               onClick={() => applyPreset("all")}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 border border-slate-200 dark:border-slate-800 transition font-medium"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-800 transition font-medium"
             >
               All Time
             </button>
@@ -802,7 +802,7 @@ export default function PartyLedgerStatementPage({
         {/* Metric 4: Closing Balance */}
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Period Closing Net Position</div>
-          <div className="text-xl font-bold font-mono text-indigo-600 dark:text-indigo-400">
+          <div className="text-xl font-bold font-mono text-orange-600 dark:text-orange-400">
             ₹{statement ? Math.abs(statement.closingBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "0.00"}
             <span className="text-xs font-normal text-slate-500 ml-1">
               {statement && statement.closingBalance >= 0 ? "Dr (Due)" : "Cr (Advance)"}
@@ -819,7 +819,7 @@ export default function PartyLedgerStatementPage({
             onClick={() => handleViewModeChange("standard")}
             className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               viewMode === "standard"
-                ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm"
+                ? "bg-white dark:bg-orange-600 text-orange-600 dark:text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -831,14 +831,14 @@ export default function PartyLedgerStatementPage({
             onClick={() => handleViewModeChange("invoices")}
             className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               viewMode === "invoices"
-                ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm"
+                ? "bg-white dark:bg-orange-600 text-orange-600 dark:text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
             <span>2. Invoice Wise (बिल अनुसार)</span>
             {invoices.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300">
                 {invoices.length}
               </span>
             )}
@@ -848,7 +848,7 @@ export default function PartyLedgerStatementPage({
             onClick={() => handleViewModeChange("detailed")}
             className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               viewMode === "detailed"
-                ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm"
+                ? "bg-white dark:bg-orange-600 text-orange-600 dark:text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -920,7 +920,7 @@ export default function PartyLedgerStatementPage({
           {/* Email Share */}
           <button
             onClick={() => setEmailModalOpen(true)}
-            className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40 text-xs font-semibold transition"
+            className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 dark:text-orange-300 border border-orange-200 dark:border-orange-900/40 text-xs font-semibold transition"
             title="Send statement via Email"
           >
             <Mail className="w-3.5 h-3.5" />
@@ -937,7 +937,7 @@ export default function PartyLedgerStatementPage({
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-500" />
+                <Layers className="w-4 h-4 text-orange-500" />
                 <span>Financial Running Ledger Statement</span>
               </h3>
               <p className="text-xs text-slate-500">
@@ -965,7 +965,7 @@ export default function PartyLedgerStatementPage({
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400">
-                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-indigo-500 mb-2" />
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-orange-500 mb-2" />
                       Loading ledger statement...
                     </td>
                   </tr>
@@ -976,7 +976,7 @@ export default function PartyLedgerStatementPage({
                         <div className="font-bold text-slate-900 dark:text-white">
                           {new Date(entry.transactionDate).toLocaleDateString("en-IN")}
                         </div>
-                        <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">{entry.entryTypeName}</div>
+                        <div className="text-[10px] text-orange-600 dark:text-orange-400 font-semibold">{entry.entryTypeName}</div>
                       </td>
                       <td className="px-5 py-3.5 font-mono text-slate-700 dark:text-slate-300">
                         <div>{entry.referenceDocumentNumber || "—"}</div>
@@ -1023,14 +1023,14 @@ export default function PartyLedgerStatementPage({
       {viewMode === "invoices" && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-orange-50/60 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 flex items-center justify-between">
               <div>
-                <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Total Invoiced (Period)</div>
-                <div className="text-lg font-bold font-mono text-indigo-900 dark:text-indigo-200">
+                <div className="text-xs text-orange-600 dark:text-orange-400 font-medium">Total Invoiced (Period)</div>
+                <div className="text-lg font-bold font-mono text-orange-900 dark:text-orange-200">
                   ₹{totalInvoicedAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </div>
               </div>
-              <span className="text-xs font-semibold px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
+              <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300">
                 {invoices.length} Invoices
               </span>
             </div>
@@ -1060,7 +1060,7 @@ export default function PartyLedgerStatementPage({
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-indigo-500" />
+                  <Receipt className="w-4 h-4 text-orange-500" />
                   <span>Invoice-Wise Ledger</span>
                 </h3>
                 <p className="text-xs text-slate-500">
@@ -1090,7 +1090,7 @@ export default function PartyLedgerStatementPage({
                       return (
                         <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
                           <td className="px-5 py-3.5">
-                            <div className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                            <div className="font-mono font-bold text-orange-600 dark:text-orange-400">
                               #{inv.invoiceNumber}
                             </div>
                             <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
@@ -1138,7 +1138,7 @@ export default function PartyLedgerStatementPage({
                             <Link
                               href={`/app/sales/invoices/${inv.id}`}
                               target="_blank"
-                              className="inline-flex items-center space-x-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                              className="inline-flex items-center space-x-1 text-xs text-orange-600 dark:text-orange-400 hover:underline font-medium"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               <span>View</span>
@@ -1168,7 +1168,7 @@ export default function PartyLedgerStatementPage({
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
             <div className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
-              <Package className="w-4 h-4 text-indigo-500" />
+              <Package className="w-4 h-4 text-orange-500" />
               <span>
                 Showing <strong>{invoices.length}</strong> invoices with full product-level itemized breakdown (SKU, Qty, Rate, GST, Total).
               </span>
@@ -1177,14 +1177,14 @@ export default function PartyLedgerStatementPage({
               <button
                 type="button"
                 onClick={handleExpandAll}
-                className="px-2.5 py-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-indigo-600 font-medium"
+                className="px-2.5 py-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-orange-600 font-medium"
               >
                 Expand All
               </button>
               <button
                 type="button"
                 onClick={handleCollapseAll}
-                className="px-2.5 py-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-indigo-600 font-medium"
+                className="px-2.5 py-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-orange-600 font-medium"
               >
                 Collapse All
               </button>
@@ -1192,7 +1192,7 @@ export default function PartyLedgerStatementPage({
           </div>
 
           {loadingDetails && (
-            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/40 rounded-xl text-xs text-indigo-700 dark:text-indigo-300 flex items-center space-x-2">
+            <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 rounded-xl text-xs text-orange-700 dark:text-orange-300 flex items-center space-x-2">
               <RefreshCw className="w-4 h-4 animate-spin" />
               <span>Fetching product line items for detailed view...</span>
             </div>
@@ -1224,7 +1224,7 @@ export default function PartyLedgerStatementPage({
                         </button>
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className="font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400">
+                            <span className="font-mono font-bold text-sm text-orange-600 dark:text-orange-400">
                               #{inv.invoiceNumber}
                             </span>
                             <span className="text-xs text-slate-400">|</span>
@@ -1310,7 +1310,7 @@ export default function PartyLedgerStatementPage({
                                       <td className="px-4 py-2 text-right font-mono text-slate-500">
                                         {it.discountAmount > 0 ? `₹${it.discountAmount.toFixed(2)}` : "—"}
                                       </td>
-                                      <td className="px-4 py-2 text-right font-mono text-indigo-600 dark:text-indigo-400">
+                                      <td className="px-4 py-2 text-right font-mono text-orange-600 dark:text-orange-400">
                                         {it.gstRate}%
                                       </td>
                                       <td className="px-4 py-2 text-right font-mono font-bold text-slate-900 dark:text-white">
@@ -1328,7 +1328,7 @@ export default function PartyLedgerStatementPage({
                           )
                         ) : (
                           <div className="text-center py-4 text-xs text-slate-400 flex items-center justify-center space-x-2">
-                            <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
+                            <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
                             <span>Loading item details...</span>
                           </div>
                         )}
@@ -1611,7 +1611,7 @@ export default function PartyLedgerStatementPage({
                     value={sharePhone}
                     onChange={(e) => setSharePhone(e.target.value)}
                     placeholder="9876543210"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -1623,7 +1623,7 @@ export default function PartyLedgerStatementPage({
                   value={shareCustomNotes}
                   onChange={(e) => setShareCustomNotes(e.target.value)}
                   placeholder="e.g. Please clear overdue balance by Friday."
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -1671,7 +1671,7 @@ export default function PartyLedgerStatementPage({
             </button>
 
             <div className="flex items-center space-x-2.5">
-              <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+              <div className="p-2 rounded-xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400">
                 <Mail className="w-5 h-5" />
               </div>
               <div>
@@ -1692,7 +1692,7 @@ export default function PartyLedgerStatementPage({
                     value={shareEmail}
                     onChange={(e) => setShareEmail(e.target.value)}
                     placeholder="customer@example.com"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -1725,7 +1725,7 @@ export default function PartyLedgerStatementPage({
                 <button
                   type="button"
                   onClick={handleSendEmail}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/20 transition"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500 shadow-md shadow-orange-600/20 transition"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Open Email Client</span>
@@ -1751,7 +1751,7 @@ export default function PartyLedgerStatementPage({
 
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                <CreditCard className="w-5 h-5 text-indigo-500" />
+                <CreditCard className="w-5 h-5 text-orange-500" />
                 <span>{isCustomer ? "Receive Customer Payment" : "Record Supplier Payment"}</span>
               </h3>
               <p className="text-xs text-slate-500">
@@ -1781,7 +1781,7 @@ export default function PartyLedgerStatementPage({
                   placeholder="0.00"
                   value={payForm.amount || ""}
                   onChange={(e) => setPayForm({ ...payForm, amount: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -1833,7 +1833,7 @@ export default function PartyLedgerStatementPage({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500 disabled:opacity-50"
                 >
                   {submitting ? "Processing..." : "Record Transaction"}
                 </button>

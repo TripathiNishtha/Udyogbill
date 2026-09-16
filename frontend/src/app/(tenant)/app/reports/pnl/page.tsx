@@ -197,12 +197,12 @@ export default function ProfitAndLossPage() {
               <div className="mt-1 text-[11px] text-slate-500">Opening + Net Purchases &minus; Closing</div>
             </div>
 
-            <div className="p-5 bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-indigo-500/30 rounded-2xl shadow-lg">
-              <div className="text-[11px] text-indigo-300 font-bold uppercase tracking-wider">Gross Profit</div>
+            <div className="p-5 bg-gradient-to-br from-orange-950/40 to-slate-900 border border-orange-500/30 rounded-2xl shadow-lg">
+              <div className="text-[11px] text-orange-300 font-bold uppercase tracking-wider">Gross Profit</div>
               <div className={`text-2xl font-black mt-1 ${pnl.grossProfitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 {formatCurrency(pnl.grossProfitAmount)}
               </div>
-              <div className="mt-1 text-[11px] text-indigo-300/80 font-bold">
+              <div className="mt-1 text-[11px] text-orange-300/80 font-bold">
                 Margin: {pnl.grossProfitMarginPercent}%
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function ProfitAndLossPage() {
                   dateRangeText={`${new Date(fromDate).toLocaleDateString("en-IN")} to ${new Date(toDate).toLocaleDateString("en-IN")}`}
                 />
 
-                <span className="font-mono text-indigo-400 lowercase text-[11px]">
+                <span className="font-mono text-orange-400 lowercase text-[11px]">
                   Period: {new Date(fromDate).toLocaleDateString("en-IN")} — {new Date(toDate).toLocaleDateString("en-IN")}
                 </span>
               </div>
@@ -281,8 +281,8 @@ export default function ProfitAndLossPage() {
               </div>
 
               {/* Gross Profit Banner */}
-              <div className="p-4 bg-indigo-950/30 flex justify-between items-center text-xs font-black border-y border-indigo-500/20">
-                <span className="text-indigo-300 uppercase tracking-wider">Gross Operating Profit</span>
+              <div className="p-4 bg-orange-950/30 flex justify-between items-center text-xs font-black border-y border-orange-500/20">
+                <span className="text-orange-300 uppercase tracking-wider">Gross Operating Profit</span>
                 <span className={`font-mono text-sm ${pnl.grossProfitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                   {formatCurrency(pnl.grossProfitAmount)}
                 </span>
@@ -311,7 +311,7 @@ export default function ProfitAndLossPage() {
               </div>
 
               {/* Net Profit Final */}
-              <div className="p-5 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-indigo-950/40 flex justify-between items-center text-sm font-black border-t-2 border-slate-700">
+              <div className="p-5 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-orange-950/40 flex justify-between items-center text-sm font-black border-t-2 border-slate-700">
                 <span className="text-white uppercase tracking-wider">Final Net Profit</span>
                 <span className={`font-mono text-xl ${pnl.netProfitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                   {formatCurrency(pnl.netProfitAmount)}
@@ -322,7 +322,7 @@ export default function ProfitAndLossPage() {
             {/* Right 1 Col: Operating Expenses Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
               <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Receipt className="w-4 h-4 text-indigo-400" />
+                <Receipt className="w-4 h-4 text-orange-400" />
                 <span>Operating Expenses Breakdown</span>
               </h3>
               <p className="text-xs text-slate-400">
@@ -343,7 +343,7 @@ export default function ProfitAndLossPage() {
                       </div>
                       <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                         <div
-                          className="bg-indigo-500 h-full rounded-full"
+                          className="bg-orange-500 h-full rounded-full"
                           style={{ width: `${Math.min(100, exp.percentageOfRevenue * 2)}%` }}
                         ></div>
                       </div>

@@ -85,7 +85,7 @@ export function DashboardCustomizerModal({
         {/* Modal Header */}
         <div className="p-4 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/20">
+            <div className="p-2 rounded-lg bg-orange-600/20 text-orange-400 border border-orange-500/20">
               <Sliders className="w-4 h-4" />
             </div>
             <div>
@@ -119,7 +119,7 @@ export function DashboardCustomizerModal({
                     onClick={() => toggleVisibility(w.id)}
                     className={`p-2 rounded-lg border transition-colors ${
                       isVisible
-                        ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/30"
+                        ? "bg-orange-600/20 text-orange-400 border-orange-500/30"
                         : "bg-slate-800/40 text-slate-500 border-slate-700/50"
                     }`}
                     title={isVisible ? "Visible (Click to hide)" : "Hidden (Click to show)"}
@@ -180,7 +180,7 @@ export function DashboardCustomizerModal({
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors shadow-md shadow-indigo-600/20 flex items-center space-x-1.5"
+              className="px-4 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold transition-colors shadow-md shadow-orange-600/20 flex items-center space-x-1.5"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{isHi ? "लेआउट सुरक्षित करें" : "Save Layout"}</span>

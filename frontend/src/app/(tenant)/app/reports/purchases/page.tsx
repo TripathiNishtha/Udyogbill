@@ -165,7 +165,7 @@ function PurchaseReportsContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center space-x-3">
-            <span className="p-2.5 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/20">
+            <span className="p-2.5 rounded-xl bg-orange-600/20 text-orange-400 border border-orange-500/20">
               <ShoppingCart className="w-6 h-6" />
             </span>
             <span>Purchase Register & Procurement Summary</span>
@@ -197,7 +197,7 @@ function PurchaseReportsContent() {
           }}
           className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "detailed"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-slate-300"
           }`}
         >
@@ -210,7 +210,7 @@ function PurchaseReportsContent() {
           }}
           className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "summary"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-slate-300"
           }`}
         >
@@ -253,7 +253,7 @@ function PurchaseReportsContent() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && loadData()}
                 placeholder="Search bill #, supplier, SKU..."
-                className="pl-8 pr-4 py-1.5 bg-slate-850 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="pl-8 pr-4 py-1.5 bg-slate-850 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
           ) : (
@@ -278,7 +278,7 @@ function PurchaseReportsContent() {
         <button
           onClick={() => loadData()}
           disabled={loading}
-          className="flex items-center space-x-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/20"
+          className="flex items-center space-x-2 px-5 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-orange-500/20"
         >
           {loading ? (
             <>
@@ -336,7 +336,7 @@ function PurchaseReportsContent() {
           </div>
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Gross Billed</div>
-            <div className="text-xl font-black text-indigo-400 mt-1">
+            <div className="text-xl font-black text-orange-400 mt-1">
               {formatCurrency(detailedData?.totalNetBillValue ?? detailedData?.totalNetAmount)}
             </div>
             <div className="text-[10px] text-slate-500 mt-0.5">Total invoice amount</div>
@@ -370,7 +370,7 @@ function PurchaseReportsContent() {
           </div>
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Net Procurement</div>
-            <div className="text-xl font-black text-indigo-400 mt-1">{formatCurrency(summaryData?.grandNetPurchase)}</div>
+            <div className="text-xl font-black text-orange-400 mt-1">{formatCurrency(summaryData?.grandNetPurchase)}</div>
             <div className="text-[10px] text-slate-500 mt-0.5">Net purchase value</div>
           </div>
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
@@ -409,14 +409,14 @@ function PurchaseReportsContent() {
             dateRangeText={`${new Date(fromDate).toLocaleDateString("en-IN")} to ${new Date(toDate).toLocaleDateString("en-IN")}`}
           />
 
-          <span className="text-xs text-indigo-400 font-semibold">
+          <span className="text-xs text-orange-400 font-semibold">
             Period: {new Date(fromDate).toLocaleDateString("en-IN")} — {new Date(toDate).toLocaleDateString("en-IN")}
           </span>
         </div>
 
         {loading ? (
           <div className="p-16 flex flex-col items-center justify-center space-y-3">
-            <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
+            <RefreshCw className="w-8 h-8 text-orange-400 animate-spin" />
             <div className="text-sm font-semibold text-slate-400">Querying procurement database...</div>
           </div>
         ) : activeTab === "detailed" ? (
@@ -569,7 +569,7 @@ function PurchaseReportsContent() {
 
 export default function PurchaseReportsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
       <PurchaseReportsContent />
     </Suspense>
   );

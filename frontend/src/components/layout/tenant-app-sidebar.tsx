@@ -85,12 +85,12 @@ const getGroupConfig = (id: string) => {
       };
     case "banking":
       return {
-        badgeBg: "bg-sky-50 hover:bg-sky-100/80 dark:bg-sky-950/50 dark:hover:bg-sky-950/70 text-sky-950 dark:text-sky-200 border-sky-300 dark:border-sky-800/80",
-        iconColor: "text-sky-600 dark:text-sky-400",
-        iconBg: "bg-sky-500/20 text-sky-700 dark:text-sky-300",
-        treeBorder: "border-sky-300 dark:border-sky-700/60",
-        activeRing: "ring-sky-500/50",
-        countBg: "bg-sky-200/80 dark:bg-sky-900 text-sky-900 dark:text-sky-200",
+        badgeBg: "bg-orange-50 hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-950/70 text-orange-950 dark:text-orange-200 border-orange-300 dark:border-orange-800/80",
+        iconColor: "text-orange-600 dark:text-orange-400",
+        iconBg: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
+        treeBorder: "border-orange-300 dark:border-orange-700/60",
+        activeRing: "ring-orange-500/50",
+        countBg: "bg-orange-200/80 dark:bg-orange-900 text-orange-900 dark:text-orange-200",
       };
     case "purchase":
       return {
@@ -122,12 +122,12 @@ const getGroupConfig = (id: string) => {
       };
     case "reports":
       return {
-        badgeBg: "bg-blue-50 hover:bg-blue-100/80 dark:bg-blue-950/50 dark:hover:bg-blue-950/70 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-blue-800/80",
-        iconColor: "text-blue-600 dark:text-blue-400",
-        iconBg: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
-        treeBorder: "border-blue-300 dark:border-blue-700/60",
-        activeRing: "ring-blue-500/50",
-        countBg: "bg-blue-200/80 dark:bg-blue-900 text-blue-900 dark:text-blue-200",
+        badgeBg: "bg-orange-50 hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-950/70 text-orange-950 dark:text-orange-200 border-orange-300 dark:border-orange-800/80",
+        iconColor: "text-orange-600 dark:text-orange-400",
+        iconBg: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
+        treeBorder: "border-orange-300 dark:border-orange-700/60",
+        activeRing: "ring-orange-500/50",
+        countBg: "bg-orange-200/80 dark:bg-orange-900 text-orange-900 dark:text-orange-200",
       };
     case "settings":
       return {
@@ -140,12 +140,12 @@ const getGroupConfig = (id: string) => {
       };
     default:
       return {
-        badgeBg: "bg-indigo-50 hover:bg-indigo-100/80 dark:bg-indigo-950/50 dark:hover:bg-indigo-950/70 text-indigo-950 dark:text-indigo-200 border-indigo-300 dark:border-indigo-800/80",
-        iconColor: "text-indigo-600 dark:text-indigo-400",
-        iconBg: "bg-indigo-500/20 text-indigo-700 dark:text-indigo-300",
-        treeBorder: "border-indigo-300 dark:border-indigo-700/60",
-        activeRing: "ring-indigo-500/50",
-        countBg: "bg-indigo-200/80 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-200",
+        badgeBg: "bg-orange-50 hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-950/70 text-orange-950 dark:text-orange-200 border-orange-300 dark:border-orange-800/80",
+        iconColor: "text-orange-600 dark:text-orange-400",
+        iconBg: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
+        treeBorder: "border-orange-300 dark:border-orange-700/60",
+        activeRing: "ring-orange-500/50",
+        countBg: "bg-orange-200/80 dark:bg-orange-900 text-orange-900 dark:text-orange-200",
       };
   }
 };

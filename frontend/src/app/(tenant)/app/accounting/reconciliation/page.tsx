@@ -98,7 +98,7 @@ export default function BankReconciliationPage() {
           <select
             value={selectedAccountId}
             onChange={(e) => setSelectedAccountId(e.target.value)}
-            className="px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-indigo-400 focus:outline-none"
+            className="px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-orange-400 focus:outline-none"
           >
             {bankAccounts.map((b) => (
               <option key={b.id} value={b.id}>
@@ -167,7 +167,7 @@ export default function BankReconciliationPage() {
                 <tr key={item.id} className="hover:bg-slate-800/40 transition">
                   <td className="py-3.5 px-4 text-slate-300 font-sans">{new Date(item.voucherDate).toLocaleDateString()}</td>
                   <td className="py-3.5 px-4 font-bold text-white">{item.voucherNumber}</td>
-                  <td className="py-3.5 px-4 text-indigo-400">{item.referenceNumber}</td>
+                  <td className="py-3.5 px-4 text-orange-400">{item.referenceNumber}</td>
                   <td className="py-3.5 px-4 font-sans font-medium text-white">{item.partyName}</td>
                   <td className="py-3.5 px-4 text-right text-emerald-400 font-bold">
                     {item.debitAmount > 0 ? `₹${item.debitAmount.toLocaleString("en-IN")}` : "-"}

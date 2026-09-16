@@ -420,10 +420,10 @@ export default function TourPlansPage() {
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-gray-500">Planned Doctor Calls</span>
-            <Stethoscope className="w-4 h-4 text-blue-600" />
+            <Stethoscope className="w-4 h-4 text-orange-600" />
           </div>
           <p className="text-2xl font-bold text-gray-900 mt-2">{totalDoctorCalls}</p>
-          <p className="text-xs text-blue-700 mt-1">
+          <p className="text-xs text-orange-700 mt-1">
             Target: {compliance?.totalTargetCalls || 0} calls
           </p>
         </div>
@@ -556,7 +556,7 @@ export default function TourPlansPage() {
                           isSunday
                             ? "bg-gray-50/60 text-gray-400"
                             : isHoliday
-                            ? "bg-blue-50/30 text-blue-900"
+                            ? "bg-orange-50/30 text-orange-900"
                             : ""
                         }`}
                       >
@@ -580,7 +580,7 @@ export default function TourPlansPage() {
                               isSunday
                                 ? "bg-gray-100 text-gray-600"
                                 : isHoliday
-                                ? "bg-blue-100 text-blue-800"
+                                ? "bg-orange-100 text-orange-800"
                                 : "bg-emerald-100 text-emerald-800"
                             }`}
                           >
@@ -597,7 +597,7 @@ export default function TourPlansPage() {
                           <span
                             className={`inline-block px-2 py-0.5 rounded font-semibold ${
                               item.plannedDoctorCalls > 0
-                                ? "bg-blue-50 text-blue-700"
+                                ? "bg-orange-50 text-orange-700"
                                 : "text-gray-400"
                             }`}
                           >
@@ -644,20 +644,20 @@ export default function TourPlansPage() {
         <div className="space-y-4">
           {/* Classification Breakdown Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 p-4 rounded-xl">
-              <div className="text-xs font-semibold text-indigo-700 uppercase">Super Core (A+)</div>
-              <p className="text-2xl font-bold text-indigo-950 mt-1">
+            <div className="bg-gradient-to-br from-orange-50 to-purple-50 border border-orange-200 p-4 rounded-xl">
+              <div className="text-xs font-semibold text-orange-700 uppercase">Super Core (A+)</div>
+              <p className="text-2xl font-bold text-orange-950 mt-1">
                 {compliance?.superCoreCount || 0} Doctors
               </p>
-              <p className="text-xs text-indigo-800 mt-1">Required: 4 visits / month</p>
+              <p className="text-xs text-orange-800 mt-1">Required: 4 visits / month</p>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 p-4 rounded-xl">
-              <div className="text-xs font-semibold text-blue-700 uppercase">Core (A)</div>
-              <p className="text-2xl font-bold text-blue-950 mt-1">
+            <div className="bg-gradient-to-br from-orange-50 to-orange-50 border border-orange-200 p-4 rounded-xl">
+              <div className="text-xs font-semibold text-orange-700 uppercase">Core (A)</div>
+              <p className="text-2xl font-bold text-orange-950 mt-1">
                 {compliance?.coreCount || 0} Doctors
               </p>
-              <p className="text-xs text-blue-800 mt-1">Required: 2 visits / month</p>
+              <p className="text-xs text-orange-800 mt-1">Required: 2 visits / month</p>
             </div>
 
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 p-4 rounded-xl">
@@ -725,7 +725,7 @@ export default function TourPlansPage() {
                               doc.classification.includes("Super")
                                 ? "bg-purple-100 text-purple-800"
                                 : doc.classification.includes("Core")
-                                ? "bg-blue-100 text-blue-800"
+                                ? "bg-orange-100 text-orange-800"
                                 : "bg-gray-100 text-gray-700"
                             }`}
                           >
@@ -749,7 +749,7 @@ export default function TourPlansPage() {
                             {doc.plannedCalls}x
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-center font-semibold text-blue-700">
+                        <td className="py-3 px-4 text-center font-semibold text-orange-700">
                           {doc.executedCalls}x
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -866,13 +866,13 @@ export default function TourPlansPage() {
                     {customHolidays.map(date => (
                       <span
                         key={date}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200"
                       >
                         {date}
                         <button
                           type="button"
                           onClick={() => removeHoliday(date)}
-                          className="hover:text-blue-900"
+                          className="hover:text-orange-900"
                         >
                           <X className="w-3 h-3" />
                         </button>

@@ -129,7 +129,7 @@ interface GrowthOverview {
 const INDUSTRY_BADGE_COLORS: Record<string, string> = {
   PHARMA: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   FMCG: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-  ELECTRONICS: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+  ELECTRONICS: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
   GARMENTS: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
   HARDWARE: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   SERVICE_SECTOR: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20",
@@ -319,7 +319,7 @@ export default function GrowthCommandCenterPage() {
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <FileText className="w-4 h-4 text-cyan-600" />
+          <FileText className="w-4 h-4 text-orange-600" />
           Content &amp; Blog Lead ROI
         </button>
         <button

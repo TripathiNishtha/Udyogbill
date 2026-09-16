@@ -386,12 +386,12 @@ function CompanyStockSalesContent() {
         </div>
 
         {/* Stock In (Purchases in Range) */}
-        <div className="bg-card border border-border rounded-xl p-3.5 shadow-xs border-l-4 border-l-blue-500">
+        <div className="bg-card border border-border rounded-xl p-3.5 shadow-xs border-l-4 border-l-orange-500">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
             <span>Stock In (Period)</span>
-            <Boxes className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <Boxes className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           </div>
-          <div className="text-xl font-black text-blue-600 dark:text-blue-400 mt-1">
+          <div className="text-xl font-black text-orange-600 dark:text-orange-400 mt-1">
             {formatQty(reportData?.grandStockInQty)}
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -485,7 +485,7 @@ function CompanyStockSalesContent() {
                 <th className="py-3 px-3 text-right min-w-[100px]">Sale Price (₹)</th>
                 <th className="py-3 px-3 text-center min-w-[80px]">Pur. Unit</th>
                 <th className="py-3 px-3 text-center min-w-[80px]">Sale Unit</th>
-                <th className="py-3 px-3 text-right min-w-[110px] bg-blue-50 dark:bg-blue-500/5 text-blue-700 dark:text-blue-400 font-bold">
+                <th className="py-3 px-3 text-right min-w-[110px] bg-orange-50 dark:bg-orange-500/5 text-orange-700 dark:text-orange-400 font-bold">
                   Stock In (Period)
                 </th>
                 <th className="py-3 px-3 text-right min-w-[110px] bg-emerald-50 dark:bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 font-bold">
@@ -561,7 +561,7 @@ function CompanyStockSalesContent() {
                         {row.saleUnit}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-500/5">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-orange-700 dark:text-orange-400 bg-orange-50/50 dark:bg-orange-500/5">
                       {formatQty(row.stockInQuantity)}
                     </td>
                     <td
@@ -609,7 +609,7 @@ function CompanyStockSalesContent() {
                   <td className="py-3 px-3 text-right text-muted-foreground">-</td>
                   <td className="py-3 px-3 text-center text-muted-foreground">-</td>
                   <td className="py-3 px-3 text-center text-muted-foreground">-</td>
-                  <td className="py-3 px-3 text-right font-mono text-sm font-black text-blue-700 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-500/10">
+                  <td className="py-3 px-3 text-right font-mono text-sm font-black text-orange-700 dark:text-orange-400 bg-orange-100/70 dark:bg-orange-500/10">
                     {formatQty(reportData.grandStockInQty)}
                   </td>
                   <td className="py-3 px-3 text-right font-mono text-sm font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-500/10">

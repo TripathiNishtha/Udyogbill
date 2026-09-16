@@ -73,7 +73,7 @@ export default function QuotationViewPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
         <p className="text-sm">Loading quotation estimate...</p>
       </div>
     );
@@ -119,7 +119,7 @@ export default function QuotationViewPage() {
           {quotation.status === 5 && quotation.convertedInvoiceId && (
             <Link
               href={`/app/sales/invoices/${quotation.convertedInvoiceId}`}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-semibold"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-orange-600/20 text-orange-400 border border-orange-500/30 rounded-xl text-xs font-semibold"
             >
               <span>View Invoice #{quotation.convertedInvoiceNumber}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -139,7 +139,7 @@ export default function QuotationViewPage() {
 
           <button
             onClick={handlePrint}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-orange-600/25 transition-all cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>Print Quotation</span>
@@ -152,7 +152,7 @@ export default function QuotationViewPage() {
         {/* Document Header */}
         <div className="flex justify-between items-start border-b border-slate-200 pb-6 mb-6">
           <div>
-            <div className="text-2xl font-black text-indigo-700 tracking-tight">UDYOGBILL</div>
+            <div className="text-2xl font-black text-orange-700 tracking-tight">UDYOGBILL</div>
             <div className="text-xs font-bold text-slate-800 uppercase tracking-widest mt-0.5">
               {quotation.branchName}
             </div>
@@ -170,7 +170,7 @@ export default function QuotationViewPage() {
           </div>
 
           <div className="text-right">
-            <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-sm uppercase tracking-wider rounded-lg mb-2">
+            <div className="inline-block px-3 py-1 bg-orange-50 text-orange-700 font-extrabold text-sm uppercase tracking-wider rounded-lg mb-2">
               Quotation / Proforma Estimate
             </div>
             <div className="text-sm font-bold text-slate-900">
@@ -368,7 +368,7 @@ export default function QuotationViewPage() {
             )}
             <div className="flex justify-between font-black text-sm text-slate-900 pt-2 border-t border-slate-300">
               <span>Estimated Total (INR):</span>
-              <span className="text-indigo-700 font-mono text-base">
+              <span className="text-orange-700 font-mono text-base">
                 ₹{quotation.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </span>
             </div>

@@ -59,7 +59,7 @@ export default function SuperAdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">
               Level 1 • SaaS Control Plane
             </span>
           </div>
@@ -73,7 +73,7 @@ export default function SuperAdminDashboardPage() {
         <div className="flex items-center space-x-3">
           <Link
             href="/admin/tenants"
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium shadow-md shadow-indigo-600/20 transition-colors"
+            className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium shadow-md shadow-orange-600/20 transition-colors"
           >
             <Building2 className="w-4 h-4" />
             <span>Manage Tenants</span>
@@ -89,7 +89,7 @@ export default function SuperAdminDashboardPage() {
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Total Subscribers
             </span>
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+            <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400">
               <Building2 className="w-5 h-5" />
             </div>
           </div>
@@ -128,7 +128,7 @@ export default function SuperAdminDashboardPage() {
             <span className="text-xs text-slate-400">/ month</span>
           </div>
           <div className="mt-3 flex items-center space-x-1 text-xs text-slate-400 pt-3 border-t border-slate-900">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
             <span>Monetization Tier Engine</span>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function SuperAdminDashboardPage() {
             </h3>
             <Link
               href="/admin/industries"
-              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-0.5"
+              className="text-xs text-orange-400 hover:text-orange-300 flex items-center space-x-0.5"
             >
               <span>Catalog</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -205,7 +205,7 @@ export default function SuperAdminDashboardPage() {
                   </div>
                   <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                      className="h-full bg-gradient-to-r from-orange-500 to-purple-500 rounded-full"
                       style={{
                         width: `${Math.min(100, Math.max(15, (ind.tenantCount / (totalTenants || 1)) * 100))}%`,
                       }}
@@ -228,14 +228,14 @@ export default function SuperAdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-base text-white flex items-center space-x-2">
-                <Building2 className="w-4 h-4 text-indigo-400" />
+                <Building2 className="w-4 h-4 text-orange-400" />
                 <span>Recent Subscribers & Onboarding</span>
               </h3>
               <p className="text-xs text-slate-400">Latest business tenants registered on the platform</p>
             </div>
             <Link
               href="/admin/tenants"
-              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-0.5"
+              className="text-xs text-orange-400 hover:text-orange-300 flex items-center space-x-0.5"
             >
               <span>View All</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -276,7 +276,7 @@ export default function SuperAdminDashboardPage() {
                             tenant.status === "Active"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : tenant.status === "Trial"
-                              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                              ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                               : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                           }`}
                         >
@@ -286,7 +286,7 @@ export default function SuperAdminDashboardPage() {
                       <td className="py-3 text-right">
                         <Link
                           href={`/admin/tenants`}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                          className="text-xs text-orange-400 hover:text-orange-300 font-medium"
                         >
                           Inspect
                         </Link>

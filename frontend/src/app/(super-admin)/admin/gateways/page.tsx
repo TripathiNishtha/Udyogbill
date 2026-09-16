@@ -114,7 +114,7 @@ export default function SuperAdminGatewaysPage() {
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-black text-sm">
+            <div className="w-10 h-10 rounded-xl bg-orange-600/10 border border-orange-500/20 text-orange-400 flex items-center justify-center font-black text-sm">
               RZP
             </div>
             <div>
@@ -185,7 +185,7 @@ export default function SuperAdminGatewaysPage() {
                 href="https://dashboard.razorpay.com/app/keys"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[11px] text-indigo-400 hover:underline flex items-center space-x-1"
+                className="text-[11px] text-orange-400 hover:underline flex items-center space-x-1"
               >
                 <span>Get Keys from Razorpay Dashboard</span>
                 <ExternalLink className="w-3 h-3" />
@@ -199,7 +199,7 @@ export default function SuperAdminGatewaysPage() {
                 placeholder="rzp_test_... or rzp_live_..."
                 value={keyId}
                 onChange={(e) => setKeyId(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-orange-500"
               />
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function SuperAdminGatewaysPage() {
                 placeholder={hasSecret ? "Leave blank to keep existing stored secret" : "Enter Razorpay Secret"}
                 value={keySecret}
                 onChange={(e) => setKeySecret(e.target.value)}
-                className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-orange-500"
               />
               <button
                 type="button"
@@ -244,7 +244,7 @@ export default function SuperAdminGatewaysPage() {
               placeholder="e.g. ub_webhook_secret_2026"
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+              className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-orange-500"
             />
           </div>
 
@@ -255,7 +255,7 @@ export default function SuperAdminGatewaysPage() {
               id="isActive"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+              className="rounded bg-slate-950 border-slate-800 text-orange-600 focus:ring-orange-500 w-4 h-4"
             />
             <label htmlFor="isActive" className="text-xs text-slate-300 font-medium">
               Enable Online Razorpay Gateway across all Tenant subscription checkouts

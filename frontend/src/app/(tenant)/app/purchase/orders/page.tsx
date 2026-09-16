@@ -225,7 +225,7 @@ export default function PurchaseOrdersPage() {
       case 1:
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-muted text-muted-foreground border border-border">Draft</span>;
       case 2:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">Confirmed</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">Confirmed</span>;
       case 3:
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Partial Received</span>;
       case 4:
@@ -243,7 +243,7 @@ export default function PurchaseOrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border shadow-xs">
         <div>
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+            <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-xl text-orange-600 dark:text-orange-400">
               <ShoppingCart className="w-6 h-6" />
             </div>
             <div>
@@ -255,7 +255,7 @@ export default function PurchaseOrdersPage() {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md shadow-indigo-600/20 transition duration-150 cursor-pointer"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shadow-md shadow-orange-600/20 transition duration-150 cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Issue Purchase Order</span>
@@ -272,7 +272,7 @@ export default function PurchaseOrdersPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && loadOrders()}
-            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-orange-500 font-medium"
           />
         </div>
 
@@ -280,7 +280,7 @@ export default function PurchaseOrdersPage() {
           <select
             value={statusFilter ?? ""}
             onChange={(e) => setStatusFilter(e.target.value ? Number(e.target.value) : undefined)}
-            className="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+            className="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-orange-500 font-medium cursor-pointer"
           >
             <option value="">All Statuses</option>
             <option value="2">Confirmed</option>
@@ -311,7 +311,7 @@ export default function PurchaseOrdersPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-muted-foreground">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-2"></div>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-2"></div>
                     <div>Loading purchase orders...</div>
                   </td>
                 </tr>
@@ -324,7 +324,7 @@ export default function PurchaseOrdersPage() {
               ) : (
                 orders.map((po) => (
                   <tr key={po.id} className="hover:bg-surface-muted/60 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{po.orderNumber}</td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-orange-600 dark:text-orange-400">{po.orderNumber}</td>
                     <td className="py-3.5 px-4 text-muted-foreground">{new Date(po.orderDate).toLocaleDateString()}</td>
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-foreground">{po.supplierName}</div>
@@ -339,7 +339,7 @@ export default function PurchaseOrdersPage() {
                         <button
                           onClick={() => handleViewOrder(po.id)}
                           title="View Details"
-                          className="p-1.5 rounded-lg bg-surface-muted hover:bg-surface-elevated border border-border text-indigo-600 dark:text-indigo-400 transition cursor-pointer"
+                          className="p-1.5 rounded-lg bg-surface-muted hover:bg-surface-elevated border border-border text-orange-600 dark:text-orange-400 transition cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -368,7 +368,7 @@ export default function PurchaseOrdersPage() {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-border bg-surface-muted/60 backdrop-blur-sm flex items-center justify-between shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                   <ShoppingCart className="w-5 h-5" />
                 </div>
                 <div>
@@ -395,7 +395,7 @@ export default function PurchaseOrdersPage() {
                     <select
                       value={selectedBranchId}
                       onChange={(e) => handleBranchChange(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                     >
                       {branches.map((b) => (
                         <option key={b.id} value={b.id}>
@@ -410,7 +410,7 @@ export default function PurchaseOrdersPage() {
                     <select
                       value={selectedWarehouseId}
                       onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                     >
                       {warehouses.map((w) => (
                         <option key={w.id} value={w.id}>
@@ -425,7 +425,7 @@ export default function PurchaseOrdersPage() {
                     <select
                       value={selectedPartyId}
                       onChange={(e) => setSelectedPartyId(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                     >
                       <option value="">-- Select Supplier --</option>
                       {suppliers.map((s) => (
@@ -442,7 +442,7 @@ export default function PurchaseOrdersPage() {
                       type="date"
                       value={orderDate}
                       onChange={(e) => setOrderDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                     />
                   </div>
                 </div>
@@ -464,7 +464,7 @@ export default function PurchaseOrdersPage() {
                             e.target.value = "";
                           }
                         }}
-                        className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 focus:outline-none focus:border-indigo-500 transition cursor-pointer"
+                        className="px-3 py-1.5 bg-orange-500/10 border border-orange-500/30 rounded-xl text-xs font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 focus:outline-none focus:border-orange-500 transition cursor-pointer"
                       >
                         <option value="">+ Add Product to PO...</option>
                         {items.map((i) => (
@@ -483,7 +483,7 @@ export default function PurchaseOrdersPage() {
                       </div>
                       <div className="text-sm font-semibold text-foreground">No items added to this PO yet</div>
                       <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                        Click the <span className="text-indigo-600 dark:text-indigo-400 font-semibold">+ Add Product to PO</span> dropdown above to select goods from your inventory.
+                        Click the <span className="text-orange-600 dark:text-orange-400 font-semibold">+ Add Product to PO</span> dropdown above to select goods from your inventory.
                       </p>
                     </div>
                   ) : (
@@ -497,7 +497,7 @@ export default function PurchaseOrdersPage() {
                               <th className="px-2 py-2.5 w-20 text-center text-emerald-600 dark:text-emerald-400 font-bold">+ Free Qty</th>
                               <th className="px-2 py-2.5 w-28 text-right text-foreground font-bold">Unit Rate ₹</th>
                               <th className="px-2 py-2.5 w-20 text-center text-amber-600 dark:text-amber-400 font-bold">Disc %</th>
-                              <th className="px-2 py-2.5 w-20 text-center text-indigo-600 dark:text-indigo-400 font-bold">Sch %</th>
+                              <th className="px-2 py-2.5 w-20 text-center text-orange-600 dark:text-orange-400 font-bold">Sch %</th>
                               <th className="px-2 py-2.5 w-24 text-center text-foreground font-bold">GST %</th>
                               <th className="px-3 py-2.5 w-28 text-right text-foreground font-bold">Net Amount</th>
                               <th className="px-2 py-2.5 w-10 text-center"></th>
@@ -524,7 +524,7 @@ export default function PurchaseOrdersPage() {
                                           const q = Number(e.target.value);
                                           setOrderItems(orderItems.map((it, i) => (i === idx ? { ...it, quantity: q } : it)));
                                         }}
-                                        className="w-16 px-1.5 py-1 bg-surface border border-border rounded-lg text-center text-foreground font-semibold focus:outline-none focus:border-indigo-500"
+                                        className="w-16 px-1.5 py-1 bg-surface border border-border rounded-lg text-center text-foreground font-semibold focus:outline-none focus:border-orange-500"
                                       />
                                       <span className="text-[10px] text-muted-foreground font-mono">{item.uomCode}</span>
                                     </div>
@@ -550,7 +550,7 @@ export default function PurchaseOrdersPage() {
                                         const p = Number(e.target.value);
                                         setOrderItems(orderItems.map((it, i) => (i === idx ? { ...it, unitPrice: p } : it)));
                                       }}
-                                      className="w-24 px-1.5 py-1 bg-surface border border-border rounded-lg text-right text-foreground font-mono font-semibold focus:outline-none focus:border-indigo-500"
+                                      className="w-24 px-1.5 py-1 bg-surface border border-border rounded-lg text-right text-foreground font-mono font-semibold focus:outline-none focus:border-orange-500"
                                     />
                                   </td>
                                   <td className="px-2 py-2.5 text-center">
@@ -578,7 +578,7 @@ export default function PurchaseOrdersPage() {
                                         const sc = Number(e.target.value);
                                         setOrderItems(orderItems.map((it, i) => (i === idx ? { ...it, schemeDiscountPercent: sc } : it)));
                                       }}
-                                      className="w-14 px-1 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-center text-indigo-600 dark:text-indigo-400 font-bold focus:outline-none focus:border-indigo-500"
+                                      className="w-14 px-1 py-1 bg-orange-500/10 border border-orange-500/30 rounded-lg text-center text-orange-600 dark:text-orange-400 font-bold focus:outline-none focus:border-orange-500"
                                     />
                                   </td>
                                   <td className="px-2 py-2.5 text-center font-mono font-semibold text-foreground">
@@ -613,7 +613,7 @@ export default function PurchaseOrdersPage() {
                         </div>
                         <div className="flex items-center space-x-2 text-sm">
                           <span className="text-muted-foreground font-medium">Estimated PO Value:</span>
-                          <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-base">
+                          <span className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base">
                             ₹{orderItems.reduce((acc, cur) => {
                               const gross = cur.quantity * cur.unitPrice;
                               const disc = gross * ((cur.discountPercent + cur.schemeDiscountPercent + cur.cashDiscountPercent) / 100);
@@ -634,7 +634,7 @@ export default function PurchaseOrdersPage() {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="e.g. Delivery within 7 business days, pack in corrugated cartons..."
-                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                   ></textarea>
                 </div>
               </form>
@@ -643,7 +643,7 @@ export default function PurchaseOrdersPage() {
             {/* Modal Footer with Safe Margin */}
             <div className="px-6 py-4 border-t border-border bg-surface flex flex-wrap items-center justify-between gap-3 shrink-0">
               <div className="text-xs text-muted-foreground">
-                Purchase Order status will be set to <span className="text-indigo-600 dark:text-indigo-400 font-bold">Placed</span>.
+                Purchase Order status will be set to <span className="text-orange-600 dark:text-orange-400 font-bold">Placed</span>.
               </div>
               <div className="flex items-center space-x-3">
                 <button
@@ -657,7 +657,7 @@ export default function PurchaseOrdersPage() {
                   type="button"
                   onClick={handleCreateOrder}
                   disabled={submitting || orderItems.length === 0}
-                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/30 disabled:opacity-50 transition cursor-pointer"
+                  className="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/30 disabled:opacity-50 transition cursor-pointer"
                 >
                   {submitting ? "Confirming..." : "Confirm Purchase Order"}
                 </button>
@@ -674,7 +674,7 @@ export default function PurchaseOrdersPage() {
             {/* Header */}
             <div className="px-6 py-4 border-b border-border bg-surface-muted/60 backdrop-blur-sm flex items-center justify-between shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                   <ShoppingCart className="w-5 h-5" />
                 </div>
                 <div>
@@ -756,7 +756,7 @@ export default function PurchaseOrdersPage() {
                 )}
                 <div className="flex justify-between text-foreground font-bold text-sm pt-2 border-t border-border">
                   <span>Grand Total</span>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400 text-base font-bold">₹{selectedOrder.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                  <span className="font-mono text-orange-600 dark:text-orange-400 text-base font-bold">₹{selectedOrder.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>

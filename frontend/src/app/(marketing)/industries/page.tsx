@@ -68,7 +68,7 @@ const officialIndustries = [
     title: "Wholesale & Stockists",
     desc: "Multi-godown stock transfers, party credit limit ceilings, overdue receivables ageing, and instant WhatsApp invoice dispatch.",
     href: "/industries/wholesale",
-    badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
+    badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
     features: ["Multi-Godown Transfers", "Party Credit Limits", "Receivables Ageing Matrix", "Bulk Dispatch Challans"],
   },
   {
@@ -86,7 +86,7 @@ const officialIndustries = [
     title: "Electronics & Mobile Retail",
     desc: "Dual IMEI & unique serial tracking, automated warranty cards, repair workshop job sheets, and multi-mode split payments.",
     href: "/industries/electronics",
-    badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
     features: ["Dual IMEI & Serial Tracking", "Warranty Cards & Lookup", "Repair Workshop Job Cards", "Finance / EMI Split Payment"],
   },
   {
@@ -113,7 +113,7 @@ const officialIndustries = [
     title: "Service Sector & Consulting",
     desc: "SAC code management, TDS receivable tracking (194J/194C), recurring retainer billing, and 1-click quotation conversion.",
     href: "/industries/services",
-    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
     features: ["SAC Code Master", "TDS 194J & 194C Tracking", "Recurring Retainer Invoices", "Quotation to Invoice in 1-Click"],
   },
   {

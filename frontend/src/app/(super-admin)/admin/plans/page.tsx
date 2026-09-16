@@ -394,7 +394,7 @@ export default function SuperAdminPlansPage() {
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">User Add-Ons</span>
-                <Users className="w-4 h-4 text-sky-600" />
+                <Users className="w-4 h-4 text-orange-600" />
               </div>
               <div>
                 <label className="text-xs text-slate-600 font-medium">Extra Single User / yr</label>
@@ -405,7 +405,7 @@ export default function SuperAdminPlansPage() {
                     min="0"
                     value={commercialForm.singleUserAnnualPrice}
                     onChange={(e) => setCommercialForm({ ...commercialForm, singleUserAnnualPrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full pl-7 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-sky-500"
+                    className="w-full pl-7 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-orange-500"
                     required
                   />
                 </div>
@@ -419,12 +419,12 @@ export default function SuperAdminPlansPage() {
                     min="0"
                     value={commercialForm.fiveUserPackAnnualPrice}
                     onChange={(e) => setCommercialForm({ ...commercialForm, fiveUserPackAnnualPrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full pl-7 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-sky-500"
+                    className="w-full pl-7 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-orange-500"
                     required
                   />
                 </div>
               </div>
-              <div className="text-[11px] text-sky-800">
+              <div className="text-[11px] text-orange-800">
                 Bulk discount: ₹{((commercialForm.singleUserAnnualPrice * 5) - commercialForm.fiveUserPackAnnualPrice).toFixed(0)} savings vs 5 single seats.
               </div>
             </div>
@@ -540,7 +540,7 @@ export default function SuperAdminPlansPage() {
                 className={`p-6 rounded-3xl bg-white border flex flex-col justify-between relative transition-all shadow-sm hover:shadow-md ${
                   plan.isPopular
                     ? "border-emerald-400 ring-2 ring-emerald-400/20"
-                    : "border-slate-200 hover:border-indigo-300"
+                    : "border-slate-200 hover:border-orange-300"
                 }`}
               >
                 {plan.isPopular && (
@@ -561,7 +561,7 @@ export default function SuperAdminPlansPage() {
                           🔒 Hidden
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-50 text-orange-700 border border-orange-200">
                           🌐 Public
                         </span>
                       )}
@@ -581,7 +581,7 @@ export default function SuperAdminPlansPage() {
                   <div>
                     <div className="flex items-center justify-between">
                       <h3 className="text-xl font-bold text-slate-900 tracking-tight">{plan.name}</h3>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
                         {cycleInfo.label}
                       </span>
                     </div>
@@ -612,7 +612,7 @@ export default function SuperAdminPlansPage() {
                   <div className="pt-3 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500 flex items-center space-x-2">
-                        <Users className="w-3.5 h-3.5 text-indigo-600" />
+                        <Users className="w-3.5 h-3.5 text-orange-600" />
                         <span>User Limit</span>
                       </span>
                       <span className="font-semibold text-slate-900">{plan.maxUsers} Users</span>
@@ -637,7 +637,7 @@ export default function SuperAdminPlansPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500 flex items-center space-x-2">
-                        <HardDrive className="w-3.5 h-3.5 text-sky-600" />
+                        <HardDrive className="w-3.5 h-3.5 text-orange-600" />
                         <span>Storage Quota</span>
                       </span>
                       <span className="font-semibold text-slate-900">
@@ -661,7 +661,7 @@ export default function SuperAdminPlansPage() {
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={() => handleOpenEdit(plan)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-indigo-700 border border-slate-200 text-xs font-semibold transition-all cursor-pointer"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-orange-700 border border-slate-200 text-xs font-semibold transition-all cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Edit Plan</span>
@@ -698,7 +698,7 @@ export default function SuperAdminPlansPage() {
 
             <div>
               <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <Edit2 className="w-5 h-5 text-indigo-600" />
+                <Edit2 className="w-5 h-5 text-orange-600" />
                 <span>Edit Subscription Tier</span>
               </h3>
               <p className="text-xs text-slate-500">
@@ -715,7 +715,7 @@ export default function SuperAdminPlansPage() {
                     required
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-600"
                   />
                 </div>
                 <div className="space-y-1">
@@ -723,7 +723,7 @@ export default function SuperAdminPlansPage() {
                   <select
                     value={editForm.billingCycle}
                     onChange={(e) => setEditForm({ ...editForm, billingCycle: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-600"
                   >
                     <option value={1}>Monthly (30 Days Validity)</option>
                     <option value={3}>Quarterly (90 Days Validity)</option>
@@ -742,7 +742,7 @@ export default function SuperAdminPlansPage() {
                   required
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-600"
                 />
               </div>
 
@@ -761,7 +761,7 @@ export default function SuperAdminPlansPage() {
                       onChange={(e) =>
                         setEditForm({ ...editForm, price: parseFloat(e.target.value) || 0 })
                       }
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-600"
                     />
                   </div>
                   <div className="space-y-1">
@@ -772,7 +772,7 @@ export default function SuperAdminPlansPage() {
                       onChange={(e) =>
                         setEditForm({ ...editForm, trialDays: parseInt(e.target.value) || 0 })
                       }
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-600"
                     />
                   </div>
                 </div>
@@ -801,7 +801,7 @@ export default function SuperAdminPlansPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, maxUsers: parseInt(e.target.value) || 1 })
                     }
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-orange-600"
                   />
                 </div>
                 <div className="space-y-1">
@@ -812,7 +812,7 @@ export default function SuperAdminPlansPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, maxBranches: parseInt(e.target.value) || 1 })
                     }
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-orange-600"
                   />
                 </div>
                 <div className="space-y-1">
@@ -823,7 +823,7 @@ export default function SuperAdminPlansPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, maxWarehouses: parseInt(e.target.value) || 1 })
                     }
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-orange-600"
                   />
                 </div>
                 <div className="space-y-1">
@@ -834,7 +834,7 @@ export default function SuperAdminPlansPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, maxInvoicesPerMonth: parseInt(e.target.value) || 1000 })
                     }
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-orange-600"
                   />
                 </div>
               </div>
@@ -847,7 +847,7 @@ export default function SuperAdminPlansPage() {
                       type="checkbox"
                       checked={editForm.isPopular}
                       onChange={(e) => setEditForm({ ...editForm, isPopular: e.target.checked })}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                     />
                     <span>Mark as "Most Popular Tier"</span>
                   </label>
@@ -857,7 +857,7 @@ export default function SuperAdminPlansPage() {
                       type="checkbox"
                       checked={editForm.isActive}
                       onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                     />
                     <span>Plan Active Status</span>
                   </label>
@@ -890,7 +890,7 @@ export default function SuperAdminPlansPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 shadow-md shadow-orange-600/20 transition-all disabled:opacity-50"
                 >
                   {submitting ? "Updating Plan..." : "Save Plan Changes"}
                 </button>

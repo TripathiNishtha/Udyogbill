@@ -178,7 +178,7 @@ export default function HomePage() {
         "Automatic payment reconciliation for RTGS, NEFT, UPI, Cash, and Cheque"
       ],
       badge: "3x Faster Recovery",
-      tagColor: "bg-blue-100 text-blue-800 border-blue-200"
+      tagColor: "bg-orange-100 text-orange-800 border-orange-200"
     },
     {
       id: "compliance",
@@ -242,7 +242,7 @@ export default function HomePage() {
       title: "Wholesale & Stockists",
       icon: Package,
       link: "/industries/wholesale",
-      color: "text-blue-600 bg-blue-50 border-blue-200",
+      color: "text-orange-600 bg-orange-50 border-orange-200",
       desc: "Customer credit limit enforcement, carton/box packaging units, and multi-godown stock transfers."
     },
     {
@@ -256,7 +256,7 @@ export default function HomePage() {
       title: "Electronics & Hardware",
       icon: Smartphone,
       link: "/industries/electronics",
-      color: "text-cyan-600 bg-cyan-50 border-cyan-200",
+      color: "text-orange-600 bg-orange-50 border-orange-200",
       desc: "Serial number & IMEI tracking, warranty card issuance, and post-sale service job management."
     }
   ];
@@ -433,10 +433,10 @@ export default function HomePage() {
               <div className="text-[11px] text-emerald-600 font-bold mt-0.5">100% Calculation Match</div>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white via-blue-50/30 to-indigo-50/20 border-2 border-blue-200/80 shadow-md shadow-blue-950/5 hover:border-blue-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
-              <div className="text-2xl sm:text-4xl font-black text-blue-700">48+ Cities</div>
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white via-orange-50/30 to-orange-50/20 border-2 border-orange-200/80 shadow-md shadow-orange-950/5 hover:border-orange-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+              <div className="text-2xl sm:text-4xl font-black text-orange-700">48+ Cities</div>
               <div className="text-xs sm:text-sm font-black text-slate-800 mt-1">Across 28 Indian States</div>
-              <div className="text-[11px] text-blue-600 font-bold mt-0.5">State GST Compliant</div>
+              <div className="text-[11px] text-orange-600 font-bold mt-0.5">State GST Compliant</div>
             </div>
 
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white via-emerald-50/30 to-amber-50/20 border-2 border-emerald-200/80 shadow-md shadow-emerald-950/5 hover:border-emerald-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
@@ -952,7 +952,7 @@ export default function HomePage() {
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">
                 AP
               </div>
               <div>

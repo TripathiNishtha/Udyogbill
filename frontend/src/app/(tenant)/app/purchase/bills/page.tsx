@@ -1131,7 +1131,7 @@ function PurchaseBillsContent() {
                             {hasBatchTracking && <th className="px-2 py-2.5 w-28">Batch / Lot</th>}
                             {hasBatchTracking && <th className="px-2 py-2.5 w-20">Expiry</th>}
                             {hasPharmaAddon && <th className="px-2 py-2.5 w-20">Packing</th>}
-                            {isElectronics && <th className="px-2 py-2.5 min-w-[130px] text-cyan-600 dark:text-cyan-400">IMEI / Serial</th>}
+                            {isElectronics && <th className="px-2 py-2.5 min-w-[130px] text-orange-600 dark:text-orange-400">IMEI / Serial</th>}
                             {isGarments && <th className="px-2 py-2.5 w-16 text-rose-600 dark:text-rose-400 text-center">Size</th>}
                             {isGarments && <th className="px-2 py-2.5 w-16 text-rose-600 dark:text-rose-400 text-center">Color</th>}
                             <th className="px-2 py-2.5 w-20">HSN</th>
@@ -1194,7 +1194,7 @@ function PurchaseBillsContent() {
                                     placeholder="Scan/Type IMEI"
                                     value={item.imeiSerial || ""}
                                     onChange={(e) => updateBillLineField(idx, "imeiSerial", e.target.value)}
-                                    className="w-full px-1.5 py-1 bg-surface border border-border rounded text-xs text-cyan-600 dark:text-cyan-400 font-mono font-bold focus:ring-2 focus:ring-cyan-500"
+                                    className="w-full px-1.5 py-1 bg-surface border border-border rounded text-xs text-orange-600 dark:text-orange-400 font-mono font-bold focus:ring-2 focus:ring-orange-500"
                                   />
                                 </td>
                               )}

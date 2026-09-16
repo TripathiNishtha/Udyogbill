@@ -77,7 +77,7 @@ export default function FinancialReportsPage() {
           onClick={() => setActiveTab("tb")}
           className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition ${
             activeTab === "tb"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
@@ -134,29 +134,29 @@ export default function FinancialReportsPage() {
                     <th className="py-3 px-4" rowSpan={2}>Group / Category</th>
                     <th className="py-2 px-4 text-center border-b border-slate-800" colSpan={2}>Opening Balance</th>
                     <th className="py-2 px-4 text-center border-b border-slate-800" colSpan={2}>Period Transactions</th>
-                    <th className="py-2 px-4 text-center border-b border-slate-800 bg-indigo-950/30" colSpan={2}>Closing Balance</th>
+                    <th className="py-2 px-4 text-center border-b border-slate-800 bg-orange-950/30" colSpan={2}>Closing Balance</th>
                   </tr>
                   <tr>
                     <th className="py-2 px-3 text-right">Dr (₹)</th>
                     <th className="py-2 px-3 text-right">Cr (₹)</th>
                     <th className="py-2 px-3 text-right">Dr (₹)</th>
                     <th className="py-2 px-3 text-right">Cr (₹)</th>
-                    <th className="py-2 px-3 text-right bg-indigo-950/30 font-bold text-indigo-300">Dr (₹)</th>
-                    <th className="py-2 px-3 text-right bg-indigo-950/30 font-bold text-indigo-300">Cr (₹)</th>
+                    <th className="py-2 px-3 text-right bg-orange-950/30 font-bold text-orange-300">Dr (₹)</th>
+                    <th className="py-2 px-3 text-right bg-orange-950/30 font-bold text-orange-300">Cr (₹)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
                   {trialBalance.rows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-800/40 transition">
-                      <td className="py-2.5 px-4 font-bold text-indigo-400">{r.accountCode}</td>
+                      <td className="py-2.5 px-4 font-bold text-orange-400">{r.accountCode}</td>
                       <td className="py-2.5 px-4 font-sans font-medium text-white">{r.accountName}</td>
                       <td className="py-2.5 px-4 font-sans text-slate-400">{r.groupName}</td>
                       <td className="py-2.5 px-3 text-right">{r.openingDebit > 0 ? r.openingDebit.toLocaleString("en-IN") : "-"}</td>
                       <td className="py-2.5 px-3 text-right">{r.openingCredit > 0 ? r.openingCredit.toLocaleString("en-IN") : "-"}</td>
                       <td className="py-2.5 px-3 text-right text-emerald-400">{r.debitMovement > 0 ? r.debitMovement.toLocaleString("en-IN") : "-"}</td>
                       <td className="py-2.5 px-3 text-right text-rose-400">{r.creditMovement > 0 ? r.creditMovement.toLocaleString("en-IN") : "-"}</td>
-                      <td className="py-2.5 px-3 text-right bg-indigo-950/20 font-bold text-emerald-300">{r.closingDebit > 0 ? r.closingDebit.toLocaleString("en-IN") : "-"}</td>
-                      <td className="py-2.5 px-3 text-right bg-indigo-950/20 font-bold text-rose-300">{r.closingCredit > 0 ? r.closingCredit.toLocaleString("en-IN") : "-"}</td>
+                      <td className="py-2.5 px-3 text-right bg-orange-950/20 font-bold text-emerald-300">{r.closingDebit > 0 ? r.closingDebit.toLocaleString("en-IN") : "-"}</td>
+                      <td className="py-2.5 px-3 text-right bg-orange-950/20 font-bold text-rose-300">{r.closingCredit > 0 ? r.closingCredit.toLocaleString("en-IN") : "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -167,8 +167,8 @@ export default function FinancialReportsPage() {
                     <td className="py-3 px-3 text-right">₹{trialBalance.totalOpeningCredit.toLocaleString("en-IN")}</td>
                     <td className="py-3 px-3 text-right text-emerald-400">₹{trialBalance.totalDebitMovement.toLocaleString("en-IN")}</td>
                     <td className="py-3 px-3 text-right text-rose-400">₹{trialBalance.totalCreditMovement.toLocaleString("en-IN")}</td>
-                    <td className="py-3 px-3 text-right bg-indigo-950/40 text-emerald-400 text-sm">₹{trialBalance.totalClosingDebit.toLocaleString("en-IN")}</td>
-                    <td className="py-3 px-3 text-right bg-indigo-950/40 text-rose-400 text-sm">₹{trialBalance.totalClosingCredit.toLocaleString("en-IN")}</td>
+                    <td className="py-3 px-3 text-right bg-orange-950/40 text-emerald-400 text-sm">₹{trialBalance.totalClosingDebit.toLocaleString("en-IN")}</td>
+                    <td className="py-3 px-3 text-right bg-orange-950/40 text-rose-400 text-sm">₹{trialBalance.totalClosingCredit.toLocaleString("en-IN")}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -253,7 +253,7 @@ export default function FinancialReportsPage() {
           <div className="space-y-4 text-xs font-mono">
             {/* Revenue */}
             <div className="space-y-2">
-              <div className="flex justify-between font-sans font-bold text-sm text-blue-400">
+              <div className="flex justify-between font-sans font-bold text-sm text-orange-400">
                 <span>1. Operating Sales Revenue</span>
                 <span>₹{pnl.totalRevenue.toLocaleString("en-IN")}</span>
               </div>

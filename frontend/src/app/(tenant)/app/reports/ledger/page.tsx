@@ -74,7 +74,7 @@ export default function LedgerReportsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
-            <span className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/20">
+            <span className="p-2 rounded-xl bg-orange-600/20 text-orange-400 border border-orange-500/20">
               <FileSpreadsheet className="w-6 h-6" />
             </span>
             <span>General & Party Ledger</span>
@@ -102,7 +102,7 @@ export default function LedgerReportsPage() {
           <select
             value={selectedPartyId}
             onChange={(e) => setSelectedPartyId(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-950 border border-slate-800 text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-orange-500"
           >
             <option value="">All Parties (General Ledger)</option>
             {parties.map((p) => (
@@ -120,14 +120,14 @@ export default function LedgerReportsPage() {
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500"
           />
           <span className="text-slate-500 text-xs font-semibold">to</span>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500"
           />
           <button
             onClick={loadLedgerData}
@@ -144,7 +144,7 @@ export default function LedgerReportsPage() {
           <div>
             <div className="text-xs text-slate-400 font-semibold">PARTY / CUSTOMER</div>
             <div className="text-sm font-bold text-white mt-1">{statement.partyName}</div>
-            <div className="text-[11px] text-indigo-400 mt-0.5">GSTIN: {statement.partyGSTIN || "Unregistered"}</div>
+            <div className="text-[11px] text-orange-400 mt-0.5">GSTIN: {statement.partyGSTIN || "Unregistered"}</div>
           </div>
           <div>
             <div className="text-xs text-slate-400 font-semibold">OPENING BALANCE</div>
@@ -198,7 +198,7 @@ export default function LedgerReportsPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-500">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-indigo-500 mb-2" />
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-orange-500 mb-2" />
                     Loading ledger transactions...
                   </td>
                 </tr>

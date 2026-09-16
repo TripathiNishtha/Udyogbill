@@ -1987,7 +1987,7 @@ export default function TenantPosPage() {
                 <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">Net Total: ₹{lastReceiptData.netTotal.toFixed(2)}</div>
                 <div className="text-[10px] text-muted-foreground">Paid ({lastReceiptData.paymentModeText}): ₹{lastReceiptData.paidAmount.toFixed(2)}</div>
                 {lastReceiptData.changeAmount > 0 && (
-                  <div className="text-[10px] font-bold text-indigo-500">Change Returned: ₹{lastReceiptData.changeAmount.toFixed(2)}</div>
+                  <div className="text-[10px] font-bold text-orange-500">Change Returned: ₹{lastReceiptData.changeAmount.toFixed(2)}</div>
                 )}
               </div>
             </div>

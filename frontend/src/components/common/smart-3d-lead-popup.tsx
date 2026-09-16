@@ -291,7 +291,7 @@ export function Smart3dLeadPopup() {
             transformStyle: "preserve-3d",
             transition: "transform 0.12s ease-out",
           }}
-          className="relative rounded-3xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-slate-800 shadow-[0_25px_60px_-15px_rgba(79,70,229,0.35)] overflow-hidden p-6 sm:p-8"
+          className="relative rounded-3xl bg-white dark:bg-slate-900 border border-orange-100 dark:border-slate-800 shadow-[0_25px_60px_-15px_rgba(79,70,229,0.35)] overflow-hidden p-6 sm:p-8"
         >
           {/* Dynamic Glare Overlay */}
           <div
@@ -303,14 +303,14 @@ export function Smart3dLeadPopup() {
 
           {/* Decorative 3D Ambient Mesh Gradients */}
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-56 h-56 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-56 h-56 bg-orange-500/15 rounded-full blur-3xl pointer-events-none" />
 
           {/* Card Content with 3D Depth */}
           {!submitted ? (
             <div className="relative z-20 space-y-5" style={{ transform: "translateZ(20px)" }}>
               {/* Floating Top Badge */}
               <div
-                className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white text-[11px] font-black uppercase tracking-wider shadow-md shadow-indigo-600/30"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-purple-600 via-orange-600 to-orange-600 text-white text-[11px] font-black uppercase tracking-wider shadow-md shadow-orange-600/30"
                 style={{ transform: "translateZ(30px)" }}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
@@ -336,7 +336,7 @@ export function Smart3dLeadPopup() {
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>100% Free Trial</span>
                 </div>
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
                   <Zap className="w-3.5 h-3.5" />
                   <span>Instant WhatsApp Setup</span>
                 </div>
@@ -365,7 +365,7 @@ export function Smart3dLeadPopup() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your Full Name or Shop Name *"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-600/10 transition-all font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-orange-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-orange-600/10 transition-all font-medium"
                   />
                 </div>
 
@@ -381,7 +381,7 @@ export function Smart3dLeadPopup() {
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
                     placeholder="10-Digit Mobile / WhatsApp Number *"
-                    className="w-full pl-16 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-600/10 transition-all font-medium"
+                    className="w-full pl-16 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-orange-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-orange-600/10 transition-all font-medium"
                   />
                 </div>
 
@@ -390,7 +390,7 @@ export function Smart3dLeadPopup() {
                   type="submit"
                   disabled={loading}
                   style={{ transform: "translateZ(35px)" }}
-                  className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-indigo-600/35 hover:shadow-indigo-600/50 transition-all flex items-center justify-center gap-2 transform active:scale-98 cursor-pointer disabled:opacity-60"
+                  className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-orange-600 to-orange-600 hover:from-purple-700 hover:via-orange-700 hover:to-orange-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-600/35 hover:shadow-orange-600/50 transition-all flex items-center justify-center gap-2 transform active:scale-98 cursor-pointer disabled:opacity-60"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">

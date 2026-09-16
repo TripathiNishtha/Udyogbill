@@ -248,9 +248,9 @@ export default function TenantSettingsPage() {
         </div>
         <Link
           href="/app/settings/addons"
-          className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 hover:border-indigo-400 text-indigo-300 hover:text-white text-xs font-semibold shadow-sm transition-all self-start sm:self-auto"
+          className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-orange-600/20 hover:bg-orange-600 border border-orange-500/30 hover:border-orange-400 text-orange-300 hover:text-white text-xs font-semibold shadow-sm transition-all self-start sm:self-auto"
         >
-          <Sparkles className="w-4 h-4 text-indigo-400" />
+          <Sparkles className="w-4 h-4 text-orange-400" />
           <span>Industry Add-on Store</span>
         </Link>
       </div>
@@ -317,11 +317,11 @@ export default function TenantSettingsPage() {
       </div>
 
       {/* UdyogMitra AI Assistant & Team Permissions */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 space-y-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-indigo-800/30">
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-orange-950/40 via-slate-900 to-slate-900 border border-orange-500/30 space-y-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-orange-800/30">
           <div>
             <div className="flex items-center space-x-2">
-              <Bot className="w-5 h-5 text-indigo-400" />
+              <Bot className="w-5 h-5 text-orange-400" />
               <h2 className="text-base font-bold text-white tracking-tight">
                 UdyogMitra AI Copilot &amp; Staff Access
               </h2>
@@ -338,7 +338,7 @@ export default function TenantSettingsPage() {
         <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-indigo-400" />
+              <Users className="w-4 h-4 text-orange-400" />
               <span className="text-xs font-bold text-white">Staff / Non-Admin Access</span>
             </div>
             <p className="text-[11px] text-slate-400 max-w-xl">
@@ -353,7 +353,7 @@ export default function TenantSettingsPage() {
               onChange={(e) => handleToggleStaffAiAccess(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
             <span className="ml-3 text-xs font-semibold text-slate-300">
               {staffAiAccess ? "Allowed for Staff" : "Disabled for Staff"}
             </span>
@@ -377,7 +377,7 @@ export default function TenantSettingsPage() {
           {/* Company Brand Logo Section */}
           <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
             <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
-              <ImageIcon className="w-4 h-4 text-indigo-400" />
+              <ImageIcon className="w-4 h-4 text-orange-400" />
               <span>Company / Organization Brand Logo</span>
             </label>
             <p className="text-[11px] text-slate-400">
@@ -404,7 +404,7 @@ export default function TenantSettingsPage() {
               {/* Upload & Controls */}
               <div className="space-y-2 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <label className="cursor-pointer px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-indigo-600/20 transition-colors">
+                  <label className="cursor-pointer px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-orange-600/20 transition-colors">
                     <Upload className="w-3.5 h-3.5" />
                     <span>Upload Logo Image</span>
                     <input
@@ -650,14 +650,14 @@ export default function TenantSettingsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
-                  <Server className="w-4 h-4 text-indigo-400" />
+                  <Server className="w-4 h-4 text-orange-400" />
                   <span>Outgoing Email &amp; SMTP Configuration (Send to Mail Server)</span>
                 </label>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   Configure your store's custom SMTP mail server. All tax invoices, CA audit packs, payment receipts, and reports sent via "Send to Mail" will be dispatched directly from this authenticated mailbox.
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 self-start sm:self-auto">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20 self-start sm:self-auto">
                 Custom Mailbox
               </span>
             </div>
@@ -670,7 +670,7 @@ export default function TenantSettingsPage() {
                   placeholder="e.g. Apex Pharma Care Billing"
                   value={profileForm.smtpFromName || ""}
                   onChange={(e) => setProfileForm({ ...profileForm, smtpFromName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -681,7 +681,7 @@ export default function TenantSettingsPage() {
                   placeholder="e.g. billing@apexpharma.com or noreply@yourdomain.com"
                   value={profileForm.smtpFromEmail || ""}
                   onChange={(e) => setProfileForm({ ...profileForm, smtpFromEmail: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
             </div>
@@ -694,7 +694,7 @@ export default function TenantSettingsPage() {
                   placeholder="e.g. smtp.gmail.com or smtp.hostinger.com"
                   value={profileForm.smtpHost || ""}
                   onChange={(e) => setProfileForm({ ...profileForm, smtpHost: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -705,7 +705,7 @@ export default function TenantSettingsPage() {
                   placeholder="587 (TLS) or 465 (SSL)"
                   value={profileForm.smtpPort || 587}
                   onChange={(e) => setProfileForm({ ...profileForm, smtpPort: parseInt(e.target.value) || 587 })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -717,7 +717,7 @@ export default function TenantSettingsPage() {
                       type="checkbox"
                       checked={profileForm.smtpEnableSsl ?? true}
                       onChange={(e) => setProfileForm({ ...profileForm, smtpEnableSsl: e.target.checked })}
-                      className="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0 w-4 h-4 cursor-pointer"
+                      className="rounded bg-slate-900 border-slate-700 text-orange-600 focus:ring-0 w-4 h-4 cursor-pointer"
                     />
                     <span>Enable SSL / TLS Encryption</span>
                   </label>
@@ -733,14 +733,14 @@ export default function TenantSettingsPage() {
                   placeholder="e.g. billing@apexpharma.com"
                   value={profileForm.smtpUsername || ""}
                   onChange={(e) => setProfileForm({ ...profileForm, smtpUsername: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
                   <span>SMTP Password / App Password</span>
-                  <span className="text-[10px] text-indigo-400">Masked &amp; Encrypted</span>
+                  <span className="text-[10px] text-orange-400">Masked &amp; Encrypted</span>
                 </label>
                 <div className="relative">
                   <input
@@ -748,7 +748,7 @@ export default function TenantSettingsPage() {
                     placeholder={profile?.smtpHost ? "•••••••••••• (Leave blank to keep current)" : "e.g. Gmail App Password or SMTP secret"}
                     value={profileForm.smtpPassword || ""}
                     onChange={(e) => setProfileForm({ ...profileForm, smtpPassword: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-orange-500"
                   />
                   <Lock className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
@@ -777,7 +777,7 @@ export default function TenantSettingsPage() {
                   type="button"
                   onClick={handleSendTestEmail}
                   disabled={sendingTestEmail}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors disabled:opacity-50 shadow-md shadow-indigo-600/20 shrink-0"
+                  className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors disabled:opacity-50 shadow-md shadow-orange-600/20 shrink-0"
                 >
                   {sendingTestEmail ? (
                     <>

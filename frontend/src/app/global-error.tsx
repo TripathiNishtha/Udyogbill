@@ -46,7 +46,7 @@ export default function GlobalError({
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => reset()}
-              className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors"
+              className="flex-1 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-colors"
             >
               Reload & Retry
             </button>

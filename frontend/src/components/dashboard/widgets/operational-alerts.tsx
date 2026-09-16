@@ -201,21 +201,21 @@ export function OperationalAlertsWidget({ data, isHi = false }: Props) {
               ? "bg-rose-50/40 border-rose-200 hover:border-rose-400/80 dark:bg-rose-950/20 dark:border-rose-900/40"
               : alert.severity === "warning"
               ? "bg-amber-50/40 border-amber-200 hover:border-amber-400/80 dark:bg-amber-950/20 dark:border-amber-900/40"
-              : "bg-blue-50/40 border-blue-200 hover:border-blue-400/80 dark:bg-blue-950/20 dark:border-blue-900/40";
+              : "bg-orange-50/40 border-orange-200 hover:border-orange-400/80 dark:bg-orange-950/20 dark:border-orange-900/40";
 
           const iconContainerColors =
             alert.severity === "danger"
               ? "bg-rose-100/70 border-rose-300/60 text-rose-600 dark:bg-rose-950/40 dark:border-rose-800/40 dark:text-rose-400"
               : alert.severity === "warning"
               ? "bg-amber-100/70 border-amber-300/60 text-amber-600 dark:bg-amber-950/40 dark:border-amber-800/40 dark:text-amber-400"
-              : "bg-blue-100/70 border-blue-300/60 text-blue-600 dark:bg-blue-950/40 dark:border-blue-800/40 dark:text-blue-400";
+              : "bg-orange-100/70 border-orange-300/60 text-orange-600 dark:bg-orange-950/40 dark:border-orange-800/40 dark:text-orange-400";
 
           const badgeColors =
             alert.severity === "danger"
               ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300"
               : alert.severity === "warning"
               ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300"
-              : "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300";
+              : "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300";
 
           return (
             <Link

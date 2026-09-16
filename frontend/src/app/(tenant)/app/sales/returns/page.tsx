@@ -374,7 +374,7 @@ export default function SalesReturnsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-md">
         <div className="flex items-center space-x-3">
-          <div className="p-3 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-indigo-400">
+          <div className="p-3 bg-orange-600/20 border border-orange-500/30 rounded-xl text-orange-400">
             <RotateCcw className="w-6 h-6" />
           </div>
           <div>
@@ -385,7 +385,7 @@ export default function SalesReturnsPage() {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-lg shadow-indigo-600/20 transition"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-medium shadow-lg shadow-orange-600/20 transition"
         >
           <Plus className="w-4 h-4" />
           <span>+ Issue Customer Credit Note</span>
@@ -439,12 +439,12 @@ export default function SalesReturnsPage() {
               ) : (
                 returns.map((ret) => (
                   <tr key={ret.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-indigo-400">{ret.creditNoteNumber}</td>
+                    <td className="py-3.5 px-4 font-bold text-orange-400">{ret.creditNoteNumber}</td>
                     <td className="py-3.5 px-4 font-sans text-slate-300">{new Date(ret.returnDate).toLocaleDateString()}</td>
                     <td className="py-3.5 px-4 font-sans font-semibold text-white">{ret.customerName}</td>
                     <td className="py-3.5 px-4 text-slate-400">{ret.originalInvoiceNumber || "-"}</td>
                     <td className="py-3.5 px-4 font-sans">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
                         {ret.returnReason}
                       </span>
                     </td>
@@ -493,7 +493,7 @@ export default function SalesReturnsPage() {
           <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <RotateCcw className="w-5 h-5 text-indigo-400" />
+                <RotateCcw className="w-5 h-5 text-orange-400" />
                 <span>+ Issue Customer Return Credit Note</span>
               </div>
               <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
@@ -569,7 +569,7 @@ export default function SalesReturnsPage() {
                       id="restockCheck"
                       checked={restock}
                       onChange={(e) => setRestock(e.target.checked)}
-                      className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-800"
+                      className="w-4 h-4 rounded text-orange-600 bg-slate-950 border-slate-800"
                     />
                     <label htmlFor="restockCheck" className="text-slate-300">
                       Physically re-inward stock
@@ -598,7 +598,7 @@ export default function SalesReturnsPage() {
                   <button
                     type="button"
                     onClick={addLine}
-                    className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 text-xs font-semibold"
+                    className="px-2.5 py-1 rounded-lg bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-500/30 text-xs font-semibold"
                   >
                     + Add Item
                   </button>
@@ -647,7 +647,7 @@ export default function SalesReturnsPage() {
 
                     <div className="col-span-2 text-right">
                       <label className="text-[10px] text-slate-500 block mb-0.5">Total</label>
-                      <span className="font-mono font-bold text-indigo-400 text-xs inline-block pt-1">
+                      <span className="font-mono font-bold text-orange-400 text-xs inline-block pt-1">
                         ₹{line.amount.toFixed(2)}
                       </span>
                     </div>
@@ -667,7 +667,7 @@ export default function SalesReturnsPage() {
 
                 <div className="pt-2 border-t border-slate-800 flex justify-between font-mono font-bold text-xs text-white">
                   <span>Grand Total Credit Note:</span>
-                  <span className="text-indigo-400">₹{grandTotal.toFixed(2)}</span>
+                  <span className="text-orange-400">₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -682,7 +682,7 @@ export default function SalesReturnsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30"
                 >
                   {submitting ? "Processing..." : "Issue Credit Note (Persist to DB)"}
                 </button>
@@ -751,7 +751,7 @@ export default function SalesReturnsPage() {
               <button
                 type="button"
                 onClick={() => setActionError(null)}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition"
+                className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition"
               >
                 Understood / Dismiss
               </button>

@@ -223,13 +223,13 @@ export default async function CityLandingPage({ params }: Props) {
     },
     retail: {
       bgGradient: "linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #fff7ed 100%)",
-      badgeClass: "bg-blue-100 text-blue-900 border-blue-300",
+      badgeClass: "bg-orange-100 text-orange-900 border-orange-300",
       BadgeIcon: ScanBarcode,
       badgeLabel: `${city.name} Multi-Counter Cloud POS • State Code: ${city.stateCode}`,
     },
     logistics: {
       bgGradient: "linear-gradient(135deg, #ecfeff 0%, #ffffff 50%, #f5f3ff 100%)",
-      badgeClass: "bg-indigo-100 text-indigo-900 border-indigo-300",
+      badgeClass: "bg-orange-100 text-orange-900 border-orange-300",
       BadgeIcon: Truck,
       badgeLabel: `${city.name} Regional Gateway & Outstation • Code: ${city.stateCode}`,
     },
@@ -548,16 +548,16 @@ export default async function CityLandingPage({ params }: Props) {
               )}
 
               {archetype === "retail" && (
-                <div className="rounded-3xl p-6 sm:p-7 border-2 border-blue-200 bg-white shadow-xl ring-8 ring-blue-50/70">
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-blue-100">
+                <div className="rounded-3xl p-6 sm:p-7 border-2 border-orange-200 bg-white shadow-xl ring-8 ring-orange-50/70">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-orange-100">
                     <div className="flex items-center gap-2.5">
-                      <span className="w-3 h-3 rounded-full bg-blue-600 animate-pulse" />
+                      <span className="w-3 h-3 rounded-full bg-orange-600 animate-pulse" />
                       <span className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                        <ScanBarcode className="w-3.5 h-3.5 text-blue-600" />
+                        <ScanBarcode className="w-3.5 h-3.5 text-orange-600" />
                         {city.name} Multi-Counter Cloud POS
                       </span>
                     </div>
-                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-200">
                       2-Sec Checkout
                     </span>
                   </div>
@@ -587,7 +587,7 @@ export default async function CityLandingPage({ params }: Props) {
                       </div>
                       <div className="flex justify-between border-t border-slate-200 pt-1.5 font-bold">
                         <span>Offline Mode:</span>
-                        <span className="text-blue-700 font-extrabold">Active (Zero Downtime on Power Cut)</span>
+                        <span className="text-orange-700 font-extrabold">Active (Zero Downtime on Power Cut)</span>
                       </div>
                     </div>
                   </div>
@@ -604,8 +604,8 @@ export default async function CityLandingPage({ params }: Props) {
                           {city.localTradeProfile.majorPainPoint.slice(0, 115)}...
                         </div>
                       </div>
-                      <div className="p-3 rounded-xl bg-blue-50/80 border border-blue-200 flex items-start gap-2.5">
-                        <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center shrink-0 text-xs font-black">
+                      <div className="p-3 rounded-xl bg-orange-50/80 border border-orange-200 flex items-start gap-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 flex items-center justify-center shrink-0 text-xs font-black">
                           ★
                         </div>
                         <div className="text-xs text-slate-700 font-medium">
@@ -616,9 +616,9 @@ export default async function CityLandingPage({ params }: Props) {
                     </div>
                   )}
 
-                  <div className="rounded-xl p-3.5 bg-blue-50 border border-blue-200 text-slate-900 flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 bg-orange-50 border border-orange-200 text-slate-900 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] text-blue-800 font-extrabold uppercase tracking-wider">
+                      <div className="text-[11px] text-orange-800 font-extrabold uppercase tracking-wider">
                         Retail POS Quick Setup
                       </div>
                       <div className="text-sm font-black text-slate-950 mt-0.5">
@@ -627,7 +627,7 @@ export default async function CityLandingPage({ params }: Props) {
                     </div>
                     <Link
                       href="/register"
-                      className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black text-xs transition-colors shadow-sm flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-black text-xs transition-colors shadow-sm flex items-center gap-1.5"
                     >
                       Start POS Trial →
                     </Link>
@@ -636,25 +636,25 @@ export default async function CityLandingPage({ params }: Props) {
               )}
 
               {archetype === "logistics" && (
-                <div className="rounded-3xl p-6 sm:p-7 border-2 border-indigo-200 bg-white shadow-xl ring-8 ring-indigo-50/70">
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-indigo-100">
+                <div className="rounded-3xl p-6 sm:p-7 border-2 border-orange-200 bg-white shadow-xl ring-8 ring-orange-50/70">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-orange-100">
                     <div className="flex items-center gap-2.5">
-                      <span className="w-3 h-3 rounded-full bg-indigo-600 animate-pulse" />
+                      <span className="w-3 h-3 rounded-full bg-orange-600 animate-pulse" />
                       <span className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5 text-indigo-600" />
+                        <Truck className="w-3.5 h-3.5 text-orange-600" />
                         {city.name} Regional Gateway & Bilti Desk
                       </span>
                     </div>
-                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 border border-indigo-200">
+                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-200">
                       Multi-State IGST
                     </span>
                   </div>
 
                   {/* Simulated Logistics Bilti */}
-                  <div className="bg-indigo-50/70 rounded-2xl p-4 border border-indigo-200 mb-4">
-                    <div className="flex justify-between items-center text-xs font-black text-indigo-950 mb-2">
+                  <div className="bg-orange-50/70 rounded-2xl p-4 border border-orange-200 mb-4">
+                    <div className="flex justify-between items-center text-xs font-black text-orange-950 mb-2">
                       <span>Transport Bilti & Dispatch Slip</span>
-                      <span className="font-mono bg-white px-2 py-0.5 rounded border border-indigo-200 text-slate-700">
+                      <span className="font-mono bg-white px-2 py-0.5 rounded border border-orange-200 text-slate-700">
                         LR-{city.stateCode}-9942
                       </span>
                     </div>
@@ -665,13 +665,13 @@ export default async function CityLandingPage({ params }: Props) {
                       </div>
                       <div className="flex justify-between">
                         <span>Outstation Route:</span>
-                        <span className="font-bold text-indigo-800">Direct Multi-State IGST + E-Way Bill</span>
+                        <span className="font-bold text-orange-800">Direct Multi-State IGST + E-Way Bill</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Outstanding Recovery:</span>
                         <span className="font-bold text-emerald-700">Auto WhatsApp Statement + UPI Link</span>
                       </div>
-                      <div className="flex justify-between border-t border-indigo-200 pt-1.5 font-bold">
+                      <div className="flex justify-between border-t border-orange-200 pt-1.5 font-bold">
                         <span>Stock Traceability:</span>
                         <span className="text-slate-900 font-extrabold">Batch Expiry / Serial No. / Weight Loss</span>
                       </div>
@@ -682,7 +682,7 @@ export default async function CityLandingPage({ params }: Props) {
                   {city.localTradeProfile && (
                     <div className="space-y-2.5 mb-5">
                       <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-                        <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center shrink-0 text-xs font-black">
+                        <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 flex items-center justify-center shrink-0 text-xs font-black">
                           🚚
                         </div>
                         <div className="text-xs text-slate-700 font-medium">
@@ -702,9 +702,9 @@ export default async function CityLandingPage({ params }: Props) {
                     </div>
                   )}
 
-                  <div className="rounded-xl p-3.5 bg-indigo-50 border border-indigo-200 text-slate-900 flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 bg-orange-50 border border-orange-200 text-slate-900 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] text-indigo-800 font-extrabold uppercase tracking-wider">
+                      <div className="text-[11px] text-orange-800 font-extrabold uppercase tracking-wider">
                         Logistics Onboarding Desk
                       </div>
                       <div className="text-sm font-black text-slate-950 mt-0.5">
@@ -717,7 +717,7 @@ export default async function CityLandingPage({ params }: Props) {
                       )}%20and%20want%20an%20outstation%20billing%20demo`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition-colors shadow-sm flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-black text-xs transition-colors shadow-sm flex items-center gap-1.5"
                     >
                       <MessageCircle className="w-3.5 h-3.5" /> Bilti Demo
                     </a>
@@ -876,7 +876,7 @@ export default async function CityLandingPage({ params }: Props) {
 
             <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm flex flex-col justify-between">
               <div>
-                <div className="w-12 h-12 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600 font-bold text-xl mb-4">
+                <div className="w-12 h-12 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-xl mb-4">
                   EWB
                 </div>
                 <h3 className="text-lg font-bold text-slate-950 mb-2">

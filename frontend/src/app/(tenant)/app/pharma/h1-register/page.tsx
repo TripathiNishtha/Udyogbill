@@ -229,7 +229,7 @@ export default function PharmaH1RegisterPage() {
                       </div>
                     </td>
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 bg-slate-800 text-cyan-400 font-mono font-semibold rounded border border-slate-700">
+                      <span className="px-2 py-0.5 bg-slate-800 text-orange-400 font-mono font-semibold rounded border border-slate-700">
                         {r.batchNumber}
                       </span>
                     </td>

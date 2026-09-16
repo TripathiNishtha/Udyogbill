@@ -430,8 +430,8 @@ export default function PharmaSfaDashboardPage() {
 
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <div className="text-xs font-medium text-gray-500 uppercase">Total Field POB Booked</div>
-          <div className="text-2xl font-bold text-blue-600 mt-1">₹{totalPob.toLocaleString()}</div>
-          <div className="text-xs text-blue-500 mt-1">Pending order conversion</div>
+          <div className="text-2xl font-bold text-orange-600 mt-1">₹{totalPob.toLocaleString()}</div>
+          <div className="text-xs text-orange-500 mt-1">Pending order conversion</div>
         </div>
       </div>
 
@@ -842,10 +842,10 @@ export default function PharmaSfaDashboardPage() {
               </div>
 
               {/* Joint Work & Auto-Mirroring Section */}
-              <div className="bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-indigo-200/80 rounded-xl p-3.5 space-y-2.5">
+              <div className="bg-gradient-to-r from-orange-50/90 to-orange-50/90 border border-orange-200/80 rounded-xl p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-indigo-600" />
+                    <Users className="w-4 h-4 text-orange-600" />
                     <label htmlFor="jointWorkToggle" className="text-xs font-bold text-gray-800 cursor-pointer">
                       Joint Working Call
                     </label>
@@ -861,7 +861,7 @@ export default function PharmaSfaDashboardPage() {
                         setMirrorNotice(null);
                       }
                     }}
-                    className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                    className="h-4 w-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
                   />
                 </div>
 
@@ -871,7 +871,7 @@ export default function PharmaSfaDashboardPage() {
                       <select
                         value={selectedJointMrId}
                         onChange={(e) => setSelectedJointMrId(e.target.value)}
-                        className="flex-1 border border-indigo-200 rounded-lg p-2 text-xs bg-white text-gray-800 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="flex-1 border border-orange-200 rounded-lg p-2 text-xs bg-white text-gray-800 focus:ring-orange-500 focus:border-orange-500"
                       >
                         <option value="">-- Select Field Colleague / MR --</option>
                         {employeesList.map((emp) => (
@@ -885,7 +885,7 @@ export default function PharmaSfaDashboardPage() {
                         type="button"
                         onClick={handleMirrorMrCalls}
                         disabled={mirroring || !selectedJointMrId}
-                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shrink-0 transition cursor-pointer"
+                        className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shrink-0 transition cursor-pointer"
                         title="Auto-mirror all doctor detailing calls submitted by the MR for today"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-amber-300" />
@@ -894,8 +894,8 @@ export default function PharmaSfaDashboardPage() {
                     </div>
 
                     {mirrorNotice && (
-                      <div className="p-2 bg-indigo-100 border border-indigo-300 text-indigo-900 rounded-lg text-[11px] flex items-center gap-1.5 font-medium">
-                        <CheckCircle className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <div className="p-2 bg-orange-100 border border-orange-300 text-orange-900 rounded-lg text-[11px] flex items-center gap-1.5 font-medium">
+                        <CheckCircle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
                         <span>{mirrorNotice}</span>
                       </div>
                     )}

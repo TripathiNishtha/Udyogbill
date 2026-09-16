@@ -36,7 +36,7 @@ export function KeyboardShortcutsHud() {
         className="hidden sm:flex fixed bottom-5 right-22 z-40 px-3 py-2.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold items-center space-x-2 shadow-xl backdrop-blur-md transition group"
         title="Press F1 for ERP Keyboard Shortcuts"
       >
-        <Keyboard className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition" />
+        <Keyboard className="w-4 h-4 text-orange-400 group-hover:scale-110 transition" />
         <span>Shortcuts [F1]</span>
       </button>
 
@@ -46,7 +46,7 @@ export function KeyboardShortcutsHud() {
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <Keyboard className="w-5 h-5 text-indigo-400" />
+                <Keyboard className="w-5 h-5 text-orange-400" />
                 <span>Enterprise ERP Keyboard Shortcuts</span>
               </div>
               <button
@@ -61,7 +61,7 @@ export function KeyboardShortcutsHud() {
               {shortcuts.map((s, i) => (
                 <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs">
                   <span className="text-slate-300 font-medium">{s.action}</span>
-                  <kbd className="px-2.5 py-1 bg-slate-800 text-indigo-300 border border-slate-700 rounded-lg font-mono font-bold text-[11px] shadow-inner">
+                  <kbd className="px-2.5 py-1 bg-slate-800 text-orange-300 border border-slate-700 rounded-lg font-mono font-bold text-[11px] shadow-inner">
                     {s.key}
                   </kbd>
                 </div>

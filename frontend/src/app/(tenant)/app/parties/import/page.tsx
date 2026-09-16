@@ -197,14 +197,14 @@ export default function BulkPartyImportPage() {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-indigo-400 mb-1">
+          <div className="flex items-center space-x-2 text-xs font-semibold text-orange-400 mb-1">
             <Link href="/app/parties" className="hover:underline flex items-center space-x-1">
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Parties Master</span>
             </Link>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center space-x-3">
-            <Users className="w-8 h-8 text-indigo-400" />
+            <Users className="w-8 h-8 text-orange-400" />
             <span>Customers & Suppliers Bulk Migration</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -241,13 +241,13 @@ export default function BulkPartyImportPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-5">
             <h2 className="text-base font-bold text-white flex items-center space-x-2">
-              <UploadCloud className="w-5 h-5 text-indigo-400" />
+              <UploadCloud className="w-5 h-5 text-orange-400" />
               <span>1. Upload Data File</span>
             </h2>
 
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-8 text-center cursor-pointer transition-all bg-slate-950/40 hover:bg-slate-950/80 space-y-3"
+              className="border-2 border-dashed border-slate-700 hover:border-orange-500 rounded-2xl p-8 text-center cursor-pointer transition-all bg-slate-950/40 hover:bg-slate-950/80 space-y-3"
             >
               <input
                 ref={fileInputRef}
@@ -256,7 +256,7 @@ export default function BulkPartyImportPage() {
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <FileSpreadsheet className="w-12 h-12 text-indigo-400 mx-auto animate-bounce" />
+              <FileSpreadsheet className="w-12 h-12 text-orange-400 mx-auto animate-bounce" />
               <div className="space-y-1">
                 <p className="text-xs font-bold text-white">
                   {file ? file.name : "Click to browse or drop CSV"}
@@ -271,7 +271,7 @@ export default function BulkPartyImportPage() {
                   type="checkbox"
                   checked={overwriteExisting}
                   onChange={(e) => setOverwriteExisting(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
+                  className="rounded border-slate-700 bg-slate-950 text-orange-600 focus:ring-orange-500"
                 />
                 <span>Overwrite matching existing codes</span>
               </label>
@@ -280,7 +280,7 @@ export default function BulkPartyImportPage() {
                 type="button"
                 disabled={parsedRows.length === 0 || isImporting || isParsing}
                 onClick={handleStartImport}
-                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full py-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
               >
                 {isImporting ? (
                   <>
@@ -302,10 +302,10 @@ export default function BulkPartyImportPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-white flex items-center space-x-2">
-                  <Layers className="w-5 h-5 text-indigo-400" />
+                  <Layers className="w-5 h-5 text-orange-400" />
                   <span>2. Parsed Parties Preview</span>
                 </h2>
-                <span className="px-2.5 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold">
+                <span className="px-2.5 py-1 bg-orange-500/20 text-orange-400 rounded-lg text-xs font-bold">
                   {parsedRows.length} Valid Records Ready
                 </span>
               </div>
@@ -334,14 +334,14 @@ export default function BulkPartyImportPage() {
                       {parsedRows.slice(0, 50).map((r, idx) => (
                         <tr key={idx} className="hover:bg-slate-850/50">
                           <td className="p-3 text-slate-500">{idx + 1}</td>
-                          <td className="p-3 font-bold text-indigo-400">{r.code}</td>
+                          <td className="p-3 font-bold text-orange-400">{r.code}</td>
                           <td className="p-3 font-sans text-white font-medium">{r.legalName}</td>
                           <td className="p-3 font-sans">
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                 r.partyType === "Supplier"
                                   ? "bg-amber-500/20 text-amber-400"
-                                  : "bg-indigo-500/20 text-indigo-400"
+                                  : "bg-orange-500/20 text-orange-400"
                               }`}
                             >
                               {r.partyType}
@@ -425,7 +425,7 @@ export default function BulkPartyImportPage() {
           <div className="flex items-center space-x-4 pt-4 border-t border-slate-800">
             <Link
               href="/app/parties"
-              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all"
+              className="px-6 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30 transition-all"
             >
               View Updated Parties Ledger
             </Link>

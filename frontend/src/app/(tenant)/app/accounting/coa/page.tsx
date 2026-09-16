@@ -101,7 +101,7 @@ export default function ChartOfAccountsPage() {
       case "Equity":
         return "text-purple-400 bg-purple-500/10 border-purple-500/20";
       case "Revenue":
-        return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+        return "text-orange-400 bg-orange-500/10 border-orange-500/20";
       case "Expense":
         return "text-amber-400 bg-amber-500/10 border-amber-500/20";
       default:
@@ -128,7 +128,7 @@ export default function ChartOfAccountsPage() {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-lg shadow-indigo-600/20 transition"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-medium shadow-lg shadow-orange-600/20 transition"
         >
           <Plus className="w-4 h-4" />
           <span>+ Create Ledger Account</span>
@@ -144,7 +144,7 @@ export default function ChartOfAccountsPage() {
             placeholder="Search account name, code, group..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-orange-500"
           />
         </div>
 
@@ -156,7 +156,7 @@ export default function ChartOfAccountsPage() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
                 selectedCategory === cat
-                  ? "bg-indigo-600 border-indigo-500 text-white"
+                  ? "bg-orange-600 border-orange-500 text-white"
                   : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
               }`}
             >
@@ -197,7 +197,7 @@ export default function ChartOfAccountsPage() {
               ) : (
                 filteredAccounts.map((acc) => (
                   <tr key={acc.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-indigo-400">{acc.accountCode}</td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-orange-400">{acc.accountCode}</td>
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-white">{acc.accountName}</div>
                       {acc.isSystemAccount && (
@@ -233,7 +233,7 @@ export default function ChartOfAccountsPage() {
           <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <BookOpen className="w-5 h-5 text-indigo-400" />
+                <BookOpen className="w-5 h-5 text-orange-400" />
                 <span>+ Create New General Ledger Account</span>
               </div>
               <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
@@ -250,7 +250,7 @@ export default function ChartOfAccountsPage() {
                   placeholder="e.g. Axis Bank Current A/c"
                   value={accName}
                   onChange={(e) => setAccName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500 text-xs font-semibold"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500 text-xs font-semibold"
                 />
               </div>
 
@@ -277,7 +277,7 @@ export default function ChartOfAccountsPage() {
                     placeholder="1103"
                     value={accCode}
                     onChange={(e) => setAccCode(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-indigo-300 font-mono focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-orange-300 font-mono focus:outline-none text-xs"
                   />
                 </div>
               </div>
@@ -319,7 +319,7 @@ export default function ChartOfAccountsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30"
                 >
                   {submitting ? "Saving..." : "Save Account"}
                 </button>

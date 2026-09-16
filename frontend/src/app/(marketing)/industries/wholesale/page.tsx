@@ -90,14 +90,14 @@ export default function WholesaleIndustryPage() {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
             <div className="lg:col-span-7 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-blue-200 bg-blue-50 text-blue-900 shadow-2xs">
-                <Package className="w-3.5 h-3.5 text-blue-600" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-orange-200 bg-orange-50 text-orange-900 shadow-2xs">
+                <Package className="w-3.5 h-3.5 text-orange-600" />
                 Enterprise Wholesale & Stockist Operating ERP
               </div>
 
               <h1 className="text-2xl sm:text-4xl lg:text-[40px] font-black text-slate-950 tracking-tight leading-[1.2]">
                 Scale Your Wholesale Empire with{" "}
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-orange-600 to-orange-600 bg-clip-text text-transparent">
                   Centralized Inventory & Credit Control
                 </span>
               </h1>

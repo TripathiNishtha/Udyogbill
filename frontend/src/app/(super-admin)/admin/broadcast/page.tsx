@@ -57,7 +57,7 @@ export default function BroadcastMailerPage() {
       {/* Header */}
       <div className="border-b border-slate-800 pb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20">
             <Megaphone className="w-6 h-6" />
           </div>
           <div>
@@ -112,7 +112,7 @@ export default function BroadcastMailerPage() {
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g. Important Update: New Pharma & Garments Add-ons Available!"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -123,7 +123,7 @@ export default function BroadcastMailerPage() {
               <select
                 value={targetPlan}
                 onChange={(e) => setTargetPlan(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
               >
                 <option value="">All Active Subscribers</option>
                 <option value="STARTER">Starter Plan Users</option>
@@ -136,28 +136,28 @@ export default function BroadcastMailerPage() {
           {/* Placeholders helper */}
           <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Info className="w-4 h-4 text-indigo-400" />
+              <Info className="w-4 h-4 text-orange-400" />
               <span>Click to insert personalization variable:</span>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => insertVariable("{BusinessName}")}
-                className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-mono border border-indigo-500/20 transition-all"
+                className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 text-xs font-mono border border-orange-500/20 transition-all"
               >
                 + &#123;BusinessName&#125;
               </button>
               <button
                 type="button"
                 onClick={() => insertVariable("{TradeName}")}
-                className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-mono border border-indigo-500/20 transition-all"
+                className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 text-xs font-mono border border-orange-500/20 transition-all"
               >
                 + &#123;TradeName&#125;
               </button>
               <button
                 type="button"
                 onClick={() => insertVariable("{TenantCode}")}
-                className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-mono border border-indigo-500/20 transition-all"
+                className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 text-xs font-mono border border-orange-500/20 transition-all"
               >
                 + &#123;TenantCode&#125;
               </button>
@@ -174,7 +174,7 @@ export default function BroadcastMailerPage() {
               value={bodyHtml}
               onChange={(e) => setBodyHtml(e.target.value)}
               placeholder="<p>Dear {BusinessName},</p><p>We are thrilled to announce...</p>"
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 font-mono"
             />
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function BroadcastMailerPage() {
           <button
             type="submit"
             disabled={sending}
-            className="flex items-center gap-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-3 rounded-xl shadow-xl shadow-indigo-500/25 transition-all disabled:opacity-50"
+            className="flex items-center gap-2.5 bg-orange-600 hover:bg-orange-500 text-white font-semibold px-8 py-3 rounded-xl shadow-xl shadow-orange-500/25 transition-all disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
             {sending ? "Dispatching Broadcast..." : "Send Broadcast to All Subscribers"}

@@ -89,7 +89,7 @@ function ConfirmModal({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Enter reason (required)..."
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[80px] resize-none"
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 min-h-[80px] resize-none"
           />
         )}
         <div className="flex items-center space-x-3 pt-1">
@@ -309,7 +309,7 @@ function IssueCreditNoteModal({
       <div className="bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl p-6 space-y-4 my-8">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+            <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400">
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
@@ -334,7 +334,7 @@ function IssueCreditNoteModal({
           </div>
           <div>
             <span className="text-slate-400 block text-[10px]">Credit Value:</span>
-            <strong className="text-cyan-400 font-mono text-sm">₹{totalCreditAmount.toFixed(2)}</strong>
+            <strong className="text-orange-400 font-mono text-sm">₹{totalCreditAmount.toFixed(2)}</strong>
           </div>
         </div>
 
@@ -346,7 +346,7 @@ function IssueCreditNoteModal({
               <select
                 value={returnReason}
                 onChange={(e) => setReturnReason(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500 text-xs"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500 text-xs"
               >
                 <option value="GoodsReturned">Goods Returned by Customer</option>
                 <option value="DamagedInTransit">Defective / Damaged Goods</option>
@@ -363,7 +363,7 @@ function IssueCreditNoteModal({
                 id="restock_check"
                 checked={restock}
                 onChange={(e) => setRestock(e.target.checked)}
-                className="w-4 h-4 rounded text-cyan-600 bg-slate-900 border-slate-700 focus:ring-cyan-500 cursor-pointer"
+                className="w-4 h-4 rounded text-orange-600 bg-slate-900 border-slate-700 focus:ring-orange-500 cursor-pointer"
               />
               <label htmlFor="restock_check" className="text-slate-300 font-medium cursor-pointer">
                 Restore returned items back into Warehouse Stock
@@ -400,7 +400,7 @@ function IssueCreditNoteModal({
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 bg-slate-950">
                   {items.map((it, idx) => (
-                    <tr key={idx} className={it.selected ? "bg-cyan-950/20" : ""}>
+                    <tr key={idx} className={it.selected ? "bg-orange-950/20" : ""}>
                       <td className="p-2 text-center">
                         <input
                           type="checkbox"
@@ -435,11 +435,11 @@ function IssueCreditNoteModal({
                               prev.map((item, i) => (i === idx ? { ...item, returnQuantity: val } : item))
                             );
                           }}
-                          className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-center disabled:opacity-30 focus:outline-none focus:border-cyan-500"
+                          className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-center disabled:opacity-30 focus:outline-none focus:border-orange-500"
                         />
                       </td>
                       <td className="p-2 text-right font-mono text-slate-300">₹{it.unitPrice.toFixed(2)}</td>
-                      <td className="p-2 text-right font-mono font-bold text-cyan-400">
+                      <td className="p-2 text-right font-mono font-bold text-orange-400">
                         ₹{(it.selected ? it.returnQuantity * it.unitPrice * (1 + it.gstRate / 100) : 0).toFixed(2)}
                       </td>
                     </tr>
@@ -457,7 +457,7 @@ function IssueCreditNoteModal({
               placeholder="e.g. Sales return received against Invoice and credit note issued to ledger"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500 text-xs"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500 text-xs"
             />
           </div>
 
@@ -473,7 +473,7 @@ function IssueCreditNoteModal({
             <button
               type="submit"
               disabled={submitting || totalCreditAmount <= 0}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition shadow-lg shadow-cyan-600/25 disabled:opacity-40"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition shadow-lg shadow-orange-600/25 disabled:opacity-40"
             >
               {submitting ? "Issuing Credit Note..." : `Issue Credit Note (₹${totalCreditAmount.toFixed(2)})`}
             </button>
@@ -486,7 +486,7 @@ function IssueCreditNoteModal({
 
 // ─── Toast notification ──────────────────────────────────────────────────────
 function Toast({ msg, type }: { msg: string; type: "success" | "error" | "info" }) {
-  const bg = type === "success" ? "bg-emerald-600" : type === "error" ? "bg-rose-600" : "bg-indigo-600";
+  const bg = type === "success" ? "bg-emerald-600" : type === "error" ? "bg-rose-600" : "bg-orange-600";
   return (
     <div className={`fixed bottom-6 right-6 z-[60] flex items-center space-x-2 px-4 py-3 rounded-2xl shadow-2xl text-white text-xs font-semibold ${bg} animate-in fade-in slide-in-from-bottom-2 duration-200`}>
       {type === "success" && <CheckCircle className="w-4 h-4" />}
@@ -1451,7 +1451,7 @@ export default function SalesInvoiceDetailsPage({
   if (loading || !invoice) {
     return (
       <div className="p-8 max-w-5xl mx-auto text-center text-slate-400 text-xs">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
         Loading Tax Invoice #{invoiceId}...
       </div>
     );
@@ -1610,7 +1610,7 @@ export default function SalesInvoiceDetailsPage({
                   onClick={() => setActiveDoc(id as DocumentType)}
                   className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     activeDoc === id
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-black"
+                      ? "bg-orange-600 text-white shadow-md shadow-orange-600/30 font-black"
                       : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -1669,7 +1669,7 @@ export default function SalesInvoiceDetailsPage({
             <button
               onClick={handlePrint}
               style={{ color: "#ffffff" }}
-              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow-lg shadow-orange-600/30 transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4 text-white" />
               <span className="text-white">
@@ -1757,7 +1757,7 @@ export default function SalesInvoiceDetailsPage({
             <button
               onClick={handleSendEmail}
               style={{ color: "#ffffff" }}
-              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow-lg shadow-orange-600/30 transition-all cursor-pointer"
             >
               <Mail className="w-4 h-4 text-white" />
               <span className="text-white">Email Invoice</span>
@@ -1813,7 +1813,7 @@ export default function SalesInvoiceDetailsPage({
               <button
                 onClick={handleOpenCreditNoteModal}
                 style={{ color: "#ffffff" }}
-                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-black shadow-lg shadow-cyan-700/30 transition-all cursor-pointer"
+                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-orange-700 hover:bg-orange-600 text-white text-xs font-black shadow-lg shadow-orange-700/30 transition-all cursor-pointer"
                 title="Issue Credit Note / Sales Return against this invoice"
               >
                 <RotateCcw className="w-4 h-4 text-white" />
@@ -1844,7 +1844,7 @@ export default function SalesInvoiceDetailsPage({
                       }}
                       className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
-                      <Edit2 className="w-4 h-4 text-indigo-400" />
+                      <Edit2 className="w-4 h-4 text-orange-400" />
                       <span>Edit Invoice</span>
                     </button>
                   )}
@@ -1892,7 +1892,7 @@ export default function SalesInvoiceDetailsPage({
                       }}
                       className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
-                      <RotateCcw className="w-4 h-4 text-cyan-400" />
+                      <RotateCcw className="w-4 h-4 text-orange-400" />
                       <span>Sales Return (Credit Note)</span>
                     </button>
                   ) : (

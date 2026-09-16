@@ -625,8 +625,8 @@ function Footer({ onDemoClick }: { onDemoClick: () => void }) {
                 <Check className="w-4 h-4 text-orange-600 shrink-0" />
                 <span>100% GST &amp; E-Invoicing Compliant</span>
               </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-300 text-blue-950 font-bold">
-                <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-300 text-orange-950 font-bold">
+                <Sparkles className="w-4 h-4 text-orange-600 shrink-0" />
                 <span>99.9% High Availability Cloud SLA</span>
               </div>
             </div>

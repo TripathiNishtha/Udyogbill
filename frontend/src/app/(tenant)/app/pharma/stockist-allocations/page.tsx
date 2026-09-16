@@ -136,9 +136,9 @@ export default function StockistAllocationsPage() {
       )}
 
       {/* Info Card */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 space-y-1">
-        <div className="font-semibold flex items-center gap-1.5 text-blue-900">
-          <ShieldCheck className="w-4 h-4 text-blue-600" />
+      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-xs text-orange-800 space-y-1">
+        <div className="font-semibold flex items-center gap-1.5 text-orange-900">
+          <ShieldCheck className="w-4 h-4 text-orange-600" />
           Zero-Impact Historical Sales Attribution Rule:
         </div>
         <p>

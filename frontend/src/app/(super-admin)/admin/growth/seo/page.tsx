@@ -190,7 +190,7 @@ export default function SeoMatrixPage() {
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-850 hover:text-white transition-all shadow-sm"
           >
-            <FileCode className="w-3.5 h-3.5 text-blue-400" />
+            <FileCode className="w-3.5 h-3.5 text-orange-400" />
             Inspect sitemap.xml
             <ExternalLink className="w-3 h-3 opacity-60" />
           </a>
@@ -229,7 +229,7 @@ export default function SeoMatrixPage() {
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Local Commercial Hubs
           </div>
-          <div className="text-3xl font-black text-indigo-400 mt-2">
+          <div className="text-3xl font-black text-orange-400 mt-2">
             {Object.keys(CITIES_DATA).length} Cities
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Lucknow, Kanpur, Delhi, Mumbai, Varanasi, etc.</p>
@@ -239,8 +239,8 @@ export default function SeoMatrixPage() {
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Target Keywords Tracked
           </div>
-          <div className="text-3xl font-black text-cyan-400 mt-2">{totalKeywords}+</div>
-          <p className="text-[11px] text-cyan-400 mt-1">High commercial intent queries</p>
+          <div className="text-3xl font-black text-orange-400 mt-2">{totalKeywords}+</div>
+          <p className="text-[11px] text-orange-400 mt-1">High commercial intent queries</p>
         </div>
       </div>
 
@@ -253,7 +253,7 @@ export default function SeoMatrixPage() {
               onClick={() => setFilter(cat)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 filter === cat
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-orange-600 text-white shadow-sm"
                   : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
               }`}
             >
@@ -268,7 +268,7 @@ export default function SeoMatrixPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search URL, title, or target keyword..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-orange-500 transition-colors"
           />
         </div>
       </div>
@@ -291,7 +291,7 @@ export default function SeoMatrixPage() {
             <tbody className="divide-y divide-slate-800/60">
               {filteredPages.map((page, idx) => (
                 <tr key={idx} className="hover:bg-slate-850/50 transition-colors">
-                  <td className="px-4 py-3 font-mono font-bold text-indigo-400">
+                  <td className="px-4 py-3 font-mono font-bold text-orange-400">
                     <div className="flex items-center gap-1.5">
                       <span>{page.url}</span>
                     </div>
@@ -304,7 +304,7 @@ export default function SeoMatrixPage() {
                           ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
                           : page.category === "City"
                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                          : "bg-orange-500/10 text-orange-400 border-orange-500/20"
                       }`}
                     >
                       {page.category}
@@ -355,7 +355,7 @@ export default function SeoMatrixPage() {
                         href={page.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                        className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors"
                         title="Open Live Preview"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />

@@ -316,7 +316,7 @@ export default function FieldForceManagementPage() {
   const getRoleBadge = (role: number) => {
     switch (role) {
       case 1:
-        return <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-800">MR</span>;
+        return <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-orange-100 text-orange-800">MR</span>;
       case 2:
         return <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800">ABM</span>;
       case 3:
@@ -377,7 +377,7 @@ export default function FieldForceManagementPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 text-blue-600 rounded">
+              <div className="p-1.5 bg-orange-50 text-orange-600 rounded">
                 <Users className="w-4 h-4" />
               </div>
               <div>
@@ -522,7 +522,7 @@ export default function FieldForceManagementPage() {
                     : emp.monthlyTargetAmount;
 
                   return (
-                    <tr key={emp.id} className="hover:bg-blue-50/40 transition">
+                    <tr key={emp.id} className="hover:bg-orange-50/40 transition">
                       {/* Employee Name & Contact */}
                       <td className="px-3 py-1.5">
                         <div className="flex items-center gap-1.5">
@@ -621,7 +621,7 @@ export default function FieldForceManagementPage() {
                       <td className="px-2.5 py-1.5 text-center whitespace-nowrap">
                         <button
                           onClick={() => openEditModal(emp)}
-                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition"
+                          className="p-1 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded transition"
                           title="Edit Profile & Hierarchy"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -672,7 +672,7 @@ export default function FieldForceManagementPage() {
             <form onSubmit={handleSaveEmployee} className="mt-3 space-y-3.5">
               {/* Step 1: Identity & Credentials */}
               <div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1 text-blue-700">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1 text-orange-700">
                   <UserCheck className="w-3.5 h-3.5" /> 1. Identity & Credentials
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">

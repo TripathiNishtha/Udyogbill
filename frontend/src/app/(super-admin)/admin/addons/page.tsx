@@ -279,7 +279,7 @@ export default function SuperAdminAddonsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center space-x-2">
-            <Sparkles className="w-6 h-6 text-indigo-600" />
+            <Sparkles className="w-6 h-6 text-orange-600" />
             <span>Industry Add-on Pricing &amp; Entitlements</span>
           </h1>
           <p className="text-sm text-slate-500">
@@ -288,7 +288,7 @@ export default function SuperAdminAddonsPage() {
         </div>
         <button
           onClick={() => setIsGrantOpen(true)}
-          className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
+          className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-orange-600/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Manual Add-on Grant</span>
@@ -317,7 +317,7 @@ export default function SuperAdminAddonsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div className="space-y-1">
             <div className="flex items-center space-x-3">
-              <span className="p-2 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600">
+              <span className="p-2 rounded-xl bg-orange-50 border border-orange-100 text-orange-600">
                 <Users className="w-5 h-5" />
               </span>
               <h2 className="text-lg font-black text-slate-900 tracking-tight">
@@ -341,7 +341,7 @@ export default function SuperAdminAddonsPage() {
         <form onSubmit={handleSaveSfaSeatPricing} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Rate Configuration Cards */}
           <div className="lg:col-span-7 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-700">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-orange-700">
               Set Commercial License Rates (Excl. 18% GST)
             </h3>
 
@@ -360,7 +360,7 @@ export default function SuperAdminAddonsPage() {
                       min="0"
                       value={sfaMonthlyBase}
                       onChange={(e) => setSfaMonthlyBase(Number(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div>
@@ -370,7 +370,7 @@ export default function SuperAdminAddonsPage() {
                       min="0"
                       value={sfaAnnualBase}
                       onChange={(e) => setSfaAnnualBase(Number(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                 </div>
@@ -409,7 +409,7 @@ export default function SuperAdminAddonsPage() {
               {/* Per Manager Seat */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-indigo-700">Per Mgr Seat Rate</span>
+                  <span className="text-xs font-bold text-orange-700">Per Mgr Seat Rate</span>
                   <span className="text-[10px] text-slate-500">ASM / RSM</span>
                 </div>
                 <div className="space-y-2">
@@ -420,7 +420,7 @@ export default function SuperAdminAddonsPage() {
                       min="0"
                       value={mgrMonthlySeat}
                       onChange={(e) => setMgrMonthlySeat(Number(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-indigo-700 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-orange-700 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div>
@@ -430,7 +430,7 @@ export default function SuperAdminAddonsPage() {
                       min="0"
                       value={mgrAnnualSeat}
                       onChange={(e) => setMgrAnnualSeat(Number(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-indigo-700 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-orange-700 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                 </div>
@@ -444,7 +444,7 @@ export default function SuperAdminAddonsPage() {
               <button
                 type="submit"
                 disabled={savingSfaConfig}
-                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-orange-600/20 disabled:opacity-50 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>{savingSfaConfig ? "Saving SFA Rates..." : "Save SFA Seat Pricing Engine"}</span>
@@ -456,7 +456,7 @@ export default function SuperAdminAddonsPage() {
           <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
-                <Calculator className="w-4 h-4 text-indigo-600" />
+                <Calculator className="w-4 h-4 text-orange-600" />
                 <span>Live Revenue &amp; Quote Simulator</span>
               </span>
               <div className="inline-flex p-0.5 bg-slate-200/80 rounded-lg border border-slate-300">
@@ -464,7 +464,7 @@ export default function SuperAdminAddonsPage() {
                   type="button"
                   onClick={() => setSimIsAnnual(false)}
                   className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    !simIsAnnual ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                    !simIsAnnual ? "bg-orange-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
                   Monthly
@@ -473,7 +473,7 @@ export default function SuperAdminAddonsPage() {
                   type="button"
                   onClick={() => setSimIsAnnual(true)}
                   className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    simIsAnnual ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                    simIsAnnual ? "bg-orange-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
                   Annual (Yearly)
@@ -517,7 +517,7 @@ export default function SuperAdminAddonsPage() {
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Manager Seats ({simMgrCount} × ₹{simMgrUnit}):</span>
-                <span className="text-indigo-700 font-mono font-semibold">+₹{simMgrTotal.toLocaleString()}</span>
+                <span className="text-orange-700 font-mono font-semibold">+₹{simMgrTotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal (Net Price):</span>
@@ -584,13 +584,13 @@ export default function SuperAdminAddonsPage() {
                 const isSfa = addon.code === "ADDON_PHARMA_SFA";
 
                 return (
-                  <tr key={addon.id || addon.code} className={`hover:bg-slate-50/80 transition-colors ${isSfa ? "bg-indigo-50/30" : ""}`}>
+                  <tr key={addon.id || addon.code} className={`hover:bg-slate-50/80 transition-colors ${isSfa ? "bg-orange-50/30" : ""}`}>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center space-x-3">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
                           isSfa 
-                            ? "bg-indigo-100 border-indigo-200 text-indigo-700"
-                            : "bg-indigo-50 border-indigo-100 text-indigo-600"
+                            ? "bg-orange-100 border-orange-200 text-orange-700"
+                            : "bg-orange-50 border-orange-100 text-orange-600"
                         }`}>
                           <Icon className="w-4 h-4" />
                         </div>
@@ -598,7 +598,7 @@ export default function SuperAdminAddonsPage() {
                           <div className="font-bold text-slate-900 text-sm flex items-center space-x-2">
                             <span>{addon.name}</span>
                             {isSfa && (
-                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200">
+                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200">
                                 Per-Seat Quota
                               </span>
                             )}
@@ -615,7 +615,7 @@ export default function SuperAdminAddonsPage() {
                       <div className="text-[10px] text-amber-700 font-medium">+18% GST (₹{(mPrice * 0.18).toFixed(2)})</div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="text-sm font-bold text-indigo-700">₹{aPrice} <span className="text-[10px] text-slate-500 font-normal">/ yr</span></div>
+                      <div className="text-sm font-bold text-orange-700">₹{aPrice} <span className="text-[10px] text-slate-500 font-normal">/ yr</span></div>
                       <div className="text-[10px] text-amber-700 font-medium">+18% GST (₹{(aPrice * 0.18).toFixed(2)})</div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -638,7 +638,7 @@ export default function SuperAdminAddonsPage() {
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit ${
                             addon.isHidden
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
-                              : "bg-sky-50 text-sky-700 border border-sky-200"
+                              : "bg-orange-50 text-orange-700 border border-orange-200"
                           }`}
                         >
                           {addon.isHidden ? "🔒 Hidden (Private)" : "🌐 Public Store"}
@@ -656,7 +656,7 @@ export default function SuperAdminAddonsPage() {
                           className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             isSfa
                               ? "bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200"
-                              : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200"
+                              : "bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200"
                           }`}
                           title={`Grant ${addon.name} to any subscriber`}
                         >
@@ -693,7 +693,7 @@ export default function SuperAdminAddonsPage() {
             <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
-                  <Edit2 className="w-4 h-4 text-indigo-600" />
+                  <Edit2 className="w-4 h-4 text-orange-600" />
                   <span>Configure Monthly &amp; Yearly Pricing</span>
                 </h3>
                 <button onClick={() => setEditingAddon(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
@@ -723,7 +723,7 @@ export default function SuperAdminAddonsPage() {
                         required
                         value={editMonthlyPrice}
                         onChange={(e) => setEditMonthlyPrice(parseFloat(e.target.value) || 0)}
-                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 font-bold focus:outline-none focus:border-orange-500"
                       />
                     </div>
                     <div className="text-[10px] text-slate-600 space-y-0.5 pt-1 border-t border-slate-200">
@@ -747,7 +747,7 @@ export default function SuperAdminAddonsPage() {
                       <button
                         type="button"
                         onClick={() => setEditAnnualPrice(Math.round(editMonthlyPrice * 10))}
-                        className="text-[10px] text-indigo-600 hover:text-indigo-700 font-semibold underline cursor-pointer"
+                        className="text-[10px] text-orange-600 hover:text-orange-700 font-semibold underline cursor-pointer"
                         title="Auto-fill with 10 months price (2 months free)"
                       >
                         Auto (10 mo)
@@ -762,7 +762,7 @@ export default function SuperAdminAddonsPage() {
                         required
                         value={editAnnualPrice}
                         onChange={(e) => setEditAnnualPrice(parseFloat(e.target.value) || 0)}
-                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 font-bold focus:outline-none focus:border-orange-500"
                       />
                     </div>
                     <div className="text-[10px] text-slate-600 space-y-0.5 pt-1 border-t border-slate-200">
@@ -770,7 +770,7 @@ export default function SuperAdminAddonsPage() {
                         <span>+ 18% GST:</span>
                         <span className="text-amber-700 font-medium">₹{aGst}</span>
                       </div>
-                      <div className="flex justify-between font-bold text-indigo-700">
+                      <div className="flex justify-between font-bold text-orange-700">
                         <span>Total Payable:</span>
                         <span>₹{aTotal} / yr</span>
                       </div>
@@ -788,7 +788,7 @@ export default function SuperAdminAddonsPage() {
                     rows={2}
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
@@ -798,7 +798,7 @@ export default function SuperAdminAddonsPage() {
                     id="editIsActive"
                     checked={editIsActive}
                     onChange={(e) => setEditIsActive(e.target.checked)}
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                   />
                   <label htmlFor="editIsActive" className="text-xs text-slate-700 font-medium cursor-pointer">
                     Active in Catalog (Module is functional and available)
@@ -834,7 +834,7 @@ export default function SuperAdminAddonsPage() {
                   <button
                     type="submit"
                     disabled={savingPrice}
-                    className="inline-flex items-center space-x-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold disabled:opacity-50 shadow-md shadow-indigo-600/20 cursor-pointer"
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold disabled:opacity-50 shadow-md shadow-orange-600/20 cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>{savingPrice ? "Saving..." : "Save Monthly & Yearly Prices"}</span>
@@ -871,13 +871,13 @@ export default function SuperAdminAddonsPage() {
                   placeholder="Filter subscriber by name, code, email..."
                   value={tenantSearch}
                   onChange={(e) => setTenantSearch(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500"
                 />
                 <select
                   required
                   value={selectedTenantId}
                   onChange={(e) => setSelectedTenantId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                 >
                   {filteredTenants.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -893,7 +893,7 @@ export default function SuperAdminAddonsPage() {
                   required
                   value={selectedAddonCode}
                   onChange={(e) => setSelectedAddonCode(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                 >
                   {addons.map((a) => (
                     <option key={a.code} value={a.code}>
@@ -927,7 +927,7 @@ export default function SuperAdminAddonsPage() {
                         min="0"
                         value={grantManagerSeats}
                         onChange={(e) => setGrantManagerSeats(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-full px-3 py-1.5 bg-white border border-teal-300 rounded-lg text-xs font-bold text-indigo-900 focus:outline-none focus:border-indigo-500"
+                        className="w-full px-3 py-1.5 bg-white border border-teal-300 rounded-lg text-xs font-bold text-orange-900 focus:outline-none focus:border-orange-500"
                       />
                     </div>
                   </div>
@@ -943,7 +943,7 @@ export default function SuperAdminAddonsPage() {
                   <select
                     value={grantDurationDays}
                     onChange={(e) => setGrantDurationDays(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value={15}>15 Days (Trial)</option>
                     <option value={30}>30 Days (1 Month)</option>
@@ -961,12 +961,12 @@ export default function SuperAdminAddonsPage() {
                     value={grantReason}
                     onChange={(e) => setGrantReason(e.target.value)}
                     placeholder="e.g. Bank wire ref #9981"
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
 
-              <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-[11px] text-indigo-900 leading-relaxed flex items-start space-x-2.5">
+              <div className="p-3.5 bg-orange-50 border border-orange-200 rounded-2xl text-[11px] text-orange-900 leading-relaxed flex items-start space-x-2.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
                   <strong>Official Indian GST Invoice:</strong> Add-on grant hote hi system automatically proper GST Tax Invoice (with CGST/SGST/IGST breakdown &amp; legal sequential invoice number) create karega. Yeh invoice tenant ko unke <em>Settings &gt; Billing &amp; Invoices</em> portal me turant dikhegi jahan se wo ise download aur print kar sakege.

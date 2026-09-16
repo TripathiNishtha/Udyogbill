@@ -265,10 +265,10 @@ export function AiPurchaseScannerModal({
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-700/80 w-full max-w-7xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[94vh]">
         {/* Modal Header */}
-        <div className="px-6 py-3.5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-950/70 via-slate-900 to-purple-950/50 shrink-0">
+        <div className="px-6 py-3.5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-orange-950/70 via-slate-900 to-purple-950/50 shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-indigo-600/20 border border-indigo-500/40 rounded-xl text-indigo-400">
-              <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
+            <div className="p-2 bg-orange-600/20 border border-orange-500/40 rounded-xl text-orange-400">
+              <Sparkles className="w-5 h-5 text-orange-400 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
@@ -278,7 +278,7 @@ export function AiPurchaseScannerModal({
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 tracking-wider">
                   100% MATHEMATICAL RECONCILER
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 tracking-wider">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-orange-500/20 text-orange-300 border border-orange-500/40 tracking-wider">
                   MULTI-FORMAT
                 </span>
               </div>
@@ -335,7 +335,7 @@ export function AiPurchaseScannerModal({
               {/* File Upload Area */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 bg-slate-950/60 hover:bg-indigo-950/10 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition group h-full min-h-[340px]"
+                className="border-2 border-dashed border-slate-700 hover:border-orange-500/80 bg-slate-950/60 hover:bg-orange-950/10 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition group h-full min-h-[340px]"
               >
                 <input
                   type="file"
@@ -370,13 +370,13 @@ export function AiPurchaseScannerModal({
                         className="max-h-48 rounded-xl object-contain border border-slate-700 shadow-md mx-auto"
                       />
                     )}
-                    <p className="text-xs text-indigo-400 font-semibold group-hover:underline">
+                    <p className="text-xs text-orange-400 font-semibold group-hover:underline">
                       Click to choose another photo or file
                     </p>
                   </div>
                 ) : (
                   <>
-                    <div className="p-4 bg-indigo-600/10 group-hover:bg-indigo-600/20 border border-indigo-500/30 rounded-2xl text-indigo-400 mb-4 transition">
+                    <div className="p-4 bg-orange-600/10 group-hover:bg-orange-600/20 border border-orange-500/30 rounded-2xl text-orange-400 mb-4 transition">
                       <Camera className="w-10 h-10" />
                     </div>
                     <p className="text-sm font-bold text-white mb-1">
@@ -400,7 +400,7 @@ export function AiPurchaseScannerModal({
               <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 flex flex-col h-full min-h-[340px]">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-300 flex items-center space-x-2">
-                    <FileText className="w-4 h-4 text-indigo-400" />
+                    <FileText className="w-4 h-4 text-orange-400" />
                     <span>Raw Invoice Text or WhatsApp Bill Copy (Optional)</span>
                   </label>
                   <span className="text-[10px] text-slate-400 font-mono">Instant Parser</span>
@@ -410,7 +410,7 @@ export function AiPurchaseScannerModal({
                   placeholder="Paste distributor bill text, WhatsApp message, or CSV rows here...&#10;e.g.&#10;SUPPLIER: MEDILIFE PHARMA DISTRIBUTORS&#10;GSTIN: 07AAACH7409R1ZZ&#10;PARACETAMOL 650MG | BATCH: PCM-901 | EXP: 12/28 | QTY: 50 | RATE: 18.50 | MRP: 32 | GST: 12%"
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
-                  className="w-full flex-1 bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full flex-1 bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-orange-500"
                 />
 
                 <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
@@ -423,7 +423,7 @@ export function AiPurchaseScannerModal({
                     type="button"
                     onClick={handleScan}
                     disabled={analyzing || (!file && !rawText.trim())}
-                    className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 disabled:opacity-50 transition"
+                    className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-purple-600 hover:from-orange-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-orange-600/30 disabled:opacity-50 transition"
                   >
                     {analyzing ? (
                       <>
@@ -447,7 +447,7 @@ export function AiPurchaseScannerModal({
               <div className="lg:col-span-5 flex flex-col bg-slate-950/80 border border-slate-800 rounded-2xl overflow-hidden">
                 <div className="p-3 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-300 flex items-center space-x-2">
-                    <FileText className="w-4 h-4 text-indigo-400" />
+                    <FileText className="w-4 h-4 text-orange-400" />
                     <span>Original Document / Bill Viewer</span>
                   </span>
 
@@ -532,7 +532,7 @@ export function AiPurchaseScannerModal({
                       setPreviewUrl(null);
                       setRawText("");
                     }}
-                    className="text-indigo-400 hover:text-indigo-300 font-semibold underline text-xs"
+                    className="text-orange-400 hover:text-orange-300 font-semibold underline text-xs"
                   >
                     Upload Another Bill
                   </button>
@@ -552,7 +552,7 @@ export function AiPurchaseScannerModal({
                       value={supplierName}
                       onChange={(e) => setSupplierName(e.target.value)}
                       placeholder="e.g. Apex Pharma Distributors"
-                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-semibold text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-semibold text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
 
@@ -565,7 +565,7 @@ export function AiPurchaseScannerModal({
                       value={supplierGstin}
                       onChange={(e) => setSupplierGstin(e.target.value.toUpperCase())}
                       placeholder="e.g. 07AAACH7409R1ZZ"
-                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono font-semibold text-amber-400 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono font-semibold text-amber-400 focus:outline-none focus:border-orange-500"
                     />
                   </div>
 
@@ -578,7 +578,7 @@ export function AiPurchaseScannerModal({
                       value={billNumber}
                       onChange={(e) => setBillNumber(e.target.value)}
                       placeholder="e.g. INV-90412"
-                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono font-bold text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono font-bold text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
 
@@ -590,7 +590,7 @@ export function AiPurchaseScannerModal({
                       type="date"
                       value={billDate}
                       onChange={(e) => setBillDate(e.target.value)}
-                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-semibold text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-semibold text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
                 </div>
@@ -641,7 +641,7 @@ export function AiPurchaseScannerModal({
                               type="text"
                               value={item.itemName}
                               onChange={(e) => handleUpdateItem(idx, "itemName", e.target.value)}
-                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-white focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-white focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-20">
@@ -649,7 +649,7 @@ export function AiPurchaseScannerModal({
                               type="text"
                               value={item.hsnCode || ""}
                               onChange={(e) => handleUpdateItem(idx, "hsnCode", e.target.value)}
-                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-300 focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-300 focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-20">
@@ -658,7 +658,7 @@ export function AiPurchaseScannerModal({
                               value={item.batchNumber || ""}
                               onChange={(e) => handleUpdateItem(idx, "batchNumber", e.target.value)}
                               placeholder="BATCH"
-                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-200 focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-16">
@@ -667,7 +667,7 @@ export function AiPurchaseScannerModal({
                               value={item.expiryDate || ""}
                               onChange={(e) => handleUpdateItem(idx, "expiryDate", e.target.value)}
                               placeholder="MM/YY"
-                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-300 focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-300 focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-14 text-right">
@@ -675,7 +675,7 @@ export function AiPurchaseScannerModal({
                               type="number"
                               value={item.quantity}
                               onChange={(e) => handleUpdateItem(idx, "quantity", e.target.value)}
-                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-white focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-white focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-12 text-right">
@@ -683,7 +683,7 @@ export function AiPurchaseScannerModal({
                               type="number"
                               value={item.freeQuantity || 0}
                               onChange={(e) => handleUpdateItem(idx, "freeQuantity", e.target.value)}
-                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-slate-300 focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-slate-300 focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-16 text-right">
@@ -692,7 +692,7 @@ export function AiPurchaseScannerModal({
                               step="0.01"
                               value={item.unitPrice}
                               onChange={(e) => handleUpdateItem(idx, "unitPrice", e.target.value)}
-                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-white focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-white focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-16 text-right">
@@ -701,7 +701,7 @@ export function AiPurchaseScannerModal({
                               step="0.01"
                               value={item.mrp || 0}
                               onChange={(e) => handleUpdateItem(idx, "mrp", e.target.value)}
-                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-slate-300 focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-slate-300 focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-12 text-right">
@@ -709,14 +709,14 @@ export function AiPurchaseScannerModal({
                               type="number"
                               value={item.discountPercent || 0}
                               onChange={(e) => handleUpdateItem(idx, "discountPercent", e.target.value)}
-                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-slate-400 focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-slate-400 focus:outline-none focus:border-orange-500"
                             />
                           </td>
                           <td className="py-1.5 px-1 w-16 text-right">
                             <select
                               value={item.gstRate}
                               onChange={(e) => handleUpdateItem(idx, "gstRate", Number(e.target.value))}
-                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-amber-400 focus:outline-none focus:border-indigo-500"
+                              className="w-full px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs text-right font-mono text-amber-400 focus:outline-none focus:border-orange-500"
                             >
                               <option value="0">0%</option>
                               <option value="5">5%</option>
@@ -754,7 +754,7 @@ export function AiPurchaseScannerModal({
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="flex items-center space-x-1 px-3 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 rounded-lg text-xs font-semibold text-indigo-300 transition"
+                    className="flex items-center space-x-1 px-3 py-1 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/40 rounded-lg text-xs font-semibold text-orange-300 transition"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Item</span>

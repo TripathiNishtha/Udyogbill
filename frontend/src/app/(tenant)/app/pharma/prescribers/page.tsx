@@ -641,8 +641,8 @@ export default function PharmaPrescribersPage() {
 
   if (!addonLoading && !hasSfa) {
     return (
-      <div className="max-w-2xl mx-auto my-12 p-8 bg-slate-900/90 border border-indigo-500/30 rounded-2xl text-center space-y-5 shadow-2xl backdrop-blur-md">
-        <div className="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto border border-indigo-500/30">
+      <div className="max-w-2xl mx-auto my-12 p-8 bg-slate-900/90 border border-orange-500/30 rounded-2xl text-center space-y-5 shadow-2xl backdrop-blur-md">
+        <div className="w-16 h-16 bg-orange-500/20 text-orange-400 rounded-2xl flex items-center justify-center mx-auto border border-orange-500/30">
           <Award className="w-8 h-8" />
         </div>
         <div className="space-y-2">
@@ -660,7 +660,7 @@ export default function PharmaPrescribersPage() {
           </Link>
           <Link
             href="/app/settings/addons"
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition"
+            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-orange-600/30 transition"
           >
             Activate Pharma SFA Add-on
           </Link>
@@ -672,7 +672,7 @@ export default function PharmaPrescribersPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6">
       {/* Top Banner with Navigation to New SFA Modules */}
-      <div className="bg-gradient-to-r from-emerald-900/40 via-blue-900/30 to-purple-900/40 border border-emerald-500/30 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-emerald-900/40 via-orange-900/30 to-purple-900/40 border border-emerald-500/30 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl">
             <Building2 className="w-5 h-5" />
@@ -688,7 +688,7 @@ export default function PharmaPrescribersPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/app/pharma/field-force"
-            className="px-3 py-1.5 bg-blue-600/80 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-sm"
+            className="px-3 py-1.5 bg-orange-600/80 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-sm"
           >
             <UserCheck className="w-3.5 h-3.5" /> Field Force (MR Master)
           </Link>
@@ -735,7 +735,7 @@ export default function PharmaPrescribersPage() {
             className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition cursor-pointer"
             title="Export full list of doctors to CSV"
           >
-            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <Download className="w-3.5 h-3.5 text-orange-400" />
             <span>Export CSV</span>
           </button>
 
@@ -747,10 +747,10 @@ export default function PharmaPrescribersPage() {
               setBulkImportResult(null);
               setIsBulkModalOpen(true);
             }}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold transition cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 border border-orange-500/40 text-xs font-semibold transition cursor-pointer"
             title="Bulk Import Doctors from CSV"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-400" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-orange-400" />
             <span>Bulk Import (CSV)</span>
           </button>
 
@@ -898,7 +898,7 @@ export default function PharmaPrescribersPage() {
           onClick={() => setActiveTab("mrs")}
           className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition ${
             activeTab === "mrs"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
@@ -958,7 +958,7 @@ export default function PharmaPrescribersPage() {
                             </span>
                           )}
                           {doc.registrationNumber && (
-                            <span className="text-indigo-400 font-mono text-[10px]">
+                            <span className="text-orange-400 font-mono text-[10px]">
                               Reg: {doc.registrationNumber}
                             </span>
                           )}
@@ -973,8 +973,8 @@ export default function PharmaPrescribersPage() {
                         <div className="text-xs text-slate-400">{doc.city}</div>
                       </td>
                       <td className="py-3.5 px-4 font-sans">
-                        <div className="font-semibold text-indigo-300 flex items-center gap-1">
-                          <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+                        <div className="font-semibold text-orange-300 flex items-center gap-1">
+                          <UserCheck className="w-3.5 h-3.5 text-orange-400" />
                           <span>{doc.assignedMrName || "Unassigned"}</span>
                         </div>
                       </td>
@@ -1047,7 +1047,7 @@ export default function PharmaPrescribersPage() {
                               setReallocateDoctorName(doc.name);
                               setIsReallocateModalOpen(true);
                             }}
-                            className="px-2 py-1 rounded bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-[11px] font-semibold transition cursor-pointer"
+                            className="px-2 py-1 rounded bg-orange-600/20 hover:bg-orange-600/40 text-orange-400 text-[11px] font-semibold transition cursor-pointer"
                             title="Reallocate to another MR"
                           >
                             Reallocate
@@ -1122,8 +1122,8 @@ export default function PharmaPrescribersPage() {
                         )}
                       </td>
                       <td className="py-3.5 px-4 font-sans text-slate-300">
-                        <div className="font-medium text-indigo-300 flex items-center gap-1">
-                          <Route className="w-3.5 h-3.5 text-indigo-400" />
+                        <div className="font-medium text-orange-300 flex items-center gap-1">
+                          <Route className="w-3.5 h-3.5 text-orange-400" />
                           <span>{chem.beatName || chem.patchName || "General Beat"}</span>
                         </div>
                         <div className="text-xs text-slate-500">{chem.city || "Field Zone"}</div>
@@ -1180,7 +1180,7 @@ export default function PharmaPrescribersPage() {
               <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
                 {mrs.map((mr) => (
                   <tr key={mr.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-indigo-400">{mr.empCode}</td>
+                    <td className="py-3.5 px-4 font-bold text-orange-400">{mr.empCode}</td>
                     <td className="py-3.5 px-4 font-sans font-bold text-white text-sm">{mr.name}</td>
                     <td className="py-3.5 px-4 font-sans text-slate-300">{mr.territory}</td>
                     <td className="py-3.5 px-4 text-center font-bold text-white">{mr.linkedDoctorsCount} Doctors</td>
@@ -1322,7 +1322,7 @@ export default function PharmaPrescribersPage() {
                     placeholder="DMC-55910"
                     value={docReg}
                     onChange={(e) => setDocReg(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-indigo-300 font-mono focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-orange-300 font-mono focus:outline-none text-xs"
                   />
                 </div>
 
@@ -1351,13 +1351,13 @@ export default function PharmaPrescribersPage() {
               {/* SFA Geofence & GPS */}
               <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Compass className="w-3.5 h-3.5" /> GPS Geofence Verification (MR App Anti-Fraud)
                   </span>
                   <button
                     type="button"
                     onClick={handleGetLocation}
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-600/30 text-blue-300 hover:bg-blue-600/50 border border-blue-500/30 transition flex items-center gap-1"
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded bg-orange-600/30 text-orange-300 hover:bg-orange-600/50 border border-orange-500/30 transition flex items-center gap-1"
                   >
                     <MapPin className="w-3 h-3" /> Auto-Detect GPS
                   </button>
@@ -1489,7 +1489,7 @@ export default function PharmaPrescribersPage() {
           <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
+                <FileSpreadsheet className="w-5 h-5 text-orange-400" />
                 <span>Bulk Import Prescribers / Doctors (CSV)</span>
               </div>
               <button
@@ -1506,7 +1506,7 @@ export default function PharmaPrescribersPage() {
             </div>
 
             {/* Template Download Prompt */}
-            <div className="p-3.5 bg-indigo-950/40 border border-indigo-500/30 rounded-xl flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 bg-orange-950/40 border border-orange-500/30 rounded-xl flex items-center justify-between gap-3 text-xs">
               <div className="text-slate-300">
                 <span className="font-bold text-white block">Step 1: Download Standard Doctor Import Template</span>
                 Use our pre-formatted CSV template with standard SFA columns (Name, Mobile, Specialty, Patch, MR Code, GPS).
@@ -1514,7 +1514,7 @@ export default function PharmaPrescribersPage() {
               <button
                 type="button"
                 onClick={handleDownloadTemplate}
-                className="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition"
+                className="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold transition"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Template</span>
@@ -1524,7 +1524,7 @@ export default function PharmaPrescribersPage() {
             {/* File Upload Area */}
             <div className="space-y-2 text-xs">
               <label className="text-slate-300 font-semibold block">Step 2: Upload Populated CSV File</label>
-              <div className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-6 text-center bg-slate-950/50 transition">
+              <div className="border-2 border-dashed border-slate-700 hover:border-orange-500 rounded-xl p-6 text-center bg-slate-950/50 transition">
                 <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                 <input
                   type="file"
@@ -1535,7 +1535,7 @@ export default function PharmaPrescribersPage() {
                 />
                 <label
                   htmlFor="doctor-bulk-csv-input"
-                  className="cursor-pointer font-bold text-indigo-400 hover:text-indigo-300 block mb-1"
+                  className="cursor-pointer font-bold text-orange-400 hover:text-orange-300 block mb-1"
                 >
                   {bulkFile ? bulkFile.name : "Click here to choose CSV file or drag & drop"}
                 </label>
@@ -1557,7 +1557,7 @@ export default function PharmaPrescribersPage() {
                       type="checkbox"
                       checked={bulkOverwrite}
                       onChange={(e) => setBulkOverwrite(e.target.checked)}
-                      className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
+                      className="rounded border-slate-700 text-orange-600 focus:ring-orange-500 bg-slate-950"
                     />
                     <span className="text-[11px] font-semibold text-amber-300">
                       Update existing doctor if Mobile or Reg # already exists
@@ -1585,7 +1585,7 @@ export default function PharmaPrescribersPage() {
                           <td className="p-2 font-bold text-white">{item.name}</td>
                           <td className="p-2 font-mono text-emerald-400">{item.mobile}</td>
                           <td className="p-2">{item.specialty || "-"}</td>
-                          <td className="p-2 font-mono text-indigo-300">{item.registrationNumber || "-"}</td>
+                          <td className="p-2 font-mono text-orange-300">{item.registrationNumber || "-"}</td>
                           <td className="p-2">{item.city || "-"}</td>
                           <td className="p-2 text-slate-400">{item.patchCodeOrName || item.assignedMrEmployeeCodeOrName || "-"}</td>
                         </tr>
@@ -1608,7 +1608,7 @@ export default function PharmaPrescribersPage() {
                   <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
                     Inserted: {bulkImportResult.insertedCount}
                   </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
+                  <span className="px-2.5 py-1 rounded-lg bg-orange-500/20 text-orange-300 font-bold border border-orange-500/30">
                     Updated: {bulkImportResult.updatedCount}
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
@@ -1651,7 +1651,7 @@ export default function PharmaPrescribersPage() {
                 type="button"
                 disabled={isImporting || bulkPreviewItems.length === 0}
                 onClick={handleBulkImportSubmit}
-                className="flex items-center space-x-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition cursor-pointer"
+                className="flex items-center space-x-2 px-5 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30 transition cursor-pointer"
               >
                 {isImporting && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{isImporting ? "Importing Records..." : `Import ${bulkPreviewItems.length} Doctors Now`}</span>
@@ -1667,7 +1667,7 @@ export default function PharmaPrescribersPage() {
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <UserCheck className="w-5 h-5 text-blue-400" />
+                <UserCheck className="w-5 h-5 text-orange-400" />
                 <span>Reallocate Doctor to New MR</span>
               </div>
               <button onClick={() => setIsReallocateModalOpen(false)} className="text-slate-400 hover:text-white">
@@ -1728,7 +1728,7 @@ export default function PharmaPrescribersPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition disabled:opacity-50"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold transition disabled:opacity-50"
                 >
                   {isSaving ? "Reallocating..." : "Confirm Reallocation"}
                 </button>
@@ -1817,8 +1817,8 @@ export default function PharmaPrescribersPage() {
               </p>
               <p className="text-slate-400">
                 This deletion request requires a mandatory business justification and must be approved through a 3-tier hierarchy:{" "}
-                <span className="text-indigo-300 font-semibold">1. ABM (Area Manager)</span> ➔{" "}
-                <span className="text-indigo-300 font-semibold">2. RSM (Regional Manager)</span> ➔{" "}
+                <span className="text-orange-300 font-semibold">1. ABM (Area Manager)</span> ➔{" "}
+                <span className="text-orange-300 font-semibold">2. RSM (Regional Manager)</span> ➔{" "}
                 <span className="text-emerald-400 font-semibold">3. SuperAdmin / Head Office</span>.
               </p>
             </div>

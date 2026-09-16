@@ -210,7 +210,7 @@ export default function MobileAppManagementPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-600"></div>
         <p className="text-slate-500 font-medium text-sm">Syncing Mobile App Cloud Control...</p>
       </div>
     );
@@ -222,7 +222,7 @@ export default function MobileAppManagementPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
               MOBILE FLEET GOVERNANCE
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -230,7 +230,7 @@ export default function MobileAppManagementPage() {
             </span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center space-x-2">
-            <Smartphone className="w-6 h-6 text-indigo-600" />
+            <Smartphone className="w-6 h-6 text-orange-600" />
             <span>Mobile App Command Center</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
@@ -251,7 +251,7 @@ export default function MobileAppManagementPage() {
             type="button"
             onClick={() => handleSaveConfig()}
             disabled={saving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md shadow-indigo-200 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md shadow-orange-200 transition-all disabled:opacity-50"
           >
             {saving ? (
               <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white/30 border-t-white" />
@@ -280,7 +280,7 @@ export default function MobileAppManagementPage() {
       {/* Quick Status Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+          <div className="p-3 rounded-xl bg-orange-50 text-orange-600 border border-orange-100">
             <Users className="w-5 h-5" />
           </div>
           <div>
@@ -340,7 +340,7 @@ export default function MobileAppManagementPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 isActive
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-orange-600 text-white shadow-sm"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               }`}
             >
@@ -358,7 +358,7 @@ export default function MobileAppManagementPage() {
             <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Palette className="w-5 h-5 text-indigo-600" />
+                  <Palette className="w-5 h-5 text-orange-600" />
                   App Name & Visual Identity
                 </h3>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -373,7 +373,7 @@ export default function MobileAppManagementPage() {
                     type="text"
                     value={form.appDisplayName}
                     onChange={(e) => setForm({ ...form, appDisplayName: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="e.g. UdyogBill"
                   />
                 </div>
@@ -383,7 +383,7 @@ export default function MobileAppManagementPage() {
                     type="text"
                     value={form.appTagline}
                     onChange={(e) => setForm({ ...form, appTagline: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="e.g. Smart GST Billing & Inventory"
                   />
                 </div>
@@ -396,7 +396,7 @@ export default function MobileAppManagementPage() {
                     type="text"
                     value={form.headerLogoUrl}
                     onChange={(e) => setForm({ ...form, headerLogoUrl: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="https://.../logo-white.png"
                   />
                   <p className="text-[11px] text-slate-400 font-medium mt-1">Leave empty to use built-in vector logo.</p>
@@ -407,7 +407,7 @@ export default function MobileAppManagementPage() {
                     type="text"
                     value={form.splashLogoUrl}
                     onChange={(e) => setForm({ ...form, splashLogoUrl: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="https://.../splash-logo.png"
                   />
                   <p className="text-[11px] text-slate-400 font-medium mt-1">High-res PNG displayed on cold app boot.</p>
@@ -459,7 +459,7 @@ export default function MobileAppManagementPage() {
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { id: "classic_blue", name: "Classic Indigo", color: "bg-indigo-600" },
+                    { id: "classic_blue", name: "Classic Indigo", color: "bg-orange-600" },
                     { id: "emerald_business", name: "Emerald Growth", color: "bg-emerald-600" },
                     { id: "royal_gold", name: "Royal Gold Pro", color: "bg-amber-600" },
                   ].map((preset) => (
@@ -468,7 +468,7 @@ export default function MobileAppManagementPage() {
                       onClick={() => setForm({ ...form, selectedLauncherIconPreset: preset.id })}
                       className={`cursor-pointer p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all ${
                         form.selectedLauncherIconPreset === preset.id
-                          ? "border-indigo-600 bg-indigo-50/80 text-indigo-950 ring-2 ring-indigo-200 shadow-xs"
+                          ? "border-orange-600 bg-orange-50/80 text-orange-950 ring-2 ring-orange-200 shadow-xs"
                           : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                       }`}
                     >
@@ -540,7 +540,7 @@ export default function MobileAppManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5 text-indigo-600" />
+                    <ImageIcon className="w-5 h-5 text-orange-600" />
                     In-App Promotional Popup Banner
                   </h3>
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -565,7 +565,7 @@ export default function MobileAppManagementPage() {
                     type="text"
                     value={form.popupBannerTitle}
                     onChange={(e) => setForm({ ...form, popupBannerTitle: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="e.g. Holi Mega Sale - 50% Off Annual Plan"
                   />
                 </div>
@@ -576,7 +576,7 @@ export default function MobileAppManagementPage() {
                     type="text"
                     value={form.popupBannerImageUrl}
                     onChange={(e) => setForm({ ...form, popupBannerImageUrl: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="https://images.unsplash.com/... or https://udyogbill.com/promo.png"
                   />
                 </div>
@@ -587,7 +587,7 @@ export default function MobileAppManagementPage() {
                     rows={3}
                     value={form.popupBannerDescription}
                     onChange={(e) => setForm({ ...form, popupBannerDescription: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="Explain the offer, benefits, or announcement..."
                   />
                 </div>
@@ -599,7 +599,7 @@ export default function MobileAppManagementPage() {
                       type="text"
                       value={form.popupBannerCtaText}
                       onChange={(e) => setForm({ ...form, popupBannerCtaText: e.target.value })}
-                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                       placeholder="e.g. Upgrade Now"
                     />
                   </div>
@@ -609,7 +609,7 @@ export default function MobileAppManagementPage() {
                       type="text"
                       value={form.popupBannerCtaUrl}
                       onChange={(e) => setForm({ ...form, popupBannerCtaUrl: e.target.value })}
-                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                       placeholder="https://udyogbill.com/pricing or /settings"
                     />
                   </div>
@@ -621,7 +621,7 @@ export default function MobileAppManagementPage() {
                     <select
                       value={form.popupBannerTargetAudience}
                       onChange={(e) => setForm({ ...form, popupBannerTargetAudience: e.target.value })}
-                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                     >
                       <option value="all">All Installed Users</option>
                       <option value="free">Free / Trial Users Only</option>
@@ -634,7 +634,7 @@ export default function MobileAppManagementPage() {
                     <select
                       value={form.popupBannerFrequency}
                       onChange={(e) => setForm({ ...form, popupBannerFrequency: e.target.value })}
-                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                     >
                       <option value="once_per_day">Once Per Day</option>
                       <option value="every_open">Every Cold Launch</option>
@@ -647,7 +647,7 @@ export default function MobileAppManagementPage() {
                       type="datetime-local"
                       value={form.popupBannerExpiresAt}
                       onChange={(e) => setForm({ ...form, popupBannerExpiresAt: e.target.value })}
-                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-1.5 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-1.5 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                     />
                   </div>
                 </div>
@@ -681,7 +681,7 @@ export default function MobileAppManagementPage() {
                     />
                   </div>
                 ) : (
-                  <div className="h-20 bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white">
+                  <div className="h-20 bg-gradient-to-r from-orange-500 to-purple-600 flex items-center justify-center text-white">
                     <Sparkles className="w-8 h-8" />
                   </div>
                 )}
@@ -717,14 +717,14 @@ export default function MobileAppManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Bell className="w-5 h-5 text-indigo-600" />
+                    <Bell className="w-5 h-5 text-orange-600" />
                     Compose Broadcast Push Notification
                   </h3>
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
                     Send instant high-priority notification to installed Android & iOS devices.
                   </p>
                 </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
                   Target: {telemetry.totalRegisteredDevices} Devices
                 </span>
               </div>
@@ -737,7 +737,7 @@ export default function MobileAppManagementPage() {
                     required
                     value={pushForm.title}
                     onChange={(e) => setPushForm({ ...pushForm, title: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="e.g. 📢 Important: Filing GST R1 Due Date Alert"
                   />
                 </div>
@@ -749,7 +749,7 @@ export default function MobileAppManagementPage() {
                     required
                     value={pushForm.message}
                     onChange={(e) => setPushForm({ ...pushForm, message: e.target.value })}
-                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full bg-slate-50/60 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                     placeholder="Generate GSTR-1 JSON directly from your mobile app in 1 click and reconcile with portal."
                   />
                 </div>
@@ -761,7 +761,7 @@ export default function MobileAppManagementPage() {
                       type="text"
                       value={pushForm.imageUrl}
                       onChange={(e) => setPushForm({ ...pushForm, imageUrl: e.target.value })}
-                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all"
+                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all"
                       placeholder="https://.../notice.png"
                     />
                   </div>
@@ -770,7 +770,7 @@ export default function MobileAppManagementPage() {
                     <select
                       value={pushForm.actionRoute}
                       onChange={(e) => setPushForm({ ...pushForm, actionRoute: e.target.value })}
-                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                      className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                     >
                       <option value="/bills">Create Bill Screen (/bills)</option>
                       <option value="/reports">GST & Sales Reports (/reports)</option>
@@ -795,7 +795,7 @@ export default function MobileAppManagementPage() {
                         onClick={() => setPushForm({ ...pushForm, targetSegment: seg.id })}
                         className={`px-3 py-2 text-xs rounded-xl border font-bold transition-all ${
                           pushForm.targetSegment === seg.id
-                            ? "bg-indigo-50 border-indigo-600 text-indigo-700 ring-2 ring-indigo-200"
+                            ? "bg-orange-50 border-orange-600 text-orange-700 ring-2 ring-orange-200"
                             : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                         }`}
                       >
@@ -809,7 +809,7 @@ export default function MobileAppManagementPage() {
                   <button
                     type="submit"
                     disabled={sendingPush}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-indigo-200 transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-orange-200 transition-all disabled:opacity-50"
                   >
                     {sendingPush ? (
                       <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white/30 border-t-white" />
@@ -845,7 +845,7 @@ export default function MobileAppManagementPage() {
                             <p className="font-bold text-slate-900">{item.title}</p>
                             <p className="text-slate-500 text-[11px] line-clamp-1">{item.message}</p>
                           </td>
-                          <td className="py-2.5 px-3 uppercase text-[10px] font-mono font-bold text-indigo-700">{item.targetSegment}</td>
+                          <td className="py-2.5 px-3 uppercase text-[10px] font-mono font-bold text-orange-700">{item.targetSegment}</td>
                           <td className="py-2.5 px-3 font-bold text-emerald-600">{item.deliveredCount} dev</td>
                           <td className="py-2.5 px-3 text-slate-500 font-medium">
                             {new Date(item.sentAt).toLocaleDateString()} {new Date(item.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -875,7 +875,7 @@ export default function MobileAppManagementPage() {
               <div className="p-3 rounded-2xl bg-slate-800 border border-slate-700 shadow-lg space-y-1.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-md bg-indigo-600 flex items-center justify-center text-[10px] text-white font-black">
+                    <div className="w-4 h-4 rounded-md bg-orange-600 flex items-center justify-center text-[10px] text-white font-black">
                       U
                     </div>
                     <span className="text-[11px] font-bold text-slate-200">{form.appDisplayName}</span>
@@ -970,7 +970,7 @@ export default function MobileAppManagementPage() {
                 type="text"
                 value={form.apkDownloadUrl}
                 onChange={(e) => setForm({ ...form, apkDownloadUrl: e.target.value })}
-                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                 placeholder="https://udyogbill.com/downloads/udyogbill-billing.apk"
               />
             </div>
@@ -980,7 +980,7 @@ export default function MobileAppManagementPage() {
                 type="text"
                 value={form.playStoreUrl}
                 onChange={(e) => setForm({ ...form, playStoreUrl: e.target.value })}
-                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                 placeholder="https://play.google.com/store/apps/details?id=com.udyogbill.mobile"
               />
             </div>
@@ -992,7 +992,7 @@ export default function MobileAppManagementPage() {
               rows={4}
               value={form.updateChangelog}
               onChange={(e) => setForm({ ...form, updateChangelog: e.target.value })}
-              className="w-full bg-slate-50/60 border border-slate-300 rounded-xl p-3 text-sm font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+              className="w-full bg-slate-50/60 border border-slate-300 rounded-xl p-3 text-sm font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
               placeholder="List newly released features..."
             />
           </div>
@@ -1043,7 +1043,7 @@ export default function MobileAppManagementPage() {
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-indigo-600" />
+                <Layers className="w-5 h-5 text-orange-600" />
                 Mobile Feature Flags
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -1096,7 +1096,7 @@ export default function MobileAppManagementPage() {
                       onChange={(e) => setForm({ ...form, [flag.key]: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
                   </label>
                 </div>
               ))}
@@ -1110,7 +1110,7 @@ export default function MobileAppManagementPage() {
         <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-6">
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <PhoneCall className="w-5 h-5 text-indigo-600" />
+              <PhoneCall className="w-5 h-5 text-orange-600" />
               Direct In-App Helpdesk & Video Tutorials
             </h3>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -1125,7 +1125,7 @@ export default function MobileAppManagementPage() {
                 type="text"
                 value={form.supportWhatsAppNumber}
                 onChange={(e) => setForm({ ...form, supportWhatsAppNumber: e.target.value })}
-                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                 placeholder="e.g. 919876543210 (with country code)"
               />
             </div>
@@ -1135,7 +1135,7 @@ export default function MobileAppManagementPage() {
                 type="text"
                 value={form.supportHelplineNumber}
                 onChange={(e) => setForm({ ...form, supportHelplineNumber: e.target.value })}
-                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                 placeholder="e.g. 1800-123-4567"
               />
             </div>
@@ -1145,7 +1145,7 @@ export default function MobileAppManagementPage() {
                 type="email"
                 value={form.supportEmail}
                 onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
-                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                 placeholder="e.g. support@udyogbill.com"
               />
             </div>
@@ -1158,7 +1158,7 @@ export default function MobileAppManagementPage() {
                 type="text"
                 value={form.tutorialYouTubePlaylistUrl}
                 onChange={(e) => setForm({ ...form, tutorialYouTubePlaylistUrl: e.target.value })}
-                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                 placeholder="https://youtube.com/playlist?list=..."
               />
             </div>
@@ -1168,7 +1168,7 @@ export default function MobileAppManagementPage() {
                 type="text"
                 value={form.knowledgebaseDocUrl}
                 onChange={(e) => setForm({ ...form, knowledgebaseDocUrl: e.target.value })}
-                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-orange-600 transition-all"
                 placeholder="https://docs.udyogbill.com/mobile-guide"
               />
             </div>
@@ -1190,7 +1190,7 @@ export default function MobileAppManagementPage() {
                   {telemetry.osDistribution.map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                       <span className="text-xs text-slate-800 font-bold">OS: {item.osVersion || "Android"}</span>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 border border-orange-200">
                         {item.count} devices
                       </span>
                     </div>

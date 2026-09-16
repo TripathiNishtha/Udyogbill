@@ -118,7 +118,7 @@ export default function BackupAndDisasterRecoveryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2.5">
-            <ShieldCheck className="w-7 h-7 text-indigo-400" />
+            <ShieldCheck className="w-7 h-7 text-orange-400" />
             <span>Automated Data Backup & Disaster Recovery</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -137,7 +137,7 @@ export default function BackupAndDisasterRecoveryPage() {
           <button
             onClick={handleTriggerBackup}
             disabled={triggering}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all disabled:opacity-50"
           >
             <HardDrive className={`w-4 h-4 ${triggering ? "animate-pulse" : ""}`} />
             <span>{triggering ? "Generating Archive..." : "Create On-Demand Backup"}</span>
@@ -171,7 +171,7 @@ export default function BackupAndDisasterRecoveryPage() {
         <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">Database Size</span>
-            <Database className="w-4 h-4 text-indigo-400" />
+            <Database className="w-4 h-4 text-orange-400" />
           </div>
           <div className="text-2xl font-bold text-white">
             {health ? formatBytes(health.databaseSizeBytes) : "..."}
@@ -215,7 +215,7 @@ export default function BackupAndDisasterRecoveryPage() {
         <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-              <HardDrive className="w-4 h-4 text-indigo-400" />
+              <HardDrive className="w-4 h-4 text-orange-400" />
               <span>Backup Snapshot Archives ({jobs.length})</span>
             </h2>
             <span className="text-xs text-slate-500">SHA-256 Cryptographic Verification</span>
@@ -265,7 +265,7 @@ export default function BackupAndDisasterRecoveryPage() {
                           <button
                             onClick={() => handleVerifyIntegrity(job.id)}
                             disabled={verifyingId === job.id}
-                            className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 transition-all text-[11px] font-medium"
+                            className="p-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 transition-all text-[11px] font-medium"
                             title="Verify Checksum & Disaster Recovery"
                           >
                             <FileCheck className="w-3.5 h-3.5" />
@@ -292,10 +292,10 @@ export default function BackupAndDisasterRecoveryPage() {
         <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Cloud className="w-4 h-4 text-indigo-400" />
+              <Cloud className="w-4 h-4 text-orange-400" />
               <span>Automated Cloud Sync</span>
             </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
               Cron Engine
             </span>
           </div>
@@ -311,7 +311,7 @@ export default function BackupAndDisasterRecoveryPage() {
                   type="checkbox"
                   checked={schedule.isAutoBackupEnabled}
                   onChange={(e) => setSchedule({ ...schedule, isAutoBackupEnabled: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-orange-600 focus:ring-orange-500"
                 />
               </div>
 
@@ -320,7 +320,7 @@ export default function BackupAndDisasterRecoveryPage() {
                 <select
                   value={schedule.frequency}
                   onChange={(e) => setSchedule({ ...schedule, frequency: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:border-orange-500"
                 >
                   <option value={1}>Daily (Recommended)</option>
                   <option value={2}>Weekly</option>
@@ -333,7 +333,7 @@ export default function BackupAndDisasterRecoveryPage() {
                 <select
                   value={schedule.storageProvider}
                   onChange={(e) => setSchedule({ ...schedule, storageProvider: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:border-orange-500"
                 >
                   <option value={1}>Local Server Storage</option>
                   <option value={2}>AWS S3 Bucket</option>
@@ -384,7 +384,7 @@ export default function BackupAndDisasterRecoveryPage() {
               <button
                 type="submit"
                 disabled={savingSchedule}
-                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold shadow-lg shadow-orange-600/30 transition-all disabled:opacity-50"
               >
                 {savingSchedule ? "Saving..." : "Save Backup Schedule"}
               </button>
@@ -442,7 +442,7 @@ export default function BackupAndDisasterRecoveryPage() {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setVerificationModal(null)}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs"
               >
                 Close Integrity Report
               </button>

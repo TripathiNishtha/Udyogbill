@@ -138,7 +138,7 @@ export default function OfflineSyncHubPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2.5">
-            <Database className="w-7 h-7 text-indigo-400" />
+            <Database className="w-7 h-7 text-orange-400" />
             <span>Offline-First Engine & Automatic Cloud Sync</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -157,7 +157,7 @@ export default function OfflineSyncHubPage() {
           <button
             onClick={handleManualSyncNow}
             disabled={loading}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span>Sync Now with Cloud</span>
@@ -208,7 +208,7 @@ export default function OfflineSyncHubPage() {
         <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">Local Product Cache</span>
-            <HardDrive className="w-4 h-4 text-indigo-400" />
+            <HardDrive className="w-4 h-4 text-orange-400" />
           </div>
           <div className="text-2xl font-bold text-white">{cachedItemsCount} Items</div>
           <div className="text-[11px] text-slate-500">IndexedDB local catalog cache</div>
@@ -225,9 +225,9 @@ export default function OfflineSyncHubPage() {
       </div>
 
       {/* Cache Refresh Action Bar */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-950 border border-indigo-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-orange-950/40 via-slate-900 to-slate-950 border border-orange-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
+          <div className="p-3 rounded-xl bg-orange-600/20 text-orange-400 border border-orange-500/30">
             <Database className="w-6 h-6" />
           </div>
           <div>
@@ -252,7 +252,7 @@ export default function OfflineSyncHubPage() {
             type="button"
             onClick={handleSeedCache}
             disabled={loading || !networkStatus.isOnline}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-lg shadow-orange-600/30 transition-all disabled:opacity-50"
           >
             Download Latest Catalog Cache
           </button>
@@ -263,7 +263,7 @@ export default function OfflineSyncHubPage() {
       <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-            <CloudUpload className="w-4 h-4 text-indigo-400" />
+            <CloudUpload className="w-4 h-4 text-orange-400" />
             <span>Offline & Local Bills Queue ({outboxInvoices.length})</span>
           </h2>
           <button
@@ -310,7 +310,7 @@ export default function OfflineSyncHubPage() {
                           <span>Cloud Synced</span>
                         </span>
                       ) : inv.syncStatus === "syncing" ? (
-                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
                           <RefreshCw className="w-3 h-3 animate-spin" />
                           <span>Syncing...</span>
                         </span>

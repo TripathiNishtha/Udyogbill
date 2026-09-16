@@ -200,7 +200,7 @@ export default function JournalVouchersPage() {
                       <td className="py-3.5 px-4 font-mono font-bold text-white">{v.voucherNumber}</td>
                       <td className="py-3.5 px-4 text-slate-300">{new Date(v.voucherDate).toLocaleDateString()}</td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
                           {v.voucherType}
                         </span>
                       </td>
@@ -293,7 +293,7 @@ export default function JournalVouchersPage() {
                   <button
                     type="button"
                     onClick={handleAddLeg}
-                    className="text-indigo-400 hover:text-indigo-300 font-bold flex items-center space-x-1"
+                    className="text-orange-400 hover:text-orange-300 font-bold flex items-center space-x-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Add Line</span>

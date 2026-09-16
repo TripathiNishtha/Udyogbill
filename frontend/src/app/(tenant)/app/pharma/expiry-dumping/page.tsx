@@ -128,7 +128,7 @@ export default function ExpiryDumpingPage() {
                 <tr key={b.id} className="hover:bg-slate-800/40 transition">
                   <td className="py-3.5 px-4">
                     <div className="font-sans font-semibold text-white">{b.itemName}</div>
-                    <span className="text-indigo-400">{b.sku}</span>
+                    <span className="text-orange-400">{b.sku}</span>
                   </td>
                   <td className="py-3.5 px-4 font-bold text-amber-400">{b.batchNumber}</td>
                   <td className="py-3.5 px-4 text-center font-bold text-rose-400">{b.expiryDate}</td>

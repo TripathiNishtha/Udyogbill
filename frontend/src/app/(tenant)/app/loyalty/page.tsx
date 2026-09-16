@@ -201,10 +201,10 @@ export default function LoyaltyAndPromotionsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-surface border border-border shadow-xs border-l-4 border-l-indigo-500">
+        <div className="p-4 rounded-xl bg-surface border border-border shadow-xs border-l-4 border-l-orange-500">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>Active Reward Members</span>
-            <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+            <div className="p-1.5 rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950/50 dark:text-orange-400">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -355,7 +355,7 @@ export default function LoyaltyAndPromotionsPage() {
                           </div>
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800">
+                          <span className="font-mono text-[11px] font-bold text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800">
                             {acc.referralCode}
                           </span>
                         </td>

@@ -99,10 +99,10 @@ export default function UniversalMultiSheetMigrationPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 dark:from-blue-950 dark:via-indigo-950 dark:to-slate-900 border border-blue-200/80 dark:border-blue-900/50 p-6 rounded-2xl shadow-xs text-slate-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-orange-50/90 via-orange-50/70 to-slate-50 dark:from-orange-950 dark:via-orange-950 dark:to-slate-900 border border-orange-200/80 dark:border-orange-900/50 p-6 rounded-2xl shadow-xs text-slate-900 dark:text-white">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 rounded-full text-xs font-semibold uppercase tracking-wider border border-blue-300/80 dark:border-blue-400/30">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300 rounded-full text-xs font-semibold uppercase tracking-wider border border-orange-300/80 dark:border-orange-400/30">
+            <Sparkles className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
             Universal Smart Importer
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
@@ -125,7 +125,7 @@ export default function UniversalMultiSheetMigrationPage() {
       {/* 3-Step Quick Guide Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex items-center gap-3 shadow-2xs">
-          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-black text-xs flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 font-black text-xs flex items-center justify-center shrink-0">
             1
           </div>
           <div>
@@ -149,7 +149,7 @@ export default function UniversalMultiSheetMigrationPage() {
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex items-center gap-3 shadow-2xs">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-black text-xs flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 font-black text-xs flex items-center justify-center shrink-0">
             3
           </div>
           <div>
@@ -238,7 +238,7 @@ export default function UniversalMultiSheetMigrationPage() {
       )}
 
       {/* Upload Dropzone */}
-      <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-8 text-center hover:border-indigo-500 transition-colors shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-orange-200 dark:border-orange-900/50 rounded-2xl p-8 text-center hover:border-orange-500 transition-colors shadow-sm">
         <input
           ref={fileInputRef}
           type="file"
@@ -247,7 +247,7 @@ export default function UniversalMultiSheetMigrationPage() {
           className="hidden"
         />
         <div className="max-w-md mx-auto space-y-4">
-          <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl mx-auto flex items-center justify-center shadow-inner">
+          <div className="w-16 h-16 bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 rounded-2xl mx-auto flex items-center justify-center shadow-inner">
             <UploadCloud className="w-8 h-8" />
           </div>
           <div>
@@ -261,7 +261,7 @@ export default function UniversalMultiSheetMigrationPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isAnalyzing || isMigrating}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition disabled:opacity-50 cursor-pointer"
+            className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-orange-500/25 transition disabled:opacity-50 cursor-pointer"
           >
             {isAnalyzing ? "File Analyze Ho Rahi Hai..." : parsedPackage ? "Doosri File Select Karein" : "Computer Se Excel File Chunein"}
           </button>
@@ -287,12 +287,12 @@ export default function UniversalMultiSheetMigrationPage() {
             <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
                 <span>Customers</span>
-                <Building2 className="w-4 h-4 text-blue-500" />
+                <Building2 className="w-4 h-4 text-orange-500" />
               </div>
               <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
                 {parsedPackage.summary.totalCustomers.toLocaleString()}
               </div>
-              <span className="text-[10px] text-blue-600 font-medium">With GSTIN & Balance</span>
+              <span className="text-[10px] text-orange-600 font-medium">With GSTIN & Balance</span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -334,9 +334,9 @@ export default function UniversalMultiSheetMigrationPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 text-indigo-500" />
+                  <FileSpreadsheet className="w-4 h-4 text-orange-500" />
                   Detected Sheets ({parsedPackage.sheets.length}) • Origin:{" "}
-                  <span className="text-indigo-600 dark:text-indigo-400">{parsedPackage.softwareDetected}</span>
+                  <span className="text-orange-600 dark:text-orange-400">{parsedPackage.softwareDetected}</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   The engine automatically classified each sheet and matched column aliases.
@@ -367,7 +367,7 @@ export default function UniversalMultiSheetMigrationPage() {
                         <div className="text-xs font-bold text-slate-900 dark:text-white">
                           Sheet: {sheet.sheetName}
                         </div>
-                        <div className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                        <div className="text-[10px] font-semibold text-orange-600 dark:text-orange-400">
                           {sheet.categoryLabel}
                         </div>
                       </div>
@@ -401,21 +401,21 @@ export default function UniversalMultiSheetMigrationPage() {
 
           {/* Migration Progress Panel */}
           {isMigrating && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-blue-200 dark:border-blue-900/50 p-6 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-orange-200 dark:border-orange-900/50 p-6 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
+                  <RefreshCw className="w-5 h-5 text-orange-600 animate-spin" />
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white">Importing Data Live</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{currentStage}</p>
                   </div>
                 </div>
-                <span className="text-sm font-black text-blue-600">{progressPercent}%</span>
+                <span className="text-sm font-black text-orange-600">{progressPercent}%</span>
               </div>
 
               <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full transition-all duration-300 rounded-full"
+                  className="bg-gradient-to-r from-orange-600 to-orange-600 h-full transition-all duration-300 rounded-full"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>

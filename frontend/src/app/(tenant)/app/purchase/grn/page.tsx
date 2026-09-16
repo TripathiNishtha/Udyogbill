@@ -250,7 +250,7 @@ export default function GoodsReceiptNotesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border shadow-xs">
         <div>
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+            <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-xl text-orange-600 dark:text-orange-400">
               <Truck className="w-6 h-6" />
             </div>
             <div>
@@ -262,7 +262,7 @@ export default function GoodsReceiptNotesPage() {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md shadow-indigo-600/20 transition duration-150 cursor-pointer"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shadow-md shadow-orange-600/20 transition duration-150 cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Receive Goods (New GRN)</span>
@@ -278,7 +278,7 @@ export default function GoodsReceiptNotesPage() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && loadGrns()}
-          className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+          className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-orange-500 font-medium"
         />
       </div>
 
@@ -303,7 +303,7 @@ export default function GoodsReceiptNotesPage() {
               {loading ? (
                 <tr>
                   <td colSpan={9} className="text-center py-12 text-muted-foreground">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-2"></div>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-2"></div>
                     <div>Loading goods receipts...</div>
                   </td>
                 </tr>
@@ -316,9 +316,9 @@ export default function GoodsReceiptNotesPage() {
               ) : (
                 grns.map((g) => (
                   <tr key={g.id} className="hover:bg-surface-muted/60 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{g.grnNumber}</td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-orange-600 dark:text-orange-400">{g.grnNumber}</td>
                     <td className="py-3.5 px-4 text-muted-foreground">{new Date(g.receivedDate).toLocaleDateString()}</td>
-                    <td className="py-3.5 px-4 font-mono text-indigo-600 dark:text-indigo-400 font-medium">{g.purchaseOrderNumber || "Direct (No PO)"}</td>
+                    <td className="py-3.5 px-4 font-mono text-orange-600 dark:text-orange-400 font-medium">{g.purchaseOrderNumber || "Direct (No PO)"}</td>
                     <td className="py-3.5 px-4 font-semibold text-foreground">{g.supplierName}</td>
                     <td className="py-3.5 px-4 text-foreground">{g.warehouseName}</td>
                     <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{g.deliveryChallanNumber || "N/A"}</td>
@@ -331,7 +331,7 @@ export default function GoodsReceiptNotesPage() {
                     <td className="py-3.5 px-4 text-center">
                       <button
                         onClick={() => handleViewGrn(g.id)}
-                        className="p-1.5 rounded-lg bg-surface-muted hover:bg-surface-elevated border border-border text-indigo-600 dark:text-indigo-400 transition cursor-pointer"
+                        className="p-1.5 rounded-lg bg-surface-muted hover:bg-surface-elevated border border-border text-orange-600 dark:text-orange-400 transition cursor-pointer"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -351,7 +351,7 @@ export default function GoodsReceiptNotesPage() {
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div className="flex items-center space-x-2 text-foreground font-bold text-lg">
-                  <Truck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <Truck className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   <span>Receive Shipment (Goods Receipt Note)</span>
                 </div>
                 <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer">
@@ -361,14 +361,14 @@ export default function GoodsReceiptNotesPage() {
 
               <form className="mt-6 space-y-4">
                 {/* PO link picker */}
-                <div className="p-3.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                  <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block mb-1.5">
+                <div className="p-3.5 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                  <label className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider block mb-1.5">
                     Link Purchase Order (Optional)
                   </label>
                   <select
                     value={selectedPoId || ""}
                     onChange={(e) => handlePoSelect(e.target.value)}
-                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-orange-500 font-medium"
                   >
                     <option value="">-- Direct Receipt (No PO Reference) --</option>
                     {confirmedPOs.map((po) => (
@@ -664,7 +664,7 @@ export default function GoodsReceiptNotesPage() {
                 <div className="text-xs text-muted-foreground uppercase font-semibold">Vendor / Supplier</div>
                 <div className="font-bold text-foreground text-sm">{selectedGrn.supplierName}</div>
                 {selectedGrn.purchaseOrderNumber && (
-                  <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-medium">Linked PO: {selectedGrn.purchaseOrderNumber}</div>
+                  <div className="text-xs text-orange-600 dark:text-orange-400 font-mono font-medium">Linked PO: {selectedGrn.purchaseOrderNumber}</div>
                 )}
                 {selectedGrn.deliveryChallanNumber && (
                   <div className="text-xs text-muted-foreground font-mono">Challan: {selectedGrn.deliveryChallanNumber}</div>

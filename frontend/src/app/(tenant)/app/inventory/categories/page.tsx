@@ -87,7 +87,7 @@ export default function TenantCategoriesAndBrandsPage() {
       {/* Header */}
       <div className="bg-surface p-6 rounded-2xl border border-border shadow-xs">
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center space-x-2.5">
-          <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <BookOpen className="w-6 h-6 text-orange-600 dark:text-orange-400" />
           <span>Product Categories &amp; Brand Directory</span>
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -100,12 +100,12 @@ export default function TenantCategoriesAndBrandsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-foreground flex items-center space-x-2">
-              <FolderTree className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <FolderTree className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               <span>Categories ({categories.length})</span>
             </h2>
             <button
               onClick={() => setIsCatModalOpen(true)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>Add Category</span>
@@ -125,7 +125,7 @@ export default function TenantCategoriesAndBrandsPage() {
                 {loading ? (
                   <tr>
                     <td colSpan={3} className="py-8 text-center text-muted-foreground">
-                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mb-1"></div>
+                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mb-1"></div>
                       <div>Loading categories...</div>
                     </td>
                   </tr>
@@ -134,7 +134,7 @@ export default function TenantCategoriesAndBrandsPage() {
                     <tr key={c.id} className="hover:bg-surface-muted/60 transition">
                       <td className="px-5 py-3.5">
                         <div className="font-bold text-foreground">{c.name}</div>
-                        <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">{c.code}</div>
+                        <div className="text-[11px] font-mono text-orange-600 dark:text-orange-400 font-semibold">{c.code}</div>
                       </td>
                       <td className="px-5 py-3.5 font-mono text-muted-foreground">
                         {c.itemsCount} products
@@ -162,12 +162,12 @@ export default function TenantCategoriesAndBrandsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-foreground flex items-center space-x-2">
-              <Building className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <Building className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               <span>Brands &amp; Manufacturers ({brands.length})</span>
             </h2>
             <button
               onClick={() => setIsBrandModalOpen(true)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>Add Brand</span>
@@ -187,7 +187,7 @@ export default function TenantCategoriesAndBrandsPage() {
                 {loading ? (
                   <tr>
                     <td colSpan={3} className="py-8 text-center text-muted-foreground">
-                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mb-1"></div>
+                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mb-1"></div>
                       <div>Loading brands...</div>
                     </td>
                   </tr>
@@ -198,7 +198,7 @@ export default function TenantCategoriesAndBrandsPage() {
                         <div className="font-bold text-foreground">{b.name}</div>
                         <div className="text-[11px] text-muted-foreground">{b.manufacturerName || "—"}</div>
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-indigo-600 dark:text-indigo-400 font-bold">{b.code}</td>
+                      <td className="px-5 py-3.5 font-mono text-orange-600 dark:text-orange-400 font-bold">{b.code}</td>
                       <td className="px-5 py-3.5 text-right font-mono text-muted-foreground">
                         {b.itemsCount} products
                       </td>
@@ -237,7 +237,7 @@ export default function TenantCategoriesAndBrandsPage() {
                   placeholder="e.g. TAB-ANTI"
                   value={catForm.code}
                   onChange={(e) => setCatForm({ ...catForm, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground font-mono focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground font-mono focus:outline-none focus:border-orange-500 font-medium"
                 />
               </div>
               <div className="space-y-1">
@@ -248,7 +248,7 @@ export default function TenantCategoriesAndBrandsPage() {
                   placeholder="e.g. Antibiotics Tablets"
                   value={catForm.name}
                   onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                 />
               </div>
               <div className="space-y-1">
@@ -256,7 +256,7 @@ export default function TenantCategoriesAndBrandsPage() {
                 <select
                   value={catForm.parentCategoryId}
                   onChange={(e) => setCatForm({ ...catForm, parentCategoryId: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium cursor-pointer"
                 >
                   <option value="">None (Top Level Root)</option>
                   {categories.map((c) => (
@@ -272,7 +272,7 @@ export default function TenantCategoriesAndBrandsPage() {
                   rows={2}
                   value={catForm.description}
                   onChange={(e) => setCatForm({ ...catForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                 />
               </div>
               <div className="pt-3 flex justify-end space-x-2">
@@ -286,7 +286,7 @@ export default function TenantCategoriesAndBrandsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                  className="px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition-all cursor-pointer"
                 >
                   {submitting ? "Saving..." : "Create Category"}
                 </button>
@@ -316,7 +316,7 @@ export default function TenantCategoriesAndBrandsPage() {
                   placeholder="e.g. CIPLA"
                   value={brandForm.code}
                   onChange={(e) => setBrandForm({ ...brandForm, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground font-mono focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground font-mono focus:outline-none focus:border-orange-500 font-medium"
                 />
               </div>
               <div className="space-y-1">
@@ -327,7 +327,7 @@ export default function TenantCategoriesAndBrandsPage() {
                   placeholder="e.g. Cipla Ltd."
                   value={brandForm.name}
                   onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                 />
               </div>
               <div className="space-y-1">
@@ -337,7 +337,7 @@ export default function TenantCategoriesAndBrandsPage() {
                   placeholder="e.g. Cipla Pharmaceuticals Inc."
                   value={brandForm.manufacturerName}
                   onChange={(e) => setBrandForm({ ...brandForm, manufacturerName: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                 />
               </div>
               <div className="space-y-1">
@@ -346,7 +346,7 @@ export default function TenantCategoriesAndBrandsPage() {
                   rows={2}
                   value={brandForm.description}
                   onChange={(e) => setBrandForm({ ...brandForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-orange-500 font-medium"
                 />
               </div>
               <div className="pt-3 flex justify-end space-x-2">
@@ -360,7 +360,7 @@ export default function TenantCategoriesAndBrandsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                  className="px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition-all cursor-pointer"
                 >
                   {submitting ? "Saving..." : "Create Brand"}
                 </button>

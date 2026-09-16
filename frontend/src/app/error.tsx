@@ -46,7 +46,7 @@ export default function AppError({
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
             onClick={() => reset()}
-            className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-sm"
+            className="inline-flex items-center justify-center rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors shadow-sm"
           >
             Try Again
           </button>

@@ -106,7 +106,7 @@ export default function PlatformEmailSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function PlatformEmailSettingsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20">
               <Mail className="w-6 h-6" />
             </div>
             <div>
@@ -135,14 +135,14 @@ export default function PlatformEmailSettingsPage() {
             onClick={() => setIsTestModalOpen(true)}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl border border-slate-700 font-medium transition-all"
           >
-            <Send className="w-4 h-4 text-indigo-400" />
+            <Send className="w-4 h-4 text-orange-400" />
             Send Test Mail
           </button>
 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white font-medium px-5 py-2.5 rounded-xl shadow-lg shadow-orange-500/20 transition-all disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? "Saving..." : "Save Settings"}
@@ -190,7 +190,7 @@ export default function PlatformEmailSettingsPage() {
             onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
             className="sr-only peer"
           />
-          <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+          <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
         </label>
       </div>
 
@@ -198,7 +198,7 @@ export default function PlatformEmailSettingsPage() {
         {/* SMTP Server Connection */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-            <Server className="w-5 h-5 text-indigo-400" />
+            <Server className="w-5 h-5 text-orange-400" />
             <h2 className="text-base font-semibold text-white">SMTP Server Details</h2>
           </div>
 
@@ -213,7 +213,7 @@ export default function PlatformEmailSettingsPage() {
                 value={form.smtpHost}
                 onChange={(e) => setForm({ ...form, smtpHost: e.target.value })}
                 placeholder="e.g. smtp.gmail.com or smtp.mailgun.org"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -227,7 +227,7 @@ export default function PlatformEmailSettingsPage() {
                 value={form.smtpPort}
                 onChange={(e) => setForm({ ...form, smtpPort: parseInt(e.target.value) || 587 })}
                 placeholder="587"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
               <p className="text-[11px] text-slate-500 mt-1">Usually 587 (TLS) or 465 (SSL).</p>
             </div>
@@ -241,7 +241,7 @@ export default function PlatformEmailSettingsPage() {
                 value={form.smtpUsername}
                 onChange={(e) => setForm({ ...form, smtpUsername: e.target.value })}
                 placeholder="e.g. postmaster@yourdomain.com"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -255,7 +255,7 @@ export default function PlatformEmailSettingsPage() {
                   value={form.smtpPassword}
                   onChange={(e) => setForm({ ...form, smtpPassword: e.target.value })}
                   placeholder={form.hasPassword ? "••••••••••••  (Leave blank to keep existing password)" : "Enter SMTP account or App password"}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-4 pr-12 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-4 pr-12 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 font-mono"
                 />
                 <button
                   type="button"
@@ -273,7 +273,7 @@ export default function PlatformEmailSettingsPage() {
         {/* Sender Branding & Headers */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-            <Lock className="w-5 h-5 text-indigo-400" />
+            <Lock className="w-5 h-5 text-orange-400" />
             <h2 className="text-base font-semibold text-white">Sender Identity & Security</h2>
           </div>
 
@@ -288,7 +288,7 @@ export default function PlatformEmailSettingsPage() {
                 value={form.fromEmail}
                 onChange={(e) => setForm({ ...form, fromEmail: e.target.value })}
                 placeholder="billing@udyogbill.com"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -302,7 +302,7 @@ export default function PlatformEmailSettingsPage() {
                 value={form.fromName}
                 onChange={(e) => setForm({ ...form, fromName: e.target.value })}
                 placeholder="e.g. UdyogBill Cloud Invoicing"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -315,7 +315,7 @@ export default function PlatformEmailSettingsPage() {
                 value={form.replyToEmail}
                 onChange={(e) => setForm({ ...form, replyToEmail: e.target.value })}
                 placeholder="support@udyogbill.com"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
           </div>
@@ -332,7 +332,7 @@ export default function PlatformEmailSettingsPage() {
                 onChange={(e) => setForm({ ...form, enableSsl: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
             </label>
           </div>
         </div>
@@ -342,7 +342,7 @@ export default function PlatformEmailSettingsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-3 rounded-xl shadow-xl shadow-indigo-500/25 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold px-8 py-3 rounded-xl shadow-xl shadow-orange-500/25 transition-all disabled:opacity-50"
           >
             <Save className="w-5 h-5" />
             {saving ? "Saving Changes..." : "Save SMTP Settings"}
@@ -356,7 +356,7 @@ export default function PlatformEmailSettingsPage() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
                   <Send className="w-5 h-5" />
                 </div>
                 <h3 className="text-lg font-bold text-white">Send Test Email</h3>
@@ -401,7 +401,7 @@ export default function PlatformEmailSettingsPage() {
                 value={testEmailRecipient}
                 onChange={(e) => setTestEmailRecipient(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -421,7 +421,7 @@ export default function PlatformEmailSettingsPage() {
                 type="button"
                 onClick={handleSendTest}
                 disabled={testing}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2 rounded-xl transition-all disabled:opacity-50"
+                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium px-5 py-2 rounded-xl transition-all disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 {testing ? "Dispatching..." : "Send Verification"}

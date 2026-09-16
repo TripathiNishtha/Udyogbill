@@ -319,7 +319,7 @@ export default function QuotationsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
         <div>
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-indigo-600/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+            <div className="p-2.5 bg-orange-600/10 rounded-xl border border-orange-500/20 text-orange-400">
               <FileText className="w-6 h-6" />
             </div>
             <div>
@@ -338,7 +338,7 @@ export default function QuotationsPage() {
               addItemToForm();
             }
           }}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-sm font-semibold rounded-xl shadow-lg shadow-orange-600/25 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Quotation / Estimate</span>
@@ -355,7 +355,7 @@ export default function QuotationsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && loadQuotations()}
             placeholder="Search quotation #, customer..."
-            className="w-full bg-slate-950/70 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-950/70 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
           />
         </div>
 
@@ -365,7 +365,7 @@ export default function QuotationsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value ? Number(e.target.value) : "")}
-              className="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
+              className="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-orange-500 cursor-pointer"
             >
               <option value="">All Statuses</option>
               <option value="1">Draft / Open</option>
@@ -402,7 +402,7 @@ export default function QuotationsPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <div className="inline-block w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                    <div className="inline-block w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-2"></div>
                     <p>Loading quotations and estimates...</p>
                   </td>
                 </tr>
@@ -419,7 +419,7 @@ export default function QuotationsPage() {
               ) : (
                 quotations.map((q) => (
                   <tr key={q.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-indigo-400">
+                    <td className="py-3.5 px-4 font-semibold text-orange-400">
                       <Link href={`/app/sales/quotations/${q.id}`} className="hover:underline flex items-center space-x-1.5">
                         <span>{q.quotationNumber}</span>
                       </Link>
@@ -480,7 +480,7 @@ export default function QuotationsPage() {
                         {q.status === 5 && (
                           <Link
                             href={`/app/sales/invoices/${q.convertedInvoiceId}`}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-lg text-[11px] font-semibold"
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 bg-orange-600/20 text-orange-400 border border-orange-500/30 rounded-lg text-[11px] font-semibold"
                           >
                             <span>Invoice #{q.convertedInvoiceNumber || "View"}</span>
                           </Link>
@@ -557,7 +557,7 @@ export default function QuotationsPage() {
                   <select
                     value={selectedBranchId}
                     onChange={(e) => handleBranchChange(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   >
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -572,7 +572,7 @@ export default function QuotationsPage() {
                   <select
                     value={selectedPartyId}
                     onChange={(e) => handlePartySelect(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   >
                     <option value="">-- One-off / Walk-in Customer --</option>
                     {customers.map((c) => (
@@ -591,7 +591,7 @@ export default function QuotationsPage() {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="e.g. Apollo Hospital / Suresh Kumar"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -604,7 +604,7 @@ export default function QuotationsPage() {
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="+91 98765 43210"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -614,7 +614,7 @@ export default function QuotationsPage() {
                     value={customerGSTIN}
                     onChange={(e) => setCustomerGSTIN(e.target.value.toUpperCase())}
                     placeholder="27AAAAA0000A1Z5"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white uppercase focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white uppercase focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -624,7 +624,7 @@ export default function QuotationsPage() {
                     required
                     value={quotationDate}
                     onChange={(e) => setQuotationDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -633,7 +633,7 @@ export default function QuotationsPage() {
                     type="date"
                     value={validUntilDate}
                     onChange={(e) => setValidUntilDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -645,7 +645,7 @@ export default function QuotationsPage() {
                   <button
                     type="button"
                     onClick={addItemToForm}
-                    className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer"
+                    className="px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Item</span>
@@ -765,7 +765,7 @@ export default function QuotationsPage() {
                     rows={3}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   />
                 </div>
 
@@ -791,7 +791,7 @@ export default function QuotationsPage() {
                   </div>
                   <div className="flex justify-between font-bold text-sm text-white pt-2 border-t border-slate-800">
                     <span>Grand Total (Rounded):</span>
-                    <span className="text-indigo-400 font-mono text-base">₹{calculatedGrandTotal.toFixed(2)}</span>
+                    <span className="text-orange-400 font-mono text-base">₹{calculatedGrandTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -808,7 +808,7 @@ export default function QuotationsPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 disabled:opacity-50 transition-all cursor-pointer"
+                  className="px-5 py-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-semibold rounded-xl shadow-lg shadow-orange-600/30 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {saving ? "Saving Quotation..." : "Save & Generate Quotation"}
                 </button>
@@ -832,7 +832,7 @@ export default function QuotationsPage() {
               </button>
             </div>
 
-            <div className="bg-indigo-950/40 p-3 rounded-xl border border-indigo-500/20 text-indigo-200 space-y-1">
+            <div className="bg-orange-950/40 p-3 rounded-xl border border-orange-500/20 text-orange-200 space-y-1">
               <div className="flex justify-between">
                 <span>Customer:</span>
                 <span className="font-semibold text-white">{selectedQuotation.customerName}</span>
@@ -851,7 +851,7 @@ export default function QuotationsPage() {
                 <select
                   value={convertWarehouseId}
                   onChange={(e) => setConvertWarehouseId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                 >
                   {warehouses.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -867,7 +867,7 @@ export default function QuotationsPage() {
                   type="date"
                   value={convertInvoiceDate}
                   onChange={(e) => setConvertInvoiceDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                 />
               </div>
 
@@ -877,7 +877,7 @@ export default function QuotationsPage() {
                   <select
                     value={convertPaymentMode}
                     onChange={(e) => setConvertPaymentMode(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
                   >
                     <option value="1">Cash</option>
                     <option value="2">UPI / QR Code</option>
@@ -894,7 +894,7 @@ export default function QuotationsPage() {
                     step="any"
                     value={convertPaidAmount}
                     onChange={(e) => setConvertPaidAmount(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-right focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-right focus:border-orange-500"
                   />
                 </div>
               </div>

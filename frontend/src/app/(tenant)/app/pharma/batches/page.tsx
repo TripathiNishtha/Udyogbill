@@ -122,13 +122,13 @@ export default function PharmaBatchesPage() {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-cyan-950/40 via-blue-950/20 to-transparent p-6 rounded-2xl border border-cyan-800/30">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-orange-950/40 via-orange-950/20 to-transparent p-6 rounded-2xl border border-orange-800/30">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center gap-1">
               <Layers className="w-3 h-3" /> FEFO Inventory Engine
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
               First-Expiry First-Out
             </span>
           </div>
@@ -142,14 +142,14 @@ export default function PharmaBatchesPage() {
 
         <button
           onClick={() => setShowModal(true)}
-          className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg transition-all active:scale-95 whitespace-nowrap self-start sm:self-auto"
+          className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg transition-all active:scale-95 whitespace-nowrap self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" /> New Medicine Batch
         </button>
       </div>
 
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-cyan-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-cyan-400 z-50 animate-bounce">
+        <div className="fixed bottom-6 right-6 bg-orange-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-orange-400 z-50 animate-bounce">
           <CheckCircle2 className="w-5 h-5" />
           <span className="font-medium text-sm">{toastMessage}</span>
         </div>
@@ -158,7 +158,7 @@ export default function PharmaBatchesPage() {
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+          <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
             <Layers className="w-5 h-5" />
           </div>
           <div>
@@ -197,7 +197,7 @@ export default function PharmaBatchesPage() {
             placeholder="Search Drug, Batch No, Rack Location..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500"
           />
         </div>
 
@@ -208,7 +208,7 @@ export default function PharmaBatchesPage() {
               onClick={() => setFilterMode(mode)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 filterMode === mode
-                  ? "bg-cyan-600 text-white shadow-md shadow-cyan-900/40"
+                  ? "bg-orange-600 text-white shadow-md shadow-orange-900/40"
                   : "bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
               }`}
             >
@@ -261,7 +261,7 @@ export default function PharmaBatchesPage() {
                       <div className="text-[11px] text-slate-500 font-mono">{b.sku}</div>
                     </td>
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 bg-slate-800 text-cyan-400 font-mono font-semibold rounded border border-slate-700">
+                      <span className="px-2 py-0.5 bg-slate-800 text-orange-400 font-mono font-semibold rounded border border-slate-700">
                         {b.batchNumber}
                       </span>
                     </td>
@@ -283,8 +283,8 @@ export default function PharmaBatchesPage() {
                     </td>
                     <td className="p-3.5 text-right font-medium text-slate-400">₹{b.mrp}</td>
                     <td className="p-3.5 text-right font-medium text-slate-400">₹{b.purchaseRate}</td>
-                    <td className="p-3.5 text-right font-medium text-blue-400">₹{b.ptr}</td>
-                    <td className="p-3.5 text-right font-medium text-indigo-400">₹{b.pts}</td>
+                    <td className="p-3.5 text-right font-medium text-orange-400">₹{b.ptr}</td>
+                    <td className="p-3.5 text-right font-medium text-orange-400">₹{b.pts}</td>
                     <td className="p-3.5 text-right font-bold text-slate-200">₹{b.saleRate}</td>
                     <td className="p-3.5">
                       <span className="flex items-center gap-1 text-slate-400">
@@ -321,7 +321,7 @@ export default function PharmaBatchesPage() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-cyan-400" /> Add Medicine Batch
+                <Layers className="w-5 h-5 text-orange-400" /> Add Medicine Batch
               </h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -342,7 +342,7 @@ export default function PharmaBatchesPage() {
                   placeholder="e.g. Paracetamol 650 Tablet"
                   value={formData.itemName}
                   onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -357,7 +357,7 @@ export default function PharmaBatchesPage() {
                     placeholder="e.g. BAT-2026-99"
                     value={formData.batchNumber}
                     onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500 font-mono"
                   />
                 </div>
                 <div>
@@ -370,7 +370,7 @@ export default function PharmaBatchesPage() {
                     placeholder="e.g. 10/28"
                     value={formData.expiryDateMonthYear}
                     onChange={(e) => setFormData({ ...formData, expiryDateMonthYear: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500 font-mono"
                   />
                 </div>
               </div>
@@ -386,7 +386,7 @@ export default function PharmaBatchesPage() {
                     placeholder="120"
                     value={formData.mrp}
                     onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -399,7 +399,7 @@ export default function PharmaBatchesPage() {
                     placeholder="75"
                     value={formData.purchaseRate}
                     onChange={(e) => setFormData({ ...formData, purchaseRate: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -412,7 +412,7 @@ export default function PharmaBatchesPage() {
                     placeholder="100"
                     value={formData.saleRate}
                     onChange={(e) => setFormData({ ...formData, saleRate: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -428,7 +428,7 @@ export default function PharmaBatchesPage() {
                     placeholder="88"
                     value={formData.ptr}
                     onChange={(e) => setFormData({ ...formData, ptr: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -441,7 +441,7 @@ export default function PharmaBatchesPage() {
                     placeholder="80"
                     value={formData.pts}
                     onChange={(e) => setFormData({ ...formData, pts: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -453,7 +453,7 @@ export default function PharmaBatchesPage() {
                     placeholder="50"
                     value={formData.currentStock}
                     onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -468,7 +468,7 @@ export default function PharmaBatchesPage() {
                     placeholder="e.g. Rack A-02"
                     value={formData.rackLocation}
                     onChange={(e) => setFormData({ ...formData, rackLocation: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -480,7 +480,7 @@ export default function PharmaBatchesPage() {
                     placeholder="890123..."
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500 font-mono"
                   />
                 </div>
               </div>
@@ -495,7 +495,7 @@ export default function PharmaBatchesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold shadow-lg"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold shadow-lg"
                 >
                   Save Batch
                 </button>

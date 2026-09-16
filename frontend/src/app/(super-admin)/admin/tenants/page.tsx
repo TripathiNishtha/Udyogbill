@@ -554,12 +554,12 @@ export default function SuperAdminTenantsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
               PLATFORM SUBSCRIBERS
             </span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center space-x-2">
-            <Building2 className="w-6 h-6 text-indigo-600" />
+            <Building2 className="w-6 h-6 text-orange-600" />
             <span>Subscribers & Tenants Governance</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
@@ -577,7 +577,7 @@ export default function SuperAdminTenantsPage() {
             placeholder="Search by business name, code, email or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:border-orange-600 focus:bg-white transition-colors"
           />
         </form>
 
@@ -586,7 +586,7 @@ export default function SuperAdminTenantsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:outline-none focus:border-indigo-600 cursor-pointer"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:outline-none focus:border-orange-600 cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="Active">Active</option>
@@ -598,7 +598,7 @@ export default function SuperAdminTenantsPage() {
           <select
             value={industryFilter}
             onChange={(e) => setIndustryFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:outline-none focus:border-indigo-600 max-w-[180px] cursor-pointer"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:outline-none focus:border-orange-600 max-w-[180px] cursor-pointer"
           >
             <option value="ALL">All Industries</option>
             {industries.map((ind) => (
@@ -615,7 +615,7 @@ export default function SuperAdminTenantsPage() {
             title="Refresh list"
             className="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-indigo-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-orange-600" : ""}`} />
           </button>
 
           <button
@@ -623,9 +623,9 @@ export default function SuperAdminTenantsPage() {
             onClick={handleSeedSampleStores}
             disabled={seedingSamples}
             title="Seed demo stores across Pharma, Garments and Kirana"
-            className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-50"
+            className="px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-50"
           >
-            <Zap className="w-3.5 h-3.5 text-indigo-600 fill-indigo-600" />
+            <Zap className="w-3.5 h-3.5 text-orange-600 fill-orange-600" />
             <span>{seedingSamples ? "Seeding..." : "⚡ Add Demo Stores"}</span>
           </button>
         </div>
@@ -649,7 +649,7 @@ export default function SuperAdminTenantsPage() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-500 font-medium">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-600" />
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-orange-600" />
                     Loading subscriber records...
                   </td>
                 </tr>
@@ -661,7 +661,7 @@ export default function SuperAdminTenantsPage() {
                     <td className="px-5 py-4">
                       <div className="font-bold text-slate-900 text-sm">{tenant.businessName}</div>
                       <div className="text-[11px] font-mono text-slate-500 flex items-center space-x-2 mt-0.5">
-                        <span className="text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">{tenant.code}</span>
+                        <span className="text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">{tenant.code}</span>
                         {tenant.tradeName && <span className="text-slate-600 font-medium">• {tenant.tradeName}</span>}
                       </div>
                     </td>
@@ -717,7 +717,7 @@ export default function SuperAdminTenantsPage() {
                               label === "Active"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : label === "Trial"
-                                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                ? "bg-orange-50 text-orange-700 border border-orange-200"
                                 : "bg-rose-50 text-rose-700 border border-rose-200"
                             }`}
                           >
@@ -739,7 +739,7 @@ export default function SuperAdminTenantsPage() {
                           <button
                             type="button"
                             onClick={() => setOpenDropdownId(openDropdownId === tenant.id ? null : tenant.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all shadow-xs cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 transition-all shadow-xs cursor-pointer"
                           >
                             <span>Actions</span>
                             <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdownId === tenant.id ? "rotate-180" : ""}`} />
@@ -765,13 +765,13 @@ export default function SuperAdminTenantsPage() {
                                       setOpenDropdownId(null);
                                       openInspectionModal(tenant.id);
                                     }}
-                                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 flex items-center space-x-3 transition-colors cursor-pointer group"
+                                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-700 hover:text-orange-600 hover:bg-orange-50 flex items-center space-x-3 transition-colors cursor-pointer group"
                                   >
-                                    <div className="w-7 h-7 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                    <div className="w-7 h-7 rounded-lg bg-orange-50 group-hover:bg-orange-100 flex items-center justify-center text-orange-600">
                                       <Building2 className="w-3.5 h-3.5" />
                                     </div>
                                     <div>
-                                      <div className="font-semibold text-slate-800 group-hover:text-indigo-600">Subscriber Details</div>
+                                      <div className="font-semibold text-slate-800 group-hover:text-orange-600">Subscriber Details</div>
                                       <div className="text-[10px] text-slate-500">View KYC, GST &amp; limits</div>
                                     </div>
                                   </button>
@@ -942,7 +942,7 @@ export default function SuperAdminTenantsPage() {
                           type="button"
                           onClick={handleQuickSuperAdminLogin}
                           disabled={quickLoggingIn}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
+                          className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-orange-600/30 transition-all cursor-pointer disabled:opacity-50"
                         >
                           <LogIn className="w-4 h-4" />
                           <span>{quickLoggingIn ? "Authenticating Super Admin..." : "1-Click Sign in as Super Admin"}</span>
@@ -961,7 +961,7 @@ export default function SuperAdminTenantsPage() {
                 <tr>
                   <td colSpan={6} className="py-16 text-center">
                     <div className="max-w-md mx-auto space-y-4 p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-slate-300">
-                      <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+                      <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center mx-auto">
                         <Building2 className="w-6 h-6" />
                       </div>
                       <div>
@@ -986,7 +986,7 @@ export default function SuperAdminTenantsPage() {
                               setIndustryFilter("ALL");
                               setStatusFilter("ALL");
                             }}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-orange-600/30 transition-all cursor-pointer"
                           >
                             <RefreshCw className="w-3.5 h-3.5" />
                             <span>Clear Filters & Show All</span>
@@ -996,7 +996,7 @@ export default function SuperAdminTenantsPage() {
                             type="button"
                             onClick={handleSeedSampleStores}
                             disabled={seedingSamples}
-                            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
+                            className="px-4 py-2.5 bg-gradient-to-r from-orange-600 to-violet-600 hover:from-orange-500 hover:to-violet-500 text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-orange-600/30 transition-all cursor-pointer disabled:opacity-50"
                           >
                             <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
                             <span>{seedingSamples ? "Generating Demo Stores..." : "⚡ Generate Demo Stores (Pharma, Garments, Kirana)"}</span>
@@ -1031,7 +1031,7 @@ export default function SuperAdminTenantsPage() {
               <>
                 <div className="flex items-start justify-between border-b border-slate-800 pb-4">
                   <div>
-                    <span className="text-xs font-mono text-indigo-400">{tenantDetails.code}</span>
+                    <span className="text-xs font-mono text-orange-400">{tenantDetails.code}</span>
                     <h2 className="text-xl font-bold text-white mt-0.5">
                       {tenantDetails.businessName}
                     </h2>
@@ -1042,7 +1042,7 @@ export default function SuperAdminTenantsPage() {
                       tenantDetails.status === "Active"
                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                         : tenantDetails.status === "Trial"
-                        ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                         : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                     }`}
                   >
@@ -1115,7 +1115,7 @@ export default function SuperAdminTenantsPage() {
                 {/* Branches & Warehouses List */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                    <MapPin className="w-4 h-4 text-indigo-400" />
+                    <MapPin className="w-4 h-4 text-orange-400" />
                     <span>Branches & Warehouses</span>
                   </h4>
                   <div className="space-y-2">
@@ -1125,7 +1125,7 @@ export default function SuperAdminTenantsPage() {
                           <span className="font-semibold text-white">{b.branchName}</span>
                           <span className="ml-2 font-mono text-slate-400">({b.branchCode})</span>
                           {b.isHeadOffice && (
-                            <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-400 font-semibold">
+                            <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-orange-500/20 text-orange-400 font-semibold">
                               Head Office
                             </span>
                           )}
@@ -1207,7 +1207,7 @@ export default function SuperAdminTenantsPage() {
                     setActionModal({ ...actionModal, reason: e.target.value })
                   }
                   placeholder="e.g. Subscription payment overdue, terms violation..."
-                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
             )}
@@ -1323,7 +1323,7 @@ export default function SuperAdminTenantsPage() {
                       className={
                         "py-2 rounded-xl text-center font-bold border transition-all cursor-pointer " +
                         (subModal.durationDays === dur.days
-                          ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30"
+                          ? "bg-orange-600 border-orange-500 text-white shadow-md shadow-orange-600/30"
                           : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white")
                       }
                     >
@@ -1334,7 +1334,7 @@ export default function SuperAdminTenantsPage() {
               </div>
 
               {/* 3. Offline Payment & Official GST Tax Invoice Generator */}
-              <div className="bg-slate-950 p-3.5 rounded-2xl border border-indigo-500/30 space-y-3">
+              <div className="bg-slate-950 p-3.5 rounded-2xl border border-orange-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-white flex items-center gap-1.5 text-xs">
                     <span>💰</span> Offline Payment &amp; Official GST Invoice Details
@@ -1344,7 +1344,7 @@ export default function SuperAdminTenantsPage() {
                       type="checkbox"
                       checked={subModal.generateInvoice}
                       onChange={(e) => setSubModal((prev) => ({ ...prev, generateInvoice: e.target.checked }))}
-                      className="rounded border-slate-700 text-indigo-600 focus:ring-0"
+                      className="rounded border-slate-700 text-orange-600 focus:ring-0"
                     />
                     <span>Auto-Generate Invoice</span>
                   </label>
@@ -1363,7 +1363,7 @@ export default function SuperAdminTenantsPage() {
                       placeholder="e.g. 5000"
                       value={subModal.customAmount}
                       onChange={(e) => setSubModal((prev) => ({ ...prev, customAmount: e.target.value }))}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono font-bold text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono font-bold text-xs focus:outline-none focus:border-orange-500"
                     />
                   </div>
 
@@ -1375,7 +1375,7 @@ export default function SuperAdminTenantsPage() {
                     <select
                       value={subModal.paymentMode}
                       onChange={(e) => setSubModal((prev) => ({ ...prev, paymentMode: e.target.value }))}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-orange-500"
                     >
                       <option value="Cash">💵 Cash Payment</option>
                       <option value="Direct Bank Transfer (NEFT/IMPS/RTGS)">🏦 Bank Transfer (NEFT / IMPS / RTGS)</option>
@@ -1398,7 +1398,7 @@ export default function SuperAdminTenantsPage() {
                       placeholder="e.g. UTR123456 / Cash Receipt #04"
                       value={subModal.paymentReference}
                       onChange={(e) => setSubModal((prev) => ({ ...prev, paymentReference: e.target.value }))}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-orange-500"
                     />
                   </div>
 
@@ -1408,7 +1408,7 @@ export default function SuperAdminTenantsPage() {
                         type="checkbox"
                         checked={subModal.isGstInclusive}
                         onChange={(e) => setSubModal((prev) => ({ ...prev, isGstInclusive: e.target.checked }))}
-                        className="rounded border-slate-700 text-indigo-600 focus:ring-0"
+                        className="rounded border-slate-700 text-orange-600 focus:ring-0"
                       />
                       <span>Amount includes 18% GST</span>
                     </label>
@@ -1424,9 +1424,9 @@ export default function SuperAdminTenantsPage() {
                     const base = isInc ? rawVal / 1.18 : rawVal;
                     const gst = tot - base;
                     return (
-                      <div className="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/20 text-[11px] flex items-center justify-between">
+                      <div className="p-2.5 rounded-xl bg-orange-950/40 border border-orange-500/20 text-[11px] flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-indigo-300">Subscriber Portal Invoice Preview:</span>
+                          <span className="font-semibold text-orange-300">Subscriber Portal Invoice Preview:</span>
                           <div className="text-slate-400 text-[10px]">
                             Base: ₹{base.toFixed(2)} + 18% GST: ₹{gst.toFixed(2)}
                           </div>
@@ -1509,7 +1509,7 @@ export default function SuperAdminTenantsPage() {
                   type="button"
                   disabled={subModal.saving || !subModal.selectedPlanId}
                   onClick={handleAssignSubSubmit}
-                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 via-orange-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
                   <span>⚡</span>
                   <span>{subModal.saving ? "Activating & Generating Invoice..." : "Activate Plan & Generate Official Invoice"}</span>
@@ -1731,7 +1731,7 @@ export default function SuperAdminTenantsPage() {
 
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
               <div className="font-bold text-slate-900 text-sm">{deleteConfirmTenant.businessName}</div>
-              <div className="text-indigo-600 font-mono text-[11px] font-bold">
+              <div className="text-orange-600 font-mono text-[11px] font-bold">
                 Code: {deleteConfirmTenant.code}
               </div>
               <div className="text-slate-700 font-medium">

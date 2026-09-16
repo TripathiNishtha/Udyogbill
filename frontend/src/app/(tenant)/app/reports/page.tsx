@@ -112,7 +112,7 @@ const ALL_REPORTS: ReportItem[] = [
       "Rapid counter billing slips, walk-in cash memos, UPI reconciliation, and shift register totals.",
     href: "/app/reports/sales?tab=summary&mode=pos",
     badge: "High Speed",
-    badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     icon: Zap,
     features: ["Walk-in Billing", "Cash & UPI Mode", "Shift Settlement", "Thermal Slips"],
     tags: ["pos", "counter", "cash memo", "retail", "walk-in", "cash sale"],
@@ -129,7 +129,7 @@ const ALL_REPORTS: ReportItem[] = [
       "Comprehensive procurement audit tracking supplier bills, invoice numbers, GST input tax credits (ITC), and payments.",
     href: "/app/reports/purchases?tab=detailed",
     badge: "ITC Verified",
-    badgeColor: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     icon: ShoppingCart,
     features: ["Vendor Bill Reference", "Taxable & GST ITC", "Supplier Status", "CSV / Excel Export"],
     tags: ["purchase", "vendor bill", "procurement", "itc", "input tax credit", "supplier bill"],
@@ -144,7 +144,7 @@ const ALL_REPORTS: ReportItem[] = [
       "Executive procurement aggregates grouped by supplier, branch, warehouse, or calendar periods.",
     href: "/app/reports/purchases?tab=summary",
     badge: "Vendor Grouped",
-    badgeColor: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     icon: FileText,
     features: ["Supplier Grouping", "Total Qty & Value", "Pending Payables", "Period Analysis"],
     tags: ["purchase summary", "supplier purchase", "vendor total", "monthly purchase"],
@@ -159,7 +159,7 @@ const ALL_REPORTS: ReportItem[] = [
       "Vendor running ledger account showing purchase bills, debit notes, cash/bank payments, and closing balances.",
     href: "/app/reports/ledger?partyType=supplier",
     badge: "Vendor Ledger",
-    badgeColor: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     icon: BookOpen,
     features: ["Bills vs Payments", "Running Balance", "Debit Notes", "Account Statement"],
     tags: ["supplier ledger", "vendor ledger", "payable ledger", "supplier statement", "vendor balance"],
@@ -252,7 +252,7 @@ const ALL_REPORTS: ReportItem[] = [
       "Accounts receivable overdue schedule computed against real invoice due dates into standard 9 slabs with credit limit checks.",
     href: "/app/reports/ageing?tab=debtors",
     badge: "Receivables A/R",
-    badgeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     icon: Clock,
     features: ["9 Overdue Slabs (0-30, 31-60...)", "Invoice Due Dates", "Credit Utilization %", "Direct Reminder"],
     tags: ["ageing", "debtors", "receivables", "overdue", "outstanding", "customer due", "ar"],
@@ -267,7 +267,7 @@ const ALL_REPORTS: ReportItem[] = [
       "Accounts payable overdue schedule tracking supplier bills across 9 overdue slabs for cash flow forecasting.",
     href: "/app/reports/ageing?tab=creditors",
     badge: "Payables A/P",
-    badgeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     icon: Clock,
     features: ["Supplier Overdue Slabs", "Vendor Bill Tracking", "Payables Forecast", "Cash Planning"],
     tags: ["creditors", "payables", "supplier due", "vendor outstanding", "ap", "overdue bills"],
@@ -282,7 +282,7 @@ const ALL_REPORTS: ReportItem[] = [
       "Complete customer account statement with invoices, credit notes, receipts, running balance, and bill-wise settlement.",
     href: "/app/reports/ledger?partyType=customer",
     badge: "Party Ledger",
-    badgeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     icon: BookOpen,
     features: ["Invoices vs Payments", "Running Balance", "Credit Notes", "WhatsApp / PDF Share"],
     tags: ["customer ledger", "party statement", "account ledger", "khata", "statement"],
@@ -583,7 +583,7 @@ export default function ReportsHubPage() {
             <span>Tenant Isolated</span>
           </div>
           <div className="flex items-center space-x-1.5 text-[11px] font-medium text-foreground bg-surface px-2.5 py-1 rounded-lg border border-border">
-            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <Download className="w-3.5 h-3.5 text-orange-400" />
             <span>RFC-4180 CSV / Excel Ready</span>
           </div>
         </div>

@@ -244,7 +244,7 @@ export default function StockTransfersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-md">
         <div className="flex items-center space-x-3">
-          <div className="p-3 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-indigo-400">
+          <div className="p-3 bg-orange-600/20 border border-orange-500/30 rounded-xl text-orange-400">
             <Boxes className="w-6 h-6" />
           </div>
           <div>
@@ -255,7 +255,7 @@ export default function StockTransfersPage() {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-lg shadow-indigo-600/20 transition"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-medium shadow-lg shadow-orange-600/20 transition"
         >
           <Plus className="w-4 h-4" />
           <span>+ Create Stock Transfer Note</span>
@@ -294,7 +294,7 @@ export default function StockTransfersPage() {
               ) : (
                 transfers.map((stn) => (
                   <tr key={stn.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-indigo-400">{stn.transferNumber}</td>
+                    <td className="py-3.5 px-4 font-bold text-orange-400">{stn.transferNumber}</td>
                     <td className="py-3.5 px-4 font-sans text-slate-300">{new Date(stn.transferDate).toLocaleDateString()}</td>
                     <td className="py-3.5 px-4 font-sans font-medium text-white">{stn.sourceWarehouseName}</td>
                     <td className="py-3.5 px-4 font-sans font-medium text-emerald-400">{stn.destinationWarehouseName}</td>
@@ -348,7 +348,7 @@ export default function StockTransfersPage() {
           <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <Boxes className="w-5 h-5 text-indigo-400" />
+                <Boxes className="w-5 h-5 text-orange-400" />
                 <span>+ Create Inter-Branch Stock Transfer Note</span>
               </div>
               <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
@@ -422,7 +422,7 @@ export default function StockTransfersPage() {
                   <button
                     type="button"
                     onClick={addLine}
-                    className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 text-xs font-semibold"
+                    className="px-2.5 py-1 rounded-lg bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-500/30 text-xs font-semibold"
                   >
                     + Add Item
                   </button>
@@ -493,7 +493,7 @@ export default function StockTransfersPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30"
                 >
                   {submitting ? "Dispatching..." : "Dispatch Stock Transfer (Deduct Source)"}
                 </button>

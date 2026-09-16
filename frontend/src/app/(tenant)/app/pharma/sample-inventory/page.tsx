@@ -95,7 +95,7 @@ export default function PharmaSampleInventoryPage() {
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-500">Allocated From HQ</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
               <Truck className="w-5 h-5" />
             </div>
           </div>

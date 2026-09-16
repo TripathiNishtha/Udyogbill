@@ -177,7 +177,7 @@ export default function PlatformCompanyProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function PlatformCompanyProfilePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-400 border border-indigo-500/30">
+            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-orange-500/20 to-purple-500/20 text-orange-400 border border-orange-500/30">
               <Building2 className="w-6 h-6" />
             </div>
             <div>
@@ -208,7 +208,7 @@ export default function PlatformCompanyProfilePage() {
               onClick={() => setActiveTab("settings")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === "settings"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                  ? "bg-orange-600 text-white shadow-md shadow-orange-600/30"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -219,7 +219,7 @@ export default function PlatformCompanyProfilePage() {
               onClick={() => setActiveTab("preview")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "preview"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                  ? "bg-orange-600 text-white shadow-md shadow-orange-600/30"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -231,7 +231,7 @@ export default function PlatformCompanyProfilePage() {
           <button
             onClick={() => handleSave()}
             disabled={saving}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-5 py-2 rounded-xl text-xs shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-purple-600 hover:from-orange-500 hover:to-purple-500 text-white font-bold px-5 py-2 rounded-xl text-xs shadow-lg shadow-orange-500/25 transition-all disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-4 h-4" />
             {saving ? "Saving Changes..." : "Save Profile"}
@@ -258,7 +258,7 @@ export default function PlatformCompanyProfilePage() {
           {/* Card 1: Official Logo & Signatory Stamp */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-              <ImageIcon className="w-5 h-5 text-indigo-400" />
+              <ImageIcon className="w-5 h-5 text-orange-400" />
               <div>
                 <h2 className="text-sm font-bold text-white">Platform Logo &amp; Signatory Stamp</h2>
                 <p className="text-[11px] text-slate-400">These official visual assets are printed on every customer subscription tax invoice.</p>
@@ -283,7 +283,7 @@ export default function PlatformCompanyProfilePage() {
                   </div>
 
                   <div className="flex-1 space-y-2">
-                    <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold cursor-pointer transition-colors">
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 border border-orange-500/30 rounded-xl text-xs font-semibold cursor-pointer transition-colors">
                       <UploadCloud className="w-3.5 h-3.5" />
                       <span>Upload New Logo</span>
                       <input
@@ -350,7 +350,7 @@ export default function PlatformCompanyProfilePage() {
           {/* Card 2: Legal Entity & Brand Name */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+              <Sparkles className="w-5 h-5 text-orange-400" />
               <h2 className="text-sm font-bold text-white">Business Entity &amp; Brand Identity</h2>
             </div>
 
@@ -365,7 +365,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.legalCompanyName}
                   onChange={(e) => setForm({ ...form, legalCompanyName: e.target.value })}
                   placeholder="e.g. Udyog Software Technologies Private Limited"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-orange-500"
                 />
                 <p className="text-[10px] text-slate-500 mt-0.5">This legal name appears on all official GST Tax Invoices.</p>
               </div>
@@ -380,7 +380,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.productBrandName}
                   onChange={(e) => setForm({ ...form, productBrandName: e.target.value })}
                   placeholder="e.g. UdyogBill"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-orange-500"
                 />
                 <p className="text-[10px] text-slate-500 mt-0.5">Displayed as the software product brand throughout the app.</p>
               </div>
@@ -392,7 +392,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.tagline}
                   onChange={(e) => setForm({ ...form, tagline: e.target.value })}
                   placeholder="e.g. Smart Cloud Invoicing & Business ERP"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
             </div>
@@ -430,7 +430,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.pan}
                   onChange={(e) => setForm({ ...form, pan: e.target.value.toUpperCase().trim() })}
                   placeholder="AAACU9876A"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white font-semibold focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white font-semibold focus:outline-none focus:border-orange-500"
                 />
                 <p className="text-[10px] text-slate-500 mt-0.5">Auto-extracted from digits 3-12 of GSTIN</p>
               </div>
@@ -447,7 +447,7 @@ export default function PlatformCompanyProfilePage() {
                     value={form.stateCode}
                     onChange={(e) => setForm({ ...form, stateCode: e.target.value.trim() })}
                     placeholder="09"
-                    className="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 font-mono text-emerald-400 font-bold text-center focus:outline-none focus:border-indigo-500"
+                    className="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 font-mono text-emerald-400 font-bold text-center focus:outline-none focus:border-orange-500"
                   />
                   <input
                     type="text"
@@ -455,7 +455,7 @@ export default function PlatformCompanyProfilePage() {
                     value={form.state}
                     onChange={(e) => setForm({ ...form, state: e.target.value })}
                     placeholder="e.g. Uttar Pradesh"
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <p className="text-[10px] text-emerald-400/90 mt-0.5">
@@ -468,7 +468,7 @@ export default function PlatformCompanyProfilePage() {
           {/* Card 4: Registered Address & Contacts */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-              <MapPin className="w-5 h-5 text-indigo-400" />
+              <MapPin className="w-5 h-5 text-orange-400" />
               <h2 className="text-sm font-bold text-white">Registered Address &amp; Official Helpdesk</h2>
             </div>
 
@@ -483,7 +483,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.addressLine1}
                   onChange={(e) => setForm({ ...form, addressLine1: e.target.value })}
                   placeholder="e.g. Tower B, Cyber City, Sector 62"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -494,7 +494,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.addressLine2}
                   onChange={(e) => setForm({ ...form, addressLine2: e.target.value })}
                   placeholder="e.g. Near Metro Station"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -508,7 +508,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.city}
                   onChange={(e) => setForm({ ...form, city: e.target.value })}
                   placeholder="e.g. Noida"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -522,7 +522,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.pincode}
                   onChange={(e) => setForm({ ...form, pincode: e.target.value })}
                   placeholder="e.g. 201309"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -533,7 +533,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.website}
                   onChange={(e) => setForm({ ...form, website: e.target.value })}
                   placeholder="https://udyogbill.com"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -547,7 +547,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.supportEmail}
                   onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
                   placeholder="support@udyogbill.com"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -559,7 +559,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.supportPhone}
                   onChange={(e) => setForm({ ...form, supportPhone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                   placeholder="9876543210"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
             </div>
@@ -568,7 +568,7 @@ export default function PlatformCompanyProfilePage() {
           {/* Card 5: Bank Account & Payment Details */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-              <CreditCard className="w-5 h-5 text-indigo-400" />
+              <CreditCard className="w-5 h-5 text-orange-400" />
               <h2 className="text-sm font-bold text-white">Bank Account &amp; UPI QR Details</h2>
             </div>
 
@@ -583,7 +583,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.bankName}
                   onChange={(e) => setForm({ ...form, bankName: e.target.value })}
                   placeholder="e.g. HDFC Bank"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -597,7 +597,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.bankAccountNumber}
                   onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })}
                   placeholder="50200012345678"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -611,7 +611,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.bankIfsc}
                   onChange={(e) => setForm({ ...form, bankIfsc: e.target.value.toUpperCase().trim() })}
                   placeholder="HDFC0001234"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -622,7 +622,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.bankBranch}
                   onChange={(e) => setForm({ ...form, bankBranch: e.target.value })}
                   placeholder="e.g. Noida Sector 62 Branch"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -633,7 +633,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.upiId}
                   onChange={(e) => setForm({ ...form, upiId: e.target.value })}
                   placeholder="e.g. udyogbill@hdfcbank"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
             </div>
@@ -642,7 +642,7 @@ export default function PlatformCompanyProfilePage() {
           {/* Card 6: Invoicing & Signatory Settings */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-              <ShieldCheck className="w-5 h-5 text-indigo-400" />
+              <ShieldCheck className="w-5 h-5 text-orange-400" />
               <h2 className="text-sm font-bold text-white">Invoice Sequence Numbering &amp; Authorized Signatory</h2>
             </div>
 
@@ -654,7 +654,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.invoicePrefix}
                   onChange={(e) => setForm({ ...form, invoicePrefix: e.target.value })}
                   placeholder="UB/SUB/26-27/"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono text-white focus:outline-none focus:border-orange-500"
                 />
                 <p className="text-[10px] text-slate-500 mt-1 font-mono">e.g. UB/SUB/26-27/ ya INV-</p>
               </div>
@@ -667,12 +667,12 @@ export default function PlatformCompanyProfilePage() {
                   value={form.nextInvoiceSequence || 1}
                   onChange={(e) => setForm({ ...form, nextInvoiceSequence: Math.max(1, parseInt(e.target.value) || 1) })}
                   placeholder="101"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono font-bold text-indigo-400 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 font-mono font-bold text-orange-400 focus:outline-none focus:border-orange-500"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">Jaha tak invoices ban chuki hain, uske aage ka number dalein</p>
               </div>
 
-              <div className="md:col-span-2 bg-slate-950/80 p-3 rounded-xl border border-indigo-500/30 flex flex-col justify-center">
+              <div className="md:col-span-2 bg-slate-950/80 p-3 rounded-xl border border-orange-500/30 flex flex-col justify-center">
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Next Generated Invoice Preview:</span>
                 <span className="text-base font-mono font-black text-emerald-400 mt-0.5 tracking-wide">
                   {(form.invoicePrefix || "UB/SUB/26-27/") + String(form.nextInvoiceSequence || 1).padStart(4, "0")}
@@ -687,7 +687,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.authorizedSignatoryName}
                   onChange={(e) => setForm({ ...form, authorizedSignatoryName: e.target.value })}
                   placeholder="e.g. Saurabh Sharma"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -698,7 +698,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.authorizedSignatoryDesignation}
                   onChange={(e) => setForm({ ...form, authorizedSignatoryDesignation: e.target.value })}
                   placeholder="e.g. Managing Director"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -709,7 +709,7 @@ export default function PlatformCompanyProfilePage() {
                   value={form.invoiceTermsAndConditions}
                   onChange={(e) => setForm({ ...form, invoiceTermsAndConditions: e.target.value })}
                   placeholder="Terms printed at bottom of tax invoices..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
             </div>
@@ -719,13 +719,13 @@ export default function PlatformCompanyProfilePage() {
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+                <div className="p-2 bg-orange-500/10 rounded-xl border border-orange-500/20 text-orange-400">
                   <Zap className="w-5 h-5" />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-white flex items-center gap-2">
                     <span>GST Auto-Fill Integration</span>
-                    <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30">
+                    <span className="text-[10px] font-mono bg-orange-500/20 text-orange-300 px-2.5 py-0.5 rounded-full border border-orange-500/30">
                       Sandbox.co.in
                     </span>
                   </h2>
@@ -753,7 +753,7 @@ export default function PlatformCompanyProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
               <div>
                 <label className="block font-semibold uppercase text-slate-400 mb-1 flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5 text-indigo-400" />
+                  <Key className="w-3.5 h-3.5 text-orange-400" />
                   <span>Sandbox API Key</span>
                 </label>
                 <input
@@ -761,20 +761,20 @@ export default function PlatformCompanyProfilePage() {
                   value={form.sandboxApiKey}
                   onChange={(e) => setForm({ ...form, sandboxApiKey: e.target.value.trim() })}
                   placeholder="key_live_c3dd7b53ca0f40909c3cf1e943df1cd3"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 font-mono text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 font-mono text-white placeholder-slate-600 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div>
                 <label className="block font-semibold uppercase text-slate-400 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-indigo-400" />
+                    <Key className="w-3.5 h-3.5 text-orange-400" />
                     <span>Sandbox API Secret</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowSandboxSecret(!showSandboxSecret)}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] text-orange-400 hover:text-orange-300 flex items-center gap-1 cursor-pointer"
                   >
                     {showSandboxSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                     <span>{showSandboxSecret ? "Hide" : "Show Secret"}</span>
@@ -786,7 +786,7 @@ export default function PlatformCompanyProfilePage() {
                     value={form.sandboxApiSecret}
                     onChange={(e) => setForm({ ...form, sandboxApiSecret: e.target.value.trim() })}
                     placeholder="Enter Sandbox API Secret"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 font-mono text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 font-mono text-white placeholder-slate-600 focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -795,7 +795,7 @@ export default function PlatformCompanyProfilePage() {
             {/* Test Connection Action */}
             <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-slate-800/80">
               <div className="text-[11px] text-slate-400">
-                Test credentials against <code className="text-indigo-300 font-mono">api.sandbox.co.in</code> before saving.
+                Test credentials against <code className="text-orange-300 font-mono">api.sandbox.co.in</code> before saving.
               </div>
 
               <button
@@ -806,7 +806,7 @@ export default function PlatformCompanyProfilePage() {
               >
                 {testingGst ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-400" />
                     <span>Testing Connection...</span>
                   </>
                 ) : (
@@ -847,7 +847,7 @@ export default function PlatformCompanyProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-7 py-3 rounded-2xl text-sm shadow-xl shadow-indigo-500/25 transition-all disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-purple-600 hover:from-orange-500 hover:to-purple-500 text-white font-bold px-7 py-3 rounded-2xl text-sm shadow-xl shadow-orange-500/25 transition-all disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {saving ? "Saving Changes..." : "Save Platform Company Profile"}
@@ -863,7 +863,7 @@ export default function PlatformCompanyProfilePage() {
             </span>
             <button
               onClick={() => setActiveTab("settings")}
-              className="text-xs text-indigo-400 hover:underline cursor-pointer"
+              className="text-xs text-orange-400 hover:underline cursor-pointer"
             >
               ← Back to Edit Fields
             </button>
@@ -876,12 +876,12 @@ export default function PlatformCompanyProfilePage() {
                 {form.logoUrl ? (
                   <img src={form.logoUrl} alt="Company Logo" className="h-12 object-contain mb-2" />
                 ) : (
-                  <div className="font-black text-xl text-indigo-600 tracking-tight">{form.productBrandName}</div>
+                  <div className="font-black text-xl text-orange-600 tracking-tight">{form.productBrandName}</div>
                 )}
                 <h2 className="text-base font-black text-slate-950 uppercase tracking-tight">
                   {form.legalCompanyName}
                 </h2>
-                <p className="text-indigo-600 font-bold text-xs">{form.tagline}</p>
+                <p className="text-orange-600 font-bold text-xs">{form.tagline}</p>
                 <p className="text-slate-600 text-[11px]">
                   {form.addressLine1}, {form.addressLine2 ? `${form.addressLine2}, ` : ""}{form.city}, {form.state} - {form.pincode}
                 </p>
@@ -928,7 +928,7 @@ export default function PlatformCompanyProfilePage() {
                 </div>
                 <div>
                   <span className="text-slate-500">Supply Type: </span>
-                  <span className="font-bold text-indigo-700">Intra-State (Haryana: CGST 9% + SGST 9%)</span>
+                  <span className="font-bold text-orange-700">Intra-State (Haryana: CGST 9% + SGST 9%)</span>
                 </div>
                 <div>
                   <span className="text-slate-500">Payment Ref: </span>
@@ -966,13 +966,13 @@ export default function PlatformCompanyProfilePage() {
             <div className="flex justify-between items-start pt-2 text-xs">
               <div className="text-[11px] text-slate-600 max-w-sm space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <div className="font-bold text-slate-800 uppercase text-[10px] flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+                  <CreditCard className="w-3.5 h-3.5 text-orange-600" />
                   Official Bank &amp; Settlement Account:
                 </div>
                 <div>Bank: <strong className="text-slate-800">{form.bankName}</strong> | Branch: {form.bankBranch}</div>
                 <div>A/C No: <strong className="font-mono text-slate-900">{form.bankAccountNumber}</strong></div>
                 <div>IFSC: <strong className="font-mono text-slate-900">{form.bankIfsc}</strong></div>
-                {form.upiId && <div>UPI ID: <strong className="font-mono text-indigo-700">{form.upiId}</strong></div>}
+                {form.upiId && <div>UPI ID: <strong className="font-mono text-orange-700">{form.upiId}</strong></div>}
               </div>
 
               <div className="w-64 space-y-1.5 text-right">

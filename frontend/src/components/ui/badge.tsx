@@ -29,7 +29,7 @@ export const Badge: React.FC<BadgeProps> = ({
     danger:
       "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20",
     info:
-      "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20",
+      "bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20",
     primary:
       "bg-primary/10 text-primary border border-primary/20",
     neutral:
@@ -42,7 +42,7 @@ export const Badge: React.FC<BadgeProps> = ({
     success: "bg-emerald-500",
     warning: "bg-amber-500",
     danger: "bg-rose-500",
-    info: "bg-blue-500",
+    info: "bg-orange-500",
     primary: "bg-primary",
     neutral: "bg-muted-foreground",
     outline: "bg-foreground",

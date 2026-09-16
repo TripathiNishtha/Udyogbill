@@ -309,7 +309,7 @@ export default function SalesAttributionAndReconciliationPage() {
                       <td className="p-3 text-right font-bold text-emerald-700">₹{t.achievedSalesAmount.toLocaleString()}</td>
                       <td className="p-3 text-center font-bold text-gray-900">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
-                          t.salesAchievementPercent >= 100 ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+                          t.salesAchievementPercent >= 100 ? "bg-emerald-100 text-emerald-800" : "bg-orange-100 text-orange-800"
                         }`}>
                           {t.salesAchievementPercent}%
                         </span>
@@ -363,9 +363,9 @@ export default function SalesAttributionAndReconciliationPage() {
             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Channel Liquidation</span>
-                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <TrendingUp className="w-4 h-4 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-700 mt-2">
+              <div className="text-2xl font-bold text-orange-700 mt-2">
                 {(() => {
                   const prim = secondaryRecon.reduce((acc, r) => acc + r.totalPrimarySalesAmount, 0);
                   const sec = secondaryRecon.reduce((acc, r) => acc + r.totalSecondaryPobAmount, 0);
@@ -470,7 +470,7 @@ export default function SalesAttributionAndReconciliationPage() {
                                   : r.stockTurnoverHealth === "Overstocked"
                                   ? "bg-amber-100 text-amber-800"
                                   : r.stockTurnoverHealth === "Understocked"
-                                  ? "bg-blue-100 text-blue-800"
+                                  ? "bg-orange-100 text-orange-800"
                                   : "bg-gray-100 text-gray-700"
                               }`}
                             >

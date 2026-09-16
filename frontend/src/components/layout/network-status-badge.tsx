@@ -46,7 +46,7 @@ export function NetworkStatusBadge() {
 
   if (status.syncState === "syncing") {
     return (
-      <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold">
+      <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-semibold">
         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
         <span>Syncing Data...</span>
       </div>

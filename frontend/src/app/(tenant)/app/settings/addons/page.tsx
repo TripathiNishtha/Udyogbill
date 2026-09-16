@@ -211,7 +211,7 @@ export default function PlanAndAddonsPage() {
               <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
                 Core Plan Active
               </span>
-              <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30">
+              <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
                 Industry Pack: {descriptor.displayName}
               </span>
               <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 text-emerald-700 border border-slate-200 dark:bg-slate-800 dark:text-emerald-400 dark:border-slate-700">
@@ -278,10 +278,10 @@ export default function PlanAndAddonsPage() {
           <div className="p-6 rounded-2xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs transition-all">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                   <Users className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20">
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
                   Capacity Expansion
                 </span>
               </div>
@@ -300,13 +300,13 @@ export default function PlanAndAddonsPage() {
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">₹{singleUserPrice}/year + {gstRate}% GST</div>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-bold text-sky-600 dark:text-sky-400">₹{(singleUserPrice * (1 + gstRate / 100)).toFixed(0)}</span>
+                    <span className="text-sm font-bold text-orange-600 dark:text-orange-400">₹{(singleUserPrice * (1 + gstRate / 100)).toFixed(0)}</span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block">incl. GST/yr</span>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-sky-500/30 flex items-center justify-between relative overflow-hidden">
-                  <span className="absolute top-0 right-0 px-2 py-0.5 text-[9px] font-bold bg-sky-600 text-white rounded-bl">
+                <div className="p-3 rounded-xl bg-orange-50/50 dark:bg-slate-900 border border-orange-200 dark:border-orange-500/30 flex items-center justify-between relative overflow-hidden">
+                  <span className="absolute top-0 right-0 px-2 py-0.5 text-[9px] font-bold bg-orange-600 text-white rounded-bl">
                     SAVE ₹{((singleUserPrice * 5) - fiveUserPrice).toFixed(0)}
                   </span>
                   <div>
@@ -314,7 +314,7 @@ export default function PlanAndAddonsPage() {
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">₹{fiveUserPrice}/year + {gstRate}% GST</div>
                   </div>
                   <div className="text-right pt-2">
-                    <span className="text-sm font-bold text-sky-600 dark:text-sky-400">₹{(fiveUserPrice * (1 + gstRate / 100)).toFixed(0)}</span>
+                    <span className="text-sm font-bold text-orange-600 dark:text-orange-400">₹{(fiveUserPrice * (1 + gstRate / 100)).toFixed(0)}</span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block">incl. GST/yr</span>
                   </div>
                 </div>
@@ -324,7 +324,7 @@ export default function PlanAndAddonsPage() {
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80">
               <Link
                 href="/app/staff"
-                className="w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="w-full py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
               >
                 <span>Manage Users & Capacity</span>
                 <ArrowRight className="w-3.5 h-3.5" />

@@ -181,7 +181,7 @@ export default function BankingAccountsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2.5">
-            <Landmark className="w-7 h-7 text-indigo-400" />
+            <Landmark className="w-7 h-7 text-orange-400" />
             <span>Banking, Cash & Multi-Mode Payments</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -200,7 +200,7 @@ export default function BankingAccountsPage() {
 
           <button
             onClick={() => setIsAddAccountOpen(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>Add Bank Account</span>
@@ -231,7 +231,7 @@ export default function BankingAccountsPage() {
         <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
           <div className="flex items-center justify-between text-slate-400 text-xs">
             <span>Bank Balance</span>
-            <Landmark className="w-4 h-4 text-indigo-400" />
+            <Landmark className="w-4 h-4 text-orange-400" />
           </div>
           <div className="text-2xl font-bold font-mono text-white mt-2">
             ₹{(summary?.totalBankBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -277,13 +277,13 @@ export default function BankingAccountsPage() {
                 className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3 relative overflow-hidden shadow-xl"
               >
                 {acc.isDefault && (
-                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
                     Primary / Default
                   </div>
                 )}
 
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-850 flex items-center justify-center text-indigo-400">
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-850 flex items-center justify-center text-orange-400">
                     <Landmark className="w-5 h-5" />
                   </div>
                   <div>
@@ -302,7 +302,7 @@ export default function BankingAccountsPage() {
                   {acc.ifscCode && (
                     <div className="flex justify-between">
                       <span className="text-slate-500">IFSC:</span>
-                      <span className="text-indigo-300">{acc.ifscCode}</span>
+                      <span className="text-orange-300">{acc.ifscCode}</span>
                     </div>
                   )}
                   {acc.upiId && (
@@ -384,7 +384,7 @@ export default function BankingAccountsPage() {
                 </div>
                 <button
                   onClick={() => setIsDrawerOpenModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all"
+                  className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/30 transition-all"
                 >
                   Open Shift with Cash Float
                 </button>
@@ -509,7 +509,7 @@ export default function BankingAccountsPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden space-y-4 p-6">
             <h3 className="font-bold text-base text-white flex items-center space-x-2">
-              <Landmark className="w-4 h-4 text-indigo-400" />
+              <Landmark className="w-4 h-4 text-orange-400" />
               <span>Add New Bank Account / Channel</span>
             </h3>
 
@@ -592,7 +592,7 @@ export default function BankingAccountsPage() {
               </button>
               <button
                 onClick={handleCreateAccount}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30"
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/30"
               >
                 Save Bank Account
               </button>
@@ -606,7 +606,7 @@ export default function BankingAccountsPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
             <h3 className="font-bold text-base text-white flex items-center space-x-2">
-              <Wallet className="w-4 h-4 text-indigo-400" />
+              <Wallet className="w-4 h-4 text-orange-400" />
               <span>Open POS Cash Drawer Shift</span>
             </h3>
 
@@ -631,7 +631,7 @@ export default function BankingAccountsPage() {
               </button>
               <button
                 onClick={handleOpenDrawer}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30"
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/30"
               >
                 Open Cash Drawer
               </button>

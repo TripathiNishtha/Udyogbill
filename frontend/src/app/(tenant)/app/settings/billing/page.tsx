@@ -520,7 +520,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
-            <Receipt className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <Receipt className="w-6 h-6 text-orange-600 dark:text-orange-400" />
             <span>Subscription & Billing History</span>
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -530,7 +530,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
 
         <Link
           href="/app/settings/addons"
-          className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all self-start sm:self-auto"
+          className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-orange-600/20 transition-all self-start sm:self-auto"
         >
           <Sparkles className="w-4 h-4" />
           <span>Explore Add-on Store</span>
@@ -552,7 +552,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
             <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${
               subStatus?.isTrial
                 ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400"
-                : "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+                : "bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20 text-orange-600 dark:text-orange-400"
             }`}>
               <CreditCard className="w-5 h-5" />
             </div>
@@ -593,7 +593,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
             <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
               <Sparkles className="w-5 h-5" />
             </div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
               {enrolledAddons.length} Packs Active
             </span>
           </div>
@@ -620,7 +620,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
             <span className="text-slate-500 dark:text-slate-400">Add-on Marketplace:</span>
             <Link
               href="/app/settings/addons"
-              className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center space-x-1"
+              className="text-orange-600 dark:text-orange-400 font-semibold hover:underline flex items-center space-x-1"
             >
               <span>Add More Packs</span>
               <ArrowUpRight className="w-3 h-3" />
@@ -689,7 +689,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
             <button
               type="button"
               onClick={loadBillingData}
-              className="mt-2 px-4 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg hover:bg-indigo-100 transition-colors"
+              className="mt-2 px-4 py-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 rounded-lg hover:bg-orange-100 transition-colors"
             >
               Retry
             </button>
@@ -711,12 +711,12 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                   key={plan.id}
                   className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border flex flex-col justify-between relative transition-all shadow-xs dark:shadow-lg ${
                     plan.isPopular
-                      ? "border-indigo-300 dark:border-indigo-500/50 shadow-md shadow-indigo-500/10"
+                      ? "border-orange-300 dark:border-orange-500/50 shadow-md shadow-orange-500/10"
                       : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   {plan.isPopular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-indigo-600 text-white shadow-md">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-orange-600 text-white shadow-md">
                       Recommended Tier
                     </span>
                   )}
@@ -754,7 +754,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                     <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs text-slate-700 dark:text-slate-300">
                       <div className="flex items-center justify-between">
                         <span className="text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-                          <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                          <Users className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                           <span>Users</span>
                         </span>
                         <span className="font-semibold text-slate-900 dark:text-white">{plan.maxUsers}</span>
@@ -791,7 +791,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                       className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
                         isCurrentPlan
                           ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed"
-                          : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
+                          : "bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-600/20 active:scale-95 cursor-pointer"
                       }`}
                     >
                       <CreditCard className="w-4 h-4" />
@@ -809,7 +809,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs dark:shadow-xl">
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h2 className="font-bold text-slate-900 dark:text-white text-base flex items-center space-x-2">
-            <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <FileText className="w-4 h-4 text-orange-600 dark:text-orange-400" />
             <span>Tax Invoices & Payment Receipts</span>
           </h2>
           <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -873,7 +873,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                     <td className="py-3.5 px-4 text-right">
                       <button
                         onClick={() => setActiveInvoice(inv)}
-                        className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-600/10 dark:hover:bg-indigo-600/20 dark:text-indigo-400 dark:border-indigo-500/20 font-semibold transition-colors text-xs cursor-pointer"
+                        className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-600/10 dark:hover:bg-orange-600/20 dark:text-orange-400 dark:border-orange-500/20 font-semibold transition-colors text-xs cursor-pointer"
                       >
                         <Printer className="w-3.5 h-3.5" />
                         <span>View / Print</span>
@@ -910,7 +910,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                 <button
                   type="button"
                   onClick={handlePrint}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer transition-colors"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print / Save PDF</span>
@@ -937,7 +937,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                   <h2 className="text-sm font-black text-slate-950 tracking-tight uppercase leading-tight">
                     {activeInvoice.supplierLegalName || "DIGIOPERA PRIVATE LIMITED"}
                   </h2>
-                  <p className="text-indigo-600 font-bold text-[11px]">UdyogBill Cloud Platform</p>
+                  <p className="text-orange-600 font-bold text-[11px]">UdyogBill Cloud Platform</p>
                   <p className="text-slate-500 text-[10px] leading-tight">
                     {activeInvoice.supplierAddress || "3rd Floor Landmark Cyber Park, Gurugram, Haryana - 122102"}
                   </p>
@@ -982,7 +982,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                   </div>
                   <div>
                     <span className="text-slate-500">Supply Type: </span>
-                    <span className="font-bold text-indigo-700">
+                    <span className="font-bold text-orange-700">
                       {activeInvoice.isInterState ? "Inter-State (IGST 18%)" : "Intra-State (CGST 9% + SGST 9%)"}
                     </span>
                   </div>
@@ -1031,7 +1031,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                   <div>Bank: <strong className="text-slate-800">{activeInvoice.supplierBankName || "State Bank of India"}</strong> {activeInvoice.supplierBankBranch ? `(${activeInvoice.supplierBankBranch})` : ""}</div>
                   <div>A/C No: <strong className="font-mono text-slate-900">{activeInvoice.supplierBankAccountNumber || "44777396364"}</strong></div>
                   <div>IFSC: <strong className="font-mono text-slate-900">{activeInvoice.supplierBankIfsc || "SBIN0061808"}</strong></div>
-                  {activeInvoice.supplierUpiId && <div>UPI ID: <strong className="font-mono text-indigo-700">{activeInvoice.supplierUpiId}</strong></div>}
+                  {activeInvoice.supplierUpiId && <div>UPI ID: <strong className="font-mono text-orange-700">{activeInvoice.supplierUpiId}</strong></div>}
                 </div>
 
                 <div className="w-60 space-y-1 text-right text-[11px] shrink-0">
@@ -1121,7 +1121,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
               </button>
 
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-600/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/30 flex items-center justify-center shrink-0">
                   <CreditCard className="w-6 h-6" />
                 </div>
                 <div>
@@ -1134,7 +1134,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
               <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <Tag className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                     Have a Discount Coupon?
                   </span>
                   {appliedCoupon && (
@@ -1165,14 +1165,14 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                           }
                         }}
                         placeholder="ENTER COUPON CODE"
-                        className="w-full px-3.5 py-2 text-xs font-mono font-bold uppercase rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3.5 py-2 text-xs font-mono font-bold uppercase rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <button
                       type="button"
                       disabled={validatingCoupon || !couponInput.trim()}
                       onClick={() => handleApplyCoupon(rawBase)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1 shrink-0"
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1 shrink-0"
                     >
                       {validatingCoupon ? (
                         <>
@@ -1288,7 +1288,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                     setPendingCheckoutPlan(null);
                     await handleBuyPlan(planToBuy, code);
                   }}
-                  className="flex-[2] inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/30 transition-all disabled:opacity-50 cursor-pointer"
+                  className="flex-[2] inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/30 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   <CreditCard className="w-4 h-4" />
                   <span>{isBusy ? "Processing..." : `Pay ₹${totalAmount.toFixed(2)} with Razorpay`}</span>
@@ -1348,7 +1348,7 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
                   setCompletedInvoice(null);
                   setActiveInvoice(inv);
                 }}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer"
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-orange-600/20 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>View & Print Tax Invoice</span>

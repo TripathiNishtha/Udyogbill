@@ -128,7 +128,7 @@ export default function AutoReorderPage() {
                     <td className="py-3.5 px-4 text-center text-slate-400 font-sans">
                       {item.minimumStockAlert} {item.primaryUomCode}
                     </td>
-                    <td className="py-3.5 px-4 text-center text-indigo-300 font-bold">
+                    <td className="py-3.5 px-4 text-center text-orange-300 font-bold">
                       {item.reorderQuantity} {item.primaryUomCode}
                     </td>
                     <td className="py-3.5 px-4 text-center font-sans">

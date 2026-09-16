@@ -166,7 +166,7 @@ export default function SuperAdminCouponsPage() {
           <span className="text-xs text-slate-400 font-medium">Total Coupons</span>
           <div className="mt-1 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-white">{coupons.length}</span>
-            <Tag className="w-5 h-5 text-indigo-400" />
+            <Tag className="w-5 h-5 text-orange-400" />
           </div>
         </div>
 
@@ -261,7 +261,7 @@ export default function SuperAdminCouponsPage() {
                           {c.discountType === 1 ? (
                             <span className="font-extrabold text-emerald-400 text-sm">{c.discountValue}% OFF</span>
                           ) : (
-                            <span className="font-extrabold text-indigo-400 text-sm">₹{c.discountValue} FLAT OFF</span>
+                            <span className="font-extrabold text-orange-400 text-sm">₹{c.discountValue} FLAT OFF</span>
                           )}
                         </div>
                         {c.discountType === 1 && c.maxDiscountAmount && (
@@ -387,7 +387,7 @@ export default function SuperAdminCouponsPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, discountType: 2 })}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${formData.discountType === 2 ? "bg-indigo-500/15 border-indigo-500 text-indigo-300" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"}`}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${formData.discountType === 2 ? "bg-orange-500/15 border-orange-500 text-orange-300" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"}`}
                 >
                   <div className="font-bold flex items-center gap-1.5 text-xs">
                     <span className="font-mono font-bold">₹</span>

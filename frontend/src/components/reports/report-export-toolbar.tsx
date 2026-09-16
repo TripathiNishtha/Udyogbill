@@ -276,10 +276,10 @@ export function ReportExportToolbar({
         <button
           type="button"
           onClick={handleExportCsv}
-          className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 dark:text-indigo-300 dark:border-indigo-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-300 dark:bg-orange-950/40 dark:hover:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           title="Download Comma-Separated Values (.csv)"
         >
-          <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          <Download className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           <span>CSV</span>
         </button>
 
@@ -287,10 +287,10 @@ export function ReportExportToolbar({
         <button
           type="button"
           onClick={() => setEmailModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-300 dark:bg-orange-950/40 dark:hover:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800/60 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           title="Send Report via Email"
         >
-          <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Mail className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           <span>Send to Mail</span>
         </button>
 
@@ -312,7 +312,7 @@ export function ReportExportToolbar({
           <div className="bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400">
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
@@ -348,7 +348,7 @@ export function ReportExportToolbar({
                     placeholder="e.g. ca.accountant@gmail.com, partner@biz.com"
                     value={toEmail}
                     onChange={(e) => setToEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
@@ -358,7 +358,7 @@ export function ReportExportToolbar({
                     type="text"
                     value={emailSubject}
                     onChange={(e) => setEmailSubject(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
@@ -371,7 +371,7 @@ export function ReportExportToolbar({
                     placeholder="Please find attached the financial audit data..."
                     value={emailNotes}
                     onChange={(e) => setEmailNotes(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 resize-none"
                   />
                 </div>
 
@@ -391,7 +391,7 @@ export function ReportExportToolbar({
                   <button
                     type="submit"
                     disabled={emailSending}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/30"
+                    className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-md shadow-orange-600/30"
                   >
                     {emailSending ? (
                       <>

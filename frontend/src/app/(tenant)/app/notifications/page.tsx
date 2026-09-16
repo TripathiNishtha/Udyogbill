@@ -143,7 +143,7 @@ export default function NotificationsHubPage() {
       case 2:
         return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">SMS</span>;
       case 3:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Email</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">Email</span>;
       case 4:
         return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">Webhook</span>;
       default:
@@ -157,7 +157,7 @@ export default function NotificationsHubPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2.5">
-            <MessageSquare className="w-7 h-7 text-indigo-400" />
+            <MessageSquare className="w-7 h-7 text-orange-400" />
             <span>Omnichannel Communication & Notification Hub</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -168,7 +168,7 @@ export default function NotificationsHubPage() {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setIsDispatchModalOpen(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all"
           >
             <Send className="w-4 h-4" />
             <span>Send Test Message</span>
@@ -210,9 +210,9 @@ export default function NotificationsHubPage() {
         <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
           <div className="flex items-center justify-between text-slate-400 text-xs">
             <span>SMTP Email Dispatcher</span>
-            <Mail className="w-4 h-4 text-indigo-400" />
+            <Mail className="w-4 h-4 text-orange-400" />
           </div>
-          <div className="text-xl font-bold font-mono text-indigo-400 mt-2">
+          <div className="text-xl font-bold font-mono text-orange-400 mt-2">
             {gateways?.fromEmail || "Active"}
           </div>
           <div className="text-[11px] text-slate-500 mt-1">Port {gateways?.smtpPort || 587} SSL</div>
@@ -236,7 +236,7 @@ export default function NotificationsHubPage() {
           onClick={() => setActiveTab("gateways")}
           className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center space-x-2 ${
             activeTab === "gateways"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
@@ -247,7 +247,7 @@ export default function NotificationsHubPage() {
           onClick={() => setActiveTab("templates")}
           className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center space-x-2 ${
             activeTab === "templates"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
@@ -258,7 +258,7 @@ export default function NotificationsHubPage() {
           onClick={() => setActiveTab("logs")}
           className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center space-x-2 ${
             activeTab === "logs"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
@@ -269,7 +269,7 @@ export default function NotificationsHubPage() {
           onClick={() => setActiveTab("webhooks")}
           className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center space-x-2 ${
             activeTab === "webhooks"
-              ? "border-indigo-500 text-indigo-400"
+              ? "border-orange-500 text-orange-400"
               : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
@@ -365,7 +365,7 @@ export default function NotificationsHubPage() {
             {/* SMTP Box */}
             <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-indigo-400 font-bold text-sm">
+                <div className="flex items-center space-x-2 text-orange-400 font-bold text-sm">
                   <Mail className="w-4 h-4" />
                   <span>SMTP Email Gateway</span>
                 </div>
@@ -373,7 +373,7 @@ export default function NotificationsHubPage() {
                   type="checkbox"
                   checked={gateways.isEmailEnabled}
                   onChange={(e) => setGateways({ ...gateways, isEmailEnabled: e.target.checked })}
-                  className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
+                  className="w-4 h-4 rounded text-orange-600 bg-slate-900 border-slate-700"
                 />
               </div>
 
@@ -411,7 +411,7 @@ export default function NotificationsHubPage() {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30"
+              className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30"
             >
               Save Gateway Configuration
             </button>
@@ -448,7 +448,7 @@ export default function NotificationsHubPage() {
                 <div className="text-[10px] text-slate-400 flex items-center space-x-1 flex-wrap gap-1">
                   <span>Available Tokens:</span>
                   {JSON.parse(tpl.variablesJson).map((v: string) => (
-                    <span key={v} className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono">
+                    <span key={v} className="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-300 border border-orange-500/20 font-mono">
                       {`{{${v}}}`}
                     </span>
                   ))}
@@ -528,7 +528,7 @@ export default function NotificationsHubPage() {
               </button>
               <button
                 onClick={() => setIsWebhookModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-1.5"
+                className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center space-x-1.5"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Webhook</span>
@@ -566,7 +566,7 @@ export default function NotificationsHubPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
             <h3 className="font-bold text-sm text-white flex items-center space-x-2">
-              <Send className="w-4 h-4 text-indigo-400" />
+              <Send className="w-4 h-4 text-orange-400" />
               <span>Dispatch Test Notification</span>
             </h3>
 
@@ -625,7 +625,7 @@ export default function NotificationsHubPage() {
               </button>
               <button
                 onClick={handleTestDispatch}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30"
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/30"
               >
                 Dispatch Message
               </button>

@@ -491,7 +491,7 @@ export default function TenantCustomersPage() {
 
             <div>
               <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Users2 className="w-5 h-5 text-indigo-400" />
+                <Users2 className="w-5 h-5 text-orange-400" />
                 <span>Add Customer / Buyer Account</span>
               </h3>
               <p className="text-xs text-slate-400">
@@ -509,7 +509,7 @@ export default function TenantCustomersPage() {
                     placeholder="e.g. CUST-1001"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="sm:col-span-2 space-y-1">
@@ -520,7 +520,7 @@ export default function TenantCustomersPage() {
                     placeholder="e.g. Apollo Hospitals & Pharmacy Pvt Ltd"
                     value={form.legalName}
                     onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -533,7 +533,7 @@ export default function TenantCustomersPage() {
                     placeholder="e.g. Apollo Pharmacy"
                     value={form.tradeName || ""}
                     onChange={(e) => setForm({ ...form, tradeName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -541,7 +541,7 @@ export default function TenantCustomersPage() {
                   <select
                     value={form.customerType}
                     onChange={(e) => setForm({ ...form, customerType: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-indigo-500/40 rounded-lg text-xs text-white font-medium focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-orange-500/40 rounded-lg text-xs text-white font-medium focus:outline-none focus:border-orange-500"
                   >
                     <option value="1">B2B - Business to Business (Wholesale Rate)</option>
                     <option value="2">B2C - Business to Consumer (Retail MRP)</option>
@@ -570,7 +570,7 @@ export default function TenantCustomersPage() {
                       type="button"
                       disabled={fetchingGst || !form.gstin || form.gstin.length !== 15}
                       onClick={() => handleGstLookup()}
-                      className="inline-flex items-center space-x-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 disabled:opacity-40 transition"
+                      className="inline-flex items-center space-x-1 text-[11px] font-bold text-orange-400 hover:text-orange-300 disabled:opacity-40 transition"
                     >
                       <Sparkles className={`w-3 h-3 ${fetchingGst ? "animate-spin" : ""}`} />
                       <span>{fetchingGst ? "Fetching..." : "Auto-Fetch Details"}</span>
@@ -588,7 +588,7 @@ export default function TenantCustomersPage() {
                         handleGstLookup(val);
                       }
                     }}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -599,7 +599,7 @@ export default function TenantCustomersPage() {
                     placeholder="e.g. AABCA1234A"
                     value={form.pan || ""}
                     onChange={(e) => setForm({ ...form, pan: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -644,7 +644,7 @@ export default function TenantCustomersPage() {
                     Registered Billing Address (From GSTIN)
                   </span>
                   {form.billingAddress?.state && (
-                    <span className="text-[10px] text-indigo-400 font-medium">
+                    <span className="text-[10px] text-orange-400 font-medium">
                       State Code: {form.billingAddress.stateCode || "--"}
                     </span>
                   )}
@@ -672,7 +672,7 @@ export default function TenantCustomersPage() {
                         },
                       })
                     }
-                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -699,7 +699,7 @@ export default function TenantCustomersPage() {
                           },
                         })
                       }
-                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div className="space-y-1">
@@ -725,7 +725,7 @@ export default function TenantCustomersPage() {
                           },
                         })
                       }
-                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div className="space-y-1">
@@ -752,7 +752,7 @@ export default function TenantCustomersPage() {
                           },
                         })
                       }
-                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                 </div>
@@ -803,7 +803,7 @@ export default function TenantCustomersPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500 transition-colors disabled:opacity-50"
                 >
                   {submitting ? "Saving..." : "Save Customer"}
                 </button>

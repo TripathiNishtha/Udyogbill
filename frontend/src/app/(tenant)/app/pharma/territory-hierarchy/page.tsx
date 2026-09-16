@@ -470,7 +470,7 @@ export default function TerritoryHierarchyPage() {
 
                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
                   <span className="flex items-center gap-1 font-medium text-gray-700">
-                    <Users className="w-3.5 h-3.5 text-blue-500" /> {div.totalEmployeesCount || 0} Staff
+                    <Users className="w-3.5 h-3.5 text-orange-500" /> {div.totalEmployeesCount || 0} Staff
                   </span>
                   <span className="flex items-center gap-1 font-medium text-gray-700">
                     <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {div.totalPatchesCount || 0} Patches
@@ -591,7 +591,7 @@ export default function TerritoryHierarchyPage() {
                     <div className="text-xs text-gray-500">{p.areaTerritoryName || "Area Unassigned"}</div>
                   </td>
                   <td className="px-6 py-4 text-center font-bold text-gray-800">{p.totalBeatsCount || 0}</td>
-                  <td className="px-6 py-4 text-center font-bold text-blue-700">{p.totalDoctorsCount || 0}</td>
+                  <td className="px-6 py-4 text-center font-bold text-orange-700">{p.totalDoctorsCount || 0}</td>
                   <td className="px-6 py-4 text-center font-bold text-emerald-700">{p.totalChemistsCount || 0}</td>
                   <td className="px-6 py-4 text-center">
                     <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
@@ -636,7 +636,7 @@ export default function TerritoryHierarchyPage() {
                     <div className="text-xs text-gray-500 font-mono">{b.code}</div>
                     {b.routeDescription && (
                       <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                        <Compass className="w-3 h-3 text-blue-500" /> {b.routeDescription}
+                        <Compass className="w-3 h-3 text-orange-500" /> {b.routeDescription}
                       </div>
                     )}
                   </td>
@@ -647,7 +647,7 @@ export default function TerritoryHierarchyPage() {
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-800">
                     {b.scheduledDayOfWeek !== undefined && b.scheduledDayOfWeek !== null ? (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-800">
                         {dayNames[b.scheduledDayOfWeek] || "Weekly"}
                       </span>
                     ) : (
@@ -655,7 +655,7 @@ export default function TerritoryHierarchyPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 font-semibold text-gray-700">{b.estimatedDistanceKm} km</td>
-                  <td className="px-6 py-4 text-center font-bold text-blue-700">{b.totalDoctorsCount || 0}</td>
+                  <td className="px-6 py-4 text-center font-bold text-orange-700">{b.totalDoctorsCount || 0}</td>
                   <td className="px-6 py-4 text-center font-bold text-emerald-700">{b.totalChemistsCount || 0}</td>
                   <td className="px-6 py-4 text-center">
                     <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">

@@ -153,7 +153,7 @@ export default function TenantBranchesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
-            <Building2 className="w-6 h-6 text-indigo-400" />
+            <Building2 className="w-6 h-6 text-orange-400" />
             <span>Multi-Branch & Warehouse Hierarchy</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400">
@@ -172,7 +172,7 @@ export default function TenantBranchesPage() {
           <button
             onClick={() => setIsBranchModalOpen(true)}
             disabled={(quotas?.currentBranches || 0) >= (quotas?.maxBranches || 1)}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-colors disabled:opacity-50"
+            className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-md shadow-orange-600/20 transition-colors disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             <span>Add Branch</span>
@@ -199,7 +199,7 @@ export default function TenantBranchesPage() {
                     <span className="text-lg font-bold text-white tracking-tight">
                       {branch.branchName}
                     </span>
-                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-indigo-400 font-semibold">
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-orange-400 font-semibold">
                       {branch.branchCode}
                     </span>
                     {branch.isHeadOffice && (
@@ -302,7 +302,7 @@ export default function TenantBranchesPage() {
 
             <div>
               <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Building2 className="w-5 h-5 text-indigo-400" />
+                <Building2 className="w-5 h-5 text-orange-400" />
                 <span>Create New Branch</span>
               </h3>
               <p className="text-xs text-slate-400">
@@ -322,7 +322,7 @@ export default function TenantBranchesPage() {
                     onChange={(e) =>
                       setBranchForm({ ...branchForm, branchCode: e.target.value.toUpperCase() })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -335,7 +335,7 @@ export default function TenantBranchesPage() {
                     onChange={(e) =>
                       setBranchForm({ ...branchForm, branchName: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -350,7 +350,7 @@ export default function TenantBranchesPage() {
                     onChange={(e) =>
                       setBranchForm({ ...branchForm, gstin: e.target.value.toUpperCase() })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -363,7 +363,7 @@ export default function TenantBranchesPage() {
                     onChange={(e) =>
                       setBranchForm({ ...branchForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -377,7 +377,7 @@ export default function TenantBranchesPage() {
                   onChange={(e) =>
                     setBranchForm({ ...branchForm, addressLine1: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -389,7 +389,7 @@ export default function TenantBranchesPage() {
                     placeholder="Bengaluru"
                     value={branchForm.city || ""}
                     onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -399,7 +399,7 @@ export default function TenantBranchesPage() {
                     placeholder="Karnataka"
                     value={branchForm.state || ""}
                     onChange={(e) => setBranchForm({ ...branchForm, state: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -411,7 +411,7 @@ export default function TenantBranchesPage() {
                     onChange={(e) =>
                       setBranchForm({ ...branchForm, pincode: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -424,7 +424,7 @@ export default function TenantBranchesPage() {
                   onChange={(e) =>
                     setBranchForm({ ...branchForm, isHeadOffice: e.target.checked })
                   }
-                  className="rounded bg-slate-900 border-slate-800 text-indigo-600 focus:ring-indigo-500"
+                  className="rounded bg-slate-900 border-slate-800 text-orange-600 focus:ring-orange-500"
                 />
                 <label htmlFor="isHeadOffice" className="text-xs text-slate-300 cursor-pointer">
                   Set as Head Office Branch
@@ -442,7 +442,7 @@ export default function TenantBranchesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500 transition-colors disabled:opacity-50"
                 >
                   {submitting ? "Creating..." : "Save Branch"}
                 </button>

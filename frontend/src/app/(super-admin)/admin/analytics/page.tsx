@@ -182,7 +182,7 @@ function SetupModal({
                     type="checkbox"
                     checked={form.isGa4Enabled}
                     onChange={(e) => setForm({ ...form, isGa4Enabled: e.target.checked })}
-                    className="w-4 h-4 accent-indigo-600"
+                    className="w-4 h-4 accent-orange-600"
                   />
                   <span className="text-xs font-semibold text-slate-700">Enable</span>
                 </label>
@@ -198,7 +198,7 @@ function SetupModal({
                     placeholder="e.g. properties/530509929"
                     value={form.ga4PropertyId}
                     onChange={(e) => setForm({ ...form, ga4PropertyId: e.target.value })}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 <div>
@@ -212,7 +212,7 @@ function SetupModal({
                     onChange={(e) =>
                       setForm({ ...form, ga4ServiceAccountJson: e.target.value })
                     }
-                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -223,8 +223,8 @@ function SetupModal({
             {/* GSC Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Search className="w-4 h-4 text-blue-600" />
+                <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <Search className="w-4 h-4 text-orange-600" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-800 text-sm">
@@ -238,7 +238,7 @@ function SetupModal({
                     type="checkbox"
                     checked={form.isGscEnabled}
                     onChange={(e) => setForm({ ...form, isGscEnabled: e.target.checked })}
-                    className="w-4 h-4 accent-indigo-600"
+                    className="w-4 h-4 accent-orange-600"
                   />
                   <span className="text-xs font-semibold text-slate-700">Enable</span>
                 </label>
@@ -254,7 +254,7 @@ function SetupModal({
                     placeholder="e.g. https://udyogbill.com/"
                     value={form.gscSiteUrl}
                     onChange={(e) => setForm({ ...form, gscSiteUrl: e.target.value })}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 <div>
@@ -268,7 +268,7 @@ function SetupModal({
                     onChange={(e) =>
                       setForm({ ...form, gscServiceAccountJson: e.target.value })
                     }
-                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -293,7 +293,7 @@ function SetupModal({
           <button
             onClick={save}
             disabled={saving || loading}
-            className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-1.5 text-xs font-semibold bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
           >
             {saving ? "Saving..." : "Save Configuration"}
           </button>
@@ -355,7 +355,7 @@ function SourceIcon({ source }: { source: string }) {
   if (s.includes("organic") || s.includes("search"))
     return <Search className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
   if (s.includes("direct"))
-    return <MousePointer className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+    return <MousePointer className="w-3.5 h-3.5 text-orange-600 shrink-0" />;
   if (s.includes("social"))
     return <Share2 className="w-3.5 h-3.5 text-pink-600 shrink-0" />;
   if (s.includes("email"))
@@ -614,8 +614,8 @@ export default function WebsiteAnalyticsPage() {
       {/* ─── Compact Executive Top Bar ──────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white border border-slate-200/90 px-4 py-2.5 rounded-xl shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100/80 flex items-center justify-center shrink-0">
-            <BarChart3 className="w-4 h-4 text-indigo-600" />
+          <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100/80 flex items-center justify-center shrink-0">
+            <BarChart3 className="w-4 h-4 text-orange-600" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -642,7 +642,7 @@ export default function WebsiteAnalyticsPage() {
                 onClick={() => setRange(r)}
                 className={`px-2.5 py-1 rounded-md transition-all ${
                   range === r
-                    ? "bg-white text-indigo-600 shadow-xs font-bold"
+                    ? "bg-white text-orange-600 shadow-xs font-bold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -659,7 +659,7 @@ export default function WebsiteAnalyticsPage() {
             className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-xs transition-colors"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-indigo-600" : ""}`}
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-orange-600" : ""}`}
             />
             <span className="hidden sm:inline">Refresh</span>
           </button>
@@ -667,7 +667,7 @@ export default function WebsiteAnalyticsPage() {
           {/* Settings */}
           <button
             onClick={() => setShowSetup(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
           >
             <Settings className="w-3.5 h-3.5" />
             <span>Configure GA4</span>
@@ -714,9 +714,9 @@ export default function WebsiteAnalyticsPage() {
           {/* ─── Row 1: 7 High-Density KPI Cards ────────────────────────────── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
             {/* 1. Live Active Users (Cockpit Accent Card) */}
-            <div className="bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 text-white rounded-xl p-3 shadow-xs flex flex-col justify-between relative overflow-hidden">
+            <div className="bg-gradient-to-br from-orange-600 via-orange-600 to-purple-700 text-white rounded-xl p-3 shadow-xs flex flex-col justify-between relative overflow-hidden">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-100">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-orange-100">
                   Active Now
                 </span>
                 <span className="relative flex h-2.5 w-2.5">
@@ -729,7 +729,7 @@ export default function WebsiteAnalyticsPage() {
                   {realtime?.activeUsers ?? 0}
                 </span>
                 <span
-                  className="text-[10px] text-indigo-200 font-medium truncate max-w-[85px]"
+                  className="text-[10px] text-orange-200 font-medium truncate max-w-[85px]"
                   title={realtime?.topPages?.[0]?.page || "Live visitors"}
                 >
                   {realtime?.topPages?.[0]?.page
@@ -744,8 +744,8 @@ export default function WebsiteAnalyticsPage() {
               label="Total Sessions"
               value={fmtNum(overview?.sessions ?? 0)}
               icon={TrendingUp}
-              iconColor="text-blue-600"
-              iconBg="bg-blue-50"
+              iconColor="text-orange-600"
+              iconBg="bg-orange-50"
             />
 
             {/* 3. Total Users */}
@@ -753,8 +753,8 @@ export default function WebsiteAnalyticsPage() {
               label="Total Users"
               value={fmtNum(overview?.users ?? 0)}
               icon={Users}
-              iconColor="text-indigo-600"
-              iconBg="bg-indigo-50"
+              iconColor="text-orange-600"
+              iconBg="bg-orange-50"
             />
 
             {/* 4. New Users */}
@@ -806,12 +806,12 @@ export default function WebsiteAnalyticsPage() {
             <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
+                  <TrendingUp className="w-3.5 h-3.5 text-orange-600" />
                   Sessions & Users Trend — {RANGE_LABELS[range]}
                 </h2>
                 <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
                   <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-1 bg-indigo-600 rounded-full" /> Sessions
+                    <span className="w-2.5 h-1 bg-orange-600 rounded-full" /> Sessions
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-2.5 h-1 bg-purple-500 rounded-full" /> Users
@@ -873,7 +873,7 @@ export default function WebsiteAnalyticsPage() {
               {/* Traffic Sources */}
               <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs flex flex-col justify-between">
                 <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                  <Globe className="w-3.5 h-3.5 text-orange-600" />
                   Traffic Sources
                 </h2>
 
@@ -931,7 +931,7 @@ export default function WebsiteAnalyticsPage() {
               {/* Device Breakdown */}
               <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs flex flex-col justify-between">
                 <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Monitor className="w-3.5 h-3.5 text-indigo-600" />
+                  <Monitor className="w-3.5 h-3.5 text-orange-600" />
                   Devices
                 </h2>
 
@@ -1001,7 +1001,7 @@ export default function WebsiteAnalyticsPage() {
             <div className="md:col-span-5 bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                  <Eye className="w-3.5 h-3.5 text-orange-600" />
                   Top Visited Pages
                 </h2>
                 <span className="text-[10px] text-slate-400 font-medium">Views & Avg Time</span>
@@ -1031,7 +1031,7 @@ export default function WebsiteAnalyticsPage() {
                         </div>
                         <div className="mt-1 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-indigo-500 rounded-full"
+                            className="h-full bg-orange-500 rounded-full"
                             style={{ width: `${Math.max(5, pct)}%` }}
                           />
                         </div>
@@ -1050,7 +1050,7 @@ export default function WebsiteAnalyticsPage() {
             <div className="md:col-span-4 bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+                  <MapPin className="w-3.5 h-3.5 text-orange-600" />
                   Audience Geography
                 </h2>
                 <span className="text-[10px] text-slate-400 font-medium">City / State</span>
@@ -1074,13 +1074,13 @@ export default function WebsiteAnalyticsPage() {
                               ({g.region || "India"})
                             </span>
                           </div>
-                          <span className="font-bold text-indigo-600 tabular-nums text-[11px]">
+                          <span className="font-bold text-orange-600 tabular-nums text-[11px]">
                             {fmtNum(g.users)} <span className="font-normal text-[10px] text-slate-400">users</span>
                           </span>
                         </div>
                         <div className="mt-1 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-indigo-500/80 rounded-full"
+                            className="h-full bg-orange-500/80 rounded-full"
                             style={{ width: `${Math.max(5, pct)}%` }}
                           />
                         </div>
@@ -1124,7 +1124,7 @@ export default function WebsiteAnalyticsPage() {
                           >
                             {p.page.replace(" | UdyogBill", "")}
                           </span>
-                          <span className="font-bold text-indigo-600 tabular-nums text-[11px]">
+                          <span className="font-bold text-orange-600 tabular-nums text-[11px]">
                             {p.users}
                           </span>
                         </div>

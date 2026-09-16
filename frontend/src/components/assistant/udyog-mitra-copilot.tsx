@@ -203,7 +203,7 @@ export function UdyogMitraCopilot() {
         <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-50 flex items-center animate-in fade-in slide-in-from-bottom-5 duration-300">
           <button
             onClick={() => setIsOpen(true)}
-            className="group relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-blue-700 via-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/20"
+            className="group relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-orange-700 via-orange-600 to-violet-600 text-white flex items-center justify-center shadow-2xl shadow-orange-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/20"
             title="Open UdyogMitra Assistant"
           >
             <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-white transition-transform group-hover:rotate-12" />
@@ -214,12 +214,12 @@ export function UdyogMitraCopilot() {
 
       {/* Expanded Chat Drawer */}
       {isOpen && (
-        <div className="fixed bottom-4 right-4 z-50 w-[95vw] sm:w-[420px] h-[600px] max-h-[90vh] bg-slate-900 border border-indigo-500/30 rounded-2xl shadow-2xl shadow-slate-950 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed bottom-4 right-4 z-50 w-[95vw] sm:w-[420px] h-[600px] max-h-[90vh] bg-slate-900 border border-orange-500/30 rounded-2xl shadow-2xl shadow-slate-950 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between border-b border-indigo-800/40">
+          <div className="p-4 bg-gradient-to-r from-orange-900 via-orange-900 to-slate-900 text-white flex items-center justify-between border-b border-orange-800/40">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-indigo-500/30 border border-indigo-400/40 flex items-center justify-center shadow-inner">
-                <Bot className="w-5 h-5 text-indigo-300" />
+              <div className="w-9 h-9 rounded-xl bg-orange-500/30 border border-orange-400/40 flex items-center justify-center shadow-inner">
+                <Bot className="w-5 h-5 text-orange-300" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -228,7 +228,7 @@ export function UdyogMitraCopilot() {
                     Live AI
                   </span>
                 </div>
-                <p className="text-[10px] text-indigo-200 truncate max-w-[220px]">
+                <p className="text-[10px] text-orange-200 truncate max-w-[220px]">
                   {businessName} • 100% Zero-Error Copilot
                 </p>
               </div>
@@ -253,7 +253,7 @@ export function UdyogMitraCopilot() {
                 <div
                   className={`p-3.5 rounded-2xl max-w-[85%] leading-relaxed ${
                     m.sender === "user"
-                      ? "bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-900/30 font-medium"
+                      ? "bg-orange-600 text-white rounded-br-none shadow-md shadow-orange-900/30 font-medium"
                       : "bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none shadow-sm"
                   }`}
                 >
@@ -262,7 +262,7 @@ export function UdyogMitraCopilot() {
                     dangerouslySetInnerHTML={{
                       __html: m.text
                         .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                        .replace(/• /g, "<span class='text-indigo-400'>• </span>")
+                        .replace(/• /g, "<span class='text-orange-400'>• </span>")
                     }}
                   />
 
@@ -294,7 +294,7 @@ export function UdyogMitraCopilot() {
                       <button
                         key={idx}
                         onClick={() => handleSend(fu)}
-                        className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-indigo-300 hover:text-white transition cursor-pointer text-left"
+                        className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-orange-300 hover:text-white transition cursor-pointer text-left"
                       >
                         ⚡ {fu}
                       </button>
@@ -306,7 +306,7 @@ export function UdyogMitraCopilot() {
 
             {isLoading && (
               <div className="flex items-center gap-2 p-3 bg-slate-900 border border-slate-800 rounded-2xl w-fit text-slate-400 animate-pulse">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-400" />
                 <span className="text-[11px]">UdyogMitra hisaab check kar raha hai...</span>
               </div>
             )}
@@ -355,14 +355,14 @@ export function UdyogMitraCopilot() {
                   handleSend();
                 }
               }}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition"
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500 transition"
             />
 
             <button
               type="button"
               onClick={() => handleSend()}
               disabled={!inputQuery.trim() || isLoading}
-              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 transition shadow-md shadow-indigo-950 cursor-pointer"
+              className="p-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white disabled:opacity-40 transition shadow-md shadow-orange-950 cursor-pointer"
             >
               <Send className="w-4 h-4" />
             </button>

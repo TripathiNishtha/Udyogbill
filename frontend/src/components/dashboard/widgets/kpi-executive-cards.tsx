@@ -84,22 +84,22 @@ export function KpiExecutiveCards({ data, isHi = false }: Props) {
       {/* 2. Realized Cash Collection */}
       <Link
         href="/app/reports/sales?tab=summary"
-        className="bg-surface border border-blue-500/30 hover:border-blue-500 rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between hover:shadow-md transition-all shadow-2xs cursor-pointer group min-h-[105px] sm:min-h-[110px] border-t-3 border-t-blue-600"
+        className="bg-surface border border-orange-500/30 hover:border-orange-500 rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between hover:shadow-md transition-all shadow-2xs cursor-pointer group min-h-[105px] sm:min-h-[110px] border-t-3 border-t-orange-600"
         title={isHi ? "पेमेंट सारांश देखें" : "View Payment Summary"}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1.5 min-w-0">
-            <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/70 dark:border-blue-800/50 shrink-0">
+            <div className="p-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/70 dark:border-orange-800/50 shrink-0">
               <Wallet className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider truncate">
               {isHi ? "प्राप्त वसूली" : "Realized Collection"}
             </span>
           </div>
-          <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-blue-600 transition-colors shrink-0" />
+          <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-orange-600 transition-colors shrink-0" />
         </div>
         <div className="my-1 sm:my-1.5 min-w-0">
-          <div className="text-base sm:text-xl xl:text-2xl font-black font-mono text-blue-600 dark:text-blue-400 tracking-tight truncate">
+          <div className="text-base sm:text-xl xl:text-2xl font-black font-mono text-orange-600 dark:text-orange-400 tracking-tight truncate">
             {formatCurrency(data.totalCollected)}
           </div>
           <div className="text-[10px] font-semibold text-muted-foreground mt-0.5 truncate">
@@ -108,7 +108,7 @@ export function KpiExecutiveCards({ data, isHi = false }: Props) {
         </div>
         <div className="pt-1.5 border-t border-border/40 flex items-center justify-between text-[10px]">
           <span className="text-muted-foreground font-medium truncate">Cash + Bank</span>
-          <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/60 font-bold shrink-0">
+          <span className="px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/60 font-bold shrink-0">
             Settled
           </span>
         </div>

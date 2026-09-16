@@ -156,7 +156,7 @@ export default function PharmaTradeSchemesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Tag className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+            <Tag className="w-8 h-8 text-orange-600 dark:text-orange-400" />
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
               Pharma Trade Schemes & Slabs Hub
             </h1>
@@ -175,7 +175,7 @@ export default function PharmaTradeSchemesPage() {
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-sm transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium shadow-sm transition-all"
           >
             <Plus className="w-4 h-4" />
             New Trade Scheme
@@ -188,7 +188,7 @@ export default function PharmaTradeSchemesPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Active Schemes</span>
-            <Sparkles className="w-5 h-5 text-indigo-500" />
+            <Sparkles className="w-5 h-5 text-orange-500" />
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
             {schemes.filter(s => s.isActive).length}
@@ -231,12 +231,12 @@ export default function PharmaTradeSchemesPage() {
       </div>
 
       {/* Simulator Section */}
-      <div className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 dark:from-indigo-950/30 dark:to-purple-950/30 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
-        <div className="flex items-center gap-2 font-semibold text-indigo-950 dark:text-indigo-200">
-          <Calculator className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+      <div className="bg-gradient-to-br from-orange-50/70 to-purple-50/70 dark:from-orange-950/30 dark:to-purple-950/30 p-5 rounded-2xl border border-orange-100 dark:border-orange-900/50 shadow-sm">
+        <div className="flex items-center gap-2 font-semibold text-orange-950 dark:text-orange-200">
+          <Calculator className="w-5 h-5 text-orange-600 dark:text-orange-400" />
           <h3>🧪 Real-Time Scheme Calculation Simulator</h3>
         </div>
-        <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-0.5">
+        <p className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">
           Simulate what bonus free quantities or discounts MRs & Chemists get when booking orders in the field.
         </p>
 
@@ -273,14 +273,14 @@ export default function PharmaTradeSchemesPage() {
             <button
               onClick={handleSimulate}
               disabled={calculating}
-              className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all"
+              className="w-full py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-all"
             >
               {calculating ? "Evaluating..." : "Calculate Bonus Slabs"}
             </button>
           </div>
 
           {calcResult && (
-            <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-orange-200 dark:border-orange-800 flex items-center justify-between">
               <div>
                 <div className="text-xs text-gray-500 font-medium">Applied: {calcResult.schemeName}</div>
                 <div className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
@@ -568,7 +568,7 @@ export default function PharmaTradeSchemesPage() {
                   <button
                     type="button"
                     onClick={handleAddSlab}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+                    className="text-xs text-orange-600 dark:text-orange-400 font-semibold hover:underline flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Slab
                   </button>
@@ -648,7 +648,7 @@ export default function PharmaTradeSchemesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold shadow-sm"
                 >
                   {submitting ? "Saving Scheme..." : "Publish Scheme to Field"}
                 </button>

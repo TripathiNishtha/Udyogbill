@@ -90,14 +90,14 @@ export default function ServicesIndustryPage() {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
             <div className="lg:col-span-7 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-indigo-200 bg-indigo-50 text-indigo-900 shadow-2xs">
-                <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-orange-200 bg-orange-50 text-orange-900 shadow-2xs">
+                <Briefcase className="w-3.5 h-3.5 text-orange-600" />
                 Service Provider, Agency & Consultancy Invoicing
               </div>
 
               <h1 className="text-2xl sm:text-4xl lg:text-[40px] font-black text-slate-950 tracking-tight leading-[1.2]">
                 Streamline Retainers, SAC Codes & TDS with{" "}
-                <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-orange-600 to-orange-600 bg-clip-text text-transparent">
                   Modern Service Invoicing
                 </span>
               </h1>

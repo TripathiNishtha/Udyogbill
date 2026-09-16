@@ -361,7 +361,7 @@ function StockReportsContent() {
           </div>
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Closing Qty</div>
-            <div className="text-xl font-black text-indigo-400 mt-1">{(valuationData?.grandClosingQuantity ?? 0).toLocaleString()}</div>
+            <div className="text-xl font-black text-orange-400 mt-1">{(valuationData?.grandClosingQuantity ?? 0).toLocaleString()}</div>
             <div className="text-[10px] text-slate-500 mt-0.5">End balance</div>
           </div>
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
@@ -579,7 +579,7 @@ function StockReportsContent() {
 
 export default function StockReportsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
       <StockReportsContent />
     </Suspense>
   );

@@ -156,7 +156,7 @@ export default function ManufacturingBomPage() {
               setIngredients([{ rawMaterialItemId: items[0].id, quantityRequired: 1, uomId: items[0].primaryUomId }]);
             }
           }}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>New Recipe BOM</span>
@@ -217,7 +217,7 @@ export default function ManufacturingBomPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-bold text-base text-white">{bom.recipeName}</h3>
-                    <div className="text-xs text-indigo-400 font-mono mt-0.5">
+                    <div className="text-xs text-orange-400 font-mono mt-0.5">
                       Produces: {bom.outputYieldQuantity} {bom.outputUomName} of {bom.finishedGoodsName} ({bom.finishedGoodsSku})
                     </div>
                   </div>
@@ -329,7 +329,7 @@ export default function ManufacturingBomPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-xl bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden space-y-4 p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-base text-white flex items-center space-x-2">
-              <Factory className="w-4 h-4 text-indigo-400" />
+              <Factory className="w-4 h-4 text-orange-400" />
               <span>Define New Recipe & Bill of Materials</span>
             </h3>
 
@@ -379,7 +379,7 @@ export default function ManufacturingBomPage() {
                   <button
                     type="button"
                     onClick={addIngredient}
-                    className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 text-[11px]"
+                    className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-orange-300 text-[11px]"
                   >
                     + Add Ingredient
                   </button>
@@ -439,7 +439,7 @@ export default function ManufacturingBomPage() {
               </button>
               <button
                 onClick={handleSaveBom}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30"
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/30"
               >
                 Save Recipe BOM
               </button>

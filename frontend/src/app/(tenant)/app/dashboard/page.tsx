@@ -321,9 +321,9 @@ export default function TenantDashboardPage() {
         const total = salesSummaryMode.grandGrossSales;
         const colorMap: Record<string, { colorClass: string; barColor: string }> = {
           cash: { colorClass: "bg-emerald-400", barColor: "bg-emerald-500" },
-          upi: { colorClass: "bg-indigo-400", barColor: "bg-indigo-500" },
-          banktransfer: { colorClass: "bg-blue-400", barColor: "bg-blue-500" },
-          bank: { colorClass: "bg-blue-400", barColor: "bg-blue-500" },
+          upi: { colorClass: "bg-orange-400", barColor: "bg-orange-500" },
+          banktransfer: { colorClass: "bg-orange-400", barColor: "bg-orange-500" },
+          bank: { colorClass: "bg-orange-400", barColor: "bg-orange-500" },
           credit: { colorClass: "bg-amber-400", barColor: "bg-amber-500" },
         };
 
@@ -743,13 +743,13 @@ export default function TenantDashboardPage() {
 
         <Link
           href="/app/sales/quotations"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-blue-200 dark:border-blue-900/40 hover:border-blue-400 hover:bg-blue-50/40 shadow-2xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-orange-200 dark:border-orange-900/40 hover:border-orange-400 hover:bg-orange-50/40 shadow-2xs transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/60 shrink-0 group-hover:scale-105 transition-transform">
+            <div className="p-1 rounded-md bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 shrink-0 group-hover:scale-105 transition-transform">
               <FileText className="w-3.5 h-3.5" />
             </div>
-            <div className="text-xs font-semibold text-foreground group-hover:text-blue-700 dark:group-hover:text-blue-300 truncate">
+            <div className="text-xs font-semibold text-foreground group-hover:text-orange-700 dark:group-hover:text-orange-300 truncate">
               {isHi ? "कोटेशन बनाएं" : "New Estimate"}
             </div>
           </div>
@@ -777,13 +777,13 @@ export default function TenantDashboardPage() {
 
         <Link
           href="/app/parties/customers"
-          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-indigo-200 dark:border-indigo-900/40 hover:border-indigo-400 hover:bg-indigo-50/40 shadow-2xs transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3 py-2 rounded-xl bg-surface border border-orange-200 dark:border-orange-900/40 hover:border-orange-400 hover:bg-orange-50/40 shadow-2xs transition-all group cursor-pointer"
         >
           <div className="flex items-center space-x-2 overflow-hidden">
-            <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 shrink-0 group-hover:scale-105 transition-transform">
+            <div className="p-1 rounded-md bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 shrink-0 group-hover:scale-105 transition-transform">
               <Users2 className="w-3.5 h-3.5" />
             </div>
-            <div className="text-xs font-semibold text-foreground group-hover:text-indigo-700 dark:group-hover:text-indigo-300 truncate">
+            <div className="text-xs font-semibold text-foreground group-hover:text-orange-700 dark:group-hover:text-orange-300 truncate">
               {isHi ? "नया ग्राहक" : "Add Customer"}
             </div>
           </div>
@@ -875,7 +875,7 @@ export default function TenantDashboardPage() {
 
             <div>
               <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Users2 className="w-5 h-5 text-indigo-400" />
+                <Users2 className="w-5 h-5 text-orange-400" />
                 <span>{isHi ? "प्रोफाइल व सुरक्षा सेटिंग्स" : "Profile & Security Settings"}</span>
               </h3>
               <p className="text-xs text-slate-400">
@@ -900,7 +900,7 @@ export default function TenantDashboardPage() {
                   required
                   value={profileForm.fullName}
                   onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -914,7 +914,7 @@ export default function TenantDashboardPage() {
                   placeholder="9876543210"
                   value={profileForm.phoneNumber}
                   onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -932,7 +932,7 @@ export default function TenantDashboardPage() {
                     placeholder="••••••••"
                     value={profileForm.currentPassword}
                     onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 font-mono"
                   />
                 </div>
 
@@ -945,7 +945,7 @@ export default function TenantDashboardPage() {
                     placeholder="••••••••"
                     value={profileForm.newPassword}
                     onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 font-mono"
                   />
                 </div>
               </div>
@@ -961,7 +961,7 @@ export default function TenantDashboardPage() {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 shadow-lg shadow-orange-600/30 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {savingProfile ? (isHi ? "सहेज रहे हैं..." : "Saving...") : (isHi ? "बदलाव सहेजें" : "Save Changes")}
                 </button>

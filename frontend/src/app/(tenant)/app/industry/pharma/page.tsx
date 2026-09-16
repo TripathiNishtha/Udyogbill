@@ -97,7 +97,7 @@ export default function PharmaVerticalPage() {
             onClick={() => setActiveTab("expiry")}
             className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "expiry"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                ? "bg-orange-600 text-white shadow-md shadow-orange-600/30"
                 : "text-slate-400 hover:text-white"
             }`}
           >
@@ -107,7 +107,7 @@ export default function PharmaVerticalPage() {
             onClick={() => setActiveTab("scheduleH1")}
             className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "scheduleH1"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                ? "bg-orange-600 text-white shadow-md shadow-orange-600/30"
                 : "text-slate-400 hover:text-white"
             }`}
           >
@@ -163,7 +163,7 @@ export default function PharmaVerticalPage() {
                 placeholder="Search by Medicine, SKU, or Batch Number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -215,7 +215,7 @@ export default function PharmaVerticalPage() {
                       <tr key={b.batchId} className="hover:bg-slate-900/40 transition-colors">
                         <td className="py-3.5 px-4">
                           <div className="font-semibold text-white">{b.itemName}</div>
-                          <div className="text-[10px] font-mono text-indigo-400">{b.itemSku}</div>
+                          <div className="text-[10px] font-mono text-orange-400">{b.itemSku}</div>
                         </td>
                         <td className="py-3.5 px-4 font-mono font-bold text-amber-300">
                           {b.batchNumber}
@@ -266,7 +266,7 @@ export default function PharmaVerticalPage() {
                 placeholder="Search Doctor, Patient, Medicine, or Bill No..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
             <div className="text-xs text-slate-400">
@@ -318,7 +318,7 @@ export default function PharmaVerticalPage() {
                             <span>{r.doctorName}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-indigo-400">
+                        <td className="py-3.5 px-4 font-mono text-orange-400">
                           {r.doctorRegistrationNumber}
                         </td>
                         <td className="py-3.5 px-4 text-white font-bold">

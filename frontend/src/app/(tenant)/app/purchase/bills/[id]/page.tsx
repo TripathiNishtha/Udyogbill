@@ -44,7 +44,7 @@ export default function PurchaseBillPrintPage({ params }: { params: Promise<{ id
     return (
       <div className="text-center py-16">
         <h2 className="text-lg font-bold text-white mb-2">Purchase Bill Not Found</h2>
-        <Link href="/app/purchase/bills" className="text-indigo-400 hover:underline text-sm">
+        <Link href="/app/purchase/bills" className="text-orange-400 hover:underline text-sm">
           ← Back to Purchase Bills
         </Link>
       </div>

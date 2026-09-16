@@ -124,7 +124,7 @@ export default function GstReturnsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
-            <span className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/20">
+            <span className="p-2 rounded-xl bg-orange-600/20 text-orange-400 border border-orange-500/20">
               <FileText className="w-6 h-6" />
             </span>
             <span>GST Returns &amp; Filing (India GST Compliant)</span>
@@ -142,7 +142,7 @@ export default function GstReturnsPage() {
             onClick={() => setActiveTab("gstr1")}
             className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
               activeTab === "gstr1"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                ? "bg-orange-600 text-white shadow-md shadow-orange-600/30"
                 : "text-slate-400 hover:text-white"
             }`}
           >
@@ -152,7 +152,7 @@ export default function GstReturnsPage() {
             onClick={() => setActiveTab("gstr3b")}
             className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
               activeTab === "gstr3b"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                ? "bg-orange-600 text-white shadow-md shadow-orange-600/30"
                 : "text-slate-400 hover:text-white"
             }`}
           >
@@ -190,14 +190,14 @@ export default function GstReturnsPage() {
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500"
           />
           <span className="text-slate-500 text-xs font-semibold">to</span>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+            className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500"
           />
           <button
             onClick={loadGstData}
@@ -210,7 +210,7 @@ export default function GstReturnsPage() {
 
       {loading ? (
         <div className="p-16 text-center text-slate-400 flex flex-col items-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
+          <RefreshCw className="w-8 h-8 animate-spin text-orange-500 mb-3" />
           <p className="text-sm">Generating GST Return Data...</p>
         </div>
       ) : activeTab === "gstr1" && gstr1 ? (
@@ -224,7 +224,7 @@ export default function GstReturnsPage() {
               </div>
               <div className="mt-2 text-xs text-slate-400 flex items-center justify-between border-t border-slate-800 pt-2">
                 <span>Count: {gstr1.totalB2BInvoices}</span>
-                <span className="text-indigo-400 font-bold">
+                <span className="text-orange-400 font-bold">
                   Tax: ₹{gstr1.totalB2BTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -237,18 +237,18 @@ export default function GstReturnsPage() {
               </div>
               <div className="mt-2 text-xs text-slate-400 flex items-center justify-between border-t border-slate-800 pt-2">
                 <span>Count: {gstr1.totalB2CInvoices}</span>
-                <span className="text-indigo-400 font-bold">
+                <span className="text-orange-400 font-bold">
                   Tax: ₹{gstr1.totalB2CTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
 
-            <div className="p-6 bg-gradient-to-br from-indigo-950/40 to-slate-950 border border-indigo-800/40 rounded-2xl shadow-lg">
-              <div className="text-xs text-indigo-300 font-semibold mb-1">TOTAL OUTWARD SUPPLIES</div>
+            <div className="p-6 bg-gradient-to-br from-orange-950/40 to-slate-950 border border-orange-800/40 rounded-2xl shadow-lg">
+              <div className="text-xs text-orange-300 font-semibold mb-1">TOTAL OUTWARD SUPPLIES</div>
               <div className="text-2xl font-black text-emerald-400">
                 ₹{gstr1.totalOutwardTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
-              <div className="mt-2 text-xs text-indigo-300/80 flex items-center justify-between border-t border-indigo-900/40 pt-2">
+              <div className="mt-2 text-xs text-orange-300/80 flex items-center justify-between border-t border-orange-900/40 pt-2">
                 <span>All Documents</span>
                 <span className="text-white font-bold">
                   Total Tax: ₹{gstr1.totalOutwardTax.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -260,7 +260,7 @@ export default function GstReturnsPage() {
           {/* Rate-wise Summary Table */}
           <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl space-y-4">
             <h3 className="text-base font-bold text-white flex items-center space-x-2">
-              <Layers className="w-5 h-5 text-indigo-400" />
+              <Layers className="w-5 h-5 text-orange-400" />
               <span>Tax Rate Slab Breakdown</span>
             </h3>
             <div className="overflow-x-auto">
@@ -279,7 +279,7 @@ export default function GstReturnsPage() {
                 <tbody className="divide-y divide-slate-800/60 text-slate-300">
                   {gstr1.rateWiseSummary.map((row) => (
                     <tr key={row.rateSlab} className="hover:bg-slate-850/50">
-                      <td className="py-3 px-4 font-bold text-indigo-400">{row.rateSlab}</td>
+                      <td className="py-3 px-4 font-bold text-orange-400">{row.rateSlab}</td>
                       <td className="py-3 px-4 text-right font-mono">
                         ₹{row.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </td>
@@ -308,7 +308,7 @@ export default function GstReturnsPage() {
           {/* Table 12: HSN Summary */}
           <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl space-y-4">
             <h3 className="text-base font-bold text-white flex items-center space-x-2">
-              <Hash className="w-5 h-5 text-indigo-400" />
+              <Hash className="w-5 h-5 text-orange-400" />
               <span>Table 12: HSN-wise Summary of Outward Supplies</span>
             </h3>
             <div className="overflow-x-auto">
@@ -330,7 +330,7 @@ export default function GstReturnsPage() {
                 <tbody className="divide-y divide-slate-800/60 text-slate-300">
                   {gstr1.hsnSummary.map((h, i) => (
                     <tr key={i} className="hover:bg-slate-850/50">
-                      <td className="py-3 px-4 font-mono font-bold text-indigo-400">{h.hsnCode}</td>
+                      <td className="py-3 px-4 font-mono font-bold text-orange-400">{h.hsnCode}</td>
                       <td className="py-3 px-4 text-slate-200">{h.description}</td>
                       <td className="py-3 px-4 font-semibold text-slate-400">{h.uom}</td>
                       <td className="py-3 px-4 text-right font-mono">{h.totalQuantity}</td>

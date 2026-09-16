@@ -79,7 +79,7 @@ const STAGES = ["Lead", "Contacted", "Trial", "ConvertedPaid", "Dropped"];
 const INDUSTRY_BADGE_COLORS: Record<string, string> = {
   PHARMA: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
   FMCG: "bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-800",
-  ELECTRONICS: "bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800",
+  ELECTRONICS: "bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-800",
   GARMENTS: "bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800",
   HARDWARE: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800",
   SERVICE_SECTOR: "bg-pink-50 dark:bg-pink-950/40 text-pink-800 dark:text-pink-300 border-pink-300 dark:border-pink-800",
@@ -552,7 +552,7 @@ function LeadsCrmContent() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-600" />
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-orange-600" />
                     Loading organic leads...
                   </td>
                 </tr>
@@ -740,7 +740,7 @@ function LeadsCrmContent() {
                   </div>
                   <div>
                     <span className="text-slate-500 dark:text-slate-400">Search Keyword:</span>
-                    <p className="font-mono text-teal-700 dark:text-cyan-300 font-semibold mt-0.5">
+                    <p className="font-mono text-teal-700 dark:text-orange-300 font-semibold mt-0.5">
                       {selectedLead.searchKeyword ? `"${selectedLead.searchKeyword}"` : "—"}
                     </p>
                   </div>
@@ -1165,14 +1165,14 @@ function LeadsCrmContent() {
                     <span className="text-[10px] text-slate-400 font-mono">Interactive Perspective</span>
                   </div>
 
-                  <div className="flex-1 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4 border border-indigo-900/50 shadow-inner flex flex-col justify-center items-center relative overflow-hidden min-h-[360px]">
+                  <div className="flex-1 rounded-2xl bg-gradient-to-br from-slate-900 via-orange-950 to-slate-900 p-4 border border-orange-900/50 shadow-inner flex flex-col justify-center items-center relative overflow-hidden min-h-[360px]">
                     {/* Background glow */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
 
                     {/* Preview 3D Card Mockup */}
                     <div className="relative w-full max-w-sm rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-white/20 dark:border-slate-700 shadow-2xl p-5 space-y-3 transition-transform duration-300 hover:scale-[1.02] transform-gpu">
                       {/* Floating Badge */}
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-600 to-orange-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
                         <Sparkles className="w-3 h-3 text-amber-300" />
                         <span>{popupConfig.badgeText || "Special Welcome Offer"}</span>
                       </div>
@@ -1201,7 +1201,7 @@ function LeadsCrmContent() {
                       {/* CTA Button */}
                       <button
                         type="button"
-                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white text-xs font-black shadow-md shadow-purple-600/30 flex items-center justify-center gap-1.5 cursor-default mt-1"
+                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-orange-600 to-orange-600 text-white text-xs font-black shadow-md shadow-purple-600/30 flex items-center justify-center gap-1.5 cursor-default mt-1"
                       >
                         <span>{popupConfig.ctaButtonText || "Claim Free Access & Live Demo"}</span>
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -1242,7 +1242,7 @@ function LeadsCrmContent() {
                   type="button"
                   onClick={handleSavePopupConfig}
                   disabled={savingPopupConfig}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-purple-600/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-orange-600 hover:from-purple-700 hover:to-orange-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-purple-600/20 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {savingPopupConfig ? (
                     <>

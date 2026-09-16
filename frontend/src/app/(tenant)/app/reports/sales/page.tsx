@@ -166,7 +166,7 @@ function SalesReportsContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center space-x-3">
-            <span className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 shadow-xs">
+            <span className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-600/20 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-500/20 shadow-xs">
               <Receipt className="w-6 h-6" />
             </span>
             <span>Sales Register & Revenue Intelligence</span>
@@ -198,7 +198,7 @@ function SalesReportsContent() {
           }}
           className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "detailed"
-              ? "border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400"
+              ? "border-orange-600 text-orange-600 dark:border-orange-500 dark:text-orange-400"
               : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300"
           }`}
         >
@@ -211,7 +211,7 @@ function SalesReportsContent() {
           }}
           className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "summary"
-              ? "border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400"
+              ? "border-orange-600 text-orange-600 dark:border-orange-500 dark:text-orange-400"
               : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300"
           }`}
         >
@@ -254,7 +254,7 @@ function SalesReportsContent() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && loadData()}
                 placeholder="Search invoice, customer, SKU..."
-                className="pl-8 pr-4 py-1.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+                className="pl-8 pr-4 py-1.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-orange-500"
               />
             </div>
           ) : (
@@ -280,7 +280,7 @@ function SalesReportsContent() {
         <button
           onClick={() => loadData()}
           disabled={loading}
-          className="flex items-center space-x-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-500/20"
+          className="flex items-center space-x-2 px-5 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-orange-500/20"
         >
           {loading ? (
             <>
@@ -338,10 +338,10 @@ function SalesReportsContent() {
           </div>
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow transition-all">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Gross Invoiced</div>
-            <div className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+            <div className="text-xl font-black text-orange-600 dark:text-orange-400 mt-1">
               {formatCurrency(detailedData?.totalNetInvoiceValue ?? detailedData?.totalNetAmount)}
             </div>
-            <div className="text-[11px] text-indigo-700 dark:text-indigo-300 font-medium mt-1">Final billed value</div>
+            <div className="text-[11px] text-orange-700 dark:text-orange-300 font-medium mt-1">Final billed value</div>
           </div>
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow transition-all">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Outstanding A/R</div>
@@ -372,8 +372,8 @@ function SalesReportsContent() {
           </div>
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow transition-all">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Net Revenue</div>
-            <div className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{formatCurrency(summaryData?.grandNetSales)}</div>
-            <div className="text-[11px] text-indigo-700 dark:text-indigo-300 font-medium mt-1">After returns</div>
+            <div className="text-xl font-black text-orange-600 dark:text-orange-400 mt-1">{formatCurrency(summaryData?.grandNetSales)}</div>
+            <div className="text-[11px] text-orange-700 dark:text-orange-300 font-medium mt-1">After returns</div>
           </div>
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow transition-all">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Collected Cash</div>
@@ -409,7 +409,7 @@ function SalesReportsContent() {
                 onClick={() => setViewMode("fit")}
                 className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
                   viewMode === "fit"
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
+                    ? "bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-300 shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="Fit all columns cleanly on screen without horizontal scrolling"
@@ -421,7 +421,7 @@ function SalesReportsContent() {
                 onClick={() => setViewMode("full")}
                 className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
                   viewMode === "full"
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
+                    ? "bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-300 shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="Show every single column separately with horizontal scroll"
@@ -442,7 +442,7 @@ function SalesReportsContent() {
               dateRangeText={`${new Date(fromDate).toLocaleDateString("en-IN")} to ${new Date(toDate).toLocaleDateString("en-IN")}`}
             />
 
-            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hidden sm:inline-block">
+            <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold hidden sm:inline-block">
               Period: {new Date(fromDate).toLocaleDateString("en-IN")} — {new Date(toDate).toLocaleDateString("en-IN")}
             </span>
           </div>
@@ -450,7 +450,7 @@ function SalesReportsContent() {
 
         {loading ? (
           <div className="p-16 flex flex-col items-center justify-center space-y-3">
-            <RefreshCw className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
+            <RefreshCw className="w-8 h-8 text-orange-600 dark:text-orange-400 animate-spin" />
             <div className="text-sm font-semibold text-slate-600 dark:text-slate-400">Querying real database ledger...</div>
           </div>
         ) : activeTab === "detailed" ? (
@@ -485,7 +485,7 @@ function SalesReportsContent() {
                               {row.invoiceId ? (
                                 <Link
                                   href={`/app/sales/invoices/${row.invoiceId}`}
-                                  className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline inline-flex items-center space-x-1 font-mono"
+                                  className="text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 hover:underline inline-flex items-center space-x-1 font-mono"
                                   title="Click to View Full Invoice"
                                 >
                                   <span>{row.invoiceNumber}</span>
@@ -504,7 +504,7 @@ function SalesReportsContent() {
                               {row.partyId ? (
                                 <Link
                                   href={`/app/customers/${row.partyId}`}
-                                  className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+                                  className="hover:text-orange-600 dark:hover:text-orange-400 hover:underline"
                                 >
                                   {row.customerName}
                                 </Link>
@@ -521,7 +521,7 @@ function SalesReportsContent() {
                               {row.itemId ? (
                                 <Link
                                   href={`/app/inventory/products/${row.itemId}`}
-                                  className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+                                  className="hover:text-orange-600 dark:hover:text-orange-400 hover:underline"
                                 >
                                   {row.productName}
                                 </Link>
@@ -612,7 +612,7 @@ function SalesReportsContent() {
                             {row.invoiceId ? (
                               <Link
                                 href={`/app/sales/invoices/${row.invoiceId}`}
-                                className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline inline-flex items-center space-x-1 font-mono"
+                                className="text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 hover:underline inline-flex items-center space-x-1 font-mono"
                                 title="Click to View & Print Full Invoice"
                               >
                                 <span>{row.invoiceNumber}</span>
@@ -627,7 +627,7 @@ function SalesReportsContent() {
                             {row.partyId ? (
                               <Link
                                 href={`/app/customers/${row.partyId}`}
-                                className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+                                className="hover:text-orange-600 dark:hover:text-orange-400 hover:underline"
                               >
                                 {row.customerName}
                               </Link>
@@ -639,7 +639,7 @@ function SalesReportsContent() {
                             {row.itemId ? (
                               <Link
                                 href={`/app/inventory/products/${row.itemId}`}
-                                className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+                                className="hover:text-orange-600 dark:hover:text-orange-400 hover:underline"
                               >
                                 {row.productName}
                               </Link>
@@ -827,7 +827,7 @@ function SalesReportsContent() {
 
 export default function SalesReportsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
       <SalesReportsContent />
     </Suspense>
   );

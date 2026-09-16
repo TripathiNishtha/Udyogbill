@@ -76,7 +76,7 @@ export function SalesCollectionAnalyticsWidget({ trendData, paymentModes, isHi =
               <span className="text-foreground font-bold text-xs">{isHi ? "बिक्री" : "Billed Sales"}</span>
             </span>
             <span className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-blue-600"></span>
+              <span className="w-2.5 h-2.5 rounded bg-orange-600"></span>
               <span className="text-foreground font-bold text-xs">{isHi ? "वसूली" : "Collected"}</span>
             </span>
             <Link
@@ -114,7 +114,7 @@ export function SalesCollectionAnalyticsWidget({ trendData, paymentModes, isHi =
                     <div className="absolute bottom-full mb-1.5 hidden group-hover:flex flex-col bg-surface border border-border text-foreground p-2 rounded-lg text-[10px] whitespace-nowrap z-20 shadow-xl pointer-events-none font-mono">
                       <div className="font-bold text-foreground font-sans">{pt.date}</div>
                       <div className="text-emerald-600 font-bold">Sales: {formatCurrency(pt.sales)}</div>
-                      <div className="text-blue-600 font-bold">Paid: {formatCurrency(pt.collected)}</div>
+                      <div className="text-orange-600 font-bold">Paid: {formatCurrency(pt.collected)}</div>
                       <div className="text-muted-foreground font-sans">{pt.invoicesCount} bills</div>
                     </div>
 
@@ -126,7 +126,7 @@ export function SalesCollectionAnalyticsWidget({ trendData, paymentModes, isHi =
                       ></div>
                       <div
                         style={{ height: `${collectedHeight}%` }}
-                        className="w-full max-w-[12px] bg-blue-600 rounded-t group-hover:brightness-110 transition-all"
+                        className="w-full max-w-[12px] bg-orange-600 rounded-t group-hover:brightness-110 transition-all"
                         title={`Collected: ${formatCurrency(pt.collected)}`}
                       ></div>
                     </div>

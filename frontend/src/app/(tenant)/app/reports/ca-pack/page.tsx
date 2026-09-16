@@ -175,7 +175,7 @@ export default function CaPackReportPage() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600/20 border border-indigo-500/30 rounded-2xl text-indigo-400">
+            <div className="p-2.5 bg-orange-600/20 border border-orange-500/30 rounded-2xl text-orange-400">
               <FileCheck2 className="w-6 h-6" />
             </div>
             <div>
@@ -203,7 +203,7 @@ export default function CaPackReportPage() {
 
         <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Value of Goods (Taxable)</span>
-          <span className="text-xl font-black text-indigo-400 mt-1 block">₹ {totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span className="text-xl font-black text-orange-400 mt-1 block">₹ {totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           <span className="text-[10px] text-slate-500">Base Goods Turnover</span>
         </div>
 
@@ -225,10 +225,10 @@ export default function CaPackReportPage() {
           <span className="text-[10px] text-slate-500">CGST + SGST + IGST</span>
         </div>
 
-        <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950/40">
+        <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl bg-gradient-to-br from-slate-900 to-orange-950/40">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Invoice Value</span>
           <span className="text-xl font-black text-white mt-1 block">₹ {totalInvoiceValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          <span className="text-[10px] text-indigo-400 font-semibold">Gross Taxable + Tax</span>
+          <span className="text-[10px] text-orange-400 font-semibold">Gross Taxable + Tax</span>
         </div>
       </div>
 
@@ -252,7 +252,7 @@ export default function CaPackReportPage() {
                 onClick={() => handlePresetChange(p.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                   datePreset === p.id
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                    ? "bg-orange-600 text-white shadow-md shadow-orange-600/30"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
@@ -282,7 +282,7 @@ export default function CaPackReportPage() {
               placeholder="Search Bill No, Party, GSTIN, HSN..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
             />
           </div>
 
@@ -295,7 +295,7 @@ export default function CaPackReportPage() {
                 setDatePreset("custom");
                 setFromDate(e.target.value);
               }}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
             />
           </div>
 
@@ -308,7 +308,7 @@ export default function CaPackReportPage() {
                 setDatePreset("custom");
                 setToDate(e.target.value);
               }}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
             />
           </div>
 
@@ -317,7 +317,7 @@ export default function CaPackReportPage() {
             <select
               value={gstRateFilter}
               onChange={(e) => setGstRateFilter(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
             >
               <option value="all">All GST Slabs (0%, 5%, 12%, 18%, 28%)</option>
               <option value="0">0% (Nil / Exempt)</option>
@@ -353,7 +353,7 @@ export default function CaPackReportPage() {
             dateRangeText={`${new Date(fromDate).toLocaleDateString("en-IN")} to ${new Date(toDate).toLocaleDateString("en-IN")}`}
           />
 
-          <span className="text-xs text-indigo-400 font-semibold">
+          <span className="text-xs text-orange-400 font-semibold">
             Period: {new Date(fromDate).toLocaleDateString("en-IN")} — {new Date(toDate).toLocaleDateString("en-IN")}
           </span>
         </div>
@@ -388,7 +388,7 @@ export default function CaPackReportPage() {
               {loading ? (
                 <tr>
                   <td colSpan={13} className="py-12 text-center text-slate-400 font-sans">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-indigo-400 mb-2" />
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-orange-400 mb-2" />
                     <span>Compiling CA Pack Register...</span>
                   </td>
                 </tr>
@@ -404,7 +404,7 @@ export default function CaPackReportPage() {
                     key={`${item.invoiceId}-${item.itemId}-${idx}`}
                     className="hover:bg-slate-800/50 transition-colors"
                   >
-                    <td className="py-2.5 px-3 border-r border-slate-800/80 font-bold text-indigo-400">
+                    <td className="py-2.5 px-3 border-r border-slate-800/80 font-bold text-orange-400">
                       <Link href={`/app/sales/invoices/${item.invoiceId}`} className="hover:underline">
                         {item.invoiceNumber}
                       </Link>
@@ -478,7 +478,7 @@ export default function CaPackReportPage() {
                   <td colSpan={4} className="py-3 px-3 border-r border-slate-800 text-right uppercase tracking-wider">
                     Total Summary:
                   </td>
-                  <td className="py-3 px-3 border-r border-slate-800 text-right text-indigo-400 font-mono">
+                  <td className="py-3 px-3 border-r border-slate-800 text-right text-orange-400 font-mono">
                     ₹ {totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="py-3 px-3 border-r border-slate-800 text-right text-emerald-400 font-mono">

@@ -243,7 +243,7 @@ export default function DeliveryChallansPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-md">
         <div className="flex items-center space-x-3">
-          <div className="p-3 bg-blue-600/20 border border-blue-500/30 rounded-xl text-blue-400">
+          <div className="p-3 bg-orange-600/20 border border-orange-500/30 rounded-xl text-orange-400">
             <Truck className="w-6 h-6" />
           </div>
           <div>
@@ -254,7 +254,7 @@ export default function DeliveryChallansPage() {
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-lg shadow-blue-600/20 transition"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-medium shadow-lg shadow-orange-600/20 transition"
         >
           <Plus className="w-4 h-4" />
           <span>+ Create Delivery Challan</span>
@@ -293,7 +293,7 @@ export default function DeliveryChallansPage() {
               ) : (
                 challans.map((ch) => (
                   <tr key={ch.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-blue-400">{ch.challanNumber}</td>
+                    <td className="py-3.5 px-4 font-bold text-orange-400">{ch.challanNumber}</td>
                     <td className="py-3.5 px-4 font-sans text-slate-300">{new Date(ch.challanDate).toLocaleDateString()}</td>
                     <td className="py-3.5 px-4 font-sans font-semibold text-white">{ch.customerName}</td>
                     <td className="py-3.5 px-4 text-white font-bold">{ch.vehicleNumber || "-"}</td>
@@ -302,7 +302,7 @@ export default function DeliveryChallansPage() {
                     </td>
                     <td className="py-3.5 px-4 text-center font-bold text-white">{ch.totalPackages} Boxes</td>
                     <td className="py-3.5 px-4 text-center font-sans">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
                         {STATUS_NAMES[ch.dispatchStatus] || "Dispatched"}
                       </span>
                     </td>
@@ -330,7 +330,7 @@ export default function DeliveryChallansPage() {
           <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2 text-white font-bold text-base">
-                <Truck className="w-5 h-5 text-blue-400" />
+                <Truck className="w-5 h-5 text-orange-400" />
                 <span>+ Create Outward Delivery Challan</span>
               </div>
               <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
@@ -397,7 +397,7 @@ export default function DeliveryChallansPage() {
                     placeholder="e.g. LR-99120"
                     value={lrNo}
                     onChange={(e) => setLrNo(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-indigo-300 font-mono focus:outline-none text-xs"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-orange-300 font-mono focus:outline-none text-xs"
                   />
                 </div>
               </div>
@@ -411,7 +411,7 @@ export default function DeliveryChallansPage() {
                   <button
                     type="button"
                     onClick={addLine}
-                    className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-semibold"
+                    className="px-2.5 py-1 rounded-lg bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-500/30 text-xs font-semibold"
                   >
                     + Add Item
                   </button>
@@ -471,7 +471,7 @@ export default function DeliveryChallansPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-600/30"
                 >
                   {submitting ? "Saving..." : "Save & Issue Challan (Persist to DB)"}
                 </button>

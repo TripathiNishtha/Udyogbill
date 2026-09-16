@@ -85,7 +85,7 @@ export default function BarcodeStudioPage() {
       {/* Page Header */}
       <div className="print:hidden flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-indigo-600/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+          <div className="p-2.5 bg-orange-600/10 rounded-xl border border-orange-500/20 text-orange-400">
             <Sparkles className="w-6 h-6" />
           </div>
           <div>
@@ -99,7 +99,7 @@ export default function BarcodeStudioPage() {
         <button
           onClick={handlePrint}
           disabled={!labelData}
-          className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
+          className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-lg shadow-orange-600/25 transition-all cursor-pointer"
         >
           <Printer className="w-4 h-4" />
           <span>Print {labelCopies} Labels</span>
@@ -112,7 +112,7 @@ export default function BarcodeStudioPage() {
           {/* Select Product Card */}
           <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-5 space-y-4 shadow-xl">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-              <BarcodeIcon className="w-4 h-4 text-indigo-400" />
+              <BarcodeIcon className="w-4 h-4 text-orange-400" />
               <span>1. Select Product</span>
             </h3>
 
@@ -123,7 +123,7 @@ export default function BarcodeStudioPage() {
                 placeholder="Search by name, SKU, or barcode..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
               />
             </div>
 
@@ -133,7 +133,7 @@ export default function BarcodeStudioPage() {
                   key={item.id}
                   onClick={() => handleItemSelect(item.id)}
                   className={`w-full text-left p-2.5 text-xs transition-colors cursor-pointer flex justify-between items-center ${
-                    selectedItemId === item.id ? "bg-indigo-600/20 text-indigo-300 font-semibold" : "text-slate-300 hover:bg-slate-900"
+                    selectedItemId === item.id ? "bg-orange-600/20 text-orange-300 font-semibold" : "text-slate-300 hover:bg-slate-900"
                   }`}
                 >
                   <div className="truncate pr-2">
@@ -152,7 +152,7 @@ export default function BarcodeStudioPage() {
           {/* Label Layout & Options Card */}
           <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-5 space-y-4 shadow-xl text-xs">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
-              <Settings2 className="w-4 h-4 text-indigo-400" />
+              <Settings2 className="w-4 h-4 text-orange-400" />
               <span>2. Sheet Format & Count</span>
             </h3>
 
@@ -168,7 +168,7 @@ export default function BarcodeStudioPage() {
                   if (val === "a4-65") setLabelCopies(65);
                   if (val === "thermal-single") setLabelCopies(1);
                 }}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-indigo-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white focus:border-orange-500"
               >
                 <option value="a4-24">A4 Sheet - 24 Labels (3 x 8, 64mm x 33.8mm)</option>
                 <option value="a4-40">A4 Sheet - 40 Labels (4 x 10, 48.5mm x 25.4mm)</option>
@@ -185,7 +185,7 @@ export default function BarcodeStudioPage() {
                 max="500"
                 value={labelCopies}
                 onChange={(e) => setLabelCopies(Math.max(1, Number(e.target.value)))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-right focus:border-indigo-500 font-mono"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-right focus:border-orange-500 font-mono"
               />
             </div>
 
@@ -196,7 +196,7 @@ export default function BarcodeStudioPage() {
                   type="checkbox"
                   checked={showTenantName}
                   onChange={(e) => setShowTenantName(e.target.checked)}
-                  className="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0"
+                  className="rounded bg-slate-950 border-slate-800 text-orange-600 focus:ring-0"
                 />
                 <span>Store / Brand Name Header</span>
               </label>
@@ -205,7 +205,7 @@ export default function BarcodeStudioPage() {
                   type="checkbox"
                   checked={showPrice}
                   onChange={(e) => setShowPrice(e.target.checked)}
-                  className="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0"
+                  className="rounded bg-slate-950 border-slate-800 text-orange-600 focus:ring-0"
                 />
                 <span>Our Selling Price (₹)</span>
               </label>
@@ -214,7 +214,7 @@ export default function BarcodeStudioPage() {
                   type="checkbox"
                   checked={showMrp}
                   onChange={(e) => setShowMrp(e.target.checked)}
-                  className="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0"
+                  className="rounded bg-slate-950 border-slate-800 text-orange-600 focus:ring-0"
                 />
                 <span>Max Retail Price (MRP ₹)</span>
               </label>
@@ -223,7 +223,7 @@ export default function BarcodeStudioPage() {
                   type="checkbox"
                   checked={showBatch}
                   onChange={(e) => setShowBatch(e.target.checked)}
-                  className="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0"
+                  className="rounded bg-slate-950 border-slate-800 text-orange-600 focus:ring-0"
                 />
                 <span>Batch # & Expiry Date (if applicable)</span>
               </label>
@@ -236,7 +236,7 @@ export default function BarcodeStudioPage() {
           <div className="bg-slate-900/40 p-4 rounded-2xl border border-slate-800">
             <div className="print:hidden flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2">
-                <Layers className="w-4 h-4 text-indigo-400" />
+                <Layers className="w-4 h-4 text-orange-400" />
                 <span className="text-xs font-bold text-white uppercase tracking-wider">
                   Live Print Preview ({labelCopies} labels on {sheetLayout})
                 </span>
@@ -247,7 +247,7 @@ export default function BarcodeStudioPage() {
             {/* Printable Canvas */}
             {fetchingLabel ? (
               <div className="bg-white rounded-xl p-12 text-center text-slate-500">
-                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-orange-600" />
                 <p className="text-xs">Generating barcode label...</p>
               </div>
             ) : labelData ? (

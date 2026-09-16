@@ -1909,7 +1909,7 @@ function TenantInvoicesPageContent() {
               {/* Scrollable Form Body (Ensures Pinned Header & Pinned Bottom Footer on mobile) */}
               <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5 sm:pr-1 pb-16 sm:pb-4">
                 {/* 1. Customer & Invoice Meta Row (Orange Themed - Zero Overlap ERP Style) */}
-                <div id="tour-customer-box" className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900/95 border border-[#fed7aa] dark:border-blue-500/30 shadow-xs shrink-0 space-y-2">
+                <div id="tour-customer-box" className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900/95 border border-[#fed7aa] dark:border-orange-500/30 shadow-xs shrink-0 space-y-2">
                 {/* Row 1: Party / Customer Selection + Date & Branch */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[300px]">
@@ -2266,7 +2266,7 @@ function TenantInvoicesPageContent() {
                         placeholder="Work Order / Job Sheet Ref"
                         value={serviceJobSheetRef}
                         onChange={(e) => setServiceJobSheetRef(e.target.value)}
-                        className="px-2 py-0.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-cyan-500/30 rounded text-xs text-slate-900 dark:text-cyan-300 w-44 shadow-2xs font-medium"
+                        className="px-2 py-0.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-orange-500/30 rounded text-xs text-slate-900 dark:text-orange-300 w-44 shadow-2xs font-medium"
                       />
                     )}
                   </div>
@@ -2824,13 +2824,13 @@ function TenantInvoicesPageContent() {
                             )}
                             {isElectronics && (
                               <div className="col-span-2">
-                                <label className="text-[10px] text-cyan-400 block font-bold mb-0.5">IMEI / Serial No</label>
+                                <label className="text-[10px] text-orange-400 block font-bold mb-0.5">IMEI / Serial No</label>
                                 <input
                                   type="text"
                                   placeholder="IMEI / Serial"
                                   value={line.imeiSerial || ""}
                                   onChange={(e) => updateLineField(idx, "imeiSerial", e.target.value)}
-                                  className="w-full px-2 py-1 bg-slate-900 border border-cyan-500/30 rounded text-xs text-cyan-200 font-mono"
+                                  className="w-full px-2 py-1 bg-slate-900 border border-orange-500/30 rounded text-xs text-orange-200 font-mono"
                                 />
                               </div>
                             )}
@@ -2842,11 +2842,11 @@ function TenantInvoicesPageContent() {
                           {/* Stepper Quantity */}
                           <div className="col-span-5">
                             <label className="text-[10px] text-slate-400 block font-medium mb-1">Qty ({line.uomCode || "Pcs"})</label>
-                            <div className="flex items-center bg-slate-950 border border-sky-500/40 rounded-lg overflow-hidden">
+                            <div className="flex items-center bg-slate-950 border border-orange-500/40 rounded-lg overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() => updateLineField(idx, "quantity", Math.max(1, (Number(line.quantity) || 1) - 1))}
-                                className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-sky-300 font-bold text-sm cursor-pointer border-r border-slate-800 active:bg-sky-950"
+                                className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-orange-300 font-bold text-sm cursor-pointer border-r border-slate-800 active:bg-orange-950"
                               >
                                 -
                               </button>
@@ -2856,12 +2856,12 @@ function TenantInvoicesPageContent() {
                                 step="1"
                                 value={line.quantity}
                                 onChange={(e) => updateLineField(idx, "quantity", parseFloat(e.target.value) || 0)}
-                                className="w-full text-center bg-transparent text-xs text-sky-200 font-bold font-mono focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-full text-center bg-transparent text-xs text-orange-200 font-bold font-mono focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                               <button
                                 type="button"
                                 onClick={() => updateLineField(idx, "quantity", (Number(line.quantity) || 0) + 1)}
-                                className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-sky-300 font-bold text-sm cursor-pointer border-l border-slate-800 active:bg-sky-950"
+                                className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-orange-300 font-bold text-sm cursor-pointer border-l border-slate-800 active:bg-orange-950"
                               >
                                 +
                               </button>
@@ -2947,8 +2947,8 @@ function TenantInvoicesPageContent() {
                         {hasPackingFreeQty && <th className="px-1 py-1.5 w-16 text-center text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/95">Packing</th>}
 
                         {/* Electronics Columns */}
-                        {isElectronics && <th className="px-1.5 py-1.5 min-w-[130px] text-cyan-800 dark:text-cyan-300 bg-slate-100 dark:bg-slate-900/95">IMEI / Serial No *</th>}
-                        {isElectronics && <th className="px-1.5 py-1.5 w-16 text-cyan-800 dark:text-cyan-300 text-center bg-slate-100 dark:bg-slate-900/95">Warranty (M)</th>}
+                        {isElectronics && <th className="px-1.5 py-1.5 min-w-[130px] text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">IMEI / Serial No *</th>}
+                        {isElectronics && <th className="px-1.5 py-1.5 w-16 text-orange-800 dark:text-orange-300 text-center bg-slate-100 dark:bg-slate-900/95">Warranty (M)</th>}
 
                         {/* Hardware Columns */}
                         {isHardware && <th className="px-1.5 py-1.5 min-w-[130px] text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Dimensions</th>}
@@ -2965,18 +2965,18 @@ function TenantInvoicesPageContent() {
                         {isFmcg && <th className="px-1 py-1.5 w-16 text-emerald-800 dark:text-emerald-300 text-center bg-slate-100 dark:bg-slate-900/95">Scheme</th>}
 
                         {/* Service Columns */}
-                        {isService && <th className="px-1.5 py-1.5 min-w-[120px] text-cyan-800 dark:text-cyan-300 bg-slate-100 dark:bg-slate-900/95">Service Period</th>}
+                        {isService && <th className="px-1.5 py-1.5 min-w-[120px] text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Service Period</th>}
 
                         <th className="px-1.5 py-1.5 min-w-[70px] w-20 text-center text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/95">HSN/SAC</th>
-                        <th className="px-1.5 py-1.5 min-w-[65px] w-16 text-center text-blue-800 dark:text-blue-300 bg-slate-100 dark:bg-slate-900/95">Qty *</th>
-                        {hasPackingFreeQty && <th className="px-1.5 py-1.5 min-w-[55px] w-14 text-center text-teal-800 dark:text-cyan-300 bg-slate-100 dark:bg-slate-900/95">Free</th>}
+                        <th className="px-1.5 py-1.5 min-w-[65px] w-16 text-center text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Qty *</th>
+                        {hasPackingFreeQty && <th className="px-1.5 py-1.5 min-w-[55px] w-14 text-center text-teal-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Free</th>}
                         {showMrpColumn && <th className="px-1.5 py-1.5 min-w-[80px] w-20 text-right text-amber-800 dark:text-yellow-300 bg-slate-100 dark:bg-slate-900/95">MRP (₹)</th>}
                         {showPtrColumn && <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-teal-800 dark:text-teal-300 text-right bg-slate-100 dark:bg-slate-900/95">PTR (₹)</th>}
                         {showPtsColumn && <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-orange-800 dark:text-orange-300 text-right bg-slate-100 dark:bg-slate-900/95">PTS (₹)</th>}
                         <th className="px-1 py-1.5 min-w-[50px] w-14 text-center text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/95">Unit</th>
                         <th className="px-1.5 py-1.5 min-w-[95px] w-24 text-right text-emerald-800 dark:text-emerald-300 bg-slate-100 dark:bg-slate-900/95">Rate (₹) *</th>
                         <th className="px-1.5 py-1.5 min-w-[90px] w-24 text-right text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Disc % / ₹</th>
-                        <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-right text-sky-800 dark:text-sky-300 bg-slate-100 dark:bg-slate-900/95">Taxable</th>
+                        <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-right text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Taxable</th>
                         <th className="px-1 py-1.5 min-w-[55px] w-14 text-center text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">GST %</th>
                         <th className="px-2 py-1.5 min-w-[90px] w-24 text-right text-emerald-800 dark:text-emerald-400 font-extrabold bg-slate-100 dark:bg-slate-900/95">Amount (₹)</th>
                         <th className="px-1 py-1.5 w-8 bg-slate-100 dark:bg-slate-900/95"></th>
@@ -3121,7 +3121,7 @@ function TenantInvoicesPageContent() {
                                 placeholder="IMEI / Serial No"
                                 value={line.imeiSerial || ""}
                                 onChange={(e) => updateLineField(idx, "imeiSerial", e.target.value)}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-cyan-300 dark:border-cyan-500/40 rounded text-xs text-cyan-800 dark:text-cyan-300 font-mono focus:outline-none focus:border-cyan-500 h-7 shadow-2xs font-medium"
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 rounded text-xs text-orange-800 dark:text-orange-300 font-mono focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
                               />
                             </td>
                           )}
@@ -3133,7 +3133,7 @@ function TenantInvoicesPageContent() {
                                 min="0"
                                 value={line.warrantyMonths ?? ""}
                                 onChange={(e) => updateLineField(idx, "warrantyMonths", parseInt(e.target.value) || 0)}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                                 title="Warranty in Months"
                               />
                             </td>
@@ -3268,7 +3268,7 @@ function TenantInvoicesPageContent() {
                                 placeholder="Period"
                                 value={line.servicePeriodFrom || ""}
                                 onChange={(e) => updateLineField(idx, "servicePeriodFrom", e.target.value)}
-                                className="w-full px-2 py-0.5 bg-white dark:bg-slate-900 border border-cyan-300 dark:border-cyan-500/40 rounded text-xs text-cyan-800 dark:text-cyan-300 focus:outline-none focus:border-cyan-500 h-7 shadow-2xs font-medium"
+                                className="w-full px-2 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 rounded text-xs text-orange-800 dark:text-orange-300 focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
                               />
                             </td>
                           )}
@@ -3303,7 +3303,7 @@ function TenantInvoicesPageContent() {
                                   }
                                 }
                               }}
-                              className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-500/30 rounded text-xs text-blue-900 dark:text-sky-200 font-mono text-center font-bold focus:outline-none focus:border-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
+                              className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/30 rounded text-xs text-orange-900 dark:text-orange-200 font-mono text-center font-bold focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
                             />
                           </td>
 
@@ -3535,7 +3535,7 @@ function TenantInvoicesPageContent() {
                         Disc: -₹{totalItemDiscount.toFixed(2)}
                       </div>
                     )}
-                    <div className="px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-500/30 text-sky-800 dark:text-sky-200 hidden md:block">
+                    <div className="px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-500/30 text-orange-800 dark:text-orange-200 hidden md:block">
                       Taxable: ₹{totalTaxable.toFixed(2)}
                     </div>
                     <div className="px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-300 hidden sm:block font-bold">

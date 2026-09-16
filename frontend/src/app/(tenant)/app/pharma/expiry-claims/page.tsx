@@ -257,7 +257,7 @@ export default function PharmaExpiryClaimsPage() {
                             <div className="text-[11px] text-slate-500 font-mono">{b.sku}</div>
                           </td>
                           <td className="p-3.5">
-                            <span className="px-2 py-0.5 bg-slate-800 text-cyan-400 font-mono font-semibold rounded border border-slate-700">
+                            <span className="px-2 py-0.5 bg-slate-800 text-orange-400 font-mono font-semibold rounded border border-slate-700">
                               {b.batchNumber}
                             </span>
                           </td>
@@ -319,7 +319,7 @@ export default function PharmaExpiryClaimsPage() {
                   ) : (
                     claims.map((c) => (
                       <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="p-3.5 font-mono font-bold text-cyan-400">{c.claimNumber}</td>
+                        <td className="p-3.5 font-mono font-bold text-orange-400">{c.claimNumber}</td>
                         <td className="p-3.5 font-semibold text-slate-200">{c.supplierName}</td>
                         <td className="p-3.5 text-slate-400">
                           {new Date(c.claimDate).toLocaleDateString("en-IN", {
@@ -333,7 +333,7 @@ export default function PharmaExpiryClaimsPage() {
                           ₹{c.totalClaimAmount.toLocaleString("en-IN")}
                         </td>
                         <td className="p-3.5 text-center">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
                             {c.status}
                           </span>
                         </td>

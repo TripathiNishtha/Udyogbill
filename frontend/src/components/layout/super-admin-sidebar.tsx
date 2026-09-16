@@ -146,14 +146,14 @@ export function SuperAdminSidebar({
         {/* Brand Header */}
         <div className="p-5 border-b border-[#fed7aa] flex items-center justify-between bg-[#ffe4cc]/60">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-purple-600 flex items-center justify-center shadow-md shadow-orange-500/20">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="font-bold text-lg leading-none tracking-tight text-slate-900">
-                Udyog<span className="text-indigo-600">Bill</span>
+                Udyog<span className="text-orange-600">Bill</span>
               </h1>
-              <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-orange-600 uppercase tracking-wider">
                 Super Admin Hub
               </span>
             </div>
@@ -189,11 +189,11 @@ export function SuperAdminSidebar({
                 }}
                 className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-xs"
+                    ? "bg-orange-50 text-orange-700 border border-orange-200 shadow-xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-indigo-600" : "text-slate-500"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-orange-600" : "text-slate-500"}`} />
                 <span>{item.label}</span>
               </Link>
             );

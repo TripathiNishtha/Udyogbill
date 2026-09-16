@@ -108,7 +108,7 @@ export default function ApparelMatrixPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2.5">
-          <Shirt className="w-7 h-7 text-indigo-400" />
+          <Shirt className="w-7 h-7 text-orange-400" />
           <span>Garments & Apparel Matrix Generator</span>
         </h1>
         <p className="text-sm text-slate-400 mt-1">
@@ -134,7 +134,7 @@ export default function ApparelMatrixPage() {
             <select
               value={selectedItemId}
               onChange={(e) => setSelectedItemId(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:border-orange-500"
             >
               {items.map((i) => (
                 <option key={i.id} value={i.id}>
@@ -176,7 +176,7 @@ export default function ApparelMatrixPage() {
                   onClick={() => toggleSize(s)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold font-mono transition-all ${
                     sizes.includes(s)
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400"
+                      ? "bg-orange-600 text-white shadow-lg shadow-orange-600/30 border border-orange-400"
                       : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
                   }`}
                 >
@@ -190,7 +190,7 @@ export default function ApparelMatrixPage() {
                     key={s}
                     type="button"
                     onClick={() => toggleSize(s)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold font-mono bg-indigo-600 text-white border border-indigo-400"
+                    className="px-4 py-2 rounded-xl text-xs font-bold font-mono bg-orange-600 text-white border border-orange-400"
                   >
                     {s}
                   </button>
@@ -230,7 +230,7 @@ export default function ApparelMatrixPage() {
                   onClick={() => toggleColor(c)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                     colors.includes(c)
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400"
+                      ? "bg-orange-600 text-white shadow-lg shadow-orange-600/30 border border-orange-400"
                       : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
                   }`}
                 >
@@ -244,7 +244,7 @@ export default function ApparelMatrixPage() {
                     key={c}
                     type="button"
                     onClick={() => toggleColor(c)}
-                    className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white border border-indigo-400"
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-600 text-white border border-orange-400"
                   >
                     {c}
                   </button>
@@ -257,7 +257,7 @@ export default function ApparelMatrixPage() {
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-5">
             <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <Sparkles className="w-4 h-4 text-orange-400" />
               <span>Matrix Generator Preview</span>
             </h3>
 
@@ -283,7 +283,7 @@ export default function ApparelMatrixPage() {
             <button
               onClick={handleGenerate}
               disabled={generating || totalCalculated === 0}
-              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-40 flex items-center justify-center space-x-2"
+              className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all disabled:opacity-40 flex items-center justify-center space-x-2"
             >
               <Sparkles className="w-4 h-4" />
               <span>{generating ? "Generating Matrix..." : `Generate ${totalCalculated} Variants`}</span>
@@ -318,7 +318,7 @@ export default function ApparelMatrixPage() {
               <tbody className="divide-y divide-slate-850">
                 {generatedVariants.map((v) => (
                   <tr key={v.variantId} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-indigo-400">
+                    <td className="py-3 px-4 font-mono font-bold text-orange-400">
                       {v.variantSku}
                     </td>
                     <td className="py-3 px-4 text-white font-semibold">

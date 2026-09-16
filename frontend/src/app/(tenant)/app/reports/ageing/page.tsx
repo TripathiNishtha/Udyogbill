@@ -55,7 +55,7 @@ class ReportErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
             </p>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-md transition-colors"
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-xs shadow-md transition-colors"
             >
               Try Reloading Report
             </button>
@@ -155,7 +155,7 @@ function AgeingSchedulesContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center space-x-3">
-            <span className="p-2.5 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/20">
+            <span className="p-2.5 rounded-xl bg-orange-600/20 text-orange-400 border border-orange-500/20">
               <Clock className="w-6 h-6" />
             </span>
             <span>Accounts Receivable & Payable Ageing</span>
@@ -168,7 +168,7 @@ function AgeingSchedulesContent() {
         <div className="flex items-center space-x-3">
           <button
             onClick={handleExportCsv}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 transition-colors"
           >
             <Download className="w-4 h-4" />
             <span>Export RFC-4180 CSV</span>
@@ -580,7 +580,7 @@ function AgeingSchedulesContent() {
 export default function AgeingSchedulesPage() {
   return (
     <ReportErrorBoundary>
-      <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
         <AgeingSchedulesContent />
       </Suspense>
     </ReportErrorBoundary>

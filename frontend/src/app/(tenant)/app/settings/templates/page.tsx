@@ -179,7 +179,7 @@ export default function InvoiceSettingsPage() {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900 text-amber-400 border border-slate-700">🏛️ Tally Prime B2B</span>;
     }
     if (code.includes("B2B_MARG")) {
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">💊 Marg Pharma B2B</span>;
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">💊 Marg Pharma B2B</span>;
     }
     if (code.includes("B2B_ZOHO")) {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30">📊 Zoho Modern B2B</span>;
@@ -188,10 +188,10 @@ export default function InvoiceSettingsPage() {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">⚡ Vyapar Clean B2B</span>;
     }
     if (code.includes("UDYOGBILL_SIGNATURE") || code.includes("SIGNATURE_B2B") || code.includes("B2B_UDYOG")) {
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30">🏆 UdyogBill Signature B2B</span>;
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">🏆 UdyogBill Signature B2B</span>;
     }
     if (code.includes("D2C_MARG")) {
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">🛍️ Marg Retail D2C</span>;
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">🛍️ Marg Retail D2C</span>;
     }
     if (code.includes("D2C_MYBILLBOOK")) {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">📱 MyBillBook Modern D2C</span>;
@@ -203,7 +203,7 @@ export default function InvoiceSettingsPage() {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30">🌿 Zoho Compact D2C</span>;
     }
     if (code.includes("CASH_MARG")) {
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">🧾 Marg Counter Cash</span>;
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">🧾 Marg Counter Cash</span>;
     }
     if (code.includes("CASH_VYAPAR")) {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">⚡ Vyapar Quick Bill</span>;
@@ -215,7 +215,7 @@ export default function InvoiceSettingsPage() {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">💜 MyBillBook Bold Cash</span>;
     }
     if (code.includes("CASH_UDYOG")) {
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30">🚀 Udyog Express Cash</span>;
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">🚀 Udyog Express Cash</span>;
     }
     if (code.includes("THERMAL")) {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">🖨️ 3" Thermal Slip</span>;
@@ -229,7 +229,7 @@ export default function InvoiceSettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs">
         <div>
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+            <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-600/15 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20">
               <Printer className="w-5 h-5" />
             </div>
             <div>
@@ -248,14 +248,14 @@ export default function InvoiceSettingsPage() {
             onClick={() => handleGeneratePreview()}
             className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
           >
-            <Eye className="w-4 h-4 text-indigo-400" />
+            <Eye className="w-4 h-4 text-orange-400" />
             <span>Simulate Live Print</span>
           </button>
 
           <button
             onClick={() => handleSaveConfiguration()}
             disabled={saving}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/20 transition-all cursor-pointer"
           >
             {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             <span>Save All Settings</span>
@@ -281,7 +281,7 @@ export default function InvoiceSettingsPage() {
           onClick={() => setActiveTab("gallery")}
           className={`px-4 py-2.5 text-xs font-black border-b-2 transition-all flex items-center space-x-2 cursor-pointer ${
             activeTab === "gallery"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+              ? "border-orange-600 text-orange-600 dark:text-orange-400"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -293,7 +293,7 @@ export default function InvoiceSettingsPage() {
           onClick={() => setActiveTab("header-footer")}
           className={`px-4 py-2.5 text-xs font-black border-b-2 transition-all flex items-center space-x-2 cursor-pointer ${
             activeTab === "header-footer"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+              ? "border-orange-600 text-orange-600 dark:text-orange-400"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -305,7 +305,7 @@ export default function InvoiceSettingsPage() {
           onClick={() => setActiveTab("terms")}
           className={`px-4 py-2.5 text-xs font-black border-b-2 transition-all flex items-center space-x-2 cursor-pointer ${
             activeTab === "terms"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+              ? "border-orange-600 text-orange-600 dark:text-orange-400"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -317,7 +317,7 @@ export default function InvoiceSettingsPage() {
           onClick={() => setActiveTab("preview")}
           className={`px-4 py-2.5 text-xs font-black border-b-2 transition-all flex items-center space-x-2 cursor-pointer ${
             activeTab === "preview"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+              ? "border-orange-600 text-orange-600 dark:text-orange-400"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -329,7 +329,7 @@ export default function InvoiceSettingsPage() {
           onClick={() => setActiveTab("numbering")}
           className={`px-4 py-2.5 text-xs font-black border-b-2 transition-all flex items-center space-x-2 cursor-pointer ${
             activeTab === "numbering"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+              ? "border-orange-600 text-orange-600 dark:text-orange-400"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -365,8 +365,8 @@ export default function InvoiceSettingsPage() {
               onClick={() => setGalleryCategory("b2b")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 galleryCategory === "b2b"
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/30"
+                  ? "bg-orange-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/30"
               }`}
             >
               🏛️ B2B Invoices (5 Formats)
@@ -410,7 +410,7 @@ export default function InvoiceSettingsPage() {
                     className={`p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all space-y-3.5 relative ${
                       tpl.isDefault
                         ? "border-emerald-500 shadow-md ring-2 ring-emerald-500/20"
-                        : "border-slate-200 dark:border-slate-800 hover:border-indigo-500 shadow-xs"
+                        : "border-slate-200 dark:border-slate-800 hover:border-orange-500 shadow-xs"
                     }`}
                   >
                     {/* Top Badge Row */}
@@ -423,7 +423,7 @@ export default function InvoiceSettingsPage() {
                               ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-300 dark:border-teal-800"
                               : tpl.documentType === 8
                               ? "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-300 dark:border-purple-800"
-                              : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-800"
+                              : "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-800"
                           }`}>
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span>Active Default</span>
@@ -450,7 +450,7 @@ export default function InvoiceSettingsPage() {
                               loadData();
                             }}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all cursor-pointer ${
-                              !isA5 ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-xs" : "text-slate-500 hover:text-slate-900"
+                              !isA5 ? "bg-white dark:bg-slate-900 text-orange-600 shadow-xs" : "text-slate-500 hover:text-slate-900"
                             }`}
                           >
                             Full A4 (210×297)
@@ -462,7 +462,7 @@ export default function InvoiceSettingsPage() {
                               loadData();
                             }}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all cursor-pointer ${
-                              isA5 ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-xs" : "text-slate-500 hover:text-slate-900"
+                              isA5 ? "bg-white dark:bg-slate-900 text-orange-600 shadow-xs" : "text-slate-500 hover:text-slate-900"
                             }`}
                           >
                             Full A5 (148×210)
@@ -488,8 +488,8 @@ export default function InvoiceSettingsPage() {
                         onClick={() => handleSetDefault(tpl, 1)}
                         className={`py-1.5 px-1 rounded-lg text-[10.5px] font-bold text-center transition-all cursor-pointer ${
                           tpl.isDefault && tpl.documentType === 1
-                            ? "bg-indigo-600 text-white shadow-xs"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600"
+                            ? "bg-orange-600 text-white shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-orange-50 hover:text-orange-600"
                         }`}
                         title="Set as Default for B2B Tax Invoices"
                       >
@@ -532,7 +532,7 @@ export default function InvoiceSettingsPage() {
                       </button>
                       <button
                         onClick={() => handleGeneratePreview(tpl.id)}
-                        className="px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                        className="px-3.5 py-2 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-600 hover:text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
                       >
                         Preview
                       </button>
@@ -550,7 +550,7 @@ export default function InvoiceSettingsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Box 1: Header Customization */}
             <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xs">
-              <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-black text-sm">
+              <div className="flex items-center space-x-2 text-orange-600 dark:text-orange-400 font-black text-sm">
                 <FileText className="w-4 h-4" />
                 <span>Header Title &amp; Slogan</span>
               </div>
@@ -590,7 +590,7 @@ export default function InvoiceSettingsPage() {
                       type="checkbox"
                       checked={selectedTemplate.showLogo}
                       onChange={(e) => setSelectedTemplate({ ...selectedTemplate, showLogo: e.target.checked })}
-                      className="w-4 h-4 rounded text-indigo-600"
+                      className="w-4 h-4 rounded text-orange-600"
                     />
                   </label>
                   <label className="flex items-center justify-between cursor-pointer">
@@ -599,7 +599,7 @@ export default function InvoiceSettingsPage() {
                       type="checkbox"
                       checked={selectedTemplate.showGstin}
                       onChange={(e) => setSelectedTemplate({ ...selectedTemplate, showGstin: e.target.checked })}
-                      className="w-4 h-4 rounded text-indigo-600"
+                      className="w-4 h-4 rounded text-orange-600"
                     />
                   </label>
                   <label className="flex items-center justify-between cursor-pointer">
@@ -608,7 +608,7 @@ export default function InvoiceSettingsPage() {
                       type="checkbox"
                       checked={selectedTemplate.showDrugLicense}
                       onChange={(e) => setSelectedTemplate({ ...selectedTemplate, showDrugLicense: e.target.checked })}
-                      className="w-4 h-4 rounded text-indigo-600"
+                      className="w-4 h-4 rounded text-orange-600"
                     />
                   </label>
                 </div>
@@ -767,7 +767,7 @@ export default function InvoiceSettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all cursor-pointer"
             >
               {saving ? "Saving..." : "Save Configuration"}
             </button>
@@ -779,14 +779,14 @@ export default function InvoiceSettingsPage() {
       {activeTab === "terms" && selectedTemplate && (
         <form onSubmit={handleSaveConfiguration} className="space-y-5">
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 font-semibold flex items-center space-x-2">
-            <Scale className="w-4 h-4 text-indigo-500 shrink-0" />
+            <Scale className="w-4 h-4 text-orange-500 shrink-0" />
             <span>Set your permanent Terms &amp; Conditions for each commercial document below. These will print automatically at the bottom of respective documents.</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* 1. Tax Invoice T&C */}
             <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
-              <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-black text-sm">
+              <div className="flex items-center space-x-2 text-orange-600 dark:text-orange-400 font-black text-sm">
                 <FileText className="w-4 h-4" />
                 <span>GST Tax Invoice Terms &amp; Conditions</span>
               </div>
@@ -861,7 +861,7 @@ export default function InvoiceSettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all cursor-pointer"
             >
               {saving ? "Saving..." : "Save All Terms & Conditions"}
             </button>
@@ -887,7 +887,7 @@ export default function InvoiceSettingsPage() {
             {previewResult && (
               <button
                 onClick={() => printRawHtml(previewResult.renderedHtml, previewResult.templateName)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-2 cursor-pointer"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-600/30 flex items-center space-x-2 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>Print Test Copy</span>
@@ -907,7 +907,7 @@ export default function InvoiceSettingsPage() {
               </div>
               <button
                 onClick={() => handleGeneratePreview()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
               >
                 Generate Live Preview
               </button>
@@ -919,10 +919,10 @@ export default function InvoiceSettingsPage() {
       {/* ─── Tab 5: Document Series & Custom Numbering (GST Rule 46) ────────────────── */}
       {activeTab === "numbering" && (
         <div className="space-y-5">
-          <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 text-xs text-orange-900 dark:text-orange-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="space-y-1">
               <div className="font-black text-sm flex items-center space-x-2">
-                <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <Shield className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                 <span>CGST Rule 46(b) Compliant Document Series</span>
               </div>
               <p className="text-slate-600 dark:text-slate-400">
@@ -933,7 +933,7 @@ export default function InvoiceSettingsPage() {
               onClick={() => {
                 setNotification("Document series and sequence numbering configurations saved successfully!");
               }}
-              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/30 shrink-0 cursor-pointer"
+              className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-xs rounded-xl shadow-lg shadow-orange-600/30 shrink-0 cursor-pointer"
             >
               Save Series Configuration
             </button>
@@ -944,10 +944,10 @@ export default function InvoiceSettingsPage() {
             <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 font-black text-slate-900 dark:text-white text-sm">
-                  <FileText className="w-4 h-4 text-indigo-600" />
+                  <FileText className="w-4 h-4 text-orange-600" />
                   <span>Tax Invoice Series (B2B / GST)</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 border border-indigo-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 dark:bg-orange-950/40 text-orange-700 border border-orange-200">
                   Primary B2B
                 </span>
               </div>

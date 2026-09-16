@@ -587,7 +587,7 @@ export default function PharmaPOSPage() {
               <span><kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 font-mono text-[10px]">F2</kbd> Search</span>
               <span><kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 font-mono text-[10px]">F8</kbd> Substitute</span>
               <span><kbd className="px-1.5 py-0.5 bg-amber-900/50 text-amber-300 rounded font-mono text-[10px]">F9</kbd> Hold/Park</span>
-              <span><kbd className="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded font-mono text-[10px]">F10</kbd> Recall</span>
+              <span><kbd className="px-1.5 py-0.5 bg-orange-900/50 text-orange-300 rounded font-mono text-[10px]">F10</kbd> Recall</span>
               <span><kbd className="px-1.5 py-0.5 bg-emerald-900/50 text-emerald-300 rounded font-mono text-[10px]">Ctrl+Enter</kbd> Print</span>
             </div>
           </div>
@@ -617,7 +617,7 @@ export default function PharmaPOSPage() {
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 rounded-xl border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all"
             title="Print Runner Slip with Rack No. for Godown Boys"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-400" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-orange-400" />
             <span>Runner Slip</span>
           </button>
 
@@ -698,7 +698,7 @@ export default function PharmaPOSPage() {
                         {b.itemName}
                       </div>
                       <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span className="font-mono bg-slate-800 px-1.5 py-0.2 rounded text-[10px] text-cyan-400">
+                        <span className="font-mono bg-slate-800 px-1.5 py-0.2 rounded text-[10px] text-orange-400">
                           {b.batchNumber}
                         </span>
                         <span>Exp: <strong className="text-slate-200 font-mono">{b.expiryDateMonthYear}</strong></span>
@@ -727,7 +727,7 @@ export default function PharmaPOSPage() {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase text-slate-400">Current Counter Bill</span>
                 {activeTokenNumber && (
-                  <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono text-[11px] font-bold">
+                  <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-300 border border-orange-500/20 font-mono text-[11px] font-bold">
                     Token #{activeTokenNumber}
                   </span>
                 )}
@@ -919,7 +919,7 @@ export default function PharmaPOSPage() {
 
                     <button
                       onClick={() => handleRecallBill(pb)}
-                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 shadow"
+                      className="w-full py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 shadow"
                     >
                       <PlayCircle className="w-3.5 h-3.5" /> Recall This Bill
                     </button>
@@ -950,7 +950,7 @@ export default function PharmaPOSPage() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-cyan-400" />
+                <FileSpreadsheet className="w-5 h-5 text-orange-400" />
                 <h3 className="font-bold text-white text-base">Godown Runner Picker Slip</h3>
               </div>
               <button onClick={() => setShowPickerModal(false)} className="text-slate-400 hover:text-white">
@@ -1008,7 +1008,7 @@ export default function PharmaPOSPage() {
                   printRawHtml(pickerHtml, `Runner-Slip-Token-${activeTokenNumber}`, "thermal80");
                   setShowPickerModal(false);
                 }}
-                className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5"
+                className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" /> Print Thermal Slip
               </button>

@@ -145,7 +145,7 @@ export default function PobOrdersPage() {
       case "RoutedToStockist":
         return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Routed to Stockist</span>;
       case "StockistAccepted":
-        return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">Stockist Accepted</span>;
+        return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">Stockist Accepted</span>;
       case "StockistDispatched":
         return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Dispatched in Transit</span>;
       case "Fulfilled":
@@ -182,7 +182,7 @@ export default function PobOrdersPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/app/pharma/schemes"
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition"
+            className="inline-flex items-center gap-2 px-3.5 py-2 border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-semibold hover:bg-orange-100 transition"
           >
             <Tag className="w-4 h-4" /> Manage Trade Schemes
           </Link>
@@ -294,7 +294,7 @@ export default function PobOrdersPage() {
                             setStatusOrder(o);
                             setNewStatus(o.stockistFulfillmentStatus || "StockistAccepted");
                           }}
-                          className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+                          className="text-xs text-orange-600 dark:text-orange-400 font-semibold hover:underline flex items-center gap-1"
                         >
                           <Truck className="w-3.5 h-3.5" /> Update Status
                         </button>
@@ -469,7 +469,7 @@ export default function PobOrdersPage() {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-semibold"
                 >
                   {actionLoading ? "Updating..." : "Save Status"}
                 </button>

@@ -133,7 +133,7 @@ export default function ExpensesPage() {
 
         <button
           onClick={() => setIsOpenModal(true)}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>New Expense Voucher</span>
@@ -174,7 +174,7 @@ export default function ExpensesPage() {
         <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
           <div className="flex items-center justify-between text-slate-400 text-xs">
             <span>Active Expense Categories</span>
-            <Building2 className="w-4 h-4 text-indigo-400" />
+            <Building2 className="w-4 h-4 text-orange-400" />
           </div>
           <div className="text-2xl font-bold font-mono text-white mt-2">
             {categories.length}
@@ -192,7 +192,7 @@ export default function ExpensesPage() {
             placeholder="Search by Payee / Vendor, Voucher No, or Category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
           />
         </div>
 
@@ -249,7 +249,7 @@ export default function ExpensesPage() {
                       <div className="text-[10px] text-slate-500">{new Date(exp.expenseDate).toLocaleDateString()}</div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-orange-500/10 text-orange-300 border border-orange-500/20">
                         {exp.categoryName}
                       </span>
                     </td>
@@ -417,7 +417,7 @@ export default function ExpensesPage() {
               </button>
               <button
                 onClick={handleCreateExpense}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30"
+                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-600/30"
               >
                 Record Expense Voucher
               </button>

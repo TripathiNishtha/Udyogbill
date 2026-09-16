@@ -181,7 +181,7 @@ export default function ChequeRegisterPage() {
       case 1:
         return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><Clock className="w-3 h-3" /> In Hand / PDC</span>;
       case 2:
-        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"><Landmark className="w-3 h-3" /> Deposited</span>;
+        return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300"><Landmark className="w-3 h-3" /> Deposited</span>;
       case 3:
         return <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"><CheckCircle2 className="w-3 h-3" /> Cleared</span>;
       case 4:
@@ -203,7 +203,7 @@ export default function ChequeRegisterPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <FileCheck2 className="w-7 h-7 text-indigo-600" />
+            <FileCheck2 className="w-7 h-7 text-orange-600" />
             Cheque & PDC Register
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -220,7 +220,7 @@ export default function ChequeRegisterPage() {
           </button>
           <button
             onClick={() => setIsAddOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
             Register Cheque / PDC
@@ -248,9 +248,9 @@ export default function ChequeRegisterPage() {
         <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Deposited (Uncleared)</span>
-            <Landmark className="w-4 h-4 text-blue-500" />
+            <Landmark className="w-4 h-4 text-orange-500" />
           </div>
-          <p className="text-2xl font-bold mt-2 text-blue-600 dark:text-blue-400">₹{totalDeposited.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-bold mt-2 text-orange-600 dark:text-orange-400">₹{totalDeposited.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
           <p className="text-xs text-slate-500 mt-1">{cheques.filter(c => c.status === 2).length} cheques in clearing transit</p>
         </div>
 
@@ -274,7 +274,7 @@ export default function ChequeRegisterPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && loadData()}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
         </div>
         <select
@@ -320,7 +320,7 @@ export default function ChequeRegisterPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-500">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-indigo-500 mb-2" />
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-orange-500 mb-2" />
                     Loading cheque register...
                   </td>
                 </tr>
@@ -337,7 +337,7 @@ export default function ChequeRegisterPage() {
                       <div className="font-mono font-bold text-slate-900 dark:text-white">#{c.chequeNumber}</div>
                       <div className="text-xs text-slate-500">{c.bankName} {c.branchName ? `(${c.branchName})` : ""}</div>
                       {c.referenceDocumentNumber && (
-                        <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-mono">Ref: {c.referenceDocumentNumber}</div>
+                        <div className="text-[11px] text-orange-600 dark:text-orange-400 font-mono">Ref: {c.referenceDocumentNumber}</div>
                       )}
                     </td>
                     <td className="p-3">
@@ -359,7 +359,7 @@ export default function ChequeRegisterPage() {
                           <ArrowDownLeft className="w-3.5 h-3.5" /> Incoming
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-700 dark:text-orange-300">
                           <ArrowUpRight className="w-3.5 h-3.5" /> Outgoing
                         </span>
                       )}
@@ -391,7 +391,7 @@ export default function ChequeRegisterPage() {
                               setSelectedCheque(c);
                               setIsDepositOpen(true);
                             }}
-                            className="px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 transition"
+                            className="px-2.5 py-1 text-xs font-medium rounded bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300 transition"
                           >
                             Deposit
                           </button>
@@ -434,7 +434,7 @@ export default function ChequeRegisterPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <FileCheck2 className="w-5 h-5 text-indigo-600" />
+                <FileCheck2 className="w-5 h-5 text-orange-600" />
                 Register Cheque / Post-Dated Cheque (PDC)
               </h3>
               <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -549,7 +549,7 @@ export default function ChequeRegisterPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-sm"
                 >
                   Save to Register
                 </button>
@@ -564,7 +564,7 @@ export default function ChequeRegisterPage() {
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-5 space-y-4">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Landmark className="w-5 h-5 text-blue-600" />
+              <Landmark className="w-5 h-5 text-orange-600" />
               Deposit Cheque #{selectedCheque.chequeNumber}
             </h3>
             <p className="text-xs text-slate-500">
@@ -605,7 +605,7 @@ export default function ChequeRegisterPage() {
               <button
                 type="button"
                 onClick={handleDeposit}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg shadow-sm"
               >
                 Confirm Deposit
               </button>

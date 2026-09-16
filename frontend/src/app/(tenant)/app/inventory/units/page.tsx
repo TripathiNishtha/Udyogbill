@@ -92,7 +92,7 @@ export default function TenantUnitsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
-          <Receipt className="w-6 h-6 text-indigo-400" />
+          <Receipt className="w-6 h-6 text-orange-400" />
           <span>Units of Measure (UOM) & Multi-Unit Conversions</span>
         </h1>
         <p className="text-xs sm:text-sm text-slate-400">
@@ -107,7 +107,7 @@ export default function TenantUnitsPage() {
             <h2 className="text-base font-bold text-white">Standard Measurement Units ({units.length})</h2>
             <button
               onClick={() => setIsUnitModalOpen(true)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-sm transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Add Unit</span>
@@ -134,7 +134,7 @@ export default function TenantUnitsPage() {
                   units.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-900/40">
                       <td className="px-5 py-3">
-                        <span className="font-mono text-indigo-400 font-bold">{u.code}</span>
+                        <span className="font-mono text-orange-400 font-bold">{u.code}</span>
                         <span className="text-[11px] text-slate-400 ml-1.5">({u.symbol})</span>
                       </td>
                       <td className="px-5 py-3 font-medium text-white">{u.name}</td>
@@ -161,7 +161,7 @@ export default function TenantUnitsPage() {
             <h2 className="text-base font-bold text-white">Conversion Multipliers ({conversions.length})</h2>
             <button
               onClick={() => setIsConvModalOpen(true)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-sm transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Add Multiplier</span>
@@ -189,13 +189,13 @@ export default function TenantUnitsPage() {
                       <td className="px-5 py-3">
                         <div className="flex items-center space-x-2 text-white font-medium">
                           <span>1 {conv.fromUomName} ({conv.fromUomCode})</span>
-                          <span className="text-indigo-400">=</span>
+                          <span className="text-orange-400">=</span>
                           <span className="text-emerald-400 font-bold font-mono">
                             {conv.conversionFactor} {conv.toUomName} ({conv.toUomCode})
                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-right font-mono font-bold text-indigo-400">
+                      <td className="px-5 py-3 text-right font-mono font-bold text-orange-400">
                         {conv.conversionFactor}x
                       </td>
                     </tr>
@@ -233,7 +233,7 @@ export default function TenantUnitsPage() {
                   placeholder="e.g. BOX, STRIP, KG, PCS"
                   value={unitForm.code}
                   onChange={(e) => setUnitForm({ ...unitForm, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-600 focus:ring-1 focus:ring-orange-600"
                 />
               </div>
               <div className="space-y-1">
@@ -244,7 +244,7 @@ export default function TenantUnitsPage() {
                   placeholder="e.g. Box / Carton"
                   value={unitForm.name}
                   onChange={(e) => setUnitForm({ ...unitForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-600 focus:ring-1 focus:ring-orange-600"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -255,7 +255,7 @@ export default function TenantUnitsPage() {
                     placeholder="e.g. bx"
                     value={unitForm.symbol}
                     onChange={(e) => setUnitForm({ ...unitForm, symbol: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-600"
                   />
                 </div>
                 <div className="space-y-1">
@@ -266,7 +266,7 @@ export default function TenantUnitsPage() {
                     max="4"
                     value={unitForm.decimalPlaces}
                     onChange={(e) => setUnitForm({ ...unitForm, decimalPlaces: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-600"
                   />
                 </div>
               </div>
@@ -281,7 +281,7 @@ export default function TenantUnitsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500"
                 >
                   {submitting ? "Saving..." : "Save Unit"}
                 </button>
@@ -308,7 +308,7 @@ export default function TenantUnitsPage() {
                 <select
                   value={convForm.fromUomId}
                   onChange={(e) => setConvForm({ ...convForm, fromUomId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-600"
                 >
                   {units.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -322,7 +322,7 @@ export default function TenantUnitsPage() {
                 <select
                   value={convForm.toUomId}
                   onChange={(e) => setConvForm({ ...convForm, toUomId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-600"
                 >
                   {units.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -341,7 +341,7 @@ export default function TenantUnitsPage() {
                   placeholder="e.g. 10 (1 Box = 10 Strips)"
                   value={convForm.conversionFactor}
                   onChange={(e) => setConvForm({ ...convForm, conversionFactor: parseFloat(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-600 focus:ring-1 focus:ring-orange-600"
                 />
               </div>
               <div className="flex items-center justify-end space-x-2 pt-2">
@@ -355,7 +355,7 @@ export default function TenantUnitsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 transition-colors shadow-sm"
                 >
                   {submitting ? "Saving..." : "Save Multiplier"}
                 </button>

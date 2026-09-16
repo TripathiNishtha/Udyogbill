@@ -19,7 +19,7 @@ function PosRedirectContent() {
   return (
     <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
       <div className="text-center space-y-2">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-slate-400 font-medium">Opening Invoice Editor...</p>
       </div>
     </div>

@@ -49,7 +49,7 @@ export default function FinancialSummaryPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
-            <span className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/20">
+            <span className="p-2 rounded-xl bg-orange-600/20 text-orange-400 border border-orange-500/20">
               <TrendingUp className="w-6 h-6" />
             </span>
             <span>Financial Executive Summary</span>
@@ -67,14 +67,14 @@ export default function FinancialSummaryPage() {
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+              className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500"
             />
             <span className="text-slate-500 text-xs font-semibold">to</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+              className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500"
             />
           </div>
           <button
@@ -89,7 +89,7 @@ export default function FinancialSummaryPage() {
 
       {loading && !summary ? (
         <div className="p-16 text-center text-slate-400 flex flex-col items-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
+          <RefreshCw className="w-8 h-8 animate-spin text-orange-500 mb-3" />
           <p className="text-sm">Aggregating real-time financial metrics...</p>
         </div>
       ) : summary ? (
@@ -131,17 +131,17 @@ export default function FinancialSummaryPage() {
             </div>
 
             {/* Gross / Net Profit */}
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-950/40 to-slate-950 border border-indigo-800/40 hover:border-indigo-700/60 transition-all shadow-lg">
-              <div className="flex items-center justify-between text-indigo-300 text-xs font-semibold mb-2">
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-950/40 to-slate-950 border border-orange-800/40 hover:border-orange-700/60 transition-all shadow-lg">
+              <div className="flex items-center justify-between text-orange-300 text-xs font-semibold mb-2">
                 <span>ESTIMATED NET PROFIT</span>
-                <span className="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg">
+                <span className="p-1.5 bg-orange-500/10 text-orange-400 rounded-lg">
                   <DollarSign className="w-4 h-4" />
                 </span>
               </div>
               <div className={`text-2xl font-black ${summary.netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 ₹{summary.netProfit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-indigo-300/80 border-t border-indigo-900/40 pt-2.5">
+              <div className="mt-3 flex items-center justify-between text-xs text-orange-300/80 border-t border-orange-900/40 pt-2.5">
                 <span>Gross Profit Margin</span>
                 <span className="font-bold text-white">
                   {summary.totalSales > 0 ? ((summary.grossProfit / summary.totalSales) * 100).toFixed(1) : 0}%
@@ -214,7 +214,7 @@ export default function FinancialSummaryPage() {
             <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                  <Receipt className="w-5 h-5 text-indigo-400" />
+                  <Receipt className="w-5 h-5 text-orange-400" />
                   <span>GST Tax Breakdown</span>
                 </h3>
               </div>
@@ -227,7 +227,7 @@ export default function FinancialSummaryPage() {
                       ₹{summary.outputGst.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </div>
                   </div>
-                  <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-lg">
+                  <span className="text-xs font-semibold text-orange-400 bg-orange-500/10 px-2 py-1 rounded-lg">
                     GSTR-1 Liability
                   </span>
                 </div>
