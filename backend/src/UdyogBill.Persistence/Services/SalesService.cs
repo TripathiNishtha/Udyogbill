@@ -560,8 +560,17 @@ public class SalesService : ISalesService
             .ToDictionaryAsync(b => b.Id, cancellationToken);
 
         var existingStocks = await _context.ItemWarehouseStocks
+            .Include(s => s.Batch)
             .Where(s => s.TenantId == tenantId && itemIds.Contains(s.ItemId) && s.WarehouseId == warehouseId && !s.IsDeleted)
             .ToListAsync(cancellationToken);
+
+        foreach (var s in existingStocks)
+        {
+            if (s.Batch != null && !batchesDict.ContainsKey(s.Batch.Id))
+            {
+                batchesDict[s.Batch.Id] = s.Batch;
+            }
+        }
 
         var customerName = !string.IsNullOrWhiteSpace(request.CustomerName) 
             ? request.CustomerName.Trim() 
@@ -695,18 +704,59 @@ public class SalesService : ISalesService
             }
 
             bool shouldDepleteStock = item.ItemType != ItemType.Service && item.TrackInventory;
+            Guid? effectiveBatchId = reqItem.BatchId;
+            string batchNo = reqItem.BatchNumber;
+            DateTime? expiryDate = reqItem.ExpiryDate.HasValue 
+                ? DateTime.SpecifyKind(reqItem.ExpiryDate.Value, DateTimeKind.Utc) 
+                : null;
+
             if (shouldDepleteStock)
             {
-                var stock = existingStocks.FirstOrDefault(s => s.ItemId == reqItem.ItemId && 
-                    s.VariantId == reqItem.VariantId &&
-                    (!reqItem.BatchId.HasValue || reqItem.BatchId.Value == Guid.Empty ? s.BatchId == null : s.BatchId == reqItem.BatchId.Value));
+                ItemWarehouseStock? stock = null;
+
+                if (item.TrackBatches)
+                {
+                    if (effectiveBatchId.HasValue && effectiveBatchId.Value != Guid.Empty)
+                    {
+                        stock = existingStocks.FirstOrDefault(s => s.ItemId == reqItem.ItemId && 
+                            s.VariantId == reqItem.VariantId &&
+                            s.BatchId == effectiveBatchId.Value);
+                    }
+                    else
+                    {
+                        // Auto-select batch using FEFO (First Expired First Out) with available stock
+                        var candidateStocks = existingStocks
+                            .Where(s => s.ItemId == reqItem.ItemId && 
+                                        s.VariantId == reqItem.VariantId && 
+                                        s.BatchId.HasValue && 
+                                        s.CurrentQuantity > 0 &&
+                                        (s.Batch == null || (!s.Batch.IsQuarantined && s.Batch.ExpiryDate >= DateTime.UtcNow.Date)))
+                            .OrderBy(s => s.Batch != null ? s.Batch.ExpiryDate : DateTime.MaxValue)
+                            .ThenByDescending(s => s.CurrentQuantity)
+                            .ToList();
+
+                        stock = candidateStocks.FirstOrDefault(s => s.CurrentQuantity >= lineCalc.TotalPhysicalQuantity)
+                                ?? candidateStocks.FirstOrDefault();
+
+                        if (stock != null)
+                        {
+                            effectiveBatchId = stock.BatchId;
+                        }
+                    }
+                }
+                else
+                {
+                    stock = existingStocks.FirstOrDefault(s => s.ItemId == reqItem.ItemId && 
+                        s.VariantId == reqItem.VariantId &&
+                        (!effectiveBatchId.HasValue || effectiveBatchId.Value == Guid.Empty ? s.BatchId == null : s.BatchId == effectiveBatchId.Value));
+                }
 
                 decimal beforeQty = stock?.CurrentQuantity ?? 0m;
                 decimal physicalOut = lineCalc.TotalPhysicalQuantity;
 
                 if (!allowNegativeStock && beforeQty < physicalOut)
                 {
-                    var batchStr = reqItem.BatchId.HasValue && batchesDict.TryGetValue(reqItem.BatchId.Value, out var b) ? $" (Batch: {b.BatchNumber})" : "";
+                    var batchStr = effectiveBatchId.HasValue && batchesDict.TryGetValue(effectiveBatchId.Value, out var b) ? $" (Batch: {b.BatchNumber})" : "";
                     return Result<Guid>.Failure($"Insufficient stock for item '{item.Name}'{batchStr}. Required: {physicalOut:G29}, Available: {beforeQty:G29}.", "INSUFFICIENT_STOCK");
                 }
 
@@ -718,7 +768,7 @@ public class SalesService : ISalesService
                         ItemId = item.Id,
                         VariantId = reqItem.VariantId,
                         WarehouseId = warehouseId,
-                        BatchId = reqItem.BatchId,
+                        BatchId = effectiveBatchId,
                         CurrentQuantity = -physicalOut,
                         ReservedQuantity = 0
                     };
@@ -736,7 +786,7 @@ public class SalesService : ISalesService
                     ItemId = item.Id,
                     VariantId = reqItem.VariantId,
                     WarehouseId = warehouseId,
-                    BatchId = reqItem.BatchId,
+                    BatchId = effectiveBatchId,
                     MovementType = StockMovementType.SalesOutward,
                     Quantity = -physicalOut,
                     QuantityBefore = beforeQty,
@@ -751,10 +801,14 @@ public class SalesService : ISalesService
                 _context.StockMovements.Add(movement);
             }
 
-            string batchNo = reqItem.BatchNumber;
-            DateTime? expiryDate = reqItem.ExpiryDate.HasValue 
-                ? DateTime.SpecifyKind(reqItem.ExpiryDate.Value, DateTimeKind.Utc) 
-                : null;
+            // Populate batch number and expiry date from loaded batch if available
+            if (effectiveBatchId.HasValue && batchesDict.TryGetValue(effectiveBatchId.Value, out var resolvedBatch))
+            {
+                if (string.IsNullOrWhiteSpace(batchNo))
+                    batchNo = resolvedBatch.BatchNumber;
+                if (!expiryDate.HasValue && resolvedBatch.ExpiryDate != default)
+                    expiryDate = DateTime.SpecifyKind(resolvedBatch.ExpiryDate, DateTimeKind.Utc);
+            }
 
             var itemAttrs = new Dictionary<string, object>();
             if (!string.IsNullOrWhiteSpace(reqItem.AttributesJson) && reqItem.AttributesJson != "{}")
@@ -787,7 +841,7 @@ public class SalesService : ISalesService
                 ItemName = item.Name,
                 HsnCode = !string.IsNullOrWhiteSpace(reqItem.HsnCode) ? reqItem.HsnCode : item.HSNCode,
                 Barcode = item.Barcode,
-                BatchId = reqItem.BatchId,
+                BatchId = effectiveBatchId,
                 BatchNumber = batchNo,
                 ExpiryDate = expiryDate,
                 Quantity = reqItem.Quantity,

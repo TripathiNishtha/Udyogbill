@@ -855,7 +855,8 @@ export default function TenantPosPage() {
       clearCart();
     } catch (err: any) {
       console.error("Sale error", err);
-      alert(err?.response?.data?.errorMessage || err?.message || "Failed to process sale. Please check stock.");
+      const apiMsg = err?.response?.data?.userMessage || err?.response?.data?.message || err?.response?.data?.errorMessage;
+      alert(apiMsg || err?.message || "Failed to process sale. Please check stock.");
     } finally {
       setSubmitting(false);
     }
