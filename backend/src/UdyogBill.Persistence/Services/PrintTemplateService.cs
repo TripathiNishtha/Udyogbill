@@ -1062,11 +1062,11 @@ public class PrintTemplateService : IPrintTemplateService
         bool isHardware = industry == IndustryTypeCodes.Hardware;
 
         bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => i.ExpiryDate.HasValue));
-        bool hasFree = invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false;
-        bool hasMrp = invoice?.Items.Any(i => i.Mrp > 0) ?? true;
-        bool hasDisc = invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? true;
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true);
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true);
+        bool hasFree = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
+        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
+        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
 
         var itemsRows = new StringBuilder();
         int lineIndex = 1;
@@ -1507,17 +1507,22 @@ public class PrintTemplateService : IPrintTemplateService
         bool showSettlementCard = hasValidBank || hasValidUpi;
 
         // Dynamic Addon Detection: Look at invoice items and tenant configuration
+        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
+        bool isElectronics = industry == IndustryTypeCodes.Electronics;
+        bool isGarments = industry == IndustryTypeCodes.Garments;
+        bool isHardware = industry == IndustryTypeCodes.Hardware;
+
         var tradeTier = ExtractInvoiceTradeTier(invoice);
-        bool hasPharmaAddon = invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber) || i.ExpiryDate.HasValue) ?? true;
-        bool hasDiscount = invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? true;
-        bool hasFreeScheme = invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false;
-        bool hasMrp = invoice?.Items.Any(i => i.Mrp > 0) ?? true;
+        bool hasPharmaAddon = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber) || i.ExpiryDate.HasValue) : false);
+        bool hasDiscount = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : false;
+        bool hasFreeScheme = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
+        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : false;
         bool hasPtr = invoice != null 
-            ? (invoice.Items.Any(i => ExtractItemPharmaAttributes(i).ptr > 0) || tradeTier == "company_to_stockist" || tradeTier == "stockist_to_chemist" || (hasPharmaAddon && hasMrp))
-            : true;
+            ? (invoice.Items.Any(i => ExtractItemPharmaAttributes(i).ptr > 0) || (tradeTier == "company_to_stockist" || tradeTier == "stockist_to_chemist"))
+            : false;
         bool hasPts = invoice != null 
             ? (invoice.Items.Any(i => ExtractItemPharmaAttributes(i).pts > 0) || tradeTier == "company_to_stockist")
-            : true;
+            : false;
 
         var colCount = 8 + (hasPharmaAddon ? 1 : 0) + (hasFreeScheme ? 1 : 0) + (hasMrp ? 1 : 0) + (hasPtr ? 1 : 0) + (hasPts ? 1 : 0) + (hasDiscount ? 1 : 0);
         var hsnSummaryHtml = RenderHsnSummaryTable(invoice, primaryColor);
@@ -1794,11 +1799,11 @@ public class PrintTemplateService : IPrintTemplateService
         bool isHardware = industry == IndustryTypeCodes.Hardware;
 
         bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => i.ExpiryDate.HasValue));
-        bool hasFree = invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false;
-        bool hasMrp = invoice?.Items.Any(i => i.Mrp > 0) ?? true;
-        bool hasDisc = invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? true;
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true);
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true);
+        bool hasFree = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
+        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
+        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
 
         // Base cols: Sl No (1) + Description (1) + HSN (1) + Quantity (1) + Rate (1) + per (1) + Amount (1) = 7
         int colCount = 7 + (hasSerial ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasFree ? 1 : 0) + (hasMrp ? 1 : 0) + (hasDisc ? 1 : 0);
@@ -2313,6 +2318,20 @@ public class PrintTemplateService : IPrintTemplateService
         decimal totalFree = 0;
         int itemCount = 0;
 
+        // Dynamic Column Detection: Only show columns that actually have values in backend
+        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
+        bool isElectronics = industry == IndustryTypeCodes.Electronics;
+        bool isGarments = industry == IndustryTypeCodes.Garments;
+        bool isHardware = industry == IndustryTypeCodes.Hardware;
+
+        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool hasPack = invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack));
+        bool hasFree = invoice != null && invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0);
+        bool hasMrp = invoice != null && invoice.Items.Any(i => i.Mrp > 0);
+        bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
+
         if (invoice?.Items != null && invoice.Items.Any())
         {
             itemCount = invoice.Items.Count;
@@ -2335,15 +2354,16 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='height:18px; border-bottom:1px solid {borderColor}; font-size:8.5px;'>
                     <td style='border-right:1px solid {borderColor}; text-align:center;'>{idx++}</td>
                     <td style='border-right:1px solid {borderColor}; padding:1px 4px; font-weight:bold;'>{it.ItemName}{ExtractIndustryItemSubline(it)}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center;'>{packing}</td>
+                    {(hasPack ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{packing}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:center; font-family:monospace;'>{hsn}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center;'>{batch}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center;'>{expiry}</td>
+                    {(hasSerial ? $"<td style='border-right:1px solid {borderColor}; text-align:center; font-family:monospace; font-weight:700; color:{primaryColor}; font-size:8px;'>{ExtractItemImei(it)}</td>" : "")}
+                    {(hasBatch ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{batch}</td>" : "")}
+                    {(hasExpiry ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{expiry}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px; font-weight:bold;'>{it.Quantity:0.00}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center; color:{primaryColor}; font-weight:bold;'>{freeStr}</td>
+                    {(hasFree ? $"<td style='border-right:1px solid {borderColor}; text-align:center; color:{primaryColor}; font-weight:bold;'>{freeStr}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{it.UnitPrice:0.00}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{mrpStr}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{discStr}</td>
+                    {(hasMrp ? $"<td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{mrpStr}</td>" : "")}
+                    {(hasDisc ? $"<td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{discStr}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:center;'>{it.GstRate:0}%</td>
                     <td style='text-align:right; padding:0 4px; font-weight:bold;'>{it.TotalAmount:N2}</td>
                 </tr>");
@@ -2438,15 +2458,16 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='background:{headerOrangeBg}; border-bottom:1.5px solid {primaryColor}; font-weight:bold; color:#0f172a; height:19px;'>
                     <th style='width:22px; border-right:1px solid {borderColor}; text-align:center;'>#</th>
                     <th style='border-right:1px solid {borderColor}; text-align:left; padding:0 4px;'>Item Description</th>
-                    <th style='width:42px; border-right:1px solid {borderColor}; text-align:center;'>Pack</th>
+                    {(hasPack ? $"<th style='width:42px; border-right:1px solid {borderColor}; text-align:center;'>Pack</th>" : "")}
                     <th style='width:48px; border-right:1px solid {borderColor}; text-align:center;'>HSN</th>
-                    <th style='width:46px; border-right:1px solid {borderColor}; text-align:center;'>Batch</th>
-                    <th style='width:38px; border-right:1px solid {borderColor}; text-align:center;'>Exp</th>
+                    {(hasSerial ? $"<th style='width:80px; border-right:1px solid {borderColor}; text-align:center;'>IMEI / Serial No</th>" : "")}
+                    {(hasBatch ? $"<th style='width:46px; border-right:1px solid {borderColor}; text-align:center;'>Batch</th>" : "")}
+                    {(hasExpiry ? $"<th style='width:38px; border-right:1px solid {borderColor}; text-align:center;'>Exp</th>" : "")}
                     <th style='width:36px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Qty</th>
-                    <th style='width:30px; border-right:1px solid {borderColor}; text-align:center;'>Free</th>
+                    {(hasFree ? $"<th style='width:30px; border-right:1px solid {borderColor}; text-align:center;'>Free</th>" : "")}
                     <th style='width:44px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Rate</th>
-                    <th style='width:44px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>MRP</th>
-                    <th style='width:34px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Dis%</th>
+                    {(hasMrp ? $"<th style='width:44px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>MRP</th>" : "")}
+                    {(hasDisc ? $"<th style='width:34px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Dis%</th>" : "")}
                     <th style='width:32px; border-right:1px solid {borderColor}; text-align:center;'>GST</th>
                     <th style='width:56px; text-align:right; padding:0 4px;'>Amount</th>
                 </tr>
@@ -2457,15 +2478,16 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='height:100%; min-height:{margFillerHeight}px;'>
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
+                    {(hasPack ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
+                    {(hasSerial ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasBatch ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasExpiry ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
+                    {(hasFree ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
+                    {(hasMrp ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasDisc ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
                     <td style='height:{margFillerHeight}px;'>&nbsp;</td>
                 </tr>
@@ -2632,6 +2654,20 @@ public class PrintTemplateService : IPrintTemplateService
         decimal subTotal = 0;
         int itemCount = 0;
 
+        // Dynamic Column Detection: Only show columns that actually have values in backend
+        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
+        bool isElectronics = industry == IndustryTypeCodes.Electronics;
+        bool isGarments = industry == IndustryTypeCodes.Garments;
+        bool isHardware = industry == IndustryTypeCodes.Hardware;
+
+        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool hasPack = invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack));
+        bool hasFree = invoice != null && invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0);
+        bool hasMrp = invoice != null && invoice.Items.Any(i => i.Mrp > 0);
+        bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
+
         if (invoice?.Items != null && invoice.Items.Any())
         {
             itemCount = invoice.Items.Count;
@@ -2658,14 +2694,15 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='height:18px; border-bottom:1px solid {borderColor}; font-size:8.5px;'>
                     <td style='border-right:1px solid {borderColor}; text-align:center;'>{idx++}</td>
                     <td style='border-right:1px solid {borderColor}; padding:1px 4px; font-weight:bold;'>{it.ItemName}{ExtractIndustryItemSubline(it)}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center;'>{packing}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center;'>{batch}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center;'>{expiry}</td>
+                    {(hasPack ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{packing}</td>" : "")}
+                    {(hasSerial ? $"<td style='border-right:1px solid {borderColor}; text-align:center; font-family:monospace; font-weight:700; color:{primaryColor}; font-size:8px;'>{ExtractItemImei(it)}</td>" : "")}
+                    {(hasBatch ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{batch}</td>" : "")}
+                    {(hasExpiry ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{expiry}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px; font-weight:bold;'>{it.Quantity:0.00}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:center; color:{primaryColor}; font-weight:bold;'>{freeStr}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{mrpStr}</td>
+                    {(hasFree ? $"<td style='border-right:1px solid {borderColor}; text-align:center; color:{primaryColor}; font-weight:bold;'>{freeStr}</td>" : "")}
+                    {(hasMrp ? $"<td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{mrpStr}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{rateVal:0.00}</td>
-                    <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{discStr}</td>
+                    {(hasDisc ? $"<td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{discStr}</td>" : "")}
                     <td style='text-align:right; padding:0 4px; font-weight:bold;'>{it.TotalAmount:N2}</td>
                 </tr>");
             }
@@ -2737,14 +2774,15 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='background:{headerOrangeBg}; border-bottom:1.5px solid {primaryColor}; font-weight:bold; color:#0f172a; height:19px;'>
                     <th style='width:24px; border-right:1px solid {borderColor}; text-align:center;'>#</th>
                     <th style='border-right:1px solid {borderColor}; text-align:left; padding:0 4px;'>Item Description</th>
-                    <th style='width:46px; border-right:1px solid {borderColor}; text-align:center;'>Pack</th>
-                    <th style='width:54px; border-right:1px solid {borderColor}; text-align:center;'>Batch</th>
-                    <th style='width:42px; border-right:1px solid {borderColor}; text-align:center;'>Exp</th>
+                    {(hasPack ? $"<th style='width:46px; border-right:1px solid {borderColor}; text-align:center;'>Pack</th>" : "")}
+                    {(hasSerial ? $"<th style='width:80px; border-right:1px solid {borderColor}; text-align:center;'>IMEI / Serial No</th>" : "")}
+                    {(hasBatch ? $"<th style='width:54px; border-right:1px solid {borderColor}; text-align:center;'>Batch</th>" : "")}
+                    {(hasExpiry ? $"<th style='width:42px; border-right:1px solid {borderColor}; text-align:center;'>Exp</th>" : "")}
                     <th style='width:42px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Qty</th>
-                    <th style='width:34px; border-right:1px solid {borderColor}; text-align:center;'>Free</th>
-                    <th style='width:50px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>MRP</th>
+                    {(hasFree ? $"<th style='width:34px; border-right:1px solid {borderColor}; text-align:center;'>Free</th>" : "")}
+                    {(hasMrp ? $"<th style='width:50px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>MRP</th>" : "")}
                     <th style='width:50px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Rate</th>
-                    <th style='width:42px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Dis%</th>
+                    {(hasDisc ? $"<th style='width:42px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Dis%</th>" : "")}
                     <th style='width:66px; text-align:right; padding:0 4px;'>Amount</th>
                 </tr>
             </thead>
@@ -2754,14 +2792,15 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='height:100%; min-height:{memoFillerHeight}px;'>
                     <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
                     <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
+                    {(hasPack ? $"<td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasSerial ? $"<td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasBatch ? $"<td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasExpiry ? $"<td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
+                    {(hasFree ? $"<td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasMrp ? $"<td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
-                    <td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>
+                    {(hasDisc ? $"<td style='border-right:1px solid {borderColor}; height:{memoFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='height:{memoFillerHeight}px;'>&nbsp;</td>
                 </tr>
             </tbody>
@@ -3926,6 +3965,36 @@ public class PrintTemplateService : IPrintTemplateService
 
         var heightStyle = GetContainerHeightStyle(t);
 
+        bool hasBatch = invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true;
+        bool hasExpiry = invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true;
+        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
+        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
+
+        int rxColCount = 4 + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasMrp ? 1 : 0) + (hasDisc ? 1 : 0);
+
+        var rxRows = new StringBuilder();
+        if (invoice?.Items != null && invoice.Items.Any())
+        {
+            int idx = 1;
+            foreach (var it in invoice.Items)
+            {
+                var expStr = it.ExpiryDate.HasValue ? it.ExpiryDate.Value.ToString("MM/yy") : "-";
+                var discStr = it.DiscountPercent > 0 ? $"{it.DiscountPercent:0.##}%" : (it.DiscountAmount > 0 ? $"₹{it.DiscountAmount:0.##}" : "-");
+
+                rxRows.Append($@"
+                <tr style='border-bottom:1px solid #e2e8f0; height:24px; font-size:10px;'>
+                    <td style='padding:4px; border-right:1px solid #cbd5e1; text-align:center;'>{idx++}</td>
+                    <td style='padding:4px 6px; border-right:1px solid #cbd5e1;'><strong>{it.ItemName}</strong>{ExtractIndustryItemSubline(it)}</td>
+                    {(hasBatch ? $"<td style='padding:4px; border-right:1px solid #cbd5e1; text-align:center; font-family:monospace;'>{it.BatchNumber ?? "-"}</td>" : "")}
+                    {(hasExpiry ? $"<td style='padding:4px; border-right:1px solid #cbd5e1; text-align:center; font-family:monospace;'>{expStr}</td>" : "")}
+                    {(hasMrp ? $"<td style='padding:4px; border-right:1px solid #cbd5e1; text-align:right;'>{(it.Mrp > 0 ? $"₹{it.Mrp:N2}" : "-")}</td>" : "")}
+                    <td style='padding:4px; border-right:1px solid #cbd5e1; text-align:right; font-weight:bold;'>{it.Quantity:N0}</td>
+                    {(hasDisc ? $"<td style='padding:4px; border-right:1px solid #cbd5e1; text-align:right;'>{discStr}</td>" : "")}
+                    <td style='padding:4px 6px; text-align:right; font-weight:bold;'>₹{it.TotalAmount:N2}</td>
+                </tr>");
+            }
+        }
+
         return $@"
 <div class='invoice-container' style='font-family:{t.FontFamily}; width:100%; max-width:800px; {heightStyle} margin:0 auto; padding:16px 20px; border:1.5px solid {primaryColor}; border-radius:6px; box-sizing:border-box; background:#fff; font-size:11.5px; display:flex; flex-direction:column; justify-content:space-between;'>
     <div>
@@ -3968,17 +4037,17 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='background:#fff1f2; color:{primaryColor}; border-bottom:1.5px solid #fecdd3; height:26px;'>
                     <th style='padding:5px 4px; text-align:center; border-right:1px solid #fecdd3; width:28px;'>#</th>
                     <th style='padding:5px 6px; text-align:left; border-right:1px solid #fecdd3;'>Medicine Description</th>
-                    <th style='padding:5px 4px; text-align:center; border-right:1px solid #fecdd3; width:75px;'>Batch</th>
-                    <th style='padding:5px 4px; text-align:center; border-right:1px solid #fecdd3; width:55px;'>Exp</th>
-                    <th style='padding:5px 4px; text-align:right; border-right:1px solid #fecdd3; width:65px;'>MRP</th>
+                    {(hasBatch ? "<th style='padding:5px 4px; text-align:center; border-right:1px solid #fecdd3; width:75px;'>Batch</th>" : "")}
+                    {(hasExpiry ? "<th style='padding:5px 4px; text-align:center; border-right:1px solid #fecdd3; width:55px;'>Exp</th>" : "")}
+                    {(hasMrp ? "<th style='padding:5px 4px; text-align:right; border-right:1px solid #fecdd3; width:65px;'>MRP</th>" : "")}
                     <th style='padding:5px 4px; text-align:right; border-right:1px solid #fecdd3; width:45px;'>Qty</th>
-                    <th style='padding:5px 4px; text-align:right; border-right:1px solid #fecdd3; width:50px;'>Disc %</th>
+                    {(hasDisc ? "<th style='padding:5px 4px; text-align:right; border-right:1px solid #fecdd3; width:50px;'>Disc %</th>" : "")}
                     <th style='padding:5px 6px; text-align:right; width:80px;'>Net Amount</th>
                 </tr>
             </thead>
             <tbody style='height:100%;'>
-                {RenderFullPageLineItemsRows(invoice)}
-                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(8, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 220 : 600) : "")}
+                {rxRows}
+                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(rxColCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 220 : 600) : "")}
             </tbody>
         </table>
     </div>
@@ -4032,6 +4101,44 @@ public class PrintTemplateService : IPrintTemplateService
         var totalTax = total - taxable;
         var heightStyle = GetContainerHeightStyle(t);
 
+        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
+        bool isElectronics = industry == IndustryTypeCodes.Electronics;
+        bool isGarments = industry == IndustryTypeCodes.Garments;
+        bool isHardware = industry == IndustryTypeCodes.Hardware;
+
+        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
+
+        int a5ColCount = 6 + (hasSerial ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasDisc ? 1 : 0);
+
+        var a5Rows = new StringBuilder();
+        if (invoice?.Items != null && invoice.Items.Any())
+        {
+            int idx = 1;
+            foreach (var it in invoice.Items)
+            {
+                var expStr = it.ExpiryDate.HasValue ? it.ExpiryDate.Value.ToString("MM/yy") : "-";
+                var discStr = it.DiscountPercent > 0 ? $"{it.DiscountPercent:0.##}%" : (it.DiscountAmount > 0 ? $"₹{it.DiscountAmount:0.##}" : "-");
+
+                a5Rows.Append($@"
+                <tr style='height:22px; border-bottom:1px solid #99f6e4; font-size:9.5px;'>
+                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:center;'>{idx++}</td>
+                    <td style='padding:3px 5px; border-right:1px solid #99f6e4;'><strong>{it.ItemName}</strong>{ExtractIndustryItemSubline(it)}</td>
+                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace;'>{it.HsnCode ?? "-"}</td>
+                    {(hasSerial ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace; font-weight:bold; font-size:8.5px;'>{ExtractItemImei(it)}</td>" : "")}
+                    {(hasBatch ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace;'>{it.BatchNumber ?? "-"}</td>" : "")}
+                    {(hasExpiry ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace;'>{expStr}</td>" : "")}
+                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:right;'>{it.Quantity:N0}</td>
+                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:right; font-family:monospace;'>₹{it.UnitPrice:N2}</td>
+                    {(hasDisc ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:right;'>{discStr}</td>" : "")}
+                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:right; font-family:monospace;'>₹{it.TaxableAmount:N2}</td>
+                    <td style='padding:3px 5px; text-align:right; font-family:monospace; font-weight:bold;'>₹{it.TotalAmount:N2}</td>
+                </tr>");
+            }
+        }
+
         return $@"
 <div class='invoice-container' style='font-family:{t.FontFamily}; width:100%; max-width:740px; {heightStyle} margin:0 auto; padding:10px 14px; border:1.5px solid {primaryColor}; border-radius:6px; background:#fff; font-size:10.5px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;'>
     <div>
@@ -4056,17 +4163,22 @@ public class PrintTemplateService : IPrintTemplateService
         <table style='width:100%; height:100%; flex:1 1 auto; border-collapse:collapse; font-size:10px;'>
             <thead>
                 <tr style='background:#f0fdfa; color:{primaryColor}; font-weight:bold; height:24px; border-bottom:1px solid #99f6e4;'>
+                    <th style='padding:4px; border-right:1px solid #99f6e4; width:26px; text-align:center;'>#</th>
                     <th style='padding:4px; border-right:1px solid #99f6e4; text-align:left;'>Item Description</th>
                     <th style='padding:4px; border-right:1px solid #99f6e4; width:60px; text-align:center;'>HSN</th>
+                    {(hasSerial ? $"<th style='padding:4px; border-right:1px solid #99f6e4; width:80px; text-align:center;'>IMEI / Serial</th>" : "")}
+                    {(hasBatch ? $"<th style='padding:4px; border-right:1px solid #99f6e4; width:60px; text-align:center;'>Batch</th>" : "")}
+                    {(hasExpiry ? $"<th style='padding:4px; border-right:1px solid #99f6e4; width:45px; text-align:center;'>Exp</th>" : "")}
                     <th style='padding:4px; border-right:1px solid #99f6e4; width:45px; text-align:right;'>Qty</th>
                     <th style='padding:4px; border-right:1px solid #99f6e4; width:65px; text-align:right;'>Rate (₹)</th>
+                    {(hasDisc ? $"<th style='padding:4px; border-right:1px solid #99f6e4; width:45px; text-align:right;'>Disc</th>" : "")}
                     <th style='padding:4px; border-right:1px solid #99f6e4; width:65px; text-align:right;'>Taxable</th>
                     <th style='padding:4px; width:75px; text-align:right;'>Total (₹)</th>
                 </tr>
             </thead>
             <tbody style='height:100%;'>
-                {RenderFullPageLineItemsRows(invoice)}
-                {((invoice?.Items?.Count ?? 0) < 8 ? RenderTableFillerRow(6, "#cbd5e1", (invoice?.Items?.Count ?? 0), 260) : "")}
+                {a5Rows}
+                {((invoice?.Items?.Count ?? 0) < 8 ? RenderTableFillerRow(a5ColCount, "#99f6e4", (invoice?.Items?.Count ?? 0), 260) : "")}
             </tbody>
         </table>
     </div>
@@ -4991,8 +5103,23 @@ public class PrintTemplateService : IPrintTemplateService
             : "";
         bool hasValidBank = t.ShowBankDetails && (!string.IsNullOrWhiteSpace(bankName) || !string.IsNullOrWhiteSpace(bankAcc) || !string.IsNullOrWhiteSpace(bankIfsc));
 
+        // Dynamic Column Detection: Only show columns that actually have values in backend
+        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
+        bool isElectronics = industry == IndustryTypeCodes.Electronics;
+        bool isGarments = industry == IndustryTypeCodes.Garments;
+        bool isHardware = industry == IndustryTypeCodes.Hardware;
+
+        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true);
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true);
+        bool hasPack = invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)) : true;
+        bool hasFree = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
+        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
+        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
+
         // Line Items & HSN Summary
-        var (itemsHtml, hsnRowsHtml, hsnTotalsHtml) = RenderPharmaProItemsAndHsn(invoice, taxable, cgst, sgst, igst);
+        var (itemsHtml, hsnRowsHtml, hsnTotalsHtml) = RenderPharmaProItemsAndHsn(
+            invoice, taxable, cgst, sgst, igst, hasPack, hasSerial, hasBatch, hasExpiry, hasFree, hasMrp, hasDisc);
 
         var termsCity = !string.IsNullOrWhiteSpace(invoice?.Branch?.City) ? invoice.Branch.City : (!string.IsNullOrWhiteSpace(tenant?.City) ? tenant.City : "DELHI");
 
@@ -5070,16 +5197,17 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='background:#f1f5f9; border-bottom:1px solid #9ca3af; font-weight:bold; color:#0f172a; height:24px;'>
                     <th style='width:24px; border-right:1px solid #9ca3af; text-align:center;'>S.</th>
                     <th style='border-right:1px solid #9ca3af; text-align:left; padding:0 4px;'>Product</th>
-                    <th style='width:46px; border-right:1px solid #9ca3af; text-align:center;'>Packing</th>
+                    {(hasPack ? "<th style='width:46px; border-right:1px solid #9ca3af; text-align:center;'>Packing</th>" : "")}
                     <th style='width:52px; border-right:1px solid #9ca3af; text-align:center;'>HSN/SAC</th>
-                    <th style='width:48px; border-right:1px solid #9ca3af; text-align:center;'>Lot No</th>
-                    <th style='width:40px; border-right:1px solid #9ca3af; text-align:center;'>Expiry</th>
+                    {(hasSerial ? "<th style='width:80px; border-right:1px solid #9ca3af; text-align:center;'>IMEI / Serial</th>" : "")}
+                    {(hasBatch ? "<th style='width:48px; border-right:1px solid #9ca3af; text-align:center;'>Lot No</th>" : "")}
+                    {(hasExpiry ? "<th style='width:40px; border-right:1px solid #9ca3af; text-align:center;'>Expiry</th>" : "")}
                     <th style='width:36px; border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>Qty</th>
-                    <th style='width:34px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Free</th>
-                    <th style='width:42px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>MRP</th>
+                    {(hasFree ? "<th style='width:34px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Free</th>" : "")}
+                    {(hasMrp ? "<th style='width:42px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>MRP</th>" : "")}
                     <th style='width:34px; border-right:1px solid #9ca3af; text-align:center;'>Unit</th>
                     <th style='width:44px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Rate</th>
-                    <th style='width:34px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Disc</th>
+                    {(hasDisc ? "<th style='width:34px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Disc</th>" : "")}
                     <th style='width:54px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Taxable</th>
                     <th style='width:40px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>CGST %</th>
                     <th style='width:40px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>SGST %</th>
@@ -5219,7 +5347,8 @@ public class PrintTemplateService : IPrintTemplateService
     }
 
     private static (string itemsHtml, string hsnRowsHtml, string hsnTotalsHtml) RenderPharmaProItemsAndHsn(
-        SalesInvoice? invoice, decimal taxable, decimal cgst, decimal sgst, decimal igst)
+        SalesInvoice? invoice, decimal taxable, decimal cgst, decimal sgst, decimal igst,
+        bool hasPack, bool hasSerial, bool hasBatch, bool hasExpiry, bool hasFree, bool hasMrp, bool hasDisc)
     {
         var itemsSb = new StringBuilder();
         var hsnSb = new StringBuilder();
@@ -5255,16 +5384,17 @@ public class PrintTemplateService : IPrintTemplateService
                 <tr style='height:24px; border-bottom:1px solid #9ca2af; font-size:9px;'>
                     <td style='border-right:1px solid #9ca2af; text-align:center;'>{idx++}</td>
                     <td style='border-right:1px solid #9ca2af; padding:2px 4px; font-weight:bold;'>{it.ItemName}{ExtractIndustryItemSubline(it)}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:center;'>{packing}</td>
+                    {(hasPack ? $"<td style='border-right:1px solid #9ca2af; text-align:center;'>{packing}</td>" : "")}
                     <td style='border-right:1px solid #9ca2af; text-align:center; font-family:monospace;'>{hsn}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:center;'>{lotNo}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:center;'>{expiry}</td>
+                    {(hasSerial ? $"<td style='border-right:1px solid #9ca2af; text-align:center; font-family:monospace; font-weight:700; color:#c2410c; font-size:8px;'>{ExtractItemImei(it)}</td>" : "")}
+                    {(hasBatch ? $"<td style='border-right:1px solid #9ca2af; text-align:center;'>{lotNo}</td>" : "")}
+                    {(hasExpiry ? $"<td style='border-right:1px solid #9ca2af; text-align:center;'>{expiry}</td>" : "")}
                     <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{it.Quantity:0.00}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{freeStr}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{mrpStr}</td>
+                    {(hasFree ? $"<td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{freeStr}</td>" : "")}
+                    {(hasMrp ? $"<td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{mrpStr}</td>" : "")}
                     <td style='border-right:1px solid #9ca2af; text-align:center;'>{unitStr}</td>
                     <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{it.UnitPrice:0.00}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{discStr}</td>
+                    {(hasDisc ? $"<td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{discStr}</td>" : "")}
                     <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{it.TaxableAmount:N2}</td>
                     <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{cgstPct}</td>
                     <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{sgstPct}</td>
@@ -5279,16 +5409,17 @@ public class PrintTemplateService : IPrintTemplateService
             <tr style='height:{emptyHeight}px;'>
                 <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
                 <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
+                {(hasPack ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
+                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
+                {(hasSerial ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
+                {(hasBatch ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
+                {(hasExpiry ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
+                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
+                {(hasFree ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
+                {(hasMrp ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
                 <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
                 <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
+                {(hasDisc ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
                 <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
                 <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
                 <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>

@@ -502,12 +502,14 @@ function generateDeliveryChallanHtml(invoice: SalesInvoiceDetails, profile: Tena
   const sellerAddress = profile?.addressLine1 ? `${profile.addressLine1}${profile.addressLine2 ? `, ${profile.addressLine2}` : ""}, ${profile.city || ""}, ${profile.state || ""} - ${profile.pincode || ""}` : (invoice.branchAddress || "");
   const sellerGstin = invoice.branchGstin || profile?.gstin || "";
 
+  const hasBatch = invoice.items.some((i) => !!i.batchNumber?.trim());
+
   const itemsHtml = invoice.items.map((item, i) => `
     <tr style="border-bottom:1px solid #cbd5e1; font-size:10.5px;">
       <td style="padding:5px 6px; text-align:center; border-right:1px solid #cbd5e1;">${i + 1}</td>
       <td style="padding:5px 6px; border-right:1px solid #cbd5e1;"><b style="color:#0f172a;">${item.itemName}</b> ${item.itemSku ? `<span style="font-size:9px; color:#64748b;">(${item.itemSku})</span>` : ""}</td>
       <td style="padding:5px 6px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace;">${item.hsnCode || "—"}</td>
-      <td style="padding:5px 6px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace;">${item.batchNumber || "—"}</td>
+      ${hasBatch ? `<td style="padding:5px 6px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace;">${item.batchNumber || "—"}</td>` : ""}
       <td style="padding:5px 6px; text-align:right; font-weight:700; border-right:1px solid #cbd5e1;">${item.quantity} ${item.uomCode}</td>
       <td style="padding:5px 6px; text-align:center; color:#64748b;">__________</td>
     </tr>`).join("");
@@ -548,7 +550,7 @@ function generateDeliveryChallanHtml(invoice: SalesInvoiceDetails, profile: Tena
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:28px;">#</th>
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; text-align:left;">Item / Description</th>
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:70px; text-align:center;">HSN</th>
-              <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:70px; text-align:center;">Batch</th>
+              ${hasBatch ? `<th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:70px; text-align:center;">Batch</th>` : ""}
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:80px; text-align:right;">Qty Sent</th>
               <th style="padding:5px 6px; width:75px; text-align:center;">Verified Qty</th>
             </tr>
@@ -646,12 +648,13 @@ function generateGatePassHtml(invoice: SalesInvoiceDetails, profile: TenantDetai
 function generatePackingSlipHtml(invoice: SalesInvoiceDetails, profile: TenantDetails | null) {
   const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
   const totalQty = invoice.items.reduce((acc, it) => acc + it.quantity, 0);
+  const hasBatch = invoice.items.some((i) => !!i.batchNumber?.trim());
 
   const itemsHtml = invoice.items.map((item, i) => `
     <tr style="border-bottom:1px solid #e2e8f0; font-size:10.5px;">
       <td style="padding:5px 6px; text-align:center; border-right:1px solid #e2e8f0;">${i + 1}</td>
       <td style="padding:5px 6px; border-right:1px solid #e2e8f0;"><b style="color:#0f172a;">${item.itemName}</b></td>
-      <td style="padding:5px 6px; text-align:center; border-right:1px solid #e2e8f0; font-family:monospace;">${item.batchNumber || "—"}</td>
+      ${hasBatch ? `<td style="padding:5px 6px; text-align:center; border-right:1px solid #e2e8f0; font-family:monospace;">${item.batchNumber || "—"}</td>` : ""}
       <td style="padding:5px 6px; text-align:center; border-right:1px solid #e2e8f0;">${item.itemSku || "—"}</td>
       <td style="padding:5px 6px; text-align:right; font-weight:700; border-right:1px solid #e2e8f0;">${item.quantity} ${item.uomCode}</td>
       <td style="padding:5px 6px; text-align:center; color:#059669; font-weight:bold;">[  ]</td>
@@ -689,7 +692,7 @@ function generatePackingSlipHtml(invoice: SalesInvoiceDetails, profile: TenantDe
             <tr style="text-transform:uppercase; font-size:9.5px; border-bottom:1.5px solid #cbd5e1;">
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:28px;">#</th>
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; text-align:left;">Item Name</th>
-              <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:75px; text-align:center;">Batch</th>
+              ${hasBatch ? `<th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:75px; text-align:center;">Batch</th>` : ""}
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:75px; text-align:center;">SKU</th>
               <th style="padding:5px 6px; border-right:1px solid #cbd5e1; width:80px; text-align:right;">Quantity</th>
               <th style="padding:5px 6px; width:50px; text-align:center;">Check</th>
@@ -784,6 +787,18 @@ function generateCashMemoA5Html(
   const sellerGstin = invoice.branchGstin || profile?.gstin || "";
   const totalGst = invoice.cgstAmount + invoice.sgstAmount + invoice.igstAmount;
 
+  const hasBatch = invoice.items.some((i) => !!i.batchNumber?.trim());
+  const hasExpiry = invoice.items.some((i) => !!i.expiryDate);
+  const hasDisc = invoice.items.some((i) => (i.discountPercent || 0) > 0 || (i.discountAmount || 0) > 0);
+  const hasSerial = invoice.items.some((i) => {
+    try {
+      const a = JSON.parse(i.attributesJson || "{}");
+      return !!a.imeiSerial?.trim();
+    } catch {
+      return false;
+    }
+  });
+
   const rowsHtml = invoice.items.map((item, idx) => {
     let expStr = "—";
     if (item.expiryDate) {
@@ -791,18 +806,27 @@ function generateCashMemoA5Html(
       expStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
     }
 
+    let serialStr = "";
+    if (hasSerial) {
+      try {
+        const a = JSON.parse(item.attributesJson || "{}");
+        if (a.imeiSerial) serialStr = `<div style="font-size:8.5px; font-weight:normal; color:#0284c7;">SN/IMEI: ${a.imeiSerial}</div>`;
+      } catch {}
+    }
+
     return `
       <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
         <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1;">${idx + 1}</td>
         <td style="padding: 4px 6px; font-weight: 700; border-right: 1px solid #cbd5e1; color: #0f172a;">
           ${item.itemName}
+          ${serialStr}
         </td>
         <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.hsnCode || "—"}</td>
-        <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-weight: 600;">${item.batchNumber || "—"}</td>
-        <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${expStr}</td>
+        ${hasBatch ? `<td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-weight: 600;">${item.batchNumber || "—"}</td>` : ""}
+        ${hasExpiry ? `<td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${expStr}</td>` : ""}
         <td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-weight: 700;">${item.quantity} ${item.uomCode || ""}</td>
         <td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">₹${item.unitPrice.toFixed(2)}</td>
-        <td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.discountPercent > 0 ? `${item.discountPercent}%` : "—"}</td>
+        ${hasDisc ? `<td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.discountPercent > 0 ? `${item.discountPercent}%` : "—"}</td>` : ""}
         <td style="padding: 4px 6px; text-align: right; font-family: monospace; font-weight: 700; color: #0f172a;">₹${item.totalAmount.toFixed(2)}</td>
       </tr>
     `;
@@ -859,12 +883,12 @@ function generateCashMemoA5Html(
             <tr style="text-transform:uppercase; font-size:9px; border-bottom:1.5px solid #0f172a;">
               <th style="padding:4px; width:24px; border-right:1px solid #cbd5e1;">#</th>
               <th style="padding:4px; text-align:left; border-right:1px solid #cbd5e1;">Item Name</th>
-              <th style="padding:4px; width:55px; text-align:center; border-right:1px solid #cbd5e1;">HSN</th>
-              <th style="padding:4px; width:60px; text-align:center; border-right:1px solid #cbd5e1;">Batch</th>
-              <th style="padding:4px; width:45px; text-align:center; border-right:1px solid #cbd5e1;">Exp</th>
+              <th style="padding:4px; width:65px; text-align:center; border-right:1px solid #cbd5e1;">HSN</th>
+              ${hasBatch ? `<th style="padding:4px; width:65px; text-align:center; border-right:1px solid #cbd5e1;">Batch</th>` : ""}
+              ${hasExpiry ? `<th style="padding:4px; width:50px; text-align:center; border-right:1px solid #cbd5e1;">Exp</th>` : ""}
               <th style="padding:4px; width:55px; text-align:right; border-right:1px solid #cbd5e1;">Qty</th>
               <th style="padding:4px; width:60px; text-align:right; border-right:1px solid #cbd5e1;">Rate</th>
-              <th style="padding:4px; width:45px; text-align:right; border-right:1px solid #cbd5e1;">Disc%</th>
+              ${hasDisc ? `<th style="padding:4px; width:45px; text-align:right; border-right:1px solid #cbd5e1;">Disc%</th>` : ""}
               <th style="padding:4px; width:75px; text-align:right;">Amount</th>
             </tr>
           </thead>
@@ -905,12 +929,30 @@ function generateProformaInvoiceHtml(
   const sellerGstin = invoice.branchGstin || profile?.gstin || "";
   const totalGst = invoice.cgstAmount + invoice.sgstAmount + invoice.igstAmount;
 
+  const hasBatch = invoice.items.some((i) => !!i.batchNumber?.trim());
+  const hasExpiry = invoice.items.some((i) => !!i.expiryDate);
+  const hasDisc = invoice.items.some((i) => (i.discountPercent || 0) > 0 || (i.discountAmount || 0) > 0);
+  const hasSerial = invoice.items.some((i) => {
+    try {
+      const a = JSON.parse(i.attributesJson || "{}");
+      return !!a.imeiSerial?.trim();
+    } catch {
+      return false;
+    }
+  });
+
   const rowsHtml = invoice.items.map((item, idx) => {
     let expStr = "—";
     if (item.expiryDate) {
       const d = new Date(item.expiryDate);
       expStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
     }
+
+    let imeiStr = "";
+    try {
+      const a = JSON.parse(item.attributesJson || "{}");
+      if (a.imeiSerial) imeiStr = a.imeiSerial;
+    } catch {}
 
     return `
       <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
@@ -919,10 +961,12 @@ function generateProformaInvoiceHtml(
           ${item.itemName} ${item.itemSku ? `<span style="font-size:8.5px; color:#64748b;">(${item.itemSku})</span>` : ""}
         </td>
         <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.hsnCode || "—"}</td>
-        <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.batchNumber || "—"}</td>
+        ${hasSerial ? `<td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-size: 8.5px;">${imeiStr || "—"}</td>` : ""}
+        ${hasBatch ? `<td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.batchNumber || "—"}</td>` : ""}
+        ${hasExpiry ? `<td style="padding: 5px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${expStr}</td>` : ""}
         <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-weight: 700;">${item.quantity} ${item.uomCode || ""}</td>
         <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">₹${item.unitPrice.toFixed(2)}</td>
-        <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.discountPercent > 0 ? `${item.discountPercent}%` : "—"}</td>
+        ${hasDisc ? `<td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.discountPercent > 0 ? `${item.discountPercent}%` : "—"}</td>` : ""}
         <td style="padding: 5px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">₹${item.taxableAmount.toFixed(2)}</td>
         <td style="padding: 5px 6px; text-align: right; font-family: monospace; font-weight: 700; color: #0f172a;">₹${item.totalAmount.toFixed(2)}</td>
       </tr>
@@ -967,10 +1011,12 @@ function generateProformaInvoiceHtml(
               <th style="padding:5px 4px; width:24px; border-right:1px solid #ddd6fe;">#</th>
               <th style="padding:5px 6px; text-align:left; border-right:1px solid #ddd6fe;">Item Description</th>
               <th style="padding:5px 4px; width:55px; text-align:center; border-right:1px solid #ddd6fe;">HSN</th>
-              <th style="padding:5px 4px; width:60px; text-align:center; border-right:1px solid #ddd6fe;">Batch</th>
+              ${hasSerial ? `<th style="padding:5px 4px; width:70px; text-align:center; border-right:1px solid #ddd6fe;">IMEI/SN</th>` : ""}
+              ${hasBatch ? `<th style="padding:5px 4px; width:60px; text-align:center; border-right:1px solid #ddd6fe;">Batch</th>` : ""}
+              ${hasExpiry ? `<th style="padding:5px 4px; width:45px; text-align:center; border-right:1px solid #ddd6fe;">Exp</th>` : ""}
               <th style="padding:5px 4px; width:55px; text-align:right; border-right:1px solid #ddd6fe;">Qty</th>
               <th style="padding:5px 4px; width:60px; text-align:right; border-right:1px solid #ddd6fe;">Rate</th>
-              <th style="padding:5px 4px; width:45px; text-align:right; border-right:1px solid #ddd6fe;">Disc%</th>
+              ${hasDisc ? `<th style="padding:5px 4px; width:45px; text-align:right; border-right:1px solid #ddd6fe;">Disc%</th>` : ""}
               <th style="padding:5px 4px; width:65px; text-align:right; border-right:1px solid #ddd6fe;">Taxable</th>
               <th style="padding:5px 6px; width:75px; text-align:right;">Total (₹)</th>
             </tr>
@@ -2328,10 +2374,14 @@ export default function SalesInvoiceDetailsPage({
                 </div>
 
                 {/* 3. Product Line Items Grid Table — Smart Industry Specific */}
+                {(() => {
+                  const hasBatchItems = invoice.items.some((i) => !!i.batchNumber?.trim() || !!i.expiryDate);
+                  const showChemistGrid = hasPharma && hasBatchItems;
+                  return (
                 <div className="border border-slate-400 overflow-hidden">
                   <table className="w-full text-left text-[10px] border-collapse">
                     <thead className="bg-[#e2e8f0] text-slate-900 font-bold border-b border-slate-400">
-                      {hasPharma ? (
+                      {showChemistGrid ? (
                         /* Dedicated Chemist / Pharma Grid */
                         <tr>
                           <th className="py-1 px-1 border-r border-slate-400 w-6 text-center">S.</th>
@@ -2382,7 +2432,7 @@ export default function SalesInvoiceDetailsPage({
                         const packingStr = itemAttrs.packing || "—";
                         const freeQty = itemAttrs.freeQuantity || 0;
 
-                        if (hasPharma) {
+                        if (showChemistGrid) {
                           return (
                             <tr key={item.id} className="border-b border-slate-400 hover:bg-slate-50">
                               <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{idx + 1}</td>
@@ -2489,7 +2539,7 @@ export default function SalesInvoiceDetailsPage({
                       {/* Blank rows WITHOUT horizontal lines, ONLY vertical lines running top to bottom */}
                       {Array.from({ length: emptyRowsCount }).map((_, emptyIdx) => (
                         <tr key={`empty-${emptyIdx}`}>
-                          {hasPharma ? (
+                          {showChemistGrid ? (
                             <>
                               <td className="py-2.5 px-1 border-r border-slate-400 text-center">&nbsp;</td>
                               <td className="py-2.5 px-1.5 border-r border-slate-400">&nbsp;</td>
@@ -2526,6 +2576,8 @@ export default function SalesInvoiceDetailsPage({
                     </tbody>
                   </table>
                 </div>
+                  );
+                })()}
 
                 {/* 4. Bank Details + QR Code + Summary Table (Exact 3-Column Split) */}
                 <div className="grid grid-cols-12 border border-slate-400">
@@ -2645,15 +2697,23 @@ export default function SalesInvoiceDetailsPage({
                           </tr>
                         ))
                       ) : (
-                        <tr>
-                          <td className="py-1 px-1.5 border-r border-slate-400 font-bold">30049099</td>
-                          <td className="py-1 px-1.5 border-r border-slate-400 text-right">{invoice.taxableAmount.toFixed(2)}</td>
-                          <td className="py-1 px-1.5 border-r border-slate-400 text-right">{isIntraState ? "2.50%" : "0%"}</td>
-                          <td className="py-1 px-1.5 border-r border-slate-400 text-right">{invoice.cgstAmount.toFixed(2)}</td>
-                          <td className="py-1 px-1.5 border-r border-slate-400 text-right">{isIntraState ? "2.50%" : "0%"}</td>
-                          <td className="py-1 px-1.5 border-r border-slate-400 text-right">{invoice.sgstAmount.toFixed(2)}</td>
-                          <td className="py-1 px-1.5 text-right font-bold text-slate-900">{(invoice.cgstAmount + invoice.sgstAmount).toFixed(2)}</td>
-                        </tr>
+                        (() => {
+                          const fallbackHsn = invoice.items?.[0]?.hsnCode || "—";
+                          const totalTax = invoice.cgstAmount + invoice.sgstAmount + invoice.igstAmount;
+                          const fallbackRate = invoice.items?.[0]?.gstRate ?? (invoice.taxableAmount > 0 ? (totalTax / invoice.taxableAmount) * 100 : 0);
+                          const halfRateStr = isIntraState ? `${(fallbackRate / 2).toFixed(2)}%` : "0.00%";
+                          return (
+                            <tr>
+                              <td className="py-1 px-1.5 border-r border-slate-400 font-bold">{fallbackHsn}</td>
+                              <td className="py-1 px-1.5 border-r border-slate-400 text-right">{invoice.taxableAmount.toFixed(2)}</td>
+                              <td className="py-1 px-1.5 border-r border-slate-400 text-right">{halfRateStr}</td>
+                              <td className="py-1 px-1.5 border-r border-slate-400 text-right">{invoice.cgstAmount.toFixed(2)}</td>
+                              <td className="py-1 px-1.5 border-r border-slate-400 text-right">{halfRateStr}</td>
+                              <td className="py-1 px-1.5 border-r border-slate-400 text-right">{invoice.sgstAmount.toFixed(2)}</td>
+                              <td className="py-1 px-1.5 text-right font-bold text-slate-900">{totalTax.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })()
                       )}
                       <tr className="bg-slate-50 font-bold border-t border-slate-400">
                         <td className="py-1 px-1.5 border-r border-slate-400 uppercase">TOTAL</td>
@@ -2676,7 +2736,11 @@ export default function SalesInvoiceDetailsPage({
                     <li><b>Claims:</b> Report shortages or damages within <b>24 hours</b> of delivery.</li>
                     <li><b>Returns:</b> Goods sold are non-returnable except for manufacturing defects or recalls.</li>
                     <li><b>Storage:</b> No liability for quality loss due to improper storage after delivery.</li>
-                    <li><b>Regulatory:</b> Sold under <b>Drugs & Cosmetics Act</b>; verify Batch/Expiry upon receipt.</li>
+                    {hasPharma ? (
+                      <li><b>Regulatory:</b> Sold under <b>Drugs & Cosmetics Act</b>; verify Batch/Expiry upon receipt.</li>
+                    ) : (
+                      <li><b>Warranty:</b> Goods once sold are covered under manufacturer warranty terms wherever applicable.</li>
+                    )}
                     <li><b>Jurisdiction:</b> Subject to courts in DELHI / Local jurisdiction only.</li>
                   </ul>
                 </div>
