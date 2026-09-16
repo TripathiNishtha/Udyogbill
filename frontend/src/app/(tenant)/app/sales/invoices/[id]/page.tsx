@@ -1634,7 +1634,7 @@ export default function SalesInvoiceDetailsPage({
                     onClick={() => handleFormatChange(id as PrintFormat)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       printFormat === id
-                        ? "bg-slate-900 dark:bg-slate-700 text-white shadow-sm font-black"
+                        ? "bg-orange-600 text-white shadow-sm shadow-orange-600/30 font-black"
                         : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-800"
                     }`}
                   >
