@@ -1284,7 +1284,7 @@ export default function SalesInvoiceDetailsPage({
           templateId: selectedTemplateId || undefined,
           documentType: 1 // Tax Invoice
         });
-        printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A4 portrait", "6mm");
+        printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A4 portrait", "4mm 5mm");
       } catch {
         window.print();
       }

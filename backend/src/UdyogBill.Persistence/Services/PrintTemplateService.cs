@@ -850,9 +850,9 @@ public class PrintTemplateService : IPrintTemplateService
     {
         if (IsA5Size(t))
         {
-            return "min-height:138mm; height:auto;";
+            return "height:auto; max-height:140mm; page-break-inside:avoid; break-inside:avoid;";
         }
-        return "min-height:274mm; height:auto;";
+        return "height:auto; page-break-inside:avoid; break-inside:avoid;";
     }
 
     // ==============================================================================
@@ -1132,7 +1132,9 @@ public class PrintTemplateService : IPrintTemplateService
         }
 
         // Single expanding filler row with unbroken vertical column grid lines reaching bottom summary boundary
-        int emptyFillerHeight = Math.Max(70, 620 - (itemCount * 28));
+        int emptyFillerHeight = IsA5Size(t)
+            ? Math.Max(20, 110 - (itemCount * 22))
+            : Math.Max(30, 220 - (itemCount * 26));
         itemsRows.Append($@"
         <tr style='height:100%; min-height:{emptyFillerHeight}px;'>
             <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
@@ -1163,10 +1165,11 @@ public class PrintTemplateService : IPrintTemplateService
     <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
     <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap' rel='stylesheet'>
     <style>
-        @page {{ size: A4 portrait; margin: 6mm 8mm; }}
+        @page {{ size: A4 portrait; margin: 4mm 5mm; }}
         html, body {{ margin:0; padding:0; background:#ffffff; color:{darkSlate}; font-family:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
-        .enterprise-invoice {{ width:100%; max-width:820px; {heightStyle} margin:0 auto; box-sizing:border-box; border:1.5px solid {primaryColor}; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; background:#ffffff; }}
-        table {{ border-collapse:collapse; width:100%; }}
+        .enterprise-invoice {{ width:100%; max-width:820px; {heightStyle} margin:0 auto; box-sizing:border-box; border:1.5px solid {primaryColor}; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; background:#ffffff; page-break-inside:avoid; break-inside:avoid; }}
+        table {{ border-collapse:collapse; width:100%; page-break-inside:auto; }}
+        tr {{ page-break-inside:avoid; break-inside:avoid; }}
         th, td {{ box-sizing:border-box; }}
     </style>
 </head>
@@ -1667,7 +1670,7 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody>
                 {RenderSignatureLineItemsRows(invoice, hasPharmaAddon, hasFreeScheme, hasMrp, hasDiscount, hasPtr, hasPts)}
-                {((invoice?.Items?.Count ?? (invoice == null ? 2 : 0)) < 12 ? RenderTableFillerRow(colCount, "#cbd5e1", (invoice?.Items?.Count ?? (invoice == null ? 2 : 0)), IsA5Size(t) ? 220 : 600) : "")}
+                {((invoice?.Items?.Count ?? (invoice == null ? 2 : 0)) < 12 ? RenderTableFillerRow(colCount, "#cbd5e1", (invoice?.Items?.Count ?? (invoice == null ? 2 : 0)), IsA5Size(t) ? 120 : 250) : "")}
             </tbody>
         </table>
     </div>
@@ -3216,7 +3219,7 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody style='height:100%;'>
                 {rowsSb}
-                {RenderTableFillerRow(colCount, "#cbd5e1", itemCount, 640)}
+                {RenderTableFillerRow(colCount, "#cbd5e1", itemCount, 250)}
             </tbody>
         </table>
     </div>
@@ -3565,7 +3568,7 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody style='height:100%;'>
                 {rowsSb}
-                {RenderTableFillerRow(cnColCount, "#cbd5e1", cnItemCount, 640)}
+                {RenderTableFillerRow(cnColCount, "#cbd5e1", cnItemCount, 250)}
             </tbody>
         </table>
     </div>
@@ -3740,7 +3743,7 @@ public class PrintTemplateService : IPrintTemplateService
                     </thead>
                     <tbody style='height:100%;'>
                         {itemsRows}
-                        {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(6, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 220 : 620) : "")}
+                        {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(6, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 250) : "")}
                     </tbody>
                 </table>
             </div>
@@ -3910,7 +3913,7 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody style='height:100%;'>
                 {itemsRows}
-                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(colCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 220 : 620) : "")}
+                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(colCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 250) : "")}
             </tbody>
         </table>
     </div>
@@ -4072,7 +4075,7 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody style='height:100%;'>
                 {rxRows}
-                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(rxColCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 220 : 600) : "")}
+                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(rxColCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 250) : "")}
             </tbody>
         </table>
     </div>
@@ -4423,12 +4426,12 @@ public class PrintTemplateService : IPrintTemplateService
     // ==============================================================================
     // ⚙️ HELPERS & SEEDER
     // ==============================================================================
-    private static string RenderTableFillerRow(int columnCount, string borderColor, int itemCount = 0, int baseHeight = 620)
+    private static string RenderTableFillerRow(int columnCount, string borderColor, int itemCount = 0, int baseHeight = 250)
     {
         // Standard Indian Accounting Format (Tally / Marg / Vyapar):
         // Vertical column dividers must extend continuously through empty space to the bottom of the table.
-        int calculatedHeight = Math.Max(70, baseHeight - (itemCount * 26));
-        var sb = new StringBuilder($"<tr style='height:100%; min-height:{calculatedHeight}px; vertical-align:top;'>");
+        int calculatedHeight = Math.Max(30, baseHeight - (itemCount * 26));
+        var sb = new StringBuilder($"<tr style='height:100%; min-height:{calculatedHeight}px; vertical-align:top; page-break-inside:avoid; break-inside:avoid;'>");
         for (int i = 0; i < columnCount; i++)
         {
             var borderStyle = (i < columnCount - 1) ? $"border-right:1px solid {borderColor};" : "";
@@ -4854,7 +4857,14 @@ public class PrintTemplateService : IPrintTemplateService
 @page { size: 210mm 297mm; margin: 4mm 5mm; }
 @media print {
     html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
-    .invoice-wrapper, .invoice-container, .cbo-invoice-wrap { width: 100% !important; min-height: 274mm !important; height: auto !important; max-height: none !important; box-sizing: border-box !important; }
+    .invoice-wrapper, .invoice-container, .cbo-invoice-wrap, .enterprise-invoice { 
+        width: 100% !important; 
+        height: auto !important; 
+        max-height: 285mm !important; 
+        box-sizing: border-box !important; 
+        page-break-inside: avoid !important; 
+        break-inside: avoid !important; 
+    }
 }
 ";
     }

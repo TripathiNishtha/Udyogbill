@@ -14,7 +14,7 @@ export function printRawHtml(
   iframe.setAttribute("aria-hidden", "true");
   document.body.appendChild(iframe);
 
-  let pageCss = `@page { size: A4 portrait; margin: ${margin || "4mm 5mm"}; }`;
+  let pageCss = `@page { size: A4 portrait; margin: ${margin || "3mm 4mm"}; }`;
   if (pageSize === "A5 landscape") {
     pageCss = `@page { size: A5 landscape; margin: ${margin || "3mm 4mm"}; }`;
   } else if (pageSize === "thermal80") {
@@ -23,47 +23,72 @@ export function printRawHtml(
     pageCss = `@page { size: 58mm auto; margin: ${margin || "1mm"}; }`;
   }
 
+  const printOptimizationCss = `
+    ${pageCss}
+    *, *:before, *:after {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      box-sizing: border-box !important;
+    }
+    @media print {
+      html, body { 
+        margin: 0 !important; 
+        padding: 0 !important; 
+        background-color: #ffffff !important;
+      }
+      .invoice-container, .invoice-wrapper, .cbo-invoice-wrap, .enterprise-invoice {
+        box-sizing: border-box !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        max-height: 285mm !important;
+      }
+      table {
+        page-break-inside: auto;
+      }
+      tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+  `;
+
   const doc = iframe.contentWindow?.document;
   if (doc) {
     doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title}</title>
-          <meta charset="utf-8" />
-          <style>
-            ${pageCss}
-            *, *:before, *:after {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-sizing: border-box !important;
-            }
-            html, body { 
-              margin: 0 !important; 
-              padding: 0 !important;
-              width: 100% !important;
-              background-color: #ffffff;
-              color: #000000;
-              font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            }
-            @media print {
+    if (htmlContent.includes("<!DOCTYPE") || htmlContent.includes("<html")) {
+      let fullDoc = htmlContent;
+      const injectedTag = `<style id="print-optimizations">${printOptimizationCss}</style>`;
+      if (fullDoc.includes("</head>")) {
+        fullDoc = fullDoc.replace("</head>", `${injectedTag}</head>`);
+      } else {
+        fullDoc = injectedTag + fullDoc;
+      }
+      doc.write(fullDoc);
+    } else {
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${title}</title>
+            <meta charset="utf-8" />
+            <style>
+              ${printOptimizationCss}
               html, body { 
                 margin: 0 !important; 
-                padding: 0 !important; 
+                padding: 0 !important;
+                width: 100% !important;
                 background-color: #ffffff;
+                color: #000000;
+                font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
               }
-              .invoice-container, .invoice-wrapper, .cbo-invoice-wrap {
-                box-sizing: border-box !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-      </html>
-    `);
+            </style>
+          </head>
+          <body>
+            ${htmlContent}
+          </body>
+        </html>
+      `);
+    }
     doc.close();
 
     const cleanup = () => {
