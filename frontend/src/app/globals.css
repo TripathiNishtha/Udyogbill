@@ -291,7 +291,7 @@ html.theme-light .bg-surface div[class*="bg-slate-900"],
 html.theme-light [role="dialog"] div[class*="bg-slate-900"] {
   background-color: #f8fafc !important;
   border-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  /* No color here — let specific child selectors handle text contrast */
 }
 
 /* Sub-card titles & text inside light theme */
@@ -355,7 +355,43 @@ html.theme-light div[class*="bg-slate-900"],
 html.theme-light div[class*="bg-slate-950"] {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
+  /* No color here — cascades to emerald/orange/rose badge children and kills them */
+}
+
+/* Direct text-white children only (NOT all descendants) */
+html:not(.dark) div[class*="bg-slate-900"] > .text-white,
+html:not(.dark) div[class*="bg-slate-950"] > .text-white,
+html:not(.dark) div[class*="bg-slate-900"] > h1.text-white,
+html:not(.dark) div[class*="bg-slate-900"] > h2.text-white,
+html:not(.dark) div[class*="bg-slate-900"] > h3.text-white,
+html:not(.dark) div[class*="bg-slate-900"] > h4.text-white,
+html:not(.dark) div[class*="bg-slate-900"] > p.text-white,
+html:not(.dark) div[class*="bg-slate-900"] > span.text-white,
+html.theme-light div[class*="bg-slate-900"] > .text-white,
+html.theme-light div[class*="bg-slate-950"] > .text-white,
+html.theme-light div[class*="bg-slate-900"] > h1.text-white,
+html.theme-light div[class*="bg-slate-900"] > h2.text-white,
+html.theme-light div[class*="bg-slate-900"] > h3.text-white,
+html.theme-light div[class*="bg-slate-900"] > h4.text-white,
+html.theme-light div[class*="bg-slate-900"] > p.text-white,
+html.theme-light div[class*="bg-slate-900"] > span.text-white {
   color: #0f172a !important;
+}
+
+/* Direct slate-1xx/2xx/3xx muted text children only */
+html:not(.dark) div[class*="bg-slate-900"] > [class*="text-slate-1"],
+html:not(.dark) div[class*="bg-slate-900"] > [class*="text-slate-2"],
+html:not(.dark) div[class*="bg-slate-900"] > [class*="text-slate-3"],
+html:not(.dark) div[class*="bg-slate-950"] > [class*="text-slate-1"],
+html:not(.dark) div[class*="bg-slate-950"] > [class*="text-slate-2"],
+html:not(.dark) div[class*="bg-slate-950"] > [class*="text-slate-3"],
+html.theme-light div[class*="bg-slate-900"] > [class*="text-slate-1"],
+html.theme-light div[class*="bg-slate-900"] > [class*="text-slate-2"],
+html.theme-light div[class*="bg-slate-900"] > [class*="text-slate-3"],
+html.theme-light div[class*="bg-slate-950"] > [class*="text-slate-1"],
+html.theme-light div[class*="bg-slate-950"] > [class*="text-slate-2"],
+html.theme-light div[class*="bg-slate-950"] > [class*="text-slate-3"] {
+  color: #334155 !important;
 }
 
 /* Create Invoice Modal / Drawer Canvas (Bilkul Light Orange #fff0e0 - Same as Sidebar) */
