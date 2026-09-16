@@ -618,6 +618,25 @@ public class PrintTemplateService : IPrintTemplateService
 
         if (template == null)
         {
+            // Primary Default: UdyogBill Signature B2B Universal Tax Invoice
+            template = await _context.PrintTemplates
+                .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.TemplateCode == "TPL_UDYOGBILL_SIGNATURE_B2B" && !t.IsDeleted, cancellationToken);
+        }
+
+        if (template == null)
+        {
+            template = await _context.PrintTemplates
+                .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.DocumentType == PrintDocumentType.TaxInvoice && t.IsDefault && !t.IsDeleted, cancellationToken);
+        }
+
+        if (template == null)
+        {
+            template = await _context.PrintTemplates
+                .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.DocumentType == PrintDocumentType.TaxInvoice && !t.IsDeleted, cancellationToken);
+        }
+
+        if (template == null)
+        {
             template = await _context.PrintTemplates
                 .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.IsDefault && !t.IsDeleted, cancellationToken);
         }
@@ -626,7 +645,13 @@ public class PrintTemplateService : IPrintTemplateService
         {
             await SeedDefaultTemplatesAsync(tenantId, cancellationToken);
             template = await _context.PrintTemplates
-                .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.IsDefault && !t.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.TemplateCode == "TPL_UDYOGBILL_SIGNATURE_B2B" && !t.IsDeleted, cancellationToken);
+
+            if (template == null)
+            {
+                template = await _context.PrintTemplates
+                    .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.DocumentType == PrintDocumentType.TaxInvoice && !t.IsDeleted, cancellationToken);
+            }
         }
 
         if (template == null)
@@ -910,7 +935,7 @@ public class PrintTemplateService : IPrintTemplateService
         }
 
         // 8. Compact Trade Memo (A5 Teal)
-        if (code.Contains("A5") || code.Contains("COMPACT") || t.PageSize == PageSizeFormat.A5 || code.Contains("TPL_A5_COMPACT_TRADE"))
+        if (code.Contains("A5_COMPACT") || code.Contains("TPL_A5_COMPACT_TRADE") || code.Contains("COMPACT_TRADE"))
         {
             return RenderA5CompactHtml(t, invoice, tenant);
         }
@@ -4845,7 +4870,7 @@ public class PrintTemplateService : IPrintTemplateService
                 TemplateName = "Enterprise Classic Executive Edition (A4)",
                 TemplateCode = "TPL_ENTERPRISE_PREMIUM_DYNAMIC",
                 PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = true,
+                IsDefault = false,
                 PrimaryColorHex = "#4338ca",
                 SecondaryColorHex = "#4f46e5",
                 HeaderTitle = "TAX INVOICE",
@@ -4889,7 +4914,7 @@ public class PrintTemplateService : IPrintTemplateService
                 TemplateName = "UdyogBill Signature B2B Universal Tax Invoice (A4)",
                 TemplateCode = "TPL_UDYOGBILL_SIGNATURE_B2B",
                 PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = false,
+                IsDefault = true,
                 PrimaryColorHex = "#1e3a8a",
                 SecondaryColorHex = "#2563eb",
                 HeaderTitle = "TAX INVOICE",
@@ -4916,7 +4941,7 @@ public class PrintTemplateService : IPrintTemplateService
                 TemplateName = "3-inch (80mm) Thermal Cash Memo",
                 TemplateCode = "TPL_POS_THERMAL_80MM",
                 PageSize = PageSizeFormat.Thermal_80mm,
-                IsDefault = true,
+                IsDefault = false,
                 PrimaryColorHex = "#000000",
                 SecondaryColorHex = "#111827",
                 HeaderTitle = "CASH / POS RECEIPT",

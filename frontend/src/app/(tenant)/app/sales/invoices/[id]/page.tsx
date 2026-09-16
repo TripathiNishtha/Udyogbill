@@ -1168,9 +1168,21 @@ export default function SalesInvoiceDetailsPage({
       setUpiQr(upi);
       setAvailableTemplates(tpls || []);
 
+      const defTpl = (tpls || []).find((t: any) => t.templateCode === "TPL_UDYOGBILL_SIGNATURE_B2B")
+        || (tpls || []).find((t: any) => t.documentType === 1 && t.isDefault)
+        || (tpls || []).find((t: any) => t.isDefault)
+        || (tpls || [])[0];
+
+      if (!selectedTemplateId && defTpl) {
+        setSelectedTemplateId(defTpl.id);
+      }
+
+      const activeTemplateId = selectedTemplateId || defTpl?.id;
+
       const preview = await printTemplateService.renderPreview({
         invoiceId,
-        documentType: printFormat === "compact_a5" ? 2 : 1,
+        templateId: activeTemplateId || undefined,
+        documentType: 1, // Always TaxInvoice by default, not POS receipt
       }).catch(() => null);
 
       if (preview?.renderedHtml) {
@@ -1190,7 +1202,7 @@ export default function SalesInvoiceDetailsPage({
       const preview = await printTemplateService.renderPreview({
         invoiceId,
         templateId: tplId || undefined,
-        documentType: printFormat === "compact_a5" ? 2 : 1,
+        documentType: 1,
       });
       if (preview?.renderedHtml) {
         setDynamicInvoiceHtml(preview.renderedHtml);
@@ -1255,7 +1267,16 @@ export default function SalesInvoiceDetailsPage({
       html = generateProformaInvoiceHtml(invoice, profile, upiQr);
       printRawHtml(html, `Proforma_Invoice_${invoice.invoiceNumber}`, "A4 portrait", "6mm");
     } else if (printFormat === "compact_a5") {
-      await handlePrintCashMemoA5();
+      try {
+        const preview = await printTemplateService.renderPreview({
+          invoiceId: invoice.id,
+          templateId: selectedTemplateId || undefined,
+          documentType: 1 // Tax Invoice
+        });
+        printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A5 landscape", "4mm");
+      } catch {
+        await handlePrintCashMemoA5();
+      }
     } else {
       try {
         const preview = await printTemplateService.renderPreview({
@@ -1695,7 +1716,7 @@ export default function SalesInvoiceDetailsPage({
               <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Design:</span>
                 <select
-                  value={selectedTemplateId || availableTemplates.find(t => t.isDefault)?.id || ""}
+                  value={selectedTemplateId || availableTemplates.find(t => t.templateCode === "TPL_UDYOGBILL_SIGNATURE_B2B")?.id || availableTemplates.find(t => t.isDefault)?.id || ""}
                   onChange={(e) => handleTemplateChange(e.target.value)}
                   className="bg-transparent text-xs font-black text-slate-900 dark:text-white outline-none cursor-pointer pr-1"
                 >

@@ -441,12 +441,14 @@ function TenantInvoicesPageContent() {
     };
   }, [editIdFromUrl]);
 
-  // Initialize persistent billing mode on mount
+  // Initialize persistent billing mode on mount (always default to Tax Invoice B2B / Retail, never thermal)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedMode = localStorage.getItem("udyogbill_last_billing_mode") as any;
-      if (savedMode && (savedMode === "b2b" || savedMode === "retail" || savedMode === "thermal")) {
+      if (savedMode && (savedMode === "b2b" || savedMode === "retail")) {
         setBillingMode(savedMode);
+      } else {
+        setBillingMode("b2b");
       }
     }
   }, []);
@@ -1555,10 +1557,10 @@ function TenantInvoicesPageContent() {
         targetInvoiceId = await salesService.createInvoice(invoicePayload);
       }
 
-      // 🖨️ Instant Auto-Print via Active Invoice Template (Pharma A4 / Standard / Thermal)
+      // 🖨️ Instant Auto-Print via Active Invoice Template (Flagship UdyogBill Signature B2B Tax Invoice)
       if (targetInvoiceId) {
         try {
-          const preview = await printTemplateService.renderPreview({ invoiceId: targetInvoiceId });
+          const preview = await printTemplateService.renderPreview({ invoiceId: targetInvoiceId, documentType: 1 });
           if (preview?.renderedHtml) {
             printRawHtml(preview.renderedHtml, `Tax_Invoice_${targetInvoiceId.slice(0, 8)}`);
           }
