@@ -826,7 +826,7 @@ export default function TenantItemsCatalogPage() {
             {/* Modal Top Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-inner">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 shadow-inner">
                   {form.itemType === 2 ? (
                     <Wrench className="w-5 h-5 text-amber-500" />
                   ) : (
@@ -852,7 +852,7 @@ export default function TenantItemsCatalogPage() {
                   onClick={() => setForm((prev) => ({ ...prev, itemType: 1, trackInventory: true }))}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
                     (form.itemType || 1) === 1
-                      ? "bg-indigo-600 text-white shadow"
+                      ? "bg-orange-600 text-white shadow shadow-orange-600/25"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
@@ -1029,10 +1029,10 @@ export default function TenantItemsCatalogPage() {
                 <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-2.5">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                      <Tag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <Tag className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                       <span>Product Identity &amp; Basic Details</span>
                     </div>
-                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                    <span className="text-[10px] font-bold text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800">
                       Step 1 • Core Info
                     </span>
                   </div>
@@ -1056,7 +1056,7 @@ export default function TenantItemsCatalogPage() {
                             sku: prev.sku ? prev.sku : generateAutoSku(newName),
                           }));
                         }}
-                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 font-medium shadow-2xs transition"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 font-medium shadow-2xs transition"
                       />
                     </div>
 
@@ -1066,7 +1066,7 @@ export default function TenantItemsCatalogPage() {
                         <button
                           type="button"
                           onClick={() => setForm((prev) => ({ ...prev, sku: generateAutoSku(prev.name) }))}
-                          className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                          className="text-[10px] text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
                           title="Auto-generate unique SKU"
                         >
                           <Sparkles className="w-3 h-3" />
@@ -1078,7 +1078,7 @@ export default function TenantItemsCatalogPage() {
                         placeholder="Leave blank to auto-generate"
                         value={form.sku}
                         onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
-                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       />
                     </div>
                   </div>
@@ -1090,7 +1090,7 @@ export default function TenantItemsCatalogPage() {
                       <select
                         value={form.categoryId || ""}
                         onChange={(e) => setForm({ ...form, categoryId: e.target.value || undefined })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       >
                         <option value="">None</option>
                         {categories.map((c) => (
@@ -1107,7 +1107,7 @@ export default function TenantItemsCatalogPage() {
                         <button
                           type="button"
                           onClick={() => setIsBrandModalOpen(true)}
-                          className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center space-x-0.5 cursor-pointer"
+                          className="text-[10px] text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:underline font-bold flex items-center space-x-0.5 cursor-pointer"
                           title="Add New Brand / Maker"
                         >
                           <Plus className="w-3 h-3" />
@@ -1117,7 +1117,7 @@ export default function TenantItemsCatalogPage() {
                       <select
                         value={form.brandId || ""}
                         onChange={(e) => setForm({ ...form, brandId: e.target.value || undefined })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       >
                         <option value="">Generic</option>
                         {brands.map((b) => (
@@ -1134,7 +1134,7 @@ export default function TenantItemsCatalogPage() {
                         <button
                           type="button"
                           onClick={() => setIsUomModalOpen(true)}
-                          className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center space-x-0.5 cursor-pointer"
+                          className="text-[10px] text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:underline font-bold flex items-center space-x-0.5 cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                           <span>Custom UOM</span>
@@ -1143,7 +1143,7 @@ export default function TenantItemsCatalogPage() {
                       <select
                         value={form.primaryUomId}
                         onChange={(e) => setForm({ ...form, primaryUomId: e.target.value })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       >
                         {units.map((u) => (
                           <option key={u.id} value={u.id}>
@@ -1162,7 +1162,7 @@ export default function TenantItemsCatalogPage() {
                         placeholder="e.g. 3004"
                         value={form.hsnCode || ""}
                         onChange={(e) => setForm({ ...form, hsnCode: e.target.value })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       />
                     </div>
                   </div>
@@ -1179,7 +1179,7 @@ export default function TenantItemsCatalogPage() {
                         placeholder="Scan or type barcode, e.g. 8901234567890"
                         value={form.barcode || ""}
                         onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       />
                     </div>
 
@@ -1192,7 +1192,7 @@ export default function TenantItemsCatalogPage() {
                         placeholder="e.g. Strip of 10 Tablets"
                         value={form.shortDescription || ""}
                         onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       />
                     </div>
                   </div>
@@ -1230,7 +1230,7 @@ export default function TenantItemsCatalogPage() {
                           onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: false }))}
                           className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                             !form.isTaxInclusive
-                              ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs"
+                              ? "bg-white dark:bg-slate-900 text-orange-700 dark:text-orange-400 shadow-xs"
                               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
@@ -1385,7 +1385,7 @@ export default function TenantItemsCatalogPage() {
                           onClick={() => setForm((prev) => ({ ...prev, isTaxInclusive: false }))}
                           className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                             !form.isTaxInclusive
-                              ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs"
+                              ? "bg-white dark:bg-slate-900 text-orange-700 dark:text-orange-400 shadow-xs"
                               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
@@ -1456,12 +1456,12 @@ export default function TenantItemsCatalogPage() {
                     </div>
 
                     {/* Wholesale Rate */}
-                    <div className="p-3 bg-indigo-50/40 dark:bg-indigo-950/20 border-2 border-indigo-400/70 dark:border-indigo-500/50 rounded-xl space-y-1.5 shadow-2xs">
+                    <div className="p-3 bg-orange-50/40 dark:bg-orange-950/20 border-2 border-orange-400/70 dark:border-orange-500/50 rounded-xl space-y-1.5 shadow-2xs">
                       <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-bold text-indigo-800 dark:text-indigo-300">
+                        <label className="text-[11px] font-bold text-orange-800 dark:text-orange-300">
                           Wholesale Rate (₹)
                         </label>
-                        <span className="text-[9px] font-bold text-indigo-700 bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] font-bold text-orange-700 bg-orange-100 dark:bg-orange-900/60 px-1.5 py-0.5 rounded">
                           B2B Rate
                         </span>
                       </div>
@@ -1471,9 +1471,9 @@ export default function TenantItemsCatalogPage() {
                         placeholder="0.00"
                         value={form.minimumSellingPrice || ""}
                         onChange={(e) => setForm({ ...form, minimumSellingPrice: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border-2 border-indigo-400 rounded-lg text-xs text-indigo-950 dark:text-indigo-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border-2 border-orange-400 rounded-lg text-xs text-orange-950 dark:text-orange-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                       />
-                      <div className="text-[10px] text-indigo-700 dark:text-indigo-400 font-medium">
+                      <div className="text-[10px] text-orange-700 dark:text-orange-400 font-medium">
                         Dealer / Min Selling Rate
                       </div>
                     </div>
@@ -1511,7 +1511,7 @@ export default function TenantItemsCatalogPage() {
                       <select
                         value={form.taxRate}
                         onChange={(e) => setForm({ ...form, taxRate: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-indigo-600 shadow-2xs"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-orange-500 shadow-2xs"
                       >
                         <option value="0">0% (GST Exempted / Nil)</option>
                         <option value="5">5% GST Slab</option>
@@ -1540,7 +1540,7 @@ export default function TenantItemsCatalogPage() {
                             </span>
                             <span>+</span>
                             <span>
-                              GST ({tr}%): <strong className="text-indigo-600 dark:text-indigo-400 font-mono">₹{gstAmt.toFixed(2)}</strong>
+                              GST ({tr}%): <strong className="text-orange-600 dark:text-orange-400 font-mono">₹{gstAmt.toFixed(2)}</strong>
                             </span>
                             <span>=</span>
                             <span>
@@ -1581,7 +1581,7 @@ export default function TenantItemsCatalogPage() {
                         placeholder="e.g. 5 (Alerts dashboard when stock is low)"
                         value={form.minimumStockAlert || ""}
                         onChange={(e) => setForm({ ...form, minimumStockAlert: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1593,7 +1593,7 @@ export default function TenantItemsCatalogPage() {
                         placeholder="e.g. Rack A-12, Bin 4, Shelf 2"
                         value={form.rackLocation || ""}
                         onChange={(e) => setForm({ ...form, rackLocation: e.target.value })}
-                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-2xs transition"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-2xs transition"
                       />
                     </div>
                   </div>
@@ -1605,13 +1605,13 @@ export default function TenantItemsCatalogPage() {
                 profile?.industryCode === "APPAREL" ||
                 profile?.industryCode === "FOOTWEAR" ||
                 profile?.industryCode === "FMCG_GROCERY") && (
-                <div className="bg-indigo-50/40 dark:bg-slate-950/50 border border-indigo-200/80 dark:border-slate-800 rounded-2xl p-4.5 space-y-3.5">
-                  <div className="flex items-center justify-between border-b border-indigo-200/60 dark:border-slate-800 pb-2">
-                    <div className="text-xs font-bold text-indigo-900 dark:text-indigo-400 flex items-center gap-2 uppercase tracking-wider">
-                      <Sliders className="w-4 h-4 text-indigo-600" />
+                <div className="bg-orange-50/40 dark:bg-slate-950/50 border border-orange-200/80 dark:border-slate-800 rounded-2xl p-4.5 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-orange-200/60 dark:border-slate-800 pb-2">
+                    <div className="text-xs font-bold text-orange-900 dark:text-orange-400 flex items-center gap-2 uppercase tracking-wider">
+                      <Sliders className="w-4 h-4 text-orange-600" />
                       <span>Dynamic Industry Attributes ({profile?.industryName})</span>
                     </div>
-                    <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-950 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                    <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800">
                       Specialized
                     </span>
                   </div>
@@ -1623,7 +1623,7 @@ export default function TenantItemsCatalogPage() {
                         <select
                           value={pharmaSchedule}
                           onChange={(e) => setPharmaSchedule(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 shadow-2xs"
                         >
                           <option value="None">None (OTC - Over The Counter)</option>
                           <option value="Schedule H">Schedule H (Doctor Prescription Required)</option>
@@ -1638,7 +1638,7 @@ export default function TenantItemsCatalogPage() {
                           placeholder="e.g. Amoxicillin + Clavulanate"
                           value={pharmaSalt}
                           onChange={(e) => setPharmaSalt(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 shadow-2xs"
                         />
                       </div>
                     </div>
@@ -1653,7 +1653,7 @@ export default function TenantItemsCatalogPage() {
                           placeholder="e.g. M, L, XL, 42"
                           value={apparelSize}
                           onChange={(e) => setApparelSize(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 shadow-2xs"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -1663,7 +1663,7 @@ export default function TenantItemsCatalogPage() {
                           placeholder="e.g. Navy Blue"
                           value={apparelColor}
                           onChange={(e) => setApparelColor(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 shadow-2xs"
                         />
                       </div>
                     </div>
@@ -1677,7 +1677,7 @@ export default function TenantItemsCatalogPage() {
                         placeholder="e.g. 500g / 1 Litre"
                         value={fmcgNetWeight}
                         onChange={(e) => setFmcgNetWeight(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 shadow-2xs"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 shadow-2xs"
                       />
                     </div>
                   )}
@@ -1688,13 +1688,13 @@ export default function TenantItemsCatalogPage() {
               {form.itemType !== 2 && (
                 <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 space-y-4">
                   {/* Inventory Management Toggle Card */}
-                  <div className="p-4 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-slate-800 rounded-xl space-y-2 shadow-2xs">
-                    <label className="flex items-center space-x-3 text-xs text-indigo-950 dark:text-indigo-300 font-bold cursor-pointer">
+                  <div className="p-4 bg-white dark:bg-slate-900 border border-orange-200 dark:border-slate-800 rounded-xl space-y-2 shadow-2xs">
+                    <label className="flex items-center space-x-3 text-xs text-orange-950 dark:text-orange-300 font-bold cursor-pointer">
                       <input
                         type="checkbox"
                         checked={form.trackInventory !== false}
                         onChange={(e) => setForm({ ...form, trackInventory: e.target.checked })}
-                        className="rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 w-4 h-4 cursor-pointer"
+                        className="rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-orange-600 focus:ring-orange-500 w-4 h-4 cursor-pointer"
                       />
                       <span className="text-sm font-bold text-slate-900 dark:text-white">
                         Manage Inventory &amp; Stock for this product?
@@ -1713,7 +1713,7 @@ export default function TenantItemsCatalogPage() {
                             type="checkbox"
                             checked={form.trackBatches}
                             onChange={(e) => setForm({ ...form, trackBatches: e.target.checked })}
-                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-600 cursor-pointer"
+                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-orange-600 focus:ring-orange-500 cursor-pointer"
                           />
                           <span>📅 Track Batches &amp; Expiry Dates</span>
                         </label>
@@ -1723,7 +1723,7 @@ export default function TenantItemsCatalogPage() {
                             type="checkbox"
                             checked={form.trackSerialNumbers}
                             onChange={(e) => setForm({ ...form, trackSerialNumbers: e.target.checked })}
-                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-600 cursor-pointer"
+                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-orange-600 focus:ring-orange-500 cursor-pointer"
                           />
                           <span>🏷️ Track Serial / IMEI Numbers</span>
                         </label>
@@ -1780,7 +1780,7 @@ export default function TenantItemsCatalogPage() {
                                   <select
                                     value={batchRow.warehouseId}
                                     onChange={(e) => handleUpdateBatchRow(idx, "warehouseId", e.target.value)}
-                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                   >
                                     <option value="">Default Warehouse</option>
                                     {allWarehouses.map((w) => (
@@ -1799,7 +1799,7 @@ export default function TenantItemsCatalogPage() {
                                     className={`w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none ${
                                       form.trackBatches && !batchRow.batchNumber && Number(batchRow.quantity) > 0
                                         ? "border-amber-500 ring-1 ring-amber-500"
-                                        : "border-slate-300 dark:border-slate-800 focus:border-indigo-600"
+                                        : "border-slate-300 dark:border-slate-800 focus:border-orange-500"
                                     }`}
                                   />
                                 </td>
@@ -1808,7 +1808,7 @@ export default function TenantItemsCatalogPage() {
                                     type="date"
                                     value={batchRow.expiryDate}
                                     onChange={(e) => handleUpdateBatchRow(idx, "expiryDate", e.target.value)}
-                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                   />
                                 </td>
                                 <td className="p-2">
@@ -1828,7 +1828,7 @@ export default function TenantItemsCatalogPage() {
                                     placeholder={form.purchasePrice ? String(form.purchasePrice) : "0.00"}
                                     value={batchRow.purchaseRate}
                                     onChange={(e) => handleUpdateBatchRow(idx, "purchaseRate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
-                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                   />
                                 </td>
                                 <td className="p-2">
@@ -1838,7 +1838,7 @@ export default function TenantItemsCatalogPage() {
                                     placeholder={form.mrp ? String(form.mrp) : "0.00"}
                                     value={batchRow.mrp}
                                     onChange={(e) => handleUpdateBatchRow(idx, "mrp", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
-                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
+                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                   />
                                 </td>
                                 <td className="p-2 text-center">
@@ -1891,7 +1891,7 @@ export default function TenantItemsCatalogPage() {
                   className={`px-6 py-2.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50 shadow-md flex items-center gap-2 cursor-pointer ${
                     form.itemType === 2
                       ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/25 active:scale-95"
-                      : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/25 active:scale-95"
+                      : "bg-orange-600 hover:bg-orange-700 shadow-orange-500/25 active:scale-95"
                   }`}
                 >
                   <CheckCircle2 className="w-4 h-4" />
@@ -1917,7 +1917,7 @@ export default function TenantItemsCatalogPage() {
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <Layers className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Custom Unit (UOM)</h3>
               </div>
               <button
@@ -1937,7 +1937,7 @@ export default function TenantItemsCatalogPage() {
                   placeholder="e.g. Barrel, Carton 24pk, Bundle"
                   value={newUomForm.name}
                   onChange={(e) => setNewUomForm({ ...newUomForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                 />
               </div>
 
@@ -1950,7 +1950,7 @@ export default function TenantItemsCatalogPage() {
                     placeholder="e.g. BRL, CTN24, BDL"
                     value={newUomForm.code}
                     onChange={(e) => setNewUomForm({ ...newUomForm, code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono uppercase focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono uppercase focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1960,7 +1960,7 @@ export default function TenantItemsCatalogPage() {
                     placeholder="e.g. brl, ctn, bdl"
                     value={newUomForm.symbol}
                     onChange={(e) => setNewUomForm({ ...newUomForm, symbol: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -1970,7 +1970,7 @@ export default function TenantItemsCatalogPage() {
                 <select
                   value={newUomForm.decimalPlaces}
                   onChange={(e) => setNewUomForm({ ...newUomForm, decimalPlaces: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="0">0 (Whole units, e.g. Box, Piece, Strip)</option>
                   <option value="2">2 (e.g. Meters, Liters)</option>
@@ -1989,7 +1989,7 @@ export default function TenantItemsCatalogPage() {
                 <button
                   type="submit"
                   disabled={creatingUom}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 transition-colors disabled:opacity-50 shadow-sm shadow-orange-600/25"
                 >
                   {creatingUom ? "Saving Unit..." : "Create & Select Unit"}
                 </button>
@@ -2005,7 +2005,7 @@ export default function TenantItemsCatalogPage() {
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <Award className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Add New Brand / Maker</h3>
               </div>
               <button
@@ -2025,7 +2025,7 @@ export default function TenantItemsCatalogPage() {
                   placeholder="e.g. Cipla, Sun Pharma, Raymond, Samsung"
                   value={newBrandForm.name}
                   onChange={(e) => setNewBrandForm({ ...newBrandForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 font-medium"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium"
                 />
               </div>
 
@@ -2036,7 +2036,7 @@ export default function TenantItemsCatalogPage() {
                   placeholder="e.g. Cipla Ltd. / GlaxoSmithKline Pharmaceuticals"
                   value={newBrandForm.manufacturerName}
                   onChange={(e) => setNewBrandForm({ ...newBrandForm, manufacturerName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                 />
               </div>
 
@@ -2047,7 +2047,7 @@ export default function TenantItemsCatalogPage() {
                   placeholder="e.g. Top pharma manufacturer, Generic division"
                   value={newBrandForm.description}
                   onChange={(e) => setNewBrandForm({ ...newBrandForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                 />
               </div>
 
@@ -2062,7 +2062,7 @@ export default function TenantItemsCatalogPage() {
                 <button
                   type="submit"
                   disabled={creatingBrand}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 transition-colors disabled:opacity-50 shadow-sm shadow-orange-600/25 cursor-pointer"
                 >
                   {creatingBrand ? "Saving Brand..." : "Save & Select Brand"}
                 </button>
@@ -2151,11 +2151,11 @@ export default function TenantItemsCatalogPage() {
               return (
                 <div className="p-4 bg-surface border-b border-border grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
                   {/* Card 1: Opening / Inward */}
-                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-950 dark:text-blue-200">
-                    <span className="text-[10px] uppercase font-bold text-blue-800 dark:text-blue-300 tracking-wider block">
+                  <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-950 dark:text-orange-200">
+                    <span className="text-[10px] uppercase font-bold text-orange-800 dark:text-orange-300 tracking-wider block">
                       Opening / Total Inward
                     </span>
-                    <div className="text-lg font-black font-mono mt-0.5 text-blue-700 dark:text-blue-300">
+                    <div className="text-lg font-black font-mono mt-0.5 text-orange-700 dark:text-orange-300">
                       +{totalIn || totalOpening} <span className="text-xs font-normal text-muted-foreground">{selectedLedgerItem.primaryUomCode}</span>
                     </div>
                     <span className="text-[10px] text-muted-foreground block mt-0.5">Purchases, Opening &amp; Returns</span>
