@@ -68,13 +68,23 @@ export default function TenantBillingPage() {
     try {
       setLoading(true);
       const [statusRes, invoicesRes, plansRes] = await Promise.all([
-        tenantAppService.getSubscriptionStatus(),
-        tenantAppService.getSubscriptionInvoices(),
-        subscriptionService.getPlans().catch(() => []),
+        tenantAppService.getSubscriptionStatus().catch((err) => {
+          console.error("Failed to load subscription status", err);
+          return null;
+        }),
+        tenantAppService.getSubscriptionInvoices().catch((err) => {
+          console.error("Failed to load subscription invoices", err);
+          return [];
+        }),
+        subscriptionService.getPlans().catch((err) => {
+          console.error("Failed to load plans", err);
+          return [];
+        }),
       ]);
       setSubStatus(statusRes);
-      setInvoices(invoicesRes || []);
-      setPlans(plansRes.filter((p: any) => p.isActive !== false));
+      setInvoices(Array.isArray(invoicesRes) ? invoicesRes : []);
+      const rawPlans: any[] = Array.isArray(plansRes) ? plansRes : ((plansRes as any)?.data ?? []);
+      setPlans(rawPlans.filter((p: any) => p && p.isActive !== false && !p.isHidden));
     } catch (err: any) {
       console.error("Failed to load billing details", err);
     } finally {
@@ -657,113 +667,142 @@ const formatBillingCycle = (cycle: number | string | undefined, planCode?: strin
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan) => {
-            const basePrice = Number(plan.price) || 0;
-            const gstAmount = Number((basePrice * 0.18).toFixed(2));
-            const totalWithGst = Number((basePrice + gstAmount).toFixed(2));
-            const cycleInfo = formatBillingCycle(plan.billingCycle, plan.code, plan.name);
-            const isCurrentPlan = !subStatus?.isTrial && (
-              subStatus?.currentPlanCode === plan.code ||
-              (subStatus?.currentPlanName && subStatus.currentPlanName.toLowerCase() === plan.name.toLowerCase())
-            );
-
-            return (
-              <div
-                key={plan.id}
-                className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border flex flex-col justify-between relative transition-all shadow-xs dark:shadow-lg ${
-                  plan.isPopular
-                    ? "border-indigo-300 dark:border-indigo-500/50 shadow-md shadow-indigo-500/10"
-                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
-              >
-                {plan.isPopular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-indigo-600 text-white shadow-md">
-                    Recommended Tier
-                  </span>
-                )}
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400">
-                      {plan.code}
-                    </span>
-                    {isCurrentPlan && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
-                        Current Plan
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.name}</h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">{plan.description}</p>
-                  </div>
-
-                  <div className="pt-2">
-                    <div className="flex items-baseline space-x-1">
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">₹{basePrice.toLocaleString("en-IN")}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{cycleInfo.suffix}</span>
-                    </div>
-                    <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-1">
-                      + 18% GST (₹{gstAmount}) will be additional
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                      Total: <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{totalWithGst.toLocaleString("en-IN")} {cycleInfo.shortSuffix}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs text-slate-700 dark:text-slate-300">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-                        <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                        <span>Users</span>
-                      </span>
-                      <span className="font-semibold text-slate-900 dark:text-white">{plan.maxUsers}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-                        <Building className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                        <span>Branches & Wh</span>
-                      </span>
-                      <span className="font-semibold text-slate-900 dark:text-white">{plan.maxBranches} Br / {plan.maxWarehouses} Wh</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
-                        <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span>Monthly Invoices</span>
-                      </span>
-                      <span className="font-semibold text-slate-900 dark:text-white">
-                        {plan.maxInvoicesPerMonth >= 100000 ? "Unlimited" : `${plan.maxInvoicesPerMonth} /mo`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-5 mt-4 border-t border-slate-200 dark:border-slate-800">
-                  <button
-                    type="button"
-                    disabled={isCurrentPlan || purchasingPlanId === plan.id}
-                    onClick={() => {
-                      setPendingCheckoutPlan(plan);
-                      setCouponInput("");
-                      setAppliedCoupon(null);
-                      setCouponError(null);
-                    }}
-                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
-                      isCurrentPlan
-                        ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed"
-                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    <span>{isCurrentPlan ? "Active Current Tier" : `Select & Pay ₹${totalWithGst.toFixed(0)}`}</span>
-                  </button>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-pulse space-y-4">
+                <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-1/3"></div>
+                <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-2/3"></div>
+                <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                <div className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded"></div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center space-y-3">
+            <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">No subscription plans available at the moment.</p>
+            <p className="text-xs text-slate-500">Please check back later or contact platform support.</p>
+            <button
+              type="button"
+              onClick={loadBillingData}
+              className="mt-2 px-4 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg hover:bg-indigo-100 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {plans.map((plan) => {
+              const basePrice = Number(plan.price) || 0;
+              const gstAmount = Number((basePrice * 0.18).toFixed(2));
+              const totalWithGst = Number((basePrice + gstAmount).toFixed(2));
+              const cycleInfo = formatBillingCycle(plan.billingCycle, plan.code, plan.name);
+              const isCurrentPlan = !subStatus?.isTrial && (
+                subStatus?.currentPlanCode === plan.code ||
+                (subStatus?.currentPlanName && subStatus.currentPlanName.toLowerCase() === plan.name.toLowerCase())
+              );
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border flex flex-col justify-between relative transition-all shadow-xs dark:shadow-lg ${
+                    plan.isPopular
+                      ? "border-indigo-300 dark:border-indigo-500/50 shadow-md shadow-indigo-500/10"
+                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                  }`}
+                >
+                  {plan.isPopular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-indigo-600 text-white shadow-md">
+                      Recommended Tier
+                    </span>
+                  )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400">
+                        {plan.code}
+                      </span>
+                      {isCurrentPlan && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+                          Current Plan
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.name}</h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">{plan.description}</p>
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="flex items-baseline space-x-1">
+                        <span className="text-2xl font-black text-slate-900 dark:text-white">₹{basePrice.toLocaleString("en-IN")}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{cycleInfo.suffix}</span>
+                      </div>
+                      <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-1">
+                        + 18% GST (₹{gstAmount}) will be additional
+                      </div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                        Total: <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{totalWithGst.toLocaleString("en-IN")} {cycleInfo.shortSuffix}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                          <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                          <span>Users</span>
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{plan.maxUsers}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                          <Building className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                          <span>Branches & Wh</span>
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{plan.maxBranches} Br / {plan.maxWarehouses} Wh</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                          <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span>Monthly Invoices</span>
+                        </span>
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                          {plan.maxInvoicesPerMonth >= 100000 ? "Unlimited" : `${plan.maxInvoicesPerMonth} /mo`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-5 mt-4 border-t border-slate-200 dark:border-slate-800">
+                    <button
+                      type="button"
+                      disabled={isCurrentPlan || purchasingPlanId === plan.id}
+                      onClick={() => {
+                        setPendingCheckoutPlan(plan);
+                        setCouponInput("");
+                        setAppliedCoupon(null);
+                        setCouponError(null);
+                      }}
+                      className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
+                        isCurrentPlan
+                          ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed"
+                          : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>{isCurrentPlan ? "Active Current Tier" : `Select & Pay ₹${totalWithGst.toFixed(0)}`}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Subscription Invoices Table */}

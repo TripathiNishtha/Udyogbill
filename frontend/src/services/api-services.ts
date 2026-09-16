@@ -83,8 +83,9 @@ export const industryService = {
 
 export const planService = {
   async getPlans(): Promise<Plan[]> {
-    const response = await apiClient.get<Plan[]>("/plans");
-    return response.data;
+    const response = await apiClient.get<any>("/plans");
+    const data = response.data?.data ?? response.data;
+    return Array.isArray(data) ? data : [];
   }
 };
 
