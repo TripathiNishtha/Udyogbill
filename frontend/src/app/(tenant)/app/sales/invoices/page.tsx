@@ -532,8 +532,8 @@ function TenantInvoicesPageContent() {
           status: selectedStatus ? parseInt(selectedStatus) : undefined,
           invoiceType: selectedType ? parseInt(selectedType) : undefined,
         }),
-        inventoryService.getItems({ pageSize: 150 }),
-        partyService.getCustomers({ pageSize: 150 }),
+        inventoryService.getItems({ pageSize: 500 }),
+        partyService.getCustomers({ pageSize: 250 }),
         tenantAppService.getBranches(),
         tenantAppService.getWarehouses(),
         brokerService.getBrokers({ pageSize: 100, activeOnly: true }).catch(() => ({ items: [], totalCount: 0 })),
@@ -758,7 +758,7 @@ function TenantInvoicesPageContent() {
         } as any;
 
         targetItem = createdItem;
-        setItems([createdItem]);
+        setItems((prev) => [createdItem, ...prev.filter((x) => x.id !== createdId)]);
       } catch (err: any) {
         console.error("Failed to auto-create demo item in database", err);
         alert(err?.response?.data?.message || err?.message || "Failed to create demo item. Please add an item first.");
@@ -814,7 +814,33 @@ function TenantInvoicesPageContent() {
 
   const handleAddLine = async () => {
     if (items.length === 0) {
-      await handleLoadDemoItem();
+      const emptyLine: InvoiceLineItemForm = {
+        itemId: "",
+        itemSku: "",
+        itemName: "",
+        batchId: "",
+        batchNumber: "",
+        expiryDate: "",
+        packing: "",
+        hsnCode: "",
+        quantity: 1,
+        freeQuantity: 0,
+        uomId: "",
+        uomCode: "PCS",
+        mrp: 0,
+        ptr: 0,
+        pts: 0,
+        unitPrice: 0,
+        discountType: "percent",
+        discountValue: 0,
+        discountAmount: 0,
+        taxableAmount: 0,
+        gstRate: 18,
+        totalAmount: 0,
+        availableBatches: [],
+        loadingBatches: false,
+      };
+      setInvoiceLines((prev) => [...prev, emptyLine]);
       return;
     }
     const firstItem = items[0];
@@ -991,7 +1017,12 @@ function TenantInvoicesPageContent() {
       loadingBatches: false,
     };
 
-    setInvoiceLines((prev) => [...prev, newLine]);
+    setInvoiceLines((prev) => {
+      if (prev.length === 1 && (!prev[0].itemId || prev[0].itemId === "")) {
+        return [newLine];
+      }
+      return [...prev, newLine];
+    });
   };
 
   const handleRemoveLine = (idx: number) => {
@@ -2431,10 +2462,12 @@ function TenantInvoicesPageContent() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && quickProductSearch.trim()) {
                           e.preventDefault();
+                          const q = quickProductSearch.trim().toLowerCase();
                           const matches = items.filter(
                             (item) =>
-                              item.name.toLowerCase().includes(quickProductSearch.toLowerCase()) ||
-                              item.sku.toLowerCase().includes(quickProductSearch.toLowerCase())
+                              (item.name || "").toLowerCase().includes(q) ||
+                              (item.sku || "").toLowerCase().includes(q) ||
+                              (item.barcode || "").toLowerCase().includes(q)
                           );
                           if (matches.length > 0) {
                             const selectedItem = matches[0];
@@ -2469,10 +2502,11 @@ function TenantInvoicesPageContent() {
                         {items
                           .filter(
                             (item) =>
-                              item.name.toLowerCase().includes(quickProductSearch.toLowerCase()) ||
-                              item.sku.toLowerCase().includes(quickProductSearch.toLowerCase())
+                              (item.name || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
+                              (item.sku || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
+                              (item.barcode || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase())
                           )
-                          .slice(0, 10)
+                          .slice(0, 15)
                           .map((item) => (
                             <div
                               key={item.id}
@@ -2513,8 +2547,9 @@ function TenantInvoicesPageContent() {
 
                         {items.filter(
                           (item) =>
-                            item.name.toLowerCase().includes(quickProductSearch.toLowerCase()) ||
-                            item.sku.toLowerCase().includes(quickProductSearch.toLowerCase())
+                            (item.name || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
+                            (item.sku || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
+                            (item.barcode || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase())
                         ).length > 0 && (
                           <div
                             onClick={() => handleOpenAddProductModal(quickProductSearch)}
@@ -2532,8 +2567,9 @@ function TenantInvoicesPageContent() {
 
                         {items.filter(
                           (item) =>
-                            item.name.toLowerCase().includes(quickProductSearch.toLowerCase()) ||
-                            item.sku.toLowerCase().includes(quickProductSearch.toLowerCase())
+                            (item.name || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
+                            (item.sku || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
+                            (item.barcode || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase())
                         ).length === 0 && (
                           <div className="p-4 text-center space-y-2.5 bg-white dark:bg-slate-950">
                             <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
