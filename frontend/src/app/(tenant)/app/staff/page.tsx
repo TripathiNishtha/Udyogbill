@@ -303,7 +303,7 @@ export default function TenantStaffPage() {
   const totalAllPermsCount = permissionGroups.reduce((acc, g) => acc + g.permissions.length, 0);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Toast Notification */}
       {notification && (
         <div className="fixed top-6 right-6 z-50 p-4 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-2xl flex items-center space-x-2 animate-in fade-in slide-in-from-top-4">
@@ -315,20 +315,20 @@ export default function TenantStaffPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
-            <Users2 className="w-6 h-6 text-emerald-400" />
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
+            <Users2 className="w-6 h-6 text-orange-500" />
             <span>Staff Management & Granular RBAC</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
             Create custom roles, configure module-level granular permissions, and enforce access boundaries.
           </p>
         </div>
         <div className="flex items-center space-x-3">
           <div className="text-right hidden sm:block">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+            <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
               Staff Quota
             </span>
-            <span className="text-xs font-bold text-slate-200 font-mono">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
               {quotas?.currentUsers || users.length} / {quotas?.maxUsers || 1} Allowed
             </span>
           </div>
@@ -336,7 +336,7 @@ export default function TenantStaffPage() {
             <button
               onClick={() => setIsInviteModalOpen(true)}
               disabled={(quotas?.currentUsers || 0) >= (quotas?.maxUsers || 1)}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition-all cursor-pointer disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
               <span>Invite Staff Member</span>
@@ -344,7 +344,7 @@ export default function TenantStaffPage() {
           ) : (
             <button
               onClick={openCreateRole}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-lg shadow-orange-600/30 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>+ Create New Custom Role</span>
@@ -354,17 +354,17 @@ export default function TenantStaffPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-2 border-b border-slate-800 pb-1">
+      <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-800 pb-1">
         <button
           onClick={() => setActiveTab("staff")}
-          className={"flex items-center space-x-2 px-5 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer " + (activeTab === "staff" ? "bg-slate-900 border-t border-l border-r border-slate-800 text-emerald-400" : "text-slate-400 hover:text-slate-200")}
+          className={"flex items-center space-x-2 px-5 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer " + (activeTab === "staff" ? "bg-white dark:bg-slate-900 border-t-2 border-t-orange-600 border-l border-r border-slate-200 dark:border-slate-800 text-orange-600 dark:text-orange-400 shadow-xs" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200")}
         >
           <Users2 className="w-4 h-4" />
           <span>Staff Directory ({users.length})</span>
         </button>
         <button
           onClick={() => setActiveTab("roles")}
-          className={"flex items-center space-x-2 px-5 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer " + (activeTab === "roles" ? "bg-slate-900 border-t border-l border-r border-slate-800 text-indigo-400" : "text-slate-400 hover:text-slate-200")}
+          className={"flex items-center space-x-2 px-5 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer " + (activeTab === "roles" ? "bg-white dark:bg-slate-900 border-t-2 border-t-orange-600 border-l border-r border-slate-200 dark:border-slate-800 text-orange-600 dark:text-orange-400 shadow-xs" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200")}
         >
           <Shield className="w-4 h-4" />
           <span>Roles & Permissions Matrix ({roles.length})</span>
@@ -374,63 +374,63 @@ export default function TenantStaffPage() {
       {/* TAB 1: STAFF DIRECTORY */}
       {activeTab === "staff" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
             <div className="relative max-w-md w-full">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search staff by name, email, or designation..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
               />
             </div>
-            <span className="text-xs text-slate-400 hidden sm:block">
-              Total Staff: <span className="font-bold text-white">{users.length}</span>
+            <span className="text-xs text-slate-600 dark:text-slate-400 hidden sm:block">
+              Total Staff: <span className="font-bold text-slate-900 dark:text-white">{users.length}</span>
             </span>
           </div>
 
-          <div className="rounded-2xl bg-slate-950/60 border border-slate-800 overflow-hidden shadow-sm">
+          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="text-slate-400 uppercase tracking-wider bg-slate-900/50 border-b border-slate-800">
+                <thead className="text-slate-600 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
                   <tr>
-                    <th className="px-5 py-3.5 font-semibold">User</th>
-                    <th className="px-5 py-3.5 font-semibold">Designation</th>
-                    <th className="px-5 py-3.5 font-semibold">Assigned Roles</th>
-                    <th className="px-5 py-3.5 font-semibold">Status</th>
-                    <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
+                    <th className="px-5 py-3.5 font-bold">User</th>
+                    <th className="px-5 py-3.5 font-bold">Designation</th>
+                    <th className="px-5 py-3.5 font-bold">Assigned Roles</th>
+                    <th className="px-5 py-3.5 font-bold">Status</th>
+                    <th className="px-5 py-3.5 font-bold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-850">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <td colSpan={5} className="py-12 text-center text-slate-500 dark:text-slate-400">
                         Loading staff directory...
                       </td>
                     </tr>
                   ) : users.length > 0 ? (
                     users.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-900/40 transition-colors">
+                      <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-xs text-indigo-400 uppercase">
+                            <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800/50 flex items-center justify-center font-bold text-xs text-orange-700 dark:text-orange-400 uppercase shrink-0">
                               {u.fullName.substring(0, 2)}
                             </div>
                             <div>
-                              <div className="font-bold text-white flex items-center space-x-1.5">
+                              <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
                                 <span>{u.fullName}</span>
                                 {u.isTenantAdmin && (
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
                                     Admin
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[11px] text-slate-400">{u.email}</div>
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400">{u.email}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-3.5 text-slate-300">
+                        <td className="px-5 py-3.5 text-slate-700 dark:text-slate-300 font-medium">
                           {u.designation || "Staff Member"}
                         </td>
                         <td className="px-5 py-3.5">
@@ -439,19 +439,19 @@ export default function TenantStaffPage() {
                               u.roles.map((r) => (
                                 <span
                                   key={r.id}
-                                  className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-900 border border-slate-800 text-slate-300"
+                                  className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
                                 >
                                   {r.name}
                                 </span>
                               ))
                             ) : (
-                              <span className="text-slate-600 text-[11px]">No specific roles</span>
+                              <span className="text-slate-400 text-[11px] italic">No specific roles</span>
                             )}
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
                           <span
-                            className={"inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border " + (u.isActive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20")}
+                            className={"inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border " + (u.isActive ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50" : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/50")}
                           >
                             {u.isActive ? "Active" : "Deactivated"}
                           </span>
@@ -460,7 +460,7 @@ export default function TenantStaffPage() {
                           {!u.isTenantAdmin && (
                             <button
                               onClick={() => openAssignRoles(u)}
-                              className="px-3 py-1.5 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/40 text-indigo-300 hover:text-white transition-colors text-[11px] font-bold cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/60 border border-orange-200 dark:border-orange-500/40 text-orange-700 dark:text-orange-300 hover:text-orange-800 dark:hover:text-white transition-colors text-[11px] font-bold cursor-pointer"
                             >
                               Assign Roles
                             </button>
@@ -470,7 +470,7 @@ export default function TenantStaffPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <td colSpan={5} className="py-12 text-center text-slate-500 dark:text-slate-400">
                         No staff members found.
                       </td>
                     </tr>
@@ -485,19 +485,19 @@ export default function TenantStaffPage() {
       {/* TAB 2: ROLES & PERMISSIONS MATRIX */}
       {activeTab === "roles" && (
         <div className="space-y-5">
-          <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-800/50 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+          <div className="p-5 rounded-2xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs shadow-xs">
             <div className="space-y-1">
-              <div className="font-bold text-sm text-indigo-300 flex items-center space-x-2">
-                <ShieldCheck className="w-4 h-4 text-indigo-400" />
+              <div className="font-bold text-sm text-orange-900 dark:text-orange-300 flex items-center space-x-2">
+                <ShieldCheck className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 <span>Custom Role Builder & Granular Access Boundaries</span>
               </div>
-              <p className="text-slate-400">
+              <p className="text-slate-600 dark:text-slate-400">
                 Design custom roles for your cashiers, accountants, store managers, and field staff. Tweak permissions across all 6 core modules.
               </p>
             </div>
             <button
               onClick={openCreateRole}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-2 shrink-0 cursor-pointer transition-all"
+              className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-600/30 flex items-center space-x-2 shrink-0 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Create New Role</span>
@@ -510,39 +510,39 @@ export default function TenantStaffPage() {
               return (
                 <div
                   key={r.id}
-                  className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all shadow-md"
+                  className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-4 hover:border-orange-300 dark:hover:border-slate-700 transition-all shadow-sm"
                 >
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="p-2 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/40">
                           <Shield className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="font-bold text-sm text-white">{r.name}</div>
+                          <div className="font-bold text-sm text-slate-900 dark:text-white">{r.name}</div>
                           <div className="text-[10px] font-mono text-slate-500 uppercase">{r.code}</div>
                         </div>
                       </div>
                       {r.isSystemRole ? (
-                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-amber-400 border border-slate-800">
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-slate-800 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-slate-700">
                           <Lock className="w-3 h-3" />
                           <span>System Default</span>
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
                           Custom
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs text-slate-400 min-h-[36px] line-clamp-2">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 min-h-[36px] line-clamp-2">
                       {r.description || "Custom operational role with assigned module permissions."}
                     </p>
 
-                    <div className="pt-2 border-t border-slate-900 space-y-2">
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
                       <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-slate-400 font-semibold">Granted Permissions:</span>
-                        <span className="font-mono font-bold text-indigo-400">
+                        <span className="text-slate-600 dark:text-slate-400 font-semibold">Granted Permissions:</span>
+                        <span className="font-mono font-bold text-orange-600 dark:text-orange-400">
                           {(r.permissionCodes || []).length} / {totalAllPermsCount}
                         </span>
                       </div>
@@ -550,7 +550,7 @@ export default function TenantStaffPage() {
                         {(r.permissionCodes || []).map((code) => (
                           <span
                             key={code}
-                            className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[9.5px] font-mono text-slate-300"
+                            className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[9.5px] font-mono text-slate-700 dark:text-slate-300"
                           >
                             {code}
                           </span>
@@ -559,14 +559,14 @@ export default function TenantStaffPage() {
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      Assigned to: <strong className="text-white">{assignedCount}</strong> staff
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                      Assigned to: <strong className="text-slate-900 dark:text-white font-bold">{assignedCount}</strong> staff
                     </span>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => openEditRole(r)}
-                        className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-bold text-[11px] flex items-center space-x-1 cursor-pointer transition-colors"
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold text-[11px] flex items-center space-x-1 cursor-pointer transition-colors"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                         <span>Edit Permissions</span>
@@ -574,7 +574,7 @@ export default function TenantStaffPage() {
                       {!r.isSystemRole && (
                         <button
                           onClick={() => handleDeleteRole(r)}
-                          className="p-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/60 border border-rose-800/40 text-rose-400 hover:text-rose-200 cursor-pointer transition-colors"
+                          className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-200 cursor-pointer transition-colors"
                           title="Delete Custom Role"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -591,63 +591,70 @@ export default function TenantStaffPage() {
 
       {/* MODAL: CREATE / EDIT CUSTOM ROLE & PERMISSION MATRIX */}
       {isRoleModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-3xl w-full p-6 space-y-5 shadow-2xl relative my-8 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
-              <div className="flex items-center space-x-2">
-                <ShieldCheck className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-lg font-bold text-white">
-                  {editingRoleId ? ("Edit Role: " + roleForm.name) : "Create New Custom Role"}
-                </h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-4 sm:p-6 space-y-4 shadow-2xl relative my-auto max-h-[92vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                    {editingRoleId ? ("Edit Role: " + roleForm.name) : "Create New Custom Role"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Define custom role attributes and toggle granular module permissions.
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsRoleModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-900 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleRoleSubmit} className="space-y-5 overflow-y-auto pr-1 flex-1">
+            <form onSubmit={handleRoleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Role Name *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Role Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. POS Counter Cashier"
                     value={roleForm.name}
                     onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-bold"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-bold"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Role Code / Identifier</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Role Code / Identifier</label>
                   <input
                     type="text"
                     disabled={!!editingRoleId}
                     placeholder="e.g. POS_CASHIER_1"
                     value={roleForm.code}
                     onChange={(e) => setRoleForm({ ...roleForm, code: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono disabled:opacity-50"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-mono disabled:opacity-60"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Short Description</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Short Description</label>
                   <input
                     type="text"
                     placeholder="e.g. Allowed to bill and collect receipts"
                     value={roleForm.description}
                     onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-orange-50/50 dark:bg-slate-900/60 border border-orange-200/80 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-xs text-white">Granular Permission Matrix</span>
-                  <span className="text-[11px] text-slate-400 ml-2">
+                  <span className="font-bold text-xs text-slate-900 dark:text-white">Granular Permission Matrix</span>
+                  <span className="text-[11px] font-semibold text-orange-700 dark:text-orange-400 ml-2">
                     {"(" + roleForm.permissionIds.length + " of " + totalAllPermsCount + " selected)"}
                   </span>
                 </div>
@@ -655,14 +662,14 @@ export default function TenantStaffPage() {
                   <button
                     type="button"
                     onClick={selectAllPermissions}
-                    className="px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/30 text-[11px] font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-orange-600/10 text-orange-700 dark:text-orange-400 hover:bg-orange-600/20 border border-orange-500/30 text-[11px] font-bold cursor-pointer transition-colors"
                   >
                     Select All
                   </button>
                   <button
                     type="button"
                     onClick={clearAllPermissions}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 text-[11px] font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-[11px] font-bold cursor-pointer transition-colors"
                   >
                     Clear All
                   </button>
@@ -679,21 +686,21 @@ export default function TenantStaffPage() {
                   return (
                     <div
                       key={group.moduleCode}
-                      className="rounded-xl bg-slate-900/40 border border-slate-800 overflow-hidden"
+                      className="rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 overflow-hidden"
                     >
-                      <div className="p-3 bg-slate-900/80 flex items-center justify-between border-b border-slate-800/80">
+                      <div className="p-3 bg-slate-100 dark:bg-slate-900 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
                         <div
                           onClick={() => setExpandedModules({ ...expandedModules, [group.moduleCode]: !isExpanded })}
                           className="flex items-center space-x-2 cursor-pointer flex-1"
                         >
                           {isExpanded ? (
-                            <ChevronUp className="w-4 h-4 text-slate-400" />
+                            <ChevronUp className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                           ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                            <ChevronDown className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                           )}
-                          <span className="font-bold text-xs text-white">{group.moduleName}</span>
+                          <span className="font-bold text-xs text-slate-900 dark:text-white">{group.moduleName}</span>
                           <span className="text-[10px] font-mono text-slate-500">{"(" + group.moduleCode + ")"}</span>
-                          <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-slate-800 text-indigo-300">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 dark:bg-slate-800 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-slate-700">
                             {selectedCountInGroup} / {group.permissions.length}
                           </span>
                         </div>
@@ -701,35 +708,35 @@ export default function TenantStaffPage() {
                         <button
                           type="button"
                           onClick={() => toggleModulePermissions(group)}
-                          className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 px-2 py-0.5 rounded hover:bg-indigo-950/40 cursor-pointer"
+                          className="text-[11px] font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 px-2 py-0.5 rounded hover:bg-orange-100 dark:hover:bg-orange-950/40 cursor-pointer transition-colors"
                         >
                           {allGroupSelected ? "Deselect Module" : "Select All in Module"}
                         </button>
                       </div>
 
                       {isExpanded && (
-                        <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-950/40 animate-in fade-in">
+                        <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white dark:bg-slate-950/40 animate-in fade-in">
                           {group.permissions.map((p) => {
                             const isChecked = roleForm.permissionIds.includes(p.id);
                             return (
                               <div
                                 key={p.id}
                                 onClick={() => togglePermission(p.id)}
-                                className={"p-2.5 rounded-lg border cursor-pointer flex items-start space-x-2.5 transition-all " + (isChecked ? "bg-indigo-950/30 border-indigo-500/40 text-white" : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700")}
+                                className={"p-2.5 rounded-lg border cursor-pointer flex items-start space-x-2.5 transition-all " + (isChecked ? "bg-orange-50 dark:bg-orange-950/30 border-orange-400 dark:border-orange-500/50 text-slate-900 dark:text-white shadow-2xs" : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700")}
                               >
                                 <div className="pt-0.5 shrink-0">
                                   {isChecked ? (
-                                    <CheckSquare className="w-4 h-4 text-indigo-400" />
+                                    <CheckSquare className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                   ) : (
-                                    <Square className="w-4 h-4 text-slate-600" />
+                                    <Square className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                                   )}
                                 </div>
                                 <div>
-                                  <div className="font-bold text-xs text-slate-200">{p.name}</div>
-                                  <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                                  <div className="font-bold text-xs text-slate-900 dark:text-slate-200">{p.name}</div>
+                                  <div className="text-[10px] text-slate-600 dark:text-slate-400 leading-tight mt-0.5">
                                     {p.description}
                                   </div>
-                                  <div className="text-[9px] font-mono text-slate-600 mt-1">{p.code}</div>
+                                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-500 mt-1">{p.code}</div>
                                 </div>
                               </div>
                             );
@@ -741,18 +748,18 @@ export default function TenantStaffPage() {
                 })}
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800 shrink-0">
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsRoleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-900 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingRole}
-                  className="px-6 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 shadow-lg shadow-orange-600/30 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {submittingRole ? "Saving Role..." : (editingRoleId ? "Update Role Permissions" : "Create Custom Role")}
                 </button>
@@ -764,21 +771,21 @@ export default function TenantStaffPage() {
 
       {/* MODAL: INVITE STAFF MEMBER */}
       {isInviteModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setIsInviteModalOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-900 cursor-pointer"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Users2 className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Users2 className="w-5 h-5 text-orange-500" />
                 <span>Invite New Staff Member</span>
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Create login credentials and assign operational roles for your staff.
               </p>
             </div>
@@ -786,7 +793,7 @@ export default function TenantStaffPage() {
             <form onSubmit={handleInviteSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Full Name *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Full Name *</label>
                   <input
                     type="text"
                     required
@@ -795,11 +802,11 @@ export default function TenantStaffPage() {
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, fullName: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Work Email *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Work Email *</label>
                   <input
                     type="email"
                     required
@@ -808,14 +815,14 @@ export default function TenantStaffPage() {
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, email: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Password *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Password *</label>
                   <input
                     type="password"
                     required
@@ -824,11 +831,11 @@ export default function TenantStaffPage() {
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, password: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Designation</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Designation</label>
                   <input
                     type="text"
                     placeholder="e.g. Senior Accountant"
@@ -836,13 +843,13 @@ export default function TenantStaffPage() {
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, designation: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
               </div>
 
               <div className="space-y-2 pt-1">
-                <label className="text-xs font-semibold text-slate-300 block">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                   Assign Initial Roles
                 </label>
                 <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
@@ -852,28 +859,28 @@ export default function TenantStaffPage() {
                       <div
                         key={r.id}
                         onClick={() => toggleInviteRole(r.id)}
-                        className={"p-2.5 rounded-lg border cursor-pointer flex items-center justify-between text-xs transition-colors " + (isChecked ? "bg-emerald-950/40 border-emerald-500/50 text-white" : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700")}
+                        className={"p-2.5 rounded-lg border cursor-pointer flex items-center justify-between text-xs transition-colors " + (isChecked ? "bg-orange-50 dark:bg-orange-950/40 border-orange-400 dark:border-orange-500/50 text-slate-900 dark:text-white font-bold shadow-2xs" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700")}
                       >
                         <span className="font-medium">{r.name}</span>
-                        {isChecked && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                        {isChecked && <Check className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />}
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-3">
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsInviteModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-900 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingStaff}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 shadow-md shadow-orange-600/20 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {submittingStaff ? "Inviting..." : "Create Staff Account"}
                 </button>
@@ -885,21 +892,21 @@ export default function TenantStaffPage() {
 
       {/* MODAL: ASSIGN ROLES TO EXISTING STAFF */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setSelectedUser(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-900 cursor-pointer"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Shield className="w-5 h-5 text-orange-500" />
                 <span>Assign Roles: {selectedUser.fullName}</span>
               </h3>
-              <p className="text-xs text-slate-400">{selectedUser.email}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">{selectedUser.email}</p>
             </div>
 
             <form onSubmit={handleAssignRolesSubmit} className="space-y-4">
@@ -910,30 +917,30 @@ export default function TenantStaffPage() {
                     <div
                       key={r.id}
                       onClick={() => toggleRoleSelection(r.id)}
-                      className={"p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-colors " + (isChecked ? "bg-indigo-950/40 border-indigo-500/50 text-white" : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700")}
+                      className={"p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-colors " + (isChecked ? "bg-orange-50 dark:bg-orange-950/40 border-orange-400 dark:border-orange-500/50 text-slate-900 dark:text-white shadow-2xs" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700")}
                     >
                       <div>
-                        <div className="font-bold text-xs text-white">{r.name}</div>
-                        <div className="text-[11px] text-slate-400">{r.description}</div>
+                        <div className="font-bold text-xs text-slate-900 dark:text-white">{r.name}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">{r.description}</div>
                       </div>
-                      {isChecked && <Check className="w-4 h-4 text-indigo-400" />}
+                      {isChecked && <Check className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
                     </div>
                   );
                 })}
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-3">
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setSelectedUser(null)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-900 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={assigning}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 shadow-md shadow-orange-600/20 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {assigning ? "Saving..." : "Save Roles"}
                 </button>
@@ -945,3 +952,4 @@ export default function TenantStaffPage() {
     </div>
   );
 }
+
