@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { authService } from "@/services/api-services";
 import { tenantAppService, BranchDetails } from "@/services/tenant-app-services";
+import { referralService } from "@/services/referral-services";
 import { AuthResponse, TenantDetails } from "@/types";
 import { NetworkStatusBadge } from "./network-status-badge";
 import { ThemeToggle } from "@/components/theme/theme-provider";
@@ -167,7 +168,13 @@ export function TenantAppSidebar({
   const [branches, setBranches] = useState<BranchDetails[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-
+  const [referralRewardAmount, setReferralRewardAmount] = useState<number | null>(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem("referral_reward_amount");
+      if (cached) return Number(cached);
+    }
+    return null;
+  });
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -179,13 +186,20 @@ export function TenantAppSidebar({
 
   const loadSidebarData = async () => {
     try {
-      const [branchesData, profileData] = await Promise.all([
+      const [branchesData, profileData, referralSummary] = await Promise.all([
         tenantAppService.getBranches(),
         tenantAppService.getBusinessProfile().catch(() => null),
+        referralService.getTenantSummary().catch(() => null),
       ]);
       setBranches(branchesData);
       if (profileData) {
         setProfile(profileData);
+      }
+      if (referralSummary?.rewardAmount) {
+        setReferralRewardAmount(referralSummary.rewardAmount);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("referral_reward_amount", String(referralSummary.rewardAmount));
+        }
       }
       if (branchesData.length > 0) {
         const ho = branchesData.find((b) => b.isHeadOffice);
@@ -274,7 +288,11 @@ export function TenantAppSidebar({
         title: "Settings & System",
         icon: Settings2,
         items: [
-          { label: "🎁 Refer & Earn ₹500", href: "/app/referrals", icon: Gift },
+          { 
+            label: `🎁 Refer & Earn ₹${referralRewardAmount ?? 1000}`, 
+            href: "/app/referrals", 
+            icon: Gift 
+          },
           { label: "⚡ 1-Click Data Migration", href: "/app/settings/migration/universal", icon: Database },
           { label: "Plan & Add-ons", href: "/app/settings/addons", icon: Sparkles },
           { label: "Subscription & Invoices", href: "/app/settings/billing", icon: Receipt },
@@ -288,7 +306,7 @@ export function TenantAppSidebar({
         ]
       }
     ];
-  }, [activeNavGroups]);
+  }, [activeNavGroups, referralRewardAmount]);
 
   // Accordion state: which section is currently expanded (null if all closed)
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
