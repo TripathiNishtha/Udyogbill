@@ -1070,20 +1070,43 @@ export default function SalesInvoiceDetailsPage({
   const [printFormat, setPrintFormat] = useState<PrintFormat>("a4");
   const [activeDoc, setActiveDoc] = useState<DocumentType>("invoice");
 
-  // Load persistent default template preference
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("udyogbill_default_print_format") as PrintFormat;
-      if (saved && ["a4", "compact_a5", "thermal80", "thermal58"].includes(saved)) {
-        setPrintFormat(saved);
-      }
-    }
-  }, []);
-
-  const handleFormatChange = (fmt: PrintFormat) => {
+  // Print format state synchronized with active template
+  const handleFormatChange = async (fmt: PrintFormat) => {
     setPrintFormat(fmt);
     if (typeof window !== "undefined") {
       localStorage.setItem("udyogbill_default_print_format", fmt);
+    }
+
+    // Find a matching template for this page format and switch design accordingly
+    let targetTpl: PrintTemplate | undefined;
+    if (fmt === "a4") {
+      targetTpl = availableTemplates.find(t => (t.pageSize === 1 || t.pageSize === 2) && t.isDefault)
+        || availableTemplates.find(t => t.pageSize === 1 || t.pageSize === 2);
+    } else if (fmt === "compact_a5") {
+      targetTpl = availableTemplates.find(t => (t.pageSize === 3 || t.pageSize === 9 || t.pageSize === 10) && t.isDefault)
+        || availableTemplates.find(t => t.pageSize === 3 || t.pageSize === 9 || t.pageSize === 10);
+    } else if (fmt === "thermal80") {
+      targetTpl = availableTemplates.find(t => t.pageSize === 4 && t.isDefault)
+        || availableTemplates.find(t => t.pageSize === 4);
+    } else if (fmt === "thermal58") {
+      targetTpl = availableTemplates.find(t => t.pageSize === 5 && t.isDefault)
+        || availableTemplates.find(t => t.pageSize === 5);
+    }
+
+    if (targetTpl && invoiceId) {
+      setSelectedTemplateId(targetTpl.id);
+      try {
+        const preview = await printTemplateService.renderPreview({
+          invoiceId,
+          templateId: targetTpl.id,
+          documentType: 1,
+        });
+        if (preview?.renderedHtml) {
+          setDynamicInvoiceHtml(preview.renderedHtml);
+        }
+      } catch (err) {
+        console.error("Failed to load template for format " + fmt, err);
+      }
     }
   };
 
@@ -1154,6 +1177,14 @@ export default function SalesInvoiceDetailsPage({
     }
   };
 
+  const getFormatFromTemplate = (t?: PrintTemplate | null): PrintFormat => {
+    if (!t) return "a4";
+    if (t.pageSize === 3 || t.pageSize === 9 || t.pageSize === 10) return "compact_a5";
+    if (t.pageSize === 4) return "thermal80";
+    if (t.pageSize === 5) return "thermal58";
+    return "a4";
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -1168,9 +1199,9 @@ export default function SalesInvoiceDetailsPage({
       setUpiQr(upi);
       setAvailableTemplates(tpls || []);
 
-      const defTpl = (tpls || []).find((t: any) => t.templateCode === "TPL_UDYOGBILL_SIGNATURE_B2B")
-        || (tpls || []).find((t: any) => t.documentType === 1 && t.isDefault)
+      const defTpl = (tpls || []).find((t: any) => t.isDefault && t.documentType === 1)
         || (tpls || []).find((t: any) => t.isDefault)
+        || (tpls || []).find((t: any) => t.documentType === 1)
         || (tpls || [])[0];
 
       if (!selectedTemplateId && defTpl) {
@@ -1178,6 +1209,10 @@ export default function SalesInvoiceDetailsPage({
       }
 
       const activeTemplateId = selectedTemplateId || defTpl?.id;
+      const activeTpl = (tpls || []).find((t: any) => t.id === activeTemplateId) || defTpl;
+      if (activeTpl) {
+        setPrintFormat(getFormatFromTemplate(activeTpl));
+      }
 
       const preview = await printTemplateService.renderPreview({
         invoiceId,
@@ -1197,6 +1232,14 @@ export default function SalesInvoiceDetailsPage({
 
   const handleTemplateChange = async (tplId: string) => {
     setSelectedTemplateId(tplId);
+    const tpl = availableTemplates.find(t => t.id === tplId);
+    if (tpl) {
+      const fmt = getFormatFromTemplate(tpl);
+      setPrintFormat(fmt);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("udyogbill_default_print_format", fmt);
+      }
+    }
     if (!invoiceId) return;
     try {
       const preview = await printTemplateService.renderPreview({
@@ -1265,28 +1308,33 @@ export default function SalesInvoiceDetailsPage({
       }
     } else if (activeDoc === "proforma") {
       html = generateProformaInvoiceHtml(invoice, profile, upiQr);
-      printRawHtml(html, `Proforma_Invoice_${invoice.invoiceNumber}`, "A4 portrait", "6mm");
-    } else if (printFormat === "compact_a5") {
-      try {
-        const preview = await printTemplateService.renderPreview({
-          invoiceId: invoice.id,
-          templateId: selectedTemplateId || undefined,
-          documentType: 1 // Tax Invoice
-        });
-        printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A5 landscape", "4mm");
-      } catch {
-        await handlePrintCashMemoA5();
-      }
+      printRawHtml(html, `Proforma_Invoice_${invoice.invoiceNumber}`, "A4 portrait", "3mm 4mm");
     } else {
+      const activeTpl = availableTemplates.find(t => t.id === selectedTemplateId);
+      const activeFmt = activeTpl ? getFormatFromTemplate(activeTpl) : printFormat;
+
       try {
         const preview = await printTemplateService.renderPreview({
           invoiceId: invoice.id,
           templateId: selectedTemplateId || undefined,
           documentType: 1 // Tax Invoice
         });
-        printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A4 portrait", "4mm 5mm");
+
+        if (activeFmt === "compact_a5") {
+          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A5 landscape", "3mm 4mm");
+        } else if (activeFmt === "thermal80") {
+          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "thermal80", "2mm");
+        } else if (activeFmt === "thermal58") {
+          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "thermal58", "1mm");
+        } else {
+          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A4 portrait", "3mm 4mm");
+        }
       } catch {
-        window.print();
+        if (activeFmt === "compact_a5") {
+          await handlePrintCashMemoA5();
+        } else {
+          window.print();
+        }
       }
     }
   };
@@ -1716,7 +1764,7 @@ export default function SalesInvoiceDetailsPage({
               <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Design:</span>
                 <select
-                  value={selectedTemplateId || availableTemplates.find(t => t.templateCode === "TPL_UDYOGBILL_SIGNATURE_B2B")?.id || availableTemplates.find(t => t.isDefault)?.id || ""}
+                  value={selectedTemplateId || availableTemplates.find(t => t.isDefault)?.id || (availableTemplates.length > 0 ? availableTemplates[0].id : "")}
                   onChange={(e) => handleTemplateChange(e.target.value)}
                   className="bg-transparent text-xs font-black text-slate-900 dark:text-white outline-none cursor-pointer pr-1"
                 >
@@ -1741,7 +1789,11 @@ export default function SalesInvoiceDetailsPage({
               <Printer className="w-4 h-4 text-white" />
               <span className="text-white">
                 {activeDoc === "invoice"
-                  ? `Print Invoice (${printFormat === "a4" ? "A4" : printFormat === "compact_a5" ? "A5" : printFormat === "thermal80" ? "80mm" : "58mm"})`
+                  ? `Print Invoice (${(() => {
+                      const activeTpl = availableTemplates.find(t => t.id === selectedTemplateId);
+                      const fmt = activeTpl ? getFormatFromTemplate(activeTpl) : printFormat;
+                      return fmt === "a4" ? "A4" : fmt === "compact_a5" ? "A5" : fmt === "thermal80" ? "80mm" : "58mm";
+                    })()})`
                   : activeDoc === "challan"
                   ? "Print Delivery Challan"
                   : activeDoc === "gatepass"
