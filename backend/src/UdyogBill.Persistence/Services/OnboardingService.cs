@@ -308,6 +308,44 @@ public class OnboardingService : IOnboardingService
                 new("Betadine 10% Ointment (20g)", "Povidone Iodine 10% - Win-Medicare", "30049099", 12.0m, 85.00m, 105.00m, 120.00m, 45)
             };
         }
+        else if (industry.Contains("electr") || industry.Contains("mobile") || industry.Contains("computer") || industry.Contains("tech") || industry.Contains("gadget"))
+        {
+            return new List<SeedItem>
+            {
+                new("Samsung Galaxy S24 Ultra (12GB RAM, 256GB Titanium)", "Flagship Smartphone with S-Pen & AI", "85171300", 18.0m, 98000.00m, 124999.00m, 134999.00m, 15),
+                new("Apple iPhone 15 (128GB, Blue)", "Dynamic Island, 48MP Main Camera", "85171300", 18.0m, 58000.00m, 69900.00m, 79900.00m, 20),
+                new("OnePlus Nord CE 4 (8GB RAM, 128GB)", "100W SuperVOOC, Snapdragon 7 Gen 3", "85171300", 18.0m, 19500.00m, 24999.00m, 26999.00m, 30),
+                new("boAt Airdopes 141 Bluetooth TWS Earbuds", "42H Playtime, ENx Tech, IPX4", "85183000", 18.0m, 750.00m, 1199.00m, 1499.00m, 50),
+                new("Mi 33W Fast Charger with Type-C Cable", "SonicCharge 2.0 Fast Adapter", "85044030", 18.0m, 550.00m, 899.00m, 1099.00m, 60),
+                new("SanDisk Ultra 64GB MicroSDXC Memory Card", "Class 10 U1 Full HD Storage", "85235100", 18.0m, 340.00m, 549.00m, 650.00m, 80),
+                new("TP-Link Archer C6 AC1200 Wireless Router", "Dual Band Gigabit Wi-Fi Router", "85176290", 18.0m, 1850.00m, 2499.00m, 2999.00m, 25),
+                new("Havells 16A Smart Wi-Fi Plug", "Smart Energy Monitoring Socket", "85366910", 18.0m, 650.00m, 999.00m, 1290.00m, 40),
+                new("Sony WH-CH520 Wireless Bluetooth Headphones", "50 Hours Battery Life with Mic", "85183000", 18.0m, 3200.00m, 4490.00m, 4990.00m, 20),
+                new("Logitech MK240 Wireless Keyboard & Mouse Combo", "Compact Splash-Proof Combo", "84716040", 18.0m, 1200.00m, 1695.00m, 1995.00m, 35)
+            };
+        }
+        else if (industry.Contains("garment") || industry.Contains("apparel") || industry.Contains("cloth") || industry.Contains("footwear") || industry.Contains("textile"))
+        {
+            return new List<SeedItem>
+            {
+                new("Men's Slim Fit Cotton Formal Shirt (Sky Blue, 40)", "100% Giza Cotton Breathable Fabric", "62052000", 5.0m, 650.00m, 999.00m, 1299.00m, 50),
+                new("Men's Stretchable Denim Jeans (Dark Indigo, 32)", "Mid-Rise Regular Fit Stretch Denim", "62034200", 12.0m, 850.00m, 1399.00m, 1799.00m, 40),
+                new("Women's Printed Rayon Kurti (Floral Navy, L)", "Soft Touch Rayon Straight Kurti", "62044390", 5.0m, 350.00m, 599.00m, 799.00m, 60),
+                new("Cotton Round Neck Plain T-Shirt (Black, M)", "Bio-Washed Combed Cotton 180 GSM", "61091000", 5.0m, 180.00m, 349.00m, 499.00m, 100),
+                new("Men's Casual Chinos Trouser (Khaki, 34)", "Slim Fit Twill Cotton Casual Pants", "62034200", 12.0m, 700.00m, 1199.00m, 1499.00m, 35)
+            };
+        }
+        else if (industry.Contains("hardware") || industry.Contains("electrical") || industry.Contains("sanitary") || industry.Contains("paint"))
+        {
+            return new List<SeedItem>
+            {
+                new("Asian Paints Royale Luxury Emulsion White (4L)", "Teflon Surface Protector Interior Paint", "32091010", 18.0m, 1450.00m, 1890.00m, 2150.00m, 30),
+                new("Crompton 1200mm High Speed Ceiling Fan (Brown)", "Energy Efficient Copper Motor 380 RPM", "84145120", 18.0m, 1550.00m, 2199.00m, 2550.00m, 25),
+                new("Anchor Roma 6A 1-Way Modular Switch (White)", "Flame Retardant Polycarbonate Switch", "85365020", 18.0m, 22.00m, 34.00m, 42.00m, 300),
+                new("Finolex 1.5 sq mm FR PVC Insulated Copper Wire (90m)", "Industrial Grade Multi-Strand Cable", "85444999", 18.0m, 1450.00m, 1850.00m, 2050.00m, 40),
+                new("Jaquar Alive Bib Tap Chrome Finish", "Solid Brass Quarter Turn Bathroom Tap", "84818020", 18.0m, 850.00m, 1250.00m, 1450.00m, 20)
+            };
+        }
         else if (industry.Contains("fmcg") || industry.Contains("grocery") || industry.Contains("retail"))
         {
             return new List<SeedItem>

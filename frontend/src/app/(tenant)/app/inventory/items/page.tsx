@@ -37,6 +37,8 @@ import {
 } from "@/services/inventory-services";
 import { downloadMasterMigrationTemplate } from "@/lib/master-migration-template";
 import { tenantAppService, BranchDetails } from "@/services/tenant-app-services";
+import { useAddons } from "@/context/addon-context";
+import { getIndustryConfig, resolveIndustry } from "@/lib/industry-config";
 import {
   ItemList,
   Category,
@@ -55,6 +57,10 @@ export default function TenantItemsCatalogPage() {
   const [units, setUnits] = useState<UnitOfMeasure[]>([]);
   const [branches, setBranches] = useState<BranchDetails[]>([]);
   const [profile, setProfile] = useState<TenantDetails | null>(null);
+
+  const { isAddonActive, isFeatureActive, activePack, industryCode: contextIndustryCode } = useAddons();
+  const activeIndustryCode = contextIndustryCode || activePack?.activeIndustryModule || activePack?.industryTypeCode || profile?.industryCode || "GENERAL";
+  const industryConfig = getIndustryConfig(activeIndustryCode);
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -111,7 +117,12 @@ export default function TenantItemsCatalogPage() {
   const [apparelSize, setApparelSize] = useState("");
   const [apparelColor, setApparelColor] = useState("");
   const [fmcgNetWeight, setFmcgNetWeight] = useState("");
+  const [elecBrand, setElecBrand] = useState("");
+  const [elecModel, setElecModel] = useState("");
   const [elecWarranty, setElecWarranty] = useState("");
+  const [elecTrackingMode, setElecTrackingMode] = useState("DUAL_IMEI");
+  const [hardwareDimension, setHardwareDimension] = useState("");
+  const [hardwareGrade, setHardwareGrade] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -120,13 +131,14 @@ export default function TenantItemsCatalogPage() {
     warehouseId: string;
     batchNumber: string;
     expiryDate: string;
+    serialNumbers?: string;
     quantity: number | "";
     purchaseRate: number | "";
     mrp: number | "";
   }
 
   const [openingBatches, setOpeningBatches] = useState<OpeningBatchRow[]>([
-    { warehouseId: "", batchNumber: "", expiryDate: "", quantity: "", purchaseRate: "", mrp: "" }
+    { warehouseId: "", batchNumber: "", expiryDate: "", serialNumbers: "", quantity: "", purchaseRate: "", mrp: "" }
   ]);
 
   const handleAddBatchRow = () => {
@@ -310,25 +322,31 @@ export default function TenantItemsCatalogPage() {
     // Pack dynamic industry attributes
     const attributes: Record<string, any> = {};
     if (form.rackLocation) attributes.rackLocation = form.rackLocation;
-    if (profile?.industryCode === "PHARMA") {
+    if (industryConfig.code === "PHARMA") {
       if (pharmaSchedule !== "None") attributes.schedule = pharmaSchedule;
       if (pharmaSalt) attributes.composition = pharmaSalt;
-    } else if (profile?.industryCode === "APPAREL" || profile?.industryCode === "FOOTWEAR") {
+    } else if (industryConfig.code === "GARMENTS") {
       if (apparelSize) attributes.size = apparelSize;
       if (apparelColor) attributes.color = apparelColor;
-    } else if (profile?.industryCode === "FMCG_GROCERY") {
+    } else if (industryConfig.code === "FMCG") {
       if (fmcgNetWeight) attributes.netWeight = fmcgNetWeight;
-    } else if (profile?.industryCode === "ELECTRONICS") {
+    } else if (industryConfig.code === "ELECTRONICS") {
+      if (elecBrand) attributes.brand = elecBrand;
+      if (elecModel) attributes.modelVariant = elecModel;
       if (elecWarranty) attributes.warrantyMonths = elecWarranty;
+      if (elecTrackingMode) attributes.imeiTracking = elecTrackingMode;
+    } else if (industryConfig.code === "HARDWARE") {
+      if (hardwareDimension) attributes.dimension = hardwareDimension;
+      if (hardwareGrade) attributes.grade = hardwareGrade;
     }
 
     // Process multi-batch opening stock rows
     const validBatches = openingBatches
-      .filter((b) => Number(b.quantity) > 0 || (b.batchNumber && b.batchNumber.trim() !== ""))
+      .filter((b) => Number(b.quantity) > 0 || (b.batchNumber && b.batchNumber.trim() !== "") || (b.serialNumbers && b.serialNumbers.trim() !== ""))
       .map((b) => ({
         warehouseId: b.warehouseId && b.warehouseId.trim() !== "" ? b.warehouseId : undefined,
-        batchNumber: b.batchNumber ? b.batchNumber.trim().toUpperCase() : undefined,
-        expiryDate: b.expiryDate ? new Date(b.expiryDate).toISOString() : undefined,
+        batchNumber: form.trackBatches && b.batchNumber ? b.batchNumber.trim().toUpperCase() : (form.trackSerialNumbers && b.serialNumbers ? b.serialNumbers.trim() : undefined),
+        expiryDate: form.trackBatches && b.expiryDate ? new Date(b.expiryDate).toISOString() : undefined,
         quantity: Number(b.quantity) || 0,
         purchaseRate: Number(b.purchaseRate) || Number(form.purchasePrice) || 0,
         mrp: Number(b.mrp) || Number(form.mrp) || 0,
@@ -390,16 +408,25 @@ export default function TenantItemsCatalogPage() {
         mrp: 0,
         minimumStockAlert: 5,
         rackLocation: "",
-        trackBatches: false,
-        trackSerialNumbers: false,
+        trackBatches: industryConfig.trackingDefaults.trackBatches,
+        trackSerialNumbers: industryConfig.trackingDefaults.trackSerialNumbers,
         attributesJson: "{}",
         initialStock: 0,
         initialWarehouseId: "",
         initialBatchNumber: "",
         initialBatchExpiryDate: "",
       });
+      setElecBrand("");
+      setElecModel("");
+      setElecWarranty("");
+      setHardwareDimension("");
+      setHardwareGrade("");
+      setApparelSize("");
+      setApparelColor("");
+      setPharmaSalt("");
+      setFmcgNetWeight("");
       setOpeningBatches([
-        { warehouseId: "", batchNumber: "", expiryDate: "", quantity: "", purchaseRate: "", mrp: "" }
+        { warehouseId: "", batchNumber: "", expiryDate: "", serialNumbers: "", quantity: "", purchaseRate: "", mrp: "" }
       ]);
       loadData();
     } catch (err: any) {
@@ -483,6 +510,8 @@ export default function TenantItemsCatalogPage() {
                 ...prev,
                 itemType: 1,
                 trackInventory: true,
+                trackBatches: industryConfig.trackingDefaults.trackBatches,
+                trackSerialNumbers: industryConfig.trackingDefaults.trackSerialNumbers,
               }));
               setIsModalOpen(true);
             }}
@@ -724,11 +753,31 @@ export default function TenantItemsCatalogPage() {
                                   ★ Batch Tracked
                                 </span>
                               )}
+                              {item.trackSerialNumbers && (
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block mt-0.5 font-medium">
+                                  ★ Serial/IMEI Tracked
+                                </span>
+                              )}
                             </>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex flex-wrap justify-end gap-1">
+                            {attrs.brand && (
+                              <Badge variant="primary" size="sm">
+                                {attrs.brand}
+                              </Badge>
+                            )}
+                            {attrs.modelVariant && (
+                              <Badge variant="info" size="sm">
+                                {attrs.modelVariant}
+                              </Badge>
+                            )}
+                            {attrs.warrantyMonths && (
+                              <Badge variant="success" size="sm">
+                                {attrs.warrantyMonths}M Warranty
+                              </Badge>
+                            )}
                             {attrs.schedule && (
                               <Badge variant="danger" size="sm">
                                 {attrs.schedule}
@@ -747,6 +796,11 @@ export default function TenantItemsCatalogPage() {
                             {attrs.netWeight && (
                               <Badge variant="success" size="sm">
                                 {attrs.netWeight}
+                              </Badge>
+                            )}
+                            {attrs.dimension && (
+                              <Badge variant="neutral" size="sm">
+                                {attrs.dimension}
                               </Badge>
                             )}
                             {item.itemType !== 2 && (
@@ -1177,7 +1231,7 @@ export default function TenantItemsCatalogPage() {
                             <input
                               type="text"
                               required
-                              placeholder="e.g. Augmentin 625 Duo Tablet"
+                              placeholder={industryConfig.placeholders.itemName}
                               value={form.name}
                               onChange={(e) => {
                                 const newName = e.target.value;
@@ -1288,7 +1342,7 @@ export default function TenantItemsCatalogPage() {
                             </label>
                             <input
                               type="text"
-                              placeholder="e.g. 3004"
+                              placeholder={industryConfig.placeholders.hsn}
                               value={form.hsnCode || ""}
                               onChange={(e) => setForm({ ...form, hsnCode: e.target.value })}
                               className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition"
@@ -1317,7 +1371,7 @@ export default function TenantItemsCatalogPage() {
                             </label>
                             <input
                               type="text"
-                              placeholder="e.g. STRIPS OF 10 TABS"
+                              placeholder={industryConfig.placeholders.packaging}
                               value={form.shortDescription || ""}
                               onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
                               className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition"
@@ -1513,7 +1567,7 @@ export default function TenantItemsCatalogPage() {
                             />
                           </div>
 
-                          {profile?.industryCode === "PHARMA" && (
+                          {industryConfig.code === "PHARMA" && (
                             <>
                               <div className="space-y-1">
                                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Drug Schedule</label>
@@ -1541,23 +1595,70 @@ export default function TenantItemsCatalogPage() {
                             </>
                           )}
 
-                          {(profile?.industryCode === "APPAREL" || profile?.industryCode === "FOOTWEAR") && (
+                          {industryConfig.code === "ELECTRONICS" && (
+                            <>
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Brand / Maker</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Samsung, Apple, boAt"
+                                  value={elecBrand}
+                                  onChange={(e) => setElecBrand(e.target.value)}
+                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Model / Variant</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. 12GB RAM, 256GB Gray"
+                                  value={elecModel}
+                                  onChange={(e) => setElecModel(e.target.value)}
+                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Warranty (Months)</label>
+                                <input
+                                  type="number"
+                                  placeholder="e.g. 12"
+                                  value={elecWarranty}
+                                  onChange={(e) => setElecWarranty(e.target.value)}
+                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Serial Tracking Mode</label>
+                                <select
+                                  value={elecTrackingMode}
+                                  onChange={(e) => setElecTrackingMode(e.target.value)}
+                                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                >
+                                  <option value="DUAL_IMEI">IMEI 1 &amp; IMEI 2 (Phones)</option>
+                                  <option value="SINGLE_SERIAL">Single Serial No (Laptops/Audio)</option>
+                                  <option value="BARCODE_ONLY">Barcode / SKU Only (Accessories)</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          {industryConfig.code === "GARMENTS" && (
                             <>
                               <div className="space-y-1">
                                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Size</label>
                                 <input
                                   type="text"
-                                  placeholder="e.g. M, L, XL"
+                                  placeholder="e.g. M, L, XL, 32, 40"
                                   value={apparelSize}
                                   onChange={(e) => setApparelSize(e.target.value)}
                                   className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                 />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Color</label>
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Color / Shade</label>
                                 <input
                                   type="text"
-                                  placeholder="e.g. Black"
+                                  placeholder="e.g. Navy Blue, Olive"
                                   value={apparelColor}
                                   onChange={(e) => setApparelColor(e.target.value)}
                                   className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
@@ -1566,7 +1667,32 @@ export default function TenantItemsCatalogPage() {
                             </>
                           )}
 
-                          {profile?.industryCode === "FMCG_GROCERY" && (
+                          {industryConfig.code === "HARDWARE" && (
+                            <>
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Dimension / Length</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. 90m, 1/2 inch, 2.5mm"
+                                  value={hardwareDimension}
+                                  onChange={(e) => setHardwareDimension(e.target.value)}
+                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Grade / Finish</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. SS-304, FR PVC"
+                                  value={hardwareGrade}
+                                  onChange={(e) => setHardwareGrade(e.target.value)}
+                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {industryConfig.code === "FMCG" && (
                             <div className="col-span-2 space-y-1">
                               <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Net Weight / Volume</label>
                               <input
@@ -1596,24 +1722,28 @@ export default function TenantItemsCatalogPage() {
 
                           {form.trackInventory !== false && (
                             <div className="flex items-center gap-3">
-                              <label className="flex items-center space-x-1 text-[11px] text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={form.trackBatches}
-                                  onChange={(e) => setForm({ ...form, trackBatches: e.target.checked })}
-                                  className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-orange-600 focus:ring-orange-500 cursor-pointer w-3 h-3"
-                                />
-                                <span>Batches &amp; Expiry</span>
-                              </label>
-                              <label className="flex items-center space-x-1 text-[11px] text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={form.trackSerialNumbers}
-                                  onChange={(e) => setForm({ ...form, trackSerialNumbers: e.target.checked })}
-                                  className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-orange-600 focus:ring-orange-500 cursor-pointer w-3 h-3"
-                                />
-                                <span>Serial/IMEI</span>
-                              </label>
+                              {!industryConfig.trackingDefaults.hideBatches && (
+                                <label className="flex items-center space-x-1 text-[11px] text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={form.trackBatches}
+                                    onChange={(e) => setForm({ ...form, trackBatches: e.target.checked })}
+                                    className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-orange-600 focus:ring-orange-500 cursor-pointer w-3 h-3"
+                                  />
+                                  <span>Batches &amp; Expiry</span>
+                                </label>
+                              )}
+                              {!industryConfig.trackingDefaults.hideSerialNumbers && (
+                                <label className="flex items-center space-x-1 text-[11px] text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={form.trackSerialNumbers}
+                                    onChange={(e) => setForm({ ...form, trackSerialNumbers: e.target.checked })}
+                                    className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-orange-600 focus:ring-orange-500 cursor-pointer w-3 h-3"
+                                  />
+                                  <span>Serial/IMEI</span>
+                                </label>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1634,7 +1764,7 @@ export default function TenantItemsCatalogPage() {
                                 className="text-[10px] text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
                               >
                                 <Plus className="w-3 h-3" />
-                                <span>Add Batch</span>
+                                <span>{form.trackBatches ? "Add Batch" : "Add Warehouse Stock"}</span>
                               </button>
                             </div>
 
@@ -1643,8 +1773,11 @@ export default function TenantItemsCatalogPage() {
                                 <thead className="bg-slate-100 dark:bg-slate-800/60 text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 sticky top-0">
                                   <tr>
                                     <th className="p-1 min-w-[110px]">Warehouse</th>
-                                    <th className="p-1 min-w-[90px]">Batch No</th>
-                                    <th className="p-1 min-w-[105px]">Expiry</th>
+                                    {form.trackBatches && <th className="p-1 min-w-[90px]">Batch No</th>}
+                                    {form.trackBatches && <th className="p-1 min-w-[105px]">Expiry</th>}
+                                    {form.trackSerialNumbers && !form.trackBatches && (
+                                      <th className="p-1 min-w-[120px] text-orange-600 dark:text-orange-400">IMEI / Serial No</th>
+                                    )}
                                     <th className="p-1 min-w-[55px]">Qty</th>
                                     <th className="p-1 min-w-[65px]">Cost (₹)</th>
                                     <th className="p-1 min-w-[65px]">MRP (₹)</th>
@@ -1668,23 +1801,38 @@ export default function TenantItemsCatalogPage() {
                                           ))}
                                         </select>
                                       </td>
-                                      <td className="p-1">
-                                        <input
-                                          type="text"
-                                          placeholder="Batch #"
-                                          value={batchRow.batchNumber}
-                                          onChange={(e) => handleUpdateBatchRow(idx, "batchNumber", e.target.value.toUpperCase())}
-                                          className="w-full px-1.5 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-                                        />
-                                      </td>
-                                      <td className="p-1">
-                                        <input
-                                          type="date"
-                                          value={batchRow.expiryDate}
-                                          onChange={(e) => handleUpdateBatchRow(idx, "expiryDate", e.target.value)}
-                                          className="w-full px-1.5 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-                                        />
-                                      </td>
+                                      {form.trackBatches && (
+                                        <td className="p-1">
+                                          <input
+                                            type="text"
+                                            placeholder="Batch #"
+                                            value={batchRow.batchNumber}
+                                            onChange={(e) => handleUpdateBatchRow(idx, "batchNumber", e.target.value.toUpperCase())}
+                                            className="w-full px-1.5 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                          />
+                                        </td>
+                                      )}
+                                      {form.trackBatches && (
+                                        <td className="p-1">
+                                          <input
+                                            type="date"
+                                            value={batchRow.expiryDate}
+                                            onChange={(e) => handleUpdateBatchRow(idx, "expiryDate", e.target.value)}
+                                            className="w-full px-1.5 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                          />
+                                        </td>
+                                      )}
+                                      {form.trackSerialNumbers && !form.trackBatches && (
+                                        <td className="p-1">
+                                          <input
+                                            type="text"
+                                            placeholder="Scan/Type IMEI"
+                                            value={batchRow.serialNumbers || ""}
+                                            onChange={(e) => handleUpdateBatchRow(idx, "serialNumbers", e.target.value)}
+                                            className="w-full px-1.5 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-[11px] font-mono text-orange-600 dark:text-orange-400 focus:outline-none focus:border-orange-500"
+                                          />
+                                        </td>
+                                      )}
                                       <td className="p-1">
                                         <input
                                           type="number"
@@ -1721,7 +1869,7 @@ export default function TenantItemsCatalogPage() {
                                             type="button"
                                             onClick={() => handleRemoveBatchRow(idx)}
                                             className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                                            title="Delete Batch Row"
+                                            title="Delete Row"
                                           >
                                             <Trash2 className="w-3.5 h-3.5" />
                                           </button>
@@ -1733,7 +1881,13 @@ export default function TenantItemsCatalogPage() {
                               </table>
                             </div>
                             <div className="flex items-center justify-between pt-0.5 text-[10px] text-slate-400">
-                              <span>💡 Multi-batch with distinct expiry &amp; rates.</span>
+                              <span>
+                                {form.trackBatches
+                                  ? "💡 Multi-batch with distinct expiry & rates."
+                                  : form.trackSerialNumbers
+                                  ? "💡 Multi-warehouse with individual IMEI / Serial tracking."
+                                  : "💡 Multi-warehouse stock balances with cost rates."}
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => downloadMasterMigrationTemplate()}

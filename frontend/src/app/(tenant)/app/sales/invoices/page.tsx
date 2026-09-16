@@ -3743,6 +3743,7 @@ function TenantInvoicesPageContent() {
         onClose={() => setIsAddProductModalOpen(false)}
         initialName={addProductInitialName}
         isPharma={isPharma}
+        industryCode={activeIndustry}
         onProductCreated={handleProductCreated}
       />
 

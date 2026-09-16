@@ -36,6 +36,7 @@ import {
   GrnList
 } from "@/types";
 import { useAddons } from "@/context/addon-context";
+import { getIndustryConfig, resolveIndustry } from "@/lib/industry-config";
 import {
   Button,
   Input,
@@ -67,6 +68,7 @@ function PurchaseBillsContent() {
   const isElectronics = activeIndustry === "ELECTRONICS" || isAddonActive("electronics");
   const isGarments = activeIndustry === "GARMENTS" || isAddonActive("garments");
   const isHardware = activeIndustry === "HARDWARE" || isAddonActive("hardware");
+  const industryConfig = getIndustryConfig(activeIndustry);
 
   const hasPharmaAddon = isPharma;
   const hasBatchTracking = isPharma || isFmcg || isFeatureActive("enableBatchTracking");
@@ -96,12 +98,12 @@ function PurchaseBillsContent() {
   // Quick Product Form State
   const [prodName, setProdName] = useState("");
   const [prodSku, setProdSku] = useState("");
-  const [prodPacking, setProdPacking] = useState("10x10");
-  const [prodHsn, setProdHsn] = useState("30049099");
-  const [prodTaxRate, setProdTaxRate] = useState<number>(12);
-  const [prodMrp, setProdMrp] = useState<number>(100);
-  const [prodPurchasePrice, setProdPurchasePrice] = useState<number>(65);
-  const [prodSellingPrice, setProdSellingPrice] = useState<number>(85);
+  const [prodPacking, setProdPacking] = useState(isElectronics ? "1 Unit" : isGarments ? "1 Pc" : isHardware ? "1 Roll" : isPharma ? "10x10" : "");
+  const [prodHsn, setProdHsn] = useState(isElectronics ? "8517" : isGarments ? "6205" : isHardware ? "8544" : isPharma ? "30049099" : "");
+  const [prodTaxRate, setProdTaxRate] = useState<number>(isGarments ? 5 : isPharma ? 12 : 18);
+  const [prodMrp, setProdMrp] = useState<number>(isElectronics ? 15000 : isGarments ? 999 : 100);
+  const [prodPurchasePrice, setProdPurchasePrice] = useState<number>(isElectronics ? 10000 : isGarments ? 500 : 65);
+  const [prodSellingPrice, setProdSellingPrice] = useState<number>(isElectronics ? 12500 : isGarments ? 799 : 85);
   const [prodInitialBatch, setProdInitialBatch] = useState("");
   const [prodInitialExpiry, setProdInitialExpiry] = useState("");
 
@@ -293,10 +295,10 @@ function PurchaseBillsContent() {
         itemId: itm.id,
         itemName: itm.name,
         sku: itm.sku,
-        batchNumber: `BAT-${new Date().getFullYear().toString().slice(2)}${String(new Date().getMonth() + 1).padStart(2, "0")}-${Math.floor(100 + Math.random() * 900)}`,
-        expiryDate: `${String(new Date().getMonth() + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 2).slice(2)}`,
-        packing: packing || "10x10",
-        hsnCode: itm.hsnCode || "3004",
+        batchNumber: hasBatchTracking ? `BAT-${new Date().getFullYear().toString().slice(2)}${String(new Date().getMonth() + 1).padStart(2, "0")}-${Math.floor(100 + Math.random() * 900)}` : "",
+        expiryDate: hasBatchTracking ? `${String(new Date().getMonth() + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 2).slice(2)}` : "",
+        packing: packing || (isElectronics ? "1 Unit" : isGarments ? "1 Pc" : isHardware ? "1 Roll" : isPharma ? "10x10" : ""),
+        hsnCode: itm.hsnCode || (isElectronics ? "8517" : isGarments ? "6205" : isHardware ? "8544" : isPharma ? "3004" : ""),
         imeiSerial: "",
         size: "",
         color: "",
@@ -425,23 +427,24 @@ function PurchaseBillsContent() {
       } catch {}
       const defaultUom = uoms.length > 0 ? uoms[0] : { id: "00000000-0000-0000-0000-000000000000", code: "STP" };
 
-      const batchNum = prodInitialBatch.trim() || `BAT-${new Date().getFullYear().toString().slice(2)}${String(new Date().getMonth() + 1).padStart(2, "0")}-${Math.floor(100 + Math.random() * 900)}`;
-      const expDate = prodInitialExpiry.trim() || `${String(new Date().getMonth() + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 2).slice(2)}`;
+      const batchNum = hasBatchTracking ? (prodInitialBatch.trim() || `BAT-${new Date().getFullYear().toString().slice(2)}${String(new Date().getMonth() + 1).padStart(2, "0")}-${Math.floor(100 + Math.random() * 900)}`) : "";
+      const expDate = hasBatchTracking ? (prodInitialExpiry.trim() || `${String(new Date().getMonth() + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 2).slice(2)}`) : "";
 
       const newId = await inventoryService.createItem({
         sku: autoSku,
         name: prodName.trim(),
-        shortDescription: `${prodName.trim()} - Pack: ${prodPacking}`,
+        shortDescription: `${prodName.trim()}${prodPacking ? " - " + prodPacking : ""}`,
         primaryUomId: defaultUom.id,
-        hsnCode: prodHsn.trim() || "30049099",
-        taxRate: Number(prodTaxRate) || 12,
+        hsnCode: prodHsn.trim() || (isElectronics ? "8517" : isGarments ? "6205" : isHardware ? "8544" : "30049099"),
+        taxRate: Number(prodTaxRate) || (isGarments ? 5 : isPharma ? 12 : 18),
         purchasePrice: Number(prodPurchasePrice) || 50,
         sellingPrice: Number(prodSellingPrice) || 75,
         mrp: Number(prodMrp) || 100,
         minimumStockAlert: 5,
-        trackBatches: true,
+        trackBatches: hasBatchTracking,
+        trackSerialNumbers: isElectronics,
         attributesJson: JSON.stringify({
-          packing: prodPacking.trim() || "10x10"
+          packing: prodPacking.trim() || undefined
         })
       });
 
@@ -451,7 +454,7 @@ function PurchaseBillsContent() {
 
       // Auto-insert this newly created item into the purchase bill items
       const gross = 10 * (Number(prodPurchasePrice) || 50);
-      const taxAmt = gross * ((Number(prodTaxRate) || 12) / 100);
+      const taxAmt = gross * ((Number(prodTaxRate) || (isGarments ? 5 : isPharma ? 12 : 18)) / 100);
 
       setBillItems((prev) => [
         ...prev,
@@ -461,8 +464,8 @@ function PurchaseBillsContent() {
           sku: autoSku,
           batchNumber: batchNum,
           expiryDate: expDate,
-          packing: prodPacking.trim() || "10x10",
-          hsnCode: prodHsn.trim() || "30049099",
+          packing: prodPacking.trim() || (isElectronics ? "1 Unit" : isGarments ? "1 Pc" : isHardware ? "1 Roll" : isPharma ? "10x10" : ""),
+          hsnCode: prodHsn.trim() || (isElectronics ? "8517" : isGarments ? "6205" : isHardware ? "8544" : "30049099"),
           quantity: 10,
           freeQuantity: 0,
           uomId: defaultUom.id,
@@ -1853,12 +1856,12 @@ function PurchaseBillsContent() {
             <form onSubmit={handleCreateQuickProduct} className="space-y-4 text-xs">
               <div>
                 <label className="text-muted-foreground font-semibold block mb-1">
-                  Product / Medicine Legal Name *
+                  Product / Item Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Azithromycin 500mg Tablet"
+                  placeholder={industryConfig.placeholders.itemName}
                   value={prodName}
                   onChange={(e) => setProdName(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-surface border border-border/80 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl text-foreground focus:outline-none text-xs font-semibold transition-all"
@@ -1872,7 +1875,7 @@ function PurchaseBillsContent() {
                   </label>
                   <input
                     type="text"
-                    placeholder="AZI-500"
+                    placeholder="SKU-101"
                     value={prodSku}
                     onChange={(e) => setProdSku(e.target.value.toUpperCase())}
                     className="w-full px-3.5 py-2.5 bg-surface border border-border/80 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl text-primary font-mono focus:outline-none text-xs uppercase transition-all"
@@ -1881,11 +1884,11 @@ function PurchaseBillsContent() {
 
                 <div>
                   <label className="text-muted-foreground font-semibold block mb-1">
-                    Packing (e.g. 10x10)
+                    Packaging / Note
                   </label>
                   <input
                     type="text"
-                    placeholder="10x10 / 100ml"
+                    placeholder={industryConfig.placeholders.packaging}
                     value={prodPacking}
                     onChange={(e) => setProdPacking(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-surface border border-border/80 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl text-foreground focus:outline-none text-xs transition-all"
@@ -1898,7 +1901,7 @@ function PurchaseBillsContent() {
                   </label>
                   <input
                     type="text"
-                    placeholder="30049099"
+                    placeholder={industryConfig.placeholders.hsn}
                     value={prodHsn}
                     onChange={(e) => setProdHsn(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-surface border border-border/80 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl text-foreground font-mono focus:outline-none text-xs transition-all"

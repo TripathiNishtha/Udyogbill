@@ -4,12 +4,14 @@ import React, { useState, useEffect } from "react";
 import { X, Boxes, Tag, DollarSign, Layers, Plus, Check, Sparkles, AlertCircle } from "lucide-react";
 import { inventoryService, CreateItemInput } from "@/services/inventory-services";
 import { ItemList, UnitOfMeasure } from "@/types";
+import { resolveIndustry, getIndustryConfig } from "@/lib/industry-config";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   initialName?: string;
   isPharma?: boolean;
+  industryCode?: string;
   onProductCreated: (newItem: ItemList) => void;
 }
 
@@ -18,27 +20,46 @@ export function QuickAddProductModal({
   onClose,
   initialName = "",
   isPharma = false,
+  industryCode,
   onProductCreated,
 }: Props) {
+  const resolvedType = resolveIndustry(industryCode || (isPharma ? "PHARMA" : undefined));
+  const isPharmaMode = resolvedType === "PHARMA";
+  const isElectronicsMode = resolvedType === "ELECTRONICS";
+  const isGarmentsMode = resolvedType === "GARMENTS";
+  const isHardwareMode = resolvedType === "HARDWARE";
+  const industryConfig = getIndustryConfig(resolvedType);
+
   const [name, setName] = useState(initialName);
   const [itemType, setItemType] = useState<number>(1); // 1 = Goods/Product, 2 = Service
   const [sku, setSku] = useState("");
   const [barcode, setBarcode] = useState("");
   const [units, setUnits] = useState<UnitOfMeasure[]>([]);
   const [selectedUomId, setSelectedUomId] = useState("");
-  const [hsnCode, setHsnCode] = useState(isPharma ? "300490" : "");
-  const [taxRate, setTaxRate] = useState<number>(isPharma ? 12 : 18);
+  const [hsnCode, setHsnCode] = useState(
+    isPharmaMode ? "300490" : isElectronicsMode ? "8517" : isGarmentsMode ? "6205" : isHardwareMode ? "8544" : ""
+  );
+  const [taxRate, setTaxRate] = useState<number>(isPharmaMode ? 12 : isGarmentsMode ? 5 : 18);
   const [sellingPrice, setSellingPrice] = useState<number | "">("");
   const [mrp, setMrp] = useState<number | "">("");
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
 
   // Batch & Stock
-  const [enableBatch, setEnableBatch] = useState(isPharma);
+  const [enableBatch, setEnableBatch] = useState(isPharmaMode);
   const [batchNumber, setBatchNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [initialStock, setInitialStock] = useState<number | "">("");
-  const [pack, setPack] = useState(isPharma ? "1x10" : "");
+  const [pack, setPack] = useState(isPharmaMode ? "1x10" : isElectronicsMode ? "1 Unit" : isGarmentsMode ? "1 Pc" : "");
   const [salt, setSalt] = useState("");
+
+  // Industry specific attributes
+  const [brand, setBrand] = useState("");
+  const [modelVariant, setModelVariant] = useState("");
+  const [warrantyMonths, setWarrantyMonths] = useState("");
+  const [imeiSerial, setImeiSerial] = useState("");
+  const [apparelSize, setApparelSize] = useState("");
+  const [apparelColor, setApparelColor] = useState("");
+  const [dimension, setDimension] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -64,8 +85,40 @@ export function QuickAddProductModal({
       setMrp("");
       setPurchasePrice("");
       setInitialStock("");
-      setBatchNumber(isPharma ? `BAT-${Math.floor(1000 + Math.random() * 9000)}` : "");
-      
+      setBrand("");
+      setModelVariant("");
+      setWarrantyMonths("");
+      setImeiSerial("");
+      setApparelSize("");
+      setApparelColor("");
+      setDimension("");
+
+      if (isElectronicsMode) {
+        setHsnCode("8517");
+        setTaxRate(18);
+        setEnableBatch(false);
+        setBatchNumber("");
+        setPack("1 Unit");
+      } else if (isGarmentsMode) {
+        setHsnCode("6205");
+        setTaxRate(5);
+        setEnableBatch(false);
+        setBatchNumber("");
+        setPack("1 Pc");
+      } else if (isHardwareMode) {
+        setHsnCode("8544");
+        setTaxRate(18);
+        setEnableBatch(false);
+        setBatchNumber("");
+        setPack("1 Roll");
+      } else if (isPharmaMode) {
+        setHsnCode("300490");
+        setTaxRate(12);
+        setEnableBatch(true);
+        setBatchNumber(`BAT-${Math.floor(1000 + Math.random() * 9000)}`);
+        setPack("1x10");
+      }
+
       // Default expiry: 2 years from now (MM/YY)
       const now = new Date();
       const expMonth = String(now.getMonth() + 1).padStart(2, "0");
@@ -117,6 +170,13 @@ export function QuickAddProductModal({
     const attributes: Record<string, any> = {};
     if (pack.trim()) attributes.packing = pack.trim();
     if (salt.trim()) attributes.salt = salt.trim();
+    if (brand.trim()) attributes.brand = brand.trim();
+    if (modelVariant.trim()) attributes.modelVariant = modelVariant.trim();
+    if (warrantyMonths.trim()) attributes.warrantyMonths = warrantyMonths.trim();
+    if (imeiSerial.trim()) attributes.imeiSerial = imeiSerial.trim();
+    if (apparelSize.trim()) attributes.size = apparelSize.trim();
+    if (apparelColor.trim()) attributes.color = apparelColor.trim();
+    if (dimension.trim()) attributes.dimension = dimension.trim();
 
     try {
       setSubmitting(true);
@@ -136,10 +196,11 @@ export function QuickAddProductModal({
         mrp: numMrp,
         minimumSellingPrice: 0,
         minimumStockAlert: 5,
-        trackBatches: enableBatch,
+        trackBatches: isPharmaMode ? enableBatch : false,
+        trackSerialNumbers: isElectronicsMode,
         attributesJson: JSON.stringify(attributes),
         initialStock: numStock,
-        initialBatchNumber: enableBatch && batchNumber.trim() ? batchNumber.trim() : undefined,
+        initialBatchNumber: isPharmaMode && enableBatch && batchNumber.trim() ? batchNumber.trim() : (isElectronicsMode && imeiSerial.trim() ? imeiSerial.trim() : undefined),
       };
 
       // Create item in backend
@@ -175,8 +236,8 @@ export function QuickAddProductModal({
         currentStock: numStock,
         minimumStockAlert: 5,
         isLowStock: false,
-        trackBatches: enableBatch,
-        trackSerialNumbers: false,
+        trackBatches: isPharmaMode ? enableBatch : false,
+        trackSerialNumbers: isElectronicsMode,
         trackVariants: false,
         trackInventory: itemType === 1,
         attributesJson: JSON.stringify(attributes),
@@ -267,7 +328,7 @@ export function QuickAddProductModal({
             <input
               type="text"
               autoFocus
-              placeholder="e.g. Paracetamol 500mg, Cotton Shirt, Wireless Mouse..."
+              placeholder={industryConfig.placeholders.itemName}
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -344,7 +405,7 @@ export function QuickAddProductModal({
               <span>Pricing &amp; Tax Structure</span>
             </span>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               <div>
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
                   Sale Rate (₹) <span className="text-rose-500">*</span>
@@ -379,6 +440,20 @@ export function QuickAddProductModal({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Purchase Rate (₹)
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="0.00"
+                  value={purchasePrice}
+                  onChange={(e) => setPurchasePrice(e.target.value ? parseFloat(e.target.value) : "")}
+                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
                   GST Rate (%)
                 </label>
                 <select
@@ -400,7 +475,7 @@ export function QuickAddProductModal({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. 3004"
+                  placeholder={industryConfig.placeholders.hsn}
                   value={hsnCode}
                   onChange={(e) => setHsnCode(e.target.value)}
                   className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500"
@@ -409,28 +484,192 @@ export function QuickAddProductModal({
             </div>
           </div>
 
-          {/* Batch & Opening Stock Quick Entry */}
+          {/* Industry-Adaptive Stock & Specification Quick Entry */}
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2.5">
             <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={enableBatch}
-                  onChange={(e) => setEnableBatch(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Track Lot / Batch &amp; Opening Stock
-                </span>
-              </label>
-              {isPharma && (
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">
-                  Pharma Batch Tracking
-                </span>
-              )}
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isElectronicsMode
+                  ? "Stock & Device Specifications"
+                  : isGarmentsMode
+                  ? "Stock & Apparel Attributes"
+                  : isHardwareMode
+                  ? "Stock & Hardware Details"
+                  : "Track Lot / Batch & Opening Stock"}
+              </span>
+              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                {industryConfig.displayName}
+              </span>
             </div>
 
-            {enableBatch && (
+            {isElectronicsMode ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 animate-in fade-in">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Brand / Manufacturer
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Samsung, Apple"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Model / Variant
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 128GB Titanium"
+                    value={modelVariant}
+                    onChange={(e) => setModelVariant(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Warranty (Months)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 12"
+                    value={warrantyMonths}
+                    onChange={(e) => setWarrantyMonths(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Opening Serial / IMEI
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 352891104829102"
+                    value={imeiSerial}
+                    onChange={(e) => setImeiSerial(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 rounded-lg text-xs font-mono text-orange-800 dark:text-orange-300 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Opening Stock Qty
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={initialStock}
+                    onChange={(e) => setInitialStock(e.target.value ? parseFloat(e.target.value) : "")}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-center text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Package / Box
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 1 Unit (with Cable)"
+                    value={pack}
+                    onChange={(e) => setPack(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            ) : isGarmentsMode ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 animate-in fade-in">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Brand
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Raymond"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Size
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. M, L, XL, 32"
+                    value={apparelSize}
+                    onChange={(e) => setApparelSize(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Color / Shade
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sky Blue, Navy"
+                    value={apparelColor}
+                    onChange={(e) => setApparelColor(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Opening Stock Qty
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={initialStock}
+                    onChange={(e) => setInitialStock(e.target.value ? parseFloat(e.target.value) : "")}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-center text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            ) : isHardwareMode ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 animate-in fade-in">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Brand
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Finolex, Asian Paints"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Dimension / Length
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 90m, 1/2 inch"
+                    value={dimension}
+                    onChange={(e) => setDimension(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
+                    Opening Stock Qty
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={initialStock}
+                    onChange={(e) => setInitialStock(e.target.value ? parseFloat(e.target.value) : "")}
+                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-center text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 animate-in fade-in">
                 <div>
                   <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">
