@@ -1646,6 +1646,12 @@ function TenantInvoicesPageContent() {
                       <span className="text-base font-black text-emerald-400 font-mono">
                         ₹{inv.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </span>
+                      <div className="text-[10px] text-emerald-500 font-semibold mt-0.5">
+                        Paid: ₹{(inv.paidAmount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className={`text-[10px] font-bold ${inv.balanceAmount > 0 ? "text-rose-400" : "text-muted-foreground"}`}>
+                        Due: ₹{inv.balanceAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </div>
                     </div>
 
                     {inv.balanceAmount > 0 ? (
@@ -1747,8 +1753,16 @@ function TenantInvoicesPageContent() {
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{inv.branchName || "Main Branch"}</td>
                       <td className="py-3 px-4 text-right font-mono text-muted-foreground">₹{inv.taxableAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-success">
-                        ₹{inv.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      <td className="py-3 px-4 text-right font-mono">
+                        <div className="font-bold text-success text-sm">
+                          ₹{inv.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="text-[11px] text-emerald-600 font-semibold">
+                          Paid: ₹{(inv.paidAmount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className={`text-[11px] font-bold ${inv.balanceAmount > 0 ? "text-danger" : "text-muted-foreground"}`}>
+                          Due: ₹{inv.balanceAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold text-danger">
                         ₹{inv.balanceAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -3537,11 +3551,22 @@ function TenantInvoicesPageContent() {
 
                 {/* Bottom Row: Net Total & Actions (Prominent on Mobile) */}
                 <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
-                  <div className="flex items-center space-x-2 px-2.5 sm:px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/40 shadow-inner">
-                    <span className="text-[10px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 font-extrabold leading-none">Net Total:</span>
-                    <span className="text-base sm:text-xl font-black text-emerald-700 dark:text-emerald-400 font-mono leading-tight tracking-tight">
-                      ₹{netPayable.toFixed(2)}
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 px-2.5 sm:px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/40 shadow-inner">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-[10px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 font-extrabold leading-none">Net Total:</span>
+                      <span className="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-400 font-mono leading-tight tracking-tight">
+                        ₹{netPayable.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-[11px] font-mono">
+                      <span className="text-emerald-700 dark:text-emerald-300 font-bold">
+                        Paid: ₹{(paidAmount || 0).toFixed(2)}
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-600">|</span>
+                      <span className={`font-black ${Math.max(0, netPayable - (paidAmount || 0)) > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-600 dark:text-slate-400"}`}>
+                        Due: ₹{Math.max(0, netPayable - (paidAmount || 0)).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center space-x-1.5 flex-1 sm:flex-none justify-end">

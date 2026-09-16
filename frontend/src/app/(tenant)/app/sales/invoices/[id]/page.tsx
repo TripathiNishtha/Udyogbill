@@ -882,6 +882,12 @@ function generateCashMemoA5Html(
             <div style="font-size:16px; font-weight:900; color:#0f172a; font-family:monospace;">
               NET PAYABLE: ₹${invoice.totalAmount.toFixed(2)}
             </div>
+            <div style="font-size:11px; font-weight:bold; color:#16a34a; font-family:monospace; margin-top:2px;">
+              PAID AMOUNT: ₹${invoice.paidAmount.toFixed(2)}
+            </div>
+            <div style="font-size:12px; font-weight:900; color:${invoice.balanceAmount > 0 ? '#dc2626' : '#475569'}; font-family:monospace; margin-top:1px;">
+              DUE AMOUNT: ₹${invoice.balanceAmount.toFixed(2)}
+            </div>
             <div style="font-size:8.5px; color:#64748b; margin-top:1px;">Authorized Signatory</div>
           </div>
         </div>
@@ -983,6 +989,12 @@ function generateProformaInvoiceHtml(
             <div style="font-size:11px; color:#64748b;">Subtotal: ₹${invoice.taxableAmount.toFixed(2)} | GST: ₹${totalGst.toFixed(2)}</div>
             <div style="font-size:18px; font-weight:900; color:#7c3aed; font-family:monospace; margin-top:2px;">
               PROFORMA TOTAL: ₹${invoice.totalAmount.toFixed(2)}
+            </div>
+            <div style="font-size:11.5px; font-weight:bold; color:#16a34a; font-family:monospace; margin-top:2px;">
+              PAID AMOUNT: ₹${invoice.paidAmount.toFixed(2)}
+            </div>
+            <div style="font-size:12px; font-weight:900; color:${invoice.balanceAmount > 0 ? '#dc2626' : '#475569'}; font-family:monospace; margin-top:1px;">
+              DUE AMOUNT: ₹${invoice.balanceAmount.toFixed(2)}
             </div>
             <div style="font-size:8.5px; color:#64748b; margin-top:2px;">Authorized Signatory (${sellerName})</div>
           </div>
@@ -2567,6 +2579,14 @@ export default function SalesInvoiceDetailsPage({
                     <div className="flex justify-between py-1 bg-slate-50 px-1.5 rounded font-black text-xs text-slate-900 border border-slate-300 mt-0.5">
                       <span>Total:</span>
                       <span>₹ {invoice.totalAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between py-0.5 px-1.5 rounded text-[11px] font-bold text-emerald-700 bg-emerald-50/60 border border-emerald-200 mt-0.5">
+                      <span>Paid Amount:</span>
+                      <span>₹ {invoice.paidAmount.toFixed(2)}</span>
+                    </div>
+                    <div className={`flex justify-between py-0.5 px-1.5 rounded text-[11px] font-black mt-0.5 border ${invoice.balanceAmount > 0 ? "text-rose-700 bg-rose-50/60 border-rose-200" : "text-slate-700 bg-slate-50 border-slate-200"}`}>
+                      <span>Due Amount:</span>
+                      <span>₹ {invoice.balanceAmount.toFixed(2)}</span>
                     </div>
                     <div className="text-[9.5px] text-slate-700 italic text-right pt-1 font-sans">
                       ({amountInWords})

@@ -1039,6 +1039,8 @@ public class PrintTemplateService : IPrintTemplateService
         var igst = invoice?.IgstAmount ?? (totalAmount > taxable ? (totalAmount - taxable) : 0m);
         var cess = invoice?.CessAmount ?? 0m;
         var roundOff = invoice?.RoundOff ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
         // 7. Bank & Dynamic UPI QR
@@ -1349,6 +1351,14 @@ public class PrintTemplateService : IPrintTemplateService
                         <td style='padding:6px 0; font-weight:900; font-size:13px; color:{primaryColor};'>GRAND TOTAL:</td>
                         <td style='padding:6px 0; text-align:right; font-family:monospace; font-weight:900; font-size:14px; color:{primaryColor};'>₹{totalAmount:N2}</td>
                     </tr>
+                    <tr style='border-top:1px solid #cbd5e1;'>
+                        <td style='padding:3px 0; font-weight:700; color:#16a34a; font-size:11px;'>Paid Amount:</td>
+                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:700; color:#16a34a; font-size:11px;'>₹{paidAmount:N2}</td>
+                    </tr>
+                    <tr style='border-top:1px dashed #cbd5e1;'>
+                        <td style='padding:3px 0; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>Due Amount:</td>
+                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>₹{balanceAmount:N2}</td>
+                    </tr>
                 </table>
             </div>
         </div>
@@ -1468,6 +1478,8 @@ public class PrintTemplateService : IPrintTemplateService
         var sgst = invoice?.SgstAmount ?? 0m;
         var igst = invoice?.IgstAmount ?? (totalAmount - taxable);
         var roundOff = invoice?.RoundOff ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
         // Bank & Dynamic UPI QR (100% Genuine, Zero Dummy Fallbacks)
@@ -1661,6 +1673,14 @@ public class PrintTemplateService : IPrintTemplateService
                         <td style='padding:5px 0;'>Grand Total:</td>
                         <td style='text-align:right; font-family:monospace;'>₹{totalAmount:N2}</td>
                     </tr>
+                    <tr style='border-top:1px solid #cbd5e1;'>
+                        <td style='padding:3px 0; font-weight:700; color:#16a34a; font-size:11px;'>Paid Amount:</td>
+                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:700; color:#16a34a; font-size:11px;'>₹{paidAmount:N2}</td>
+                    </tr>
+                    <tr style='border-top:1px dashed #cbd5e1;'>
+                        <td style='padding:3px 0; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>Due Amount:</td>
+                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>₹{balanceAmount:N2}</td>
+                    </tr>
                 </table>
             </div>
         </div>
@@ -1745,6 +1765,8 @@ public class PrintTemplateService : IPrintTemplateService
         var igst = invoice?.IgstAmount ?? (totalAmount > taxable ? (totalAmount - taxable) : 0m);
         var cess = invoice?.CessAmount ?? 0m;
         var roundOff = invoice?.RoundOff ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
         // 6. Bank Details & UPI QR
@@ -2102,6 +2124,14 @@ public class PrintTemplateService : IPrintTemplateService
                         <td style='padding:3px 0;'>Total:</td>
                         <td style='padding:3px 0; text-align:right; font-family:monospace;'>₹{totalAmount:N2}</td>
                     </tr>
+                    <tr style='border-top:1px solid #999; font-size:10.5px;'>
+                        <td style='padding:2px 0; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
+                        <td style='padding:2px 0; text-align:right; font-family:monospace; color:#16a34a; font-weight:bold;'>₹{paidAmount:N2}</td>
+                    </tr>
+                    <tr style='border-top:1px dashed #999; font-size:10.5px;'>
+                        <td style='padding:2px 0; font-weight:bold; color:{(balanceAmount > 0 ? "#dc2626" : "#000")};'>Due Amount:</td>
+                        <td style='padding:2px 0; text-align:right; font-family:monospace; font-weight:bold; color:{(balanceAmount > 0 ? "#dc2626" : "#000")};'>₹{balanceAmount:N2}</td>
+                    </tr>
                 </table>
             </div>
         </div>
@@ -2239,6 +2269,8 @@ public class PrintTemplateService : IPrintTemplateService
         var sgst = invoice?.SgstAmount ?? 0m;
         var igst = invoice?.IgstAmount ?? 0m;
         var roundOff = invoice?.RoundOff ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
         // Bank Details (100% Genuine)
@@ -2487,6 +2519,14 @@ public class PrintTemplateService : IPrintTemplateService
                         <td style='padding:3px 4px; border-right:1px solid {primaryColor};'>NET PAYABLE:</td>
                         <td style='padding:3px 4px; text-align:right; font-family:monospace;'>₹ {totalAmount:N2}</td>
                     </tr>
+                    <tr style='border-bottom:1px solid {borderColor}; background:#f0fdf4;'>
+                        <td style='padding:2px 4px; border-right:1px solid {borderColor}; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
+                        <td style='padding:2px 4px; text-align:right; font-family:monospace; color:#16a34a; font-weight:bold;'>₹ {paidAmount:N2}</td>
+                    </tr>
+                    <tr style='border-bottom:1px solid {borderColor}; background:{(balanceAmount > 0 ? "#fef2f2" : "#f8fafc")};'>
+                        <td style='padding:2px 4px; border-right:1px solid {borderColor}; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>Due Amount:</td>
+                        <td style='padding:2px 4px; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>₹ {balanceAmount:N2}</td>
+                    </tr>
                 </table>
                 <div style='font-size:7.5px; color:{primaryColor}; text-align:center; margin-top:1px; font-style:italic;'>({words})</div>
             </div>
@@ -2547,6 +2587,8 @@ public class PrintTemplateService : IPrintTemplateService
         // Financial Totals (Pure Retail / Non-GST)
         var totalAmount = invoice?.TotalAmount ?? 0m;
         var roundOff = invoice?.RoundOff ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
         // Bank Details & Digital Payment (UPI)
@@ -2760,6 +2802,14 @@ public class PrintTemplateService : IPrintTemplateService
                     <tr style='background:{primaryColor}; color:#ffffff; font-weight:900; font-size:11px;'>
                         <td style='padding:3px 4px; border-right:1px solid {primaryColor};'>TOTAL AMOUNT:</td>
                         <td style='padding:3px 4px; text-align:right; font-family:monospace;'>₹ {totalAmount:N2}</td>
+                    </tr>
+                    <tr style='border-bottom:1px solid {borderColor}; background:#f0fdf4;'>
+                        <td style='padding:2px 4px; border-right:1px solid {borderColor}; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
+                        <td style='padding:2px 4px; text-align:right; font-family:monospace; color:#16a34a; font-weight:bold;'>₹ {paidAmount:N2}</td>
+                    </tr>
+                    <tr style='border-bottom:1px solid {borderColor}; background:{(balanceAmount > 0 ? "#fef2f2" : "#f8fafc")};'>
+                        <td style='padding:2px 4px; border-right:1px solid {borderColor}; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>Due Amount:</td>
+                        <td style='padding:2px 4px; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>₹ {balanceAmount:N2}</td>
                     </tr>
                 </table>
                 <div style='font-size:7.5px; color:{primaryColor}; text-align:center; margin-top:1px; font-style:italic;'>({words})</div>
@@ -3529,6 +3579,8 @@ public class PrintTemplateService : IPrintTemplateService
         var custPhone = invoice?.CustomerPhone ?? "";
 
         var totalAmount = invoice?.TotalAmount ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var taxable = invoice?.TaxableAmount ?? (invoice?.TotalAmount > 0 ? (invoice.TotalAmount / 1.18m) : 0m);
         var totalTax = (invoice?.CgstAmount ?? 0m) + (invoice?.SgstAmount ?? 0m) + (invoice?.IgstAmount ?? 0m);
         if (totalTax == 0 && totalAmount > taxable) totalTax = totalAmount - taxable;
@@ -3630,6 +3682,12 @@ public class PrintTemplateService : IPrintTemplateService
                         <div style='font-size:16px; font-weight:900; color:{primaryColor}; margin-top:4px;'>
                             Total: ₹{totalAmount:N2}
                         </div>
+                        <div style='font-size:11px; font-weight:bold; color:#16a34a; margin-top:2px;'>
+                            Paid: ₹{paidAmount:N2}
+                        </div>
+                        <div style='font-size:12px; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; margin-top:1px;'>
+                            Due: ₹{balanceAmount:N2}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3665,6 +3723,8 @@ public class PrintTemplateService : IPrintTemplateService
         var cgst = invoice?.CgstAmount ?? 0m;
         var sgst = invoice?.SgstAmount ?? 0m;
         var totalAmount = invoice?.TotalAmount ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
 
         bool hasExpiry = invoice?.Items.Any(i => i.ExpiryDate.HasValue) ?? false;
         bool hasBatch = invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) ?? false;
@@ -3795,6 +3855,14 @@ public class PrintTemplateService : IPrintTemplateService
                             <td style='padding:4px 6px; font-size:11px;'>INVOICE TOTAL:</td>
                             <td style='padding:4px 6px; text-align:right; font-family:monospace; font-size:12px;'>₹ {totalAmount:N2}</td>
                         </tr>
+                        <tr style='border-top:1px solid #cbd5e1; background:#f0fdf4;'>
+                            <td style='padding:3px 6px; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
+                            <td style='padding:3px 6px; text-align:right; font-family:monospace; color:#16a34a; font-weight:bold;'>₹ {paidAmount:N2}</td>
+                        </tr>
+                        <tr style='border-top:1px dashed #cbd5e1; background:{(balanceAmount > 0 ? "#fef2f2" : "#f8fafc")};'>
+                            <td style='padding:3px 6px; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>Due Amount:</td>
+                            <td style='padding:3px 6px; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>₹ {balanceAmount:N2}</td>
+                        </tr>
                     </table>
                     <div style='margin-top:8px; text-align:right; font-weight:bold; font-size:9px;'>
                         For {sellerName}<br/><br/>
@@ -3833,6 +3901,8 @@ public class PrintTemplateService : IPrintTemplateService
         var docName = invoice?.DoctorName ?? "";
         var docReg = invoice?.DoctorRegistrationNumber ?? "";
         var total = invoice?.TotalAmount ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (total - paidAmount);
         var words = ConvertToIndianCurrencyWords(total);
 
         var heightStyle = GetContainerHeightStyle(t);
@@ -3904,8 +3974,16 @@ public class PrintTemplateService : IPrintTemplateService
             <div style='font-size:10.5px;'>
                 <strong>Amount in Words:</strong> {words}
             </div>
-            <div style='text-align:right; font-size:14px; font-weight:900; color:{primaryColor};'>
-                Net Payable: ₹{total:N2}
+            <div style='text-align:right;'>
+                <div style='font-size:14px; font-weight:900; color:{primaryColor};'>
+                    Net Payable: ₹{total:N2}
+                </div>
+                <div style='font-size:11px; font-weight:bold; color:#16a34a; margin-top:2px;'>
+                    Paid: ₹{paidAmount:N2}
+                </div>
+                <div style='font-size:12px; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; margin-top:1px;'>
+                    Due: ₹{balanceAmount:N2}
+                </div>
             </div>
         </div>
     </div>
@@ -3929,6 +4007,8 @@ public class PrintTemplateService : IPrintTemplateService
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
         var total = invoice?.TotalAmount ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (total - paidAmount);
         var taxable = invoice?.TaxableAmount ?? (total > 0 ? (total / 1.12m) : 0m);
         var totalTax = total - taxable;
         var heightStyle = GetContainerHeightStyle(t);
@@ -3979,6 +4059,8 @@ public class PrintTemplateService : IPrintTemplateService
         <div style='text-align:right;'>
             <div style='font-size:10px; color:#475569;'>Taxable: ₹{taxable:N2} | GST: ₹{totalTax:N2}</div>
             <div style='font-size:13px; font-weight:900; color:{primaryColor}; font-family:monospace;'>Grand Total: ₹{total:N2}</div>
+            <div style='font-size:10.5px; font-weight:bold; color:#16a34a; font-family:monospace;'>Paid: ₹{paidAmount:N2}</div>
+            <div style='font-size:11px; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-family:monospace;'>Due: ₹{balanceAmount:N2}</div>
         </div>
     </div>
 </div>";
@@ -4000,6 +4082,8 @@ public class PrintTemplateService : IPrintTemplateService
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd/MM/yy HH:mm") ?? DateTime.Now.ToString("dd/MM/yy HH:mm");
         var total = invoice?.TotalAmount ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (total - paidAmount);
         var subTotal = invoice?.SubTotal > 0 ? invoice.SubTotal : (total > 0 ? (total / 1.12m) : 0m);
         var tax = total - subTotal;
         var upiId = !string.IsNullOrWhiteSpace(t.UpiId) ? t.UpiId : (!string.IsNullOrWhiteSpace(tenant?.UpiId) ? tenant.UpiId : "");
@@ -4045,6 +4129,12 @@ public class PrintTemplateService : IPrintTemplateService
         <div style='display:flex; justify-content:space-between;'><span>GST Total:</span><span>₹{tax:N2}</span></div>
         <div style='display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-top:2px; border-top:1px solid #000; border-bottom:1px solid #000; padding:2px 0;'>
             <span>NET PAYABLE:</span><span>₹{total:N2}</span>
+        </div>
+        <div style='display:flex; justify-content:space-between; font-size:11px; font-weight:bold; padding:1px 0;'>
+            <span>PAID AMOUNT:</span><span>₹{paidAmount:N2}</span>
+        </div>
+        <div style='display:flex; justify-content:space-between; font-size:11.5px; font-weight:bold; border-bottom:1px dashed #000; padding:1px 0;'>
+            <span>DUE AMOUNT:</span><span>₹{balanceAmount:N2}</span>
         </div>
     </div>
     {(!string.IsNullOrEmpty(upiQr) ? $@"
@@ -4817,6 +4907,8 @@ public class PrintTemplateService : IPrintTemplateService
         var sgst = invoice?.SgstAmount ?? 0m;
         var igst = invoice?.IgstAmount ?? 0m;
         var roundOff = invoice?.RoundOff ?? 0m;
+        var paidAmount = invoice?.PaidAmount ?? 0m;
+        var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
         // Bank Details (100% Genuine, zero dummy fallback)
@@ -4988,6 +5080,14 @@ public class PrintTemplateService : IPrintTemplateService
                     <tr style='border-bottom:1px solid #9ca3af; font-size:11.5px; font-weight:900; background:#f1f5f9;'>
                         <td style='padding:4px 8px; border-right:1px solid #9ca3af;'>Total:</td>
                         <td style='padding:4px 8px; text-align:right;'>₹ {totalAmount:N2}</td>
+                    </tr>
+                    <tr style='border-bottom:1px solid #9ca3af; background:#f0fdf4;'>
+                        <td style='padding:3px 8px; border-right:1px solid #9ca3af; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
+                        <td style='padding:3px 8px; text-align:right; font-weight:bold; color:#16a34a;'>₹ {paidAmount:N2}</td>
+                    </tr>
+                    <tr style='border-bottom:1px solid #9ca3af; background:{(balanceAmount > 0 ? "#fef2f2" : "#f8fafc")};'>
+                        <td style='padding:3px 8px; border-right:1px solid #9ca3af; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>Due Amount:</td>
+                        <td style='padding:3px 8px; text-align:right; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>₹ {balanceAmount:N2}</td>
                     </tr>
                 </table>
                 <div style='font-size:8.5px; text-align:center; padding:3px; color:#475569; font-style:italic;'>({words})</div>
