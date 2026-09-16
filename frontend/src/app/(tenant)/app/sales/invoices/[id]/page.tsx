@@ -2437,6 +2437,26 @@ export default function SalesInvoiceDetailsPage({
                                   SKU: {item.itemSku}
                                 </span>
                               )}
+                              {itemAttrs.imeiSerial && (
+                                <span className="block text-[10px] font-mono font-bold text-sky-700 pt-0.5">
+                                  IMEI/SN: {itemAttrs.imeiSerial}{itemAttrs.imei2 ? ` | IMEI 2: ${itemAttrs.imei2}` : ""}{itemAttrs.warrantyMonths ? ` | Warranty: ${itemAttrs.warrantyMonths}M` : ""}
+                                </span>
+                              )}
+                              {(itemAttrs.brand || itemAttrs.modelVariant) && (
+                                <span className="block text-[9px] text-slate-600 font-medium">
+                                  {itemAttrs.brand ? `Brand: ${itemAttrs.brand}` : ""} {itemAttrs.modelVariant ? `| Model: ${itemAttrs.modelVariant}` : ""}
+                                </span>
+                              )}
+                              {(itemAttrs.size || itemAttrs.color) && (
+                                <span className="block text-[9.5px] text-slate-600">
+                                  {itemAttrs.size ? `Size: ${itemAttrs.size}` : ""} {itemAttrs.color ? `| Color: ${itemAttrs.color}` : ""} {itemAttrs.styleCode ? `| Style: ${itemAttrs.styleCode}` : ""}
+                                </span>
+                              )}
+                              {(itemAttrs.sqft || itemAttrs.totalWeightKg) && (
+                                <span className="block text-[9.5px] text-slate-600">
+                                  {itemAttrs.sqft ? `Dim: ${itemAttrs.length}x${itemAttrs.width} ${itemAttrs.dimensionUnit || "ft"} (${itemAttrs.sqft} Sq.Ft)` : ""} {itemAttrs.totalWeightKg ? `| Wt: ${itemAttrs.totalWeightKg} Kg` : ""}
+                                </span>
+                              )}
                             </td>
                             <td className="py-1.5 px-2 border-r border-slate-400 text-center font-mono text-slate-700">
                               {item.hsnCode || "—"}

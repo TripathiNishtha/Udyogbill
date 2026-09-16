@@ -1056,8 +1056,14 @@ public class PrintTemplateService : IPrintTemplateService
         bool showSettlementCard = t.ShowBankDetails && (!string.IsNullOrWhiteSpace(bankName) || !string.IsNullOrWhiteSpace(bankAcc) || !string.IsNullOrEmpty(upiQr));
 
         // 8. Dynamic Column Detection across ALL Industries
-        bool hasBatch = invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) ?? true;
-        bool hasExpiry = invoice?.Items.Any(i => i.ExpiryDate.HasValue) ?? true;
+        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
+        bool isElectronics = industry == IndustryTypeCodes.Electronics;
+        bool isGarments = industry == IndustryTypeCodes.Garments;
+        bool isHardware = industry == IndustryTypeCodes.Hardware;
+
+        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => i.ExpiryDate.HasValue));
         bool hasFree = invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false;
         bool hasMrp = invoice?.Items.Any(i => i.Mrp > 0) ?? true;
         bool hasDisc = invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? true;
@@ -1084,6 +1090,7 @@ public class PrintTemplateService : IPrintTemplateService
                         {ExtractIndustryItemSubline(it)}
                     </td>
                     <td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; color:#334155;'>{it.HsnCode ?? "-"}</td>
+                    {(hasSerial ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:700; color:{primaryColor}; font-size:9.5px;'>{ExtractItemImei(it)}</td>" : "")}
                     {(hasBatch ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:{primaryColor};'>{it.BatchNumber ?? "-"}</td>" : "")}
                     {(hasExpiry ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; color:#475569;'>{expStr}</td>" : "")}
                     <td style='padding:5px 6px; text-align:right; border-right:1px solid {borderSlate}; font-weight:700; color:#0f172a;'>
@@ -1106,6 +1113,7 @@ public class PrintTemplateService : IPrintTemplateService
             <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
             <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
             <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
+            {(hasSerial ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
             {(hasBatch ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
             {(hasExpiry ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
             <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
@@ -1269,6 +1277,7 @@ public class PrintTemplateService : IPrintTemplateService
                         <th style='padding:5px 4px; width:26px; text-align:center; border-right:1px solid #c7d2fe;'>#</th>
                         <th style='padding:5px 6px; text-align:left; border-right:1px solid #c7d2fe;'>Description of Goods / Services</th>
                         <th style='padding:5px 4px; width:60px; text-align:center; border-right:1px solid {borderSlate};'>HSN/SAC</th>
+                        {(hasSerial ? $"<th style='padding:5px 4px; width:100px; text-align:center; border-right:1px solid {borderSlate};'>IMEI / Serial No</th>" : "")}
                         {(hasBatch ? $"<th style='padding:5px 4px; width:72px; text-align:center; border-right:1px solid {borderSlate};'>Batch</th>" : "")}
                         {(hasExpiry ? $"<th style='padding:5px 4px; width:48px; text-align:center; border-right:1px solid {borderSlate};'>Expiry</th>" : "")}
                         <th style='padding:5px 6px; width:58px; text-align:right; border-right:1px solid {borderSlate};'>Qty</th>
@@ -1779,14 +1788,20 @@ public class PrintTemplateService : IPrintTemplateService
             : "";
 
         // 7. Dynamic Column Detection across ALL Industries
-        bool hasBatch = invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) ?? true;
-        bool hasExpiry = invoice?.Items.Any(i => i.ExpiryDate.HasValue) ?? true;
+        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
+        bool isElectronics = industry == IndustryTypeCodes.Electronics;
+        bool isGarments = industry == IndustryTypeCodes.Garments;
+        bool isHardware = industry == IndustryTypeCodes.Hardware;
+
+        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
+        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice == null || invoice.Items.Any(i => i.ExpiryDate.HasValue));
         bool hasFree = invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false;
         bool hasMrp = invoice?.Items.Any(i => i.Mrp > 0) ?? true;
         bool hasDisc = invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? true;
 
         // Base cols: Sl No (1) + Description (1) + HSN (1) + Quantity (1) + Rate (1) + per (1) + Amount (1) = 7
-        int colCount = 7 + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasFree ? 1 : 0) + (hasMrp ? 1 : 0) + (hasDisc ? 1 : 0);
+        int colCount = 7 + (hasSerial ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasFree ? 1 : 0) + (hasMrp ? 1 : 0) + (hasDisc ? 1 : 0);
 
         var itemsRows = new StringBuilder();
         decimal totalQuantity = 0;
@@ -1814,6 +1829,7 @@ public class PrintTemplateService : IPrintTemplateService
                         {ExtractIndustryItemSubline(it)}
                     </td>
                     <td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{it.HsnCode ?? "-"}</td>
+                    {(hasSerial ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace; font-weight:bold; font-size:9px;'>{ExtractItemImei(it)}</td>" : "")}
                     {(hasBatch ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{it.BatchNumber ?? "-"}</td>" : "")}
                     {(hasExpiry ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{expStr}</td>" : "")}
                     <td style='padding:4px 6px; text-align:right; border-right:1px solid #000; font-weight:bold;'>{it.Quantity:N0} {it.UomCode}</td>
@@ -1834,6 +1850,7 @@ public class PrintTemplateService : IPrintTemplateService
         fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Sl No
         fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Description
         fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // HSN
+        if (hasSerial) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
         if (hasBatch) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
         if (hasExpiry) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
         fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Qty
@@ -2068,6 +2085,7 @@ public class PrintTemplateService : IPrintTemplateService
                         <th style='padding:4px 3px; width:28px; border-right:1px solid #000;'>Sl<br/>No.</th>
                         <th style='padding:4px 6px; text-align:left; border-right:1px solid #000;'>Description of Goods</th>
                         <th style='padding:4px 4px; width:65px; border-right:1px solid #000;'>HSN/SAC</th>
+                        {(hasSerial ? "<th style='padding:4px 4px; width:95px; border-right:1px solid #000;'>IMEI / Serial No</th>" : "")}
                         {(hasBatch ? "<th style='padding:4px 4px; width:70px; border-right:1px solid #000;'>Batch No</th>" : "")}
                         {(hasExpiry ? "<th style='padding:4px 4px; width:48px; border-right:1px solid #000;'>Expiry</th>" : "")}
                         <th style='padding:4px 6px; width:65px; text-align:right; border-right:1px solid #000;'>Quantity</th>
@@ -2087,6 +2105,7 @@ public class PrintTemplateService : IPrintTemplateService
                         <td style='border-right:1px solid #000;'>&nbsp;</td>
                         <td style='border-right:1px solid #000; text-align:right; padding:3px 6px;'>Total</td>
                         <td style='border-right:1px solid #000;'>&nbsp;</td>
+                        {(hasSerial ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         {(hasBatch ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         {(hasExpiry ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         <td style='border-right:1px solid #000; text-align:right; padding:3px 6px;'>{totalQuantity:N0} {mainUom}</td>
@@ -4412,6 +4431,44 @@ public class PrintTemplateService : IPrintTemplateService
         return (pack, freeQty, ptr, pts);
     }
 
+    private static bool HasImeiOrSerial(SalesInvoiceItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.AttributesJson) || item.AttributesJson == "{}") return false;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(item.AttributesJson);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("imeiSerial", out var p1) && !string.IsNullOrWhiteSpace(p1.GetString())) return true;
+            if (root.TryGetProperty("imei2", out var p2) && !string.IsNullOrWhiteSpace(p2.GetString())) return true;
+        }
+        catch {}
+        return false;
+    }
+
+    private static string ExtractItemImei(SalesInvoiceItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.AttributesJson) || item.AttributesJson == "{}") return "-";
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(item.AttributesJson);
+            var root = doc.RootElement;
+            var parts = new List<string>();
+            if (root.TryGetProperty("imeiSerial", out var p1))
+            {
+                var s1 = p1.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(s1)) parts.Add(s1);
+            }
+            if (root.TryGetProperty("imei2", out var p2))
+            {
+                var s2 = p2.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(s2)) parts.Add($"SIM2: {s2}");
+            }
+            if (parts.Count > 0) return string.Join("<br/>", parts);
+        }
+        catch {}
+        return "-";
+    }
+
     private static string ExtractIndustryItemSubline(SalesInvoiceItem item)
     {
         if (string.IsNullOrWhiteSpace(item.AttributesJson) || item.AttributesJson == "{}") return "";
@@ -4421,23 +4478,33 @@ public class PrintTemplateService : IPrintTemplateService
             var root = doc.RootElement;
             var parts = new List<string>();
 
-            // Electronics: IMEI / Serial & Warranty
-            if (root.TryGetProperty("imeiSerial", out var imeiProp))
+            // Electronics: Brand, Model Variant & Warranty (IMEI is shown in dedicated column or here)
+            if (root.TryGetProperty("brand", out var bProp))
             {
-                var imei = imeiProp.GetString()?.Trim();
-                if (!string.IsNullOrWhiteSpace(imei)) parts.Add($"IMEI/SN: {imei}");
+                var b = bProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(b)) parts.Add($"Brand: {b}");
+            }
+            if (root.TryGetProperty("modelVariant", out var mvProp))
+            {
+                var mv = mvProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(mv)) parts.Add($"Model: {mv}");
             }
             if (root.TryGetProperty("warrantyMonths", out var wProp))
             {
                 int w = 0;
                 if (wProp.ValueKind == System.Text.Json.JsonValueKind.Number) w = wProp.GetInt32();
                 else if (int.TryParse(wProp.GetString(), out var pw)) w = pw;
-                if (w > 0) parts.Add($"Warranty: {w}M");
+                if (w > 0) parts.Add($"Warranty: {w} Months");
             }
-            if (root.TryGetProperty("brand", out var bProp))
+            if (root.TryGetProperty("imeiSerial", out var imeiProp))
             {
-                var b = bProp.GetString()?.Trim();
-                if (!string.IsNullOrWhiteSpace(b)) parts.Add($"Brand: {b}");
+                var imei = imeiProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(imei)) parts.Add($"IMEI: {imei}");
+            }
+            if (root.TryGetProperty("imei2", out var imei2Prop))
+            {
+                var imei2 = imei2Prop.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(imei2)) parts.Add($"IMEI 2: {imei2}");
             }
 
             // Hardware: Dimensions & Weight

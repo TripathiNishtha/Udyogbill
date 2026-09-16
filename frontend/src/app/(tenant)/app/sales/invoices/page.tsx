@@ -727,18 +727,55 @@ function TenantInvoicesPageContent() {
           console.warn("Could not fetch units for demo item:", e);
         }
 
-        const sampleSku = `DEMO-${Date.now().toString().slice(-4)}`;
-        const sampleName = isPharma ? "Paracetamol 650mg / Sample Product" : "Sample Demo Product";
+        const sampleSku = isPharma
+          ? `MED-${Date.now().toString().slice(-4)}`
+          : isElectronics
+          ? `ELEC-${Date.now().toString().slice(-4)}`
+          : isGarments
+          ? `GAR-${Date.now().toString().slice(-4)}`
+          : isHardware
+          ? `HDW-${Date.now().toString().slice(-4)}`
+          : isFmcg
+          ? `FMCG-${Date.now().toString().slice(-4)}`
+          : `DEMO-${Date.now().toString().slice(-4)}`;
+
+        const sampleName = isPharma
+          ? "Paracetamol 650mg Tablets (Dolo 650)"
+          : isElectronics
+          ? "Samsung Galaxy Smartphone 128GB (5G)"
+          : isGarments
+          ? "Men Premium Cotton Slim Fit Shirt"
+          : isHardware
+          ? "Granite Polish Tile Slab 8x4 Ft"
+          : isFmcg
+          ? "Fortune Sunlite Refined Sunflower Oil 1L"
+          : "Sample Commercial Product";
+
+        const sampleHsnDefault = isPharma
+          ? "30049099"
+          : isElectronics
+          ? "85171300"
+          : isGarments
+          ? "62052000"
+          : isHardware
+          ? "68022300"
+          : isFmcg
+          ? "15121910"
+          : "84713010";
+
+        const samplePrice = isElectronics ? 14999 : isGarments ? 899 : isHardware ? 85 : isFmcg ? 135 : 100;
+        const sampleMrp = isElectronics ? 16999 : isGarments ? 1299 : isHardware ? 110 : isFmcg ? 155 : 120;
+        const sampleTax = isPharma ? 12 : isElectronics ? 18 : isGarments ? 5 : isHardware ? 18 : isFmcg ? 5 : 18;
 
         // 2. Persist real demo item in the tenant's database
         const createdId = await inventoryService.createItem({
           sku: sampleSku,
           name: sampleName,
           primaryUomId: uomId,
-          hsnCode: isPharma ? "30049099" : "84713010",
-          sellingPrice: 100,
-          mrp: 120,
-          taxRate: 18,
+          hsnCode: sampleHsnDefault,
+          sellingPrice: samplePrice,
+          mrp: sampleMrp,
+          taxRate: sampleTax,
           trackInventory: false,
         });
 
@@ -746,12 +783,12 @@ function TenantInvoicesPageContent() {
           id: createdId,
           sku: sampleSku,
           name: sampleName,
-          hsnCode: isPharma ? "30049099" : "84713010",
+          hsnCode: sampleHsnDefault,
           primaryUomId: uomId,
           primaryUomCode: uomCode,
-          sellingPrice: 100,
-          mrp: 120,
-          taxRate: 18,
+          sellingPrice: samplePrice,
+          mrp: sampleMrp,
+          taxRate: sampleTax,
           isActive: true,
           type: "Product",
           currentStock: 100,
@@ -770,9 +807,9 @@ function TenantInvoicesPageContent() {
 
     const sampleName = targetItem.name;
     const sampleSku = targetItem.sku;
-    const sampleHsn = targetItem.hsnCode || (isPharma ? "30049099" : "84713010");
-    const sampleRate = targetItem.sellingPrice || 100;
-    const sampleGst = targetItem.taxRate !== undefined ? targetItem.taxRate : 18;
+    const sampleHsn = targetItem.hsnCode || (isPharma ? "30049099" : isElectronics ? "85171300" : "84713010");
+    const sampleRate = targetItem.sellingPrice || (isElectronics ? 14999 : 100);
+    const sampleGst = targetItem.taxRate !== undefined ? targetItem.taxRate : (isPharma ? 12 : isElectronics ? 18 : 18);
 
     const calculated = calculateLineAmounts(1, sampleRate, "percent", 0, sampleGst);
 
@@ -780,16 +817,17 @@ function TenantInvoicesPageContent() {
       itemId: targetItem.id,
       itemSku: sampleSku,
       itemName: sampleName,
+      // Pharma / FMCG specific
       batchId: "",
-      batchNumber: "BAT-DEMO1",
-      expiryDate: "12/28",
-      packing: "1x10",
+      batchNumber: hasBatchTracking ? (isFmcg ? "LOT-AUG26" : "BAT-DEM01") : "",
+      expiryDate: hasBatchTracking ? (isFmcg ? "08/27" : "12/28") : "",
+      packing: isPharma ? "10x10 Strips" : isFmcg ? "12x1L Case" : "",
       hsnCode: sampleHsn,
       quantity: 1,
       freeQuantity: 0,
       uomId: targetItem.primaryUomId,
       uomCode: targetItem.primaryUomCode || "PCS",
-      mrp: targetItem.mrp || sampleRate * 1.2,
+      mrp: targetItem.mrp || sampleRate * 1.15,
       unitPrice: sampleRate,
       discountType: "percent",
       discountValue: 0,
@@ -799,6 +837,35 @@ function TenantInvoicesPageContent() {
       totalAmount: calculated.totalAmount,
       availableBatches: [],
       loadingBatches: false,
+
+      // Electronics Vertical - Real IMEI, Dual IMEI, Brand & Warranty
+      imeiSerial: isElectronics ? "867492048192841" : undefined,
+      imei2: isElectronics ? "867492048192842" : undefined,
+      brand: isElectronics ? "Samsung" : undefined,
+      modelVariant: isElectronics ? "Galaxy A54 5G (8GB/128GB)" : undefined,
+      warrantyMonths: isElectronics ? 12 : undefined,
+
+      // Garments Vertical
+      size: isGarments ? "40 / L" : undefined,
+      color: isGarments ? "Sky Blue" : undefined,
+      styleCode: isGarments ? "SLIM-FIT-2026" : undefined,
+      fit: isGarments ? "Slim Fit" : undefined,
+
+      // Hardware Vertical
+      dimLength: isHardware ? 8 : undefined,
+      dimWidth: isHardware ? 4 : undefined,
+      dimUnit: isHardware ? "FEET" : undefined,
+      sqft: isHardware ? 32 : undefined,
+      weightPerPieceKg: isHardware ? 45 : undefined,
+      totalWeightKg: isHardware ? 45 : undefined,
+      rateBasis: isHardware ? "per_sqft" : undefined,
+      contractorName: isHardware ? "Sharma Builders" : undefined,
+
+      // FMCG Vertical
+      caseQty: isFmcg ? 1 : undefined,
+      pcsQty: isFmcg ? 0 : undefined,
+      unitsPerCase: isFmcg ? 12 : undefined,
+      schemeDesc: isFmcg ? "10+1 Free Scheme" : undefined,
     };
 
     setInvoiceLines((prev) => {
@@ -808,7 +875,19 @@ function TenantInvoicesPageContent() {
       return prev.length === 0 ? [demoLine] : [...prev, demoLine];
     });
 
-    if (!customerName) setCustomerName("Rajesh Kumar (Sample Customer)");
+    if (!customerName) {
+      setCustomerName(
+        isElectronics
+          ? "Rahul Sharma (Retail Customer)"
+          : isPharma
+          ? "Rajesh Kumar (Sample Chemist)"
+          : isHardware
+          ? "Anil Gupta (Contractor)"
+          : isGarments
+          ? "Vikas Verma (Walk-in Customer)"
+          : "Rajesh Kumar (Sample Customer)"
+      );
+    }
     if (!customerPhone) setCustomerPhone("9876543210");
   };
 
@@ -2823,15 +2902,50 @@ function TenantInvoicesPageContent() {
                               </div>
                             )}
                             {isElectronics && (
-                              <div className="col-span-2">
-                                <label className="text-[10px] text-orange-400 block font-bold mb-0.5">IMEI / Serial No</label>
-                                <input
-                                  type="text"
-                                  placeholder="IMEI / Serial"
-                                  value={line.imeiSerial || ""}
-                                  onChange={(e) => updateLineField(idx, "imeiSerial", e.target.value)}
-                                  className="w-full px-2 py-1 bg-slate-900 border border-orange-500/30 rounded text-xs text-orange-200 font-mono"
-                                />
+                              <div className="col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div>
+                                  <label className="text-[10px] text-orange-400 block font-bold mb-0.5">IMEI 1 / Serial #</label>
+                                  <input
+                                    type="text"
+                                    placeholder="867492048192841"
+                                    value={line.imeiSerial || ""}
+                                    onChange={(e) => updateLineField(idx, "imeiSerial", e.target.value)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-orange-500/30 rounded text-xs text-orange-200 font-mono"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-orange-400 block font-bold mb-0.5">IMEI 2 (Optional)</label>
+                                  <input
+                                    type="text"
+                                    placeholder="867492048192842"
+                                    value={line.imei2 || ""}
+                                    onChange={(e) => updateLineField(idx, "imei2", e.target.value)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-orange-500/30 rounded text-xs text-orange-200 font-mono"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-cyan-400 block font-bold mb-0.5">Brand / Model</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Samsung A54"
+                                    value={line.brand || line.modelVariant || ""}
+                                    onChange={(e) => {
+                                      updateLineField(idx, "brand", e.target.value);
+                                      updateLineField(idx, "modelVariant", e.target.value);
+                                    }}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-cyan-500/30 rounded text-xs text-cyan-200"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-emerald-400 block font-bold mb-0.5">Warranty (M)</label>
+                                  <input
+                                    type="number"
+                                    placeholder="12"
+                                    value={line.warrantyMonths || ""}
+                                    onChange={(e) => updateLineField(idx, "warrantyMonths", Number(e.target.value) || 0)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-emerald-500/30 rounded text-xs text-emerald-200 font-mono"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
