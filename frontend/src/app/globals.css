@@ -405,129 +405,47 @@ html.theme-light p[class*="text-slate-5"] {
 }
 
 /* Universal Tables in Light Theme */
-html:not(.dark) thead,
 html:not(.dark) thead[class*="bg-slate-9"],
 html:not(.dark) thead[class*="bg-slate-8"],
-html:not(.dark) tr[class*="bg-slate-950"],
-html:not(.dark) tr[class*="bg-slate-900"],
-html.theme-light thead,
 html.theme-light thead[class*="bg-slate-9"],
-html.theme-light thead[class*="bg-slate-8"],
-html.theme-light tr[class*="bg-slate-950"],
-html.theme-light tr[class*="bg-slate-900"] {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-  border-bottom: 2px solid #cbd5e1 !important;
-}
-
-html:not(.dark) thead th,
-html:not(.dark) thead[class*="bg-slate-9"] th,
-html:not(.dark) tr[class*="bg-slate-950"] th,
-html:not(.dark) tr[class*="bg-slate-900"] th,
-html.theme-light thead th,
-html.theme-light thead[class*="bg-slate-9"] th,
-html.theme-light tr[class*="bg-slate-950"] th,
-html.theme-light tr[class*="bg-slate-900"] th {
-  color: #0f172a !important;
-  font-weight: 800 !important;
-}
-
-html:not(.dark) tbody,
-html:not(.dark) tbody[class*="divide-slate-8"],
-html.theme-light tbody,
-html.theme-light tbody[class*="divide-slate-8"] {
-  background-color: #ffffff !important;
+html.theme-light thead[class*="bg-slate-8"] {
+  background-color: #f8fafc !important;
+  color: #334155 !important;
   border-color: #e2e8f0 !important;
 }
 
-html:not(.dark) tbody tr,
-html.theme-light tbody tr {
-  background-color: #ffffff !important;
+html:not(.dark) thead[class*="bg-slate-9"] th,
+html.theme-light thead[class*="bg-slate-9"] th {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) tbody[class*="divide-slate-8"],
+html.theme-light tbody[class*="divide-slate-8"] {
+  border-color: #e2e8f0 !important;
 }
 
 html:not(.dark) tr[class*="hover:bg-slate-8"]:hover,
 html:not(.dark) tr[class*="hover:bg-slate-9"]:hover,
-html:not(.dark) tbody tr:hover,
 html.theme-light tr[class*="hover:bg-slate-8"]:hover,
-html.theme-light tr[class*="hover:bg-slate-9"]:hover,
-html.theme-light tbody tr:hover {
+html.theme-light tr[class*="hover:bg-slate-9"]:hover {
   background-color: #f8fafc !important;
 }
 
-/* Comprehensive Table Cell & Text Contrast in Light Theme */
-html:not(.dark) td,
 html:not(.dark) td.text-white,
 html:not(.dark) td div.text-white,
 html:not(.dark) td span.text-white,
-html:not(.dark) td .text-slate-200,
-html:not(.dark) td .text-slate-100,
-html:not(.dark) td .text-gray-200,
-html:not(.dark) td .text-gray-100,
-html.theme-light td,
 html.theme-light td.text-white,
 html.theme-light td div.text-white,
-html.theme-light td span.text-white,
-html.theme-light td .text-slate-200,
-html.theme-light td .text-slate-100,
-html.theme-light td .text-gray-200,
-html.theme-light td .text-gray-100 {
+html.theme-light td span.text-white {
   color: #0f172a !important;
 }
 
-html:not(.dark) td .text-slate-300,
-html:not(.dark) td .text-slate-400,
-html:not(.dark) td .text-gray-300,
-html:not(.dark) td .text-gray-400,
 html:not(.dark) td.text-slate-300,
 html:not(.dark) td.text-slate-400,
-html.theme-light td .text-slate-300,
-html.theme-light td .text-slate-400,
-html.theme-light td .text-gray-300,
-html.theme-light td .text-gray-400,
 html.theme-light td.text-slate-300,
 html.theme-light td.text-slate-400 {
-  color: #334155 !important;
-}
-
-html:not(.dark) td .text-slate-500,
-html:not(.dark) td.text-slate-500,
-html.theme-light td .text-slate-500,
-html.theme-light td.text-slate-500 {
   color: #475569 !important;
-}
-
-/* Inactive Filter Tabs & Buttons Across All Pages */
-html:not(.dark) button[class*="bg-slate-800"],
-html.theme-light button[class*="bg-slate-800"] {
-  background-color: #f1f5f9 !important;
-  color: #334155 !important;
-  border-color: #cbd5e1 !important;
-}
-
-html:not(.dark) button[class*="bg-slate-800"]:hover,
-html.theme-light button[class*="bg-slate-800"]:hover {
-  background-color: #e2e8f0 !important;
-  color: #0f172a !important;
-}
-
-/* Secondary Container Boxes & Sub-bars */
-html:not(.dark) div[class*="bg-slate-900/40"],
-html:not(.dark) div[class*="bg-slate-900/60"],
-html.theme-light div[class*="bg-slate-900/40"],
-html.theme-light div[class*="bg-slate-900/60"] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-}
-
-/* Badges & Batch Pills in Table Rows for Light Mode */
-html:not(.dark) td span[class*="bg-slate-800"],
-html:not(.dark) td span[class*="bg-slate-9"],
-html.theme-light td span[class*="bg-slate-800"],
-html.theme-light td span[class*="bg-slate-9"] {
-  background-color: #f1f5f9 !important;
-  color: #c2410c !important;
-  border-color: #fdba74 !important;
-  font-weight: 700 !important;
 }
 
 /* Print Specific Isolation Rules */
