@@ -23,6 +23,16 @@ export interface OpeningBatchInput {
   mrp?: number;
 }
 
+export interface OpeningVariantInput {
+  size: string;
+  color: string;
+  variantSku?: string;
+  barcode?: string;
+  quantity?: number;
+  priceAdjustment?: number;
+  warehouseId?: string;
+}
+
 export interface CreateItemInput {
   sku: string;
   name: string;
@@ -55,6 +65,7 @@ export interface CreateItemInput {
   initialBatchNumber?: string;
   initialBatchExpiryDate?: string;
   openingBatches?: OpeningBatchInput[];
+  openingVariants?: OpeningVariantInput[];
 }
 
 export interface CreateBatchInput {

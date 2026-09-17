@@ -29,7 +29,8 @@ import {
   RefreshCw,
   Warehouse as WarehouseIcon,
   Receipt,
-  Eye
+  Eye,
+  Shirt
 } from "lucide-react";
 import {
   inventoryService,
@@ -123,6 +124,53 @@ export default function TenantItemsCatalogPage() {
   const [elecTrackingMode, setElecTrackingMode] = useState("DUAL_IMEI");
   const [hardwareDimension, setHardwareDimension] = useState("");
   const [hardwareGrade, setHardwareGrade] = useState("");
+
+  // Garments 2D Size x Color Matrix State
+  const [isMatrixEnabled, setIsMatrixEnabled] = useState(true);
+  const [matrixSizes, setMatrixSizes] = useState<string[]>(["38", "40", "42", "44"]);
+  const [matrixColors, setMatrixColors] = useState<string[]>(["Black", "Navy Blue"]);
+  const [customSizeInput, setCustomSizeInput] = useState("");
+  const [customColorInput, setCustomColorInput] = useState("");
+  const [matrixBulkQty, setMatrixBulkQty] = useState<number | "">("");
+
+  interface VariantMatrixRow {
+    size: string;
+    color: string;
+    sku: string;
+    barcode: string;
+    quantity: number | "";
+    priceAdjustment: number;
+  }
+
+  const [matrixRows, setMatrixRows] = useState<VariantMatrixRow[]>([]);
+
+  useEffect(() => {
+    if (industryConfig.code !== "GARMENTS") return;
+    const baseSku = form.sku?.trim() || "PRD";
+    setMatrixRows((prev) => {
+      const rows: VariantMatrixRow[] = [];
+      matrixSizes.forEach((s) => {
+        matrixColors.forEach((c) => {
+          const colorPrefix = c.trim().substring(0, Math.min(3, c.trim().length)).toUpperCase();
+          const cleanSize = s.trim().toUpperCase();
+          const variantSku = `${baseSku}-${cleanSize}-${colorPrefix}`;
+          const barcodeSeed = Math.abs(variantSku.split("").reduce((acc, ch) => ((acc << 5) - acc) + ch.charCodeAt(0), 0) % 1000000000);
+          const autoBarcode = `890${barcodeSeed.toString().padStart(9, "0")}`;
+
+          const existing = prev.find((r) => r.size === s && r.color === c);
+          rows.push({
+            size: s,
+            color: c,
+            sku: variantSku,
+            barcode: existing?.barcode || autoBarcode,
+            quantity: existing !== undefined ? existing.quantity : "",
+            priceAdjustment: existing ? existing.priceAdjustment : 0,
+          });
+        });
+      });
+      return rows;
+    });
+  }, [matrixSizes, matrixColors, form.sku, form.name, industryConfig.code]);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -352,7 +400,22 @@ export default function TenantItemsCatalogPage() {
         mrp: Number(b.mrp) || Number(form.mrp) || 0,
       }));
 
-    const totalOpeningStock = validBatches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0);
+    const isGarmentsMatrix = industryConfig.code === "GARMENTS" && isMatrixEnabled && matrixRows.length > 0;
+    const variantStockSum = matrixRows.reduce((acc, r) => acc + (Number(r.quantity) || 0), 0);
+    const openingVariantsPayload = isGarmentsMatrix
+      ? matrixRows.map((r) => ({
+          size: r.size,
+          color: r.color,
+          variantSku: r.sku,
+          barcode: r.barcode,
+          quantity: Number(r.quantity) || 0,
+          priceAdjustment: Number(r.priceAdjustment) || 0,
+        }))
+      : undefined;
+
+    const totalOpeningStock = isGarmentsMatrix
+      ? variantStockSum
+      : validBatches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0);
 
     try {
       setSubmitting(true);
@@ -379,15 +442,16 @@ export default function TenantItemsCatalogPage() {
         minimumStockAlert: Number(form.minimumStockAlert) || 0,
         maximumStockAlert: Number(form.maximumStockAlert) || 0,
         reorderQuantity: Number(form.reorderQuantity) || 0,
-        trackBatches: Boolean(form.trackBatches),
-        trackSerialNumbers: Boolean(form.trackSerialNumbers),
-        trackVariants: Boolean(form.trackVariants),
+        trackBatches: isGarmentsMatrix ? false : Boolean(form.trackBatches),
+        trackSerialNumbers: isGarmentsMatrix ? false : Boolean(form.trackSerialNumbers),
+        trackVariants: isGarmentsMatrix ? true : Boolean(form.trackVariants),
         attributesJson: JSON.stringify(attributes),
         initialStock: totalOpeningStock,
         initialWarehouseId: form.initialWarehouseId && form.initialWarehouseId.trim() !== "" ? form.initialWarehouseId : undefined,
         initialBatchNumber: form.initialBatchNumber?.trim() || undefined,
         initialBatchExpiryDate: form.initialBatchExpiryDate ? new Date(form.initialBatchExpiryDate).toISOString() : undefined,
-        openingBatches: validBatches.length > 0 ? validBatches : undefined,
+        openingBatches: isGarmentsMatrix ? undefined : (validBatches.length > 0 ? validBatches : undefined),
+        openingVariants: openingVariantsPayload,
       });
 
       setIsModalOpen(false);
@@ -1643,28 +1707,307 @@ export default function TenantItemsCatalogPage() {
                           )}
 
                           {industryConfig.code === "GARMENTS" && (
-                            <>
-                              <div className="space-y-1">
-                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Size</label>
-                                <input
-                                  type="text"
-                                  placeholder="e.g. M, L, XL, 32, 40"
-                                  value={apparelSize}
-                                  onChange={(e) => setApparelSize(e.target.value)}
-                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-                                />
+                            <div className="col-span-2 space-y-3 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-950/80 rounded-xl p-3 shadow-2xs">
+                              {/* Header & Mode Switch */}
+                              <div className="flex items-center justify-between border-b border-orange-100 dark:border-slate-800 pb-2">
+                                <div className="flex items-center gap-1.5">
+                                  <Shirt className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                    2D Size × Color Variant Matrix
+                                  </span>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
+                                    {matrixRows.length} SKUs
+                                  </span>
+                                </div>
+                                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={isMatrixEnabled}
+                                    onChange={(e) => setIsMatrixEnabled(e.target.checked)}
+                                    className="rounded border-slate-300 text-orange-600 w-3.5 h-3.5 focus:ring-0 cursor-pointer"
+                                  />
+                                  <span>Multiple Variants</span>
+                                </label>
                               </div>
-                              <div className="space-y-1">
-                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Color / Shade</label>
-                                <input
-                                  type="text"
-                                  placeholder="e.g. Navy Blue, Olive"
-                                  value={apparelColor}
-                                  onChange={(e) => setApparelColor(e.target.value)}
-                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-                                />
-                              </div>
-                            </>
+
+                              {!isMatrixEnabled ? (
+                                <div className="grid grid-cols-2 gap-2 pt-1">
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Single Size</label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. Free Size / Standard"
+                                      value={apparelSize}
+                                      onChange={(e) => setApparelSize(e.target.value)}
+                                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Single Color</label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. Navy Blue"
+                                      value={apparelColor}
+                                      onChange={(e) => setApparelColor(e.target.value)}
+                                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  {/* Step A: Select Sizes */}
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                                        1. Select Sizes ({matrixSizes.length} selected)
+                                      </span>
+                                      <div className="flex gap-1 text-[10px]">
+                                        <button
+                                          type="button"
+                                          onClick={() => setMatrixSizes(["S", "M", "L", "XL", "XXL"])}
+                                          className="text-orange-600 hover:underline cursor-pointer"
+                                        >
+                                          Letter (S-XXL)
+                                        </button>
+                                        <span>•</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setMatrixSizes(["38", "40", "42", "44"])}
+                                          className="text-orange-600 hover:underline cursor-pointer"
+                                        >
+                                          Suits (38-44)
+                                        </button>
+                                        <span>•</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setMatrixSizes(["30", "32", "34", "36"])}
+                                          className="text-orange-600 hover:underline cursor-pointer"
+                                        >
+                                          Waist (30-36)
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {["36", "38", "40", "42", "44", "46", "S", "M", "L", "XL", "XXL", "3XL", "28", "30", "32", "34"].map((sz) => {
+                                        const isSel = matrixSizes.includes(sz);
+                                        return (
+                                          <button
+                                            key={sz}
+                                            type="button"
+                                            onClick={() => {
+                                              setMatrixSizes((prev) =>
+                                                prev.includes(sz) ? prev.filter((x) => x !== sz) : [...prev, sz]
+                                              );
+                                            }}
+                                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition cursor-pointer ${
+                                              isSel
+                                                ? "bg-orange-600 text-white border-orange-600 shadow-xs"
+                                                : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-orange-400"
+                                            }`}
+                                          >
+                                            {sz}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    {/* Custom Size Input */}
+                                    <div className="flex items-center gap-1.5 pt-1">
+                                      <input
+                                        type="text"
+                                        placeholder="Add custom size (e.g. 48, 4XL)"
+                                        value={customSizeInput}
+                                        onChange={(e) => setCustomSizeInput(e.target.value)}
+                                        className="px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs w-48 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (customSizeInput.trim() && !matrixSizes.includes(customSizeInput.trim())) {
+                                            setMatrixSizes([...matrixSizes, customSizeInput.trim().toUpperCase()]);
+                                            setCustomSizeInput("");
+                                          }
+                                        }}
+                                        className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-lg text-[11px] font-bold cursor-pointer"
+                                      >
+                                        + Add
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Step B: Select Colors */}
+                                  <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                                        2. Select Colors ({matrixColors.length} selected)
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {[
+                                        { name: "Black", hex: "#111827" },
+                                        { name: "Navy Blue", hex: "#1e3a8a" },
+                                        { name: "White", hex: "#ffffff", border: true },
+                                        { name: "Wine / Maroon", hex: "#881337" },
+                                        { name: "Olive Green", hex: "#4d7c0f" },
+                                        { name: "Charcoal Gray", hex: "#4b5563" },
+                                        { name: "Beige / Cream", hex: "#fef3c7", border: true },
+                                        { name: "Royal Blue", hex: "#2563eb" },
+                                      ].map((clr) => {
+                                        const isSel = matrixColors.includes(clr.name);
+                                        return (
+                                          <button
+                                            key={clr.name}
+                                            type="button"
+                                            onClick={() => {
+                                              setMatrixColors((prev) =>
+                                                prev.includes(clr.name)
+                                                  ? prev.filter((x) => x !== clr.name)
+                                                  : [...prev, clr.name]
+                                              );
+                                            }}
+                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition cursor-pointer ${
+                                              isSel
+                                                ? "bg-orange-50 dark:bg-orange-950/60 text-orange-950 dark:text-orange-200 border-orange-500 ring-1 ring-orange-500/40"
+                                                : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-orange-400"
+                                            }`}
+                                          >
+                                            <span
+                                              className="w-2.5 h-2.5 rounded-full inline-block shrink-0"
+                                              style={{
+                                                backgroundColor: clr.hex,
+                                                border: clr.border ? "1px solid #cbd5e1" : "none"
+                                              }}
+                                            />
+                                            <span>{clr.name}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    {/* Custom Color Input */}
+                                    <div className="flex items-center gap-1.5 pt-1">
+                                      <input
+                                        type="text"
+                                        placeholder="Add custom color (e.g. Lavender, Teal)"
+                                        value={customColorInput}
+                                        onChange={(e) => setCustomColorInput(e.target.value)}
+                                        className="px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs w-48 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (customColorInput.trim() && !matrixColors.includes(customColorInput.trim())) {
+                                            setMatrixColors([...matrixColors, customColorInput.trim()]);
+                                            setCustomColorInput("");
+                                          }
+                                        }}
+                                        className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-lg text-[11px] font-bold cursor-pointer"
+                                      >
+                                        + Add
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Step C: Bulk Quantity Helper */}
+                                  <div className="flex items-center justify-between p-2 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 rounded-lg text-xs">
+                                    <div className="flex items-center gap-1.5 font-semibold text-orange-900 dark:text-orange-300">
+                                      <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+                                      <span>Bulk Fill Stock for All Variants:</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="Qty (e.g. 5)"
+                                        value={matrixBulkQty}
+                                        onChange={(e) => setMatrixBulkQty(e.target.value === "" ? "" : Number(e.target.value))}
+                                        className="w-20 px-2 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (matrixBulkQty !== "") {
+                                            setMatrixRows((prev) =>
+                                              prev.map((r) => ({ ...r, quantity: Number(matrixBulkQty) || 0 }))
+                                            );
+                                          }
+                                        }}
+                                        className="px-2.5 py-0.5 bg-orange-600 hover:bg-orange-500 text-white rounded text-[11px] font-bold cursor-pointer transition"
+                                      >
+                                        Apply All
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Step D: Live 2D Matrix Table Preview */}
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                                        3. Generated Matrix SKUs ({matrixRows.length} combinations)
+                                      </span>
+                                      <span className="text-[10px] text-slate-500 font-mono">
+                                        Total Stock:{" "}
+                                        <strong className="text-orange-600 dark:text-orange-400">
+                                          {matrixRows.reduce((a, b) => a + (Number(b.quantity) || 0), 0)} Pcs
+                                        </strong>
+                                      </span>
+                                    </div>
+
+                                    <div className="max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto">
+                                      <table className="w-full text-left border-collapse text-[11px]">
+                                        <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+                                          <tr>
+                                            <th className="p-1.5">Size &amp; Color</th>
+                                            <th className="p-1.5">Auto SKU</th>
+                                            <th className="p-1.5">Barcode</th>
+                                            <th className="p-1.5 text-center w-24">Opening Stock</th>
+                                            <th className="p-1.5 text-center w-24">Rate (₹)</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                          {matrixRows.map((r, idx) => (
+                                            <tr key={`${r.size}-${r.color}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                              <td className="p-1.5 font-semibold text-slate-900 dark:text-white">
+                                                <span className="inline-flex items-center gap-1">
+                                                  <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold border border-slate-200 dark:border-slate-700">
+                                                    {r.size}
+                                                  </span>
+                                                  <span>{r.color}</span>
+                                                </span>
+                                              </td>
+                                              <td className="p-1.5 font-mono text-[10px] text-slate-600 dark:text-slate-400">
+                                                {r.sku}
+                                              </td>
+                                              <td className="p-1.5 font-mono text-[10px] text-slate-500">
+                                                {r.barcode}
+                                              </td>
+                                              <td className="p-1.5 text-center">
+                                                <input
+                                                  type="number"
+                                                  min="0"
+                                                  value={r.quantity}
+                                                  placeholder="0"
+                                                  onChange={(e) => {
+                                                    const val = e.target.value === "" ? "" : Number(e.target.value);
+                                                    setMatrixRows((prev) =>
+                                                      prev.map((row, i) => (i === idx ? { ...row, quantity: val } : row))
+                                                    );
+                                                  }}
+                                                  className="w-18 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                                />
+                                              </td>
+                                              <td className="p-1.5 text-center">
+                                                <div className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                                  ₹{(Number(form.sellingPrice || 0) + Number(r.priceAdjustment || 0)).toFixed(0)}
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           )}
 
                           {industryConfig.code === "HARDWARE" && (
@@ -1749,6 +2092,27 @@ export default function TenantItemsCatalogPage() {
                         </div>
 
                         {form.trackInventory !== false && (
+                          industryConfig.code === "GARMENTS" && isMatrixEnabled && matrixRows.length > 0 ? (
+                            <div className="p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 rounded-lg flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2">
+                                <Shirt className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                <div>
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                    Variant Opening Stock Managed in Matrix Above
+                                  </span>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                    Total opening stock across {matrixRows.length} variants:{" "}
+                                    <strong className="text-orange-600 dark:text-orange-400 font-mono">
+                                      {matrixRows.reduce((a, b) => a + (Number(b.quantity) || 0), 0)} {units.find((u) => u.id === form.primaryUomId)?.code || "Pcs"}
+                                    </strong>
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 font-bold text-[10px] rounded-full uppercase tracking-wider">
+                                Matrix Active
+                              </span>
+                            </div>
+                          ) : (
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between">
                               <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -1897,6 +2261,7 @@ export default function TenantItemsCatalogPage() {
                               </button>
                             </div>
                           </div>
+                          )
                         )}
                       </div>
                     </div>
@@ -1930,6 +2295,8 @@ export default function TenantItemsCatalogPage() {
                         : "Saving Product..."
                       : form.itemType === 2
                       ? "Save Service to Catalog"
+                      : industryConfig.code === "GARMENTS" && isMatrixEnabled && matrixRows.length > 0
+                      ? `Save Product & ${matrixRows.length} Variants`
                       : "Save Product to Catalog"}
                   </span>
                 </button>

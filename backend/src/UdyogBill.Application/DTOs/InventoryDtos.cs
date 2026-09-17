@@ -113,6 +113,16 @@ public record OpeningBatchItemDto(
     decimal? MRP = null
 );
 
+public record OpeningVariantItemDto(
+    string Size,
+    string Color,
+    string? VariantSku = null,
+    string? Barcode = null,
+    decimal Quantity = 0m,
+    decimal? PriceAdjustment = null,
+    Guid? WarehouseId = null
+);
+
 public record CreateItemRequest(
     string? Sku = null,
     string Name = "",
@@ -144,7 +154,8 @@ public record CreateItemRequest(
     Guid? InitialWarehouseId = null,
     string? InitialBatchNumber = null,
     DateTime? InitialBatchExpiryDate = null,
-    List<OpeningBatchItemDto>? OpeningBatches = null
+    List<OpeningBatchItemDto>? OpeningBatches = null,
+    List<OpeningVariantItemDto>? OpeningVariants = null
 );
 
 public record UpdateItemRequest(

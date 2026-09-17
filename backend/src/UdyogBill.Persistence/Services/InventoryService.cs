@@ -947,6 +947,82 @@ public class InventoryService : IInventoryService
                     _context.StockMovements.Add(movement);
                 }
             }
+
+            // Garments 2D Variant Matrix Ingestion
+            if (request.TrackVariants && request.OpeningVariants != null && request.OpeningVariants.Count > 0)
+            {
+                var defaultWarehouse = await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.IsDefault && !w.IsDeleted, cancellationToken)
+                    ?? await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, cancellationToken);
+
+                foreach (var ov in request.OpeningVariants.Where(v => !string.IsNullOrWhiteSpace(v.Size) && !string.IsNullOrWhiteSpace(v.Color)))
+                {
+                    var size = ov.Size.Trim().ToUpperInvariant();
+                    var color = ov.Color.Trim();
+                    var colorPrefix = color.Substring(0, Math.Min(3, color.Length)).ToUpperInvariant();
+                    var variantSku = !string.IsNullOrWhiteSpace(ov.VariantSku)
+                        ? ov.VariantSku.Trim().ToUpperInvariant()
+                        : $"{item.Sku}-{size}-{colorPrefix}";
+
+                    var barcode = !string.IsNullOrWhiteSpace(ov.Barcode)
+                        ? ov.Barcode.Trim()
+                        : $"890{Math.Abs(variantSku.GetHashCode() % 1000000000):D9}";
+
+                    var attrDict = new Dictionary<string, string>
+                    {
+                        ["size"] = size,
+                        ["color"] = color
+                    };
+
+                    var variant = new ItemVariant
+                    {
+                        TenantId = tenantId,
+                        ItemId = item.Id,
+                        VariantSku = variantSku,
+                        VariantName = $"{item.Name} ({size}, {color})",
+                        AttributesJson = JsonSerializer.Serialize(attrDict),
+                        PriceAdjustment = ov.PriceAdjustment ?? 0m,
+                        Barcode = barcode,
+                        IsActive = true
+                    };
+                    item.Variants.Add(variant);
+
+                    if (defaultWarehouse != null && ov.Quantity > 0)
+                    {
+                        var warehouse = ov.WarehouseId.HasValue && ov.WarehouseId.Value != Guid.Empty
+                            ? await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.Id == ov.WarehouseId.Value && !w.IsDeleted, cancellationToken) ?? defaultWarehouse
+                            : defaultWarehouse;
+
+                        var stock = new ItemWarehouseStock
+                        {
+                            TenantId = tenantId,
+                            ItemId = item.Id,
+                            WarehouseId = warehouse.Id,
+                            Variant = variant,
+                            CurrentQuantity = ov.Quantity,
+                            ReservedQuantity = 0,
+                            ReorderLevel = request.MinimumStockAlert
+                        };
+                        item.WarehouseStocks.Add(stock);
+
+                        var movement = new StockMovement
+                        {
+                            TenantId = tenantId,
+                            ItemId = item.Id,
+                            WarehouseId = warehouse.Id,
+                            Variant = variant,
+                            MovementType = StockMovementType.PhysicalAdjustment,
+                            Quantity = ov.Quantity,
+                            QuantityBefore = 0,
+                            QuantityAfter = ov.Quantity,
+                            UnitCost = request.PurchasePrice,
+                            TotalCost = ov.Quantity * request.PurchasePrice,
+                            ReferenceDocumentType = "InitialStockOpeningVariant",
+                            Notes = $"Opening stock for variant {variant.VariantName} ({variantSku})"
+                        };
+                        _context.StockMovements.Add(movement);
+                    }
+                }
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);
