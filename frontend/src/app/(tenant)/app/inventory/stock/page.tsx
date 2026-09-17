@@ -11,7 +11,10 @@ import {
   RefreshCw,
   Search,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Shirt,
+  Coins,
+  TrendingUp
 } from "lucide-react";
 import {
   inventoryService,
@@ -19,6 +22,7 @@ import {
 } from "@/services/inventory-services";
 import { tenantAppService, BranchDetails } from "@/services/tenant-app-services";
 import { WarehouseStock, StockMovement, ItemList } from "@/types";
+import { useAddons } from "@/context/addon-context";
 
 export default function TenantStockExplorerPage() {
   const [activeTab, setActiveTab] = useState<"balances" | "ledger">("balances");
@@ -113,6 +117,30 @@ export default function TenantStockExplorerPage() {
     }
   };
 
+  const { activePack, industryCode, isAddonActive } = useAddons();
+  const resolvedIndustry = (
+    industryCode ||
+    activePack?.activeIndustryModule ||
+    activePack?.industryTypeCode ||
+    ""
+  ).toUpperCase();
+  const isGarments =
+    resolvedIndustry === "GARMENTS" ||
+    isAddonActive("garments") ||
+    balances.some((b) => Boolean(b.size || b.color));
+
+  // Garments Summary Metrics (Unit-wise & Value-wise)
+  const totalCurrentStockUnits = balances.reduce((sum, b) => sum + (Number(b.currentQuantity) || 0), 0);
+  const totalCurrentStockValue = balances.reduce(
+    (sum, b) => sum + (Number(b.currentStockValue) || ((Number(b.currentQuantity) || 0) * (Number(b.unitPrice) || 0))),
+    0
+  );
+  const totalSoldStockUnits = balances.reduce((sum, b) => sum + (Number(b.soldQuantity) || 0), 0);
+  const totalSoldStockValue = balances.reduce(
+    (sum, b) => sum + (Number(b.soldStockValue) || ((Number(b.soldQuantity) || 0) * (Number(b.unitPrice) || 0))),
+    0
+  );
+
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -136,6 +164,51 @@ export default function TenantStockExplorerPage() {
           </button>
         </div>
       </div>
+
+      {/* Garments Quick Stock & Sales Summary Cards */}
+      {isGarments && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Shirt className="w-4 h-4 text-orange-500" />
+              <span>Current Stock (Units)</span>
+            </div>
+            <div className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+              {totalCurrentStockUnits.toLocaleString("en-IN")} <span className="text-xs font-medium text-muted-foreground">Pcs</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Coins className="w-4 h-4 text-emerald-500" />
+              <span>Current Stock Value</span>
+            </div>
+            <div className="text-xl font-black font-mono text-foreground mt-1">
+              ₹{totalCurrentStockValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-rose-500" />
+              <span>Sale Stock (Units)</span>
+            </div>
+            <div className="text-xl font-black font-mono text-rose-600 dark:text-rose-400 mt-1">
+              {totalSoldStockUnits.toLocaleString("en-IN")} <span className="text-xs font-medium text-muted-foreground">Pcs</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Coins className="w-4 h-4 text-rose-500" />
+              <span>Sale Stock Value</span>
+            </div>
+            <div className="text-xl font-black font-mono text-foreground mt-1">
+              ₹{totalSoldStockValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs and Filter Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-xl bg-surface border border-border shadow-xs">
@@ -187,69 +260,112 @@ export default function TenantStockExplorerPage() {
               <tr>
                 <th className="px-5 py-3.5 font-bold text-foreground">Warehouse / Branch</th>
                 <th className="px-5 py-3.5 font-bold text-foreground">Variant (Size / Colour)</th>
-                <th className="px-5 py-3.5 font-bold text-foreground">Batch Number</th>
-                <th className="px-5 py-3.5 font-bold text-foreground">Expiry Date</th>
-                <th className="px-5 py-3.5 font-bold text-foreground text-right">Current Stock</th>
+                {!isGarments && <th className="px-5 py-3.5 font-bold text-foreground">Batch Number</th>}
+                {!isGarments && <th className="px-5 py-3.5 font-bold text-foreground">Expiry Date</th>}
+                <th className="px-5 py-3.5 font-bold text-foreground text-right">
+                  {isGarments ? "Current Stock (Unit & Value)" : "Current Stock"}
+                </th>
+                {isGarments && (
+                  <th className="px-5 py-3.5 font-bold text-rose-600 dark:text-rose-400 text-right">
+                    Sale Stock (Unit & Value)
+                  </th>
+                )}
                 <th className="px-5 py-3.5 font-bold text-foreground text-right">Available</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={isGarments ? 5 : 6} className="py-12 text-center text-muted-foreground">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mb-1"></div>
                     <div>Loading stock balances...</div>
                   </td>
                 </tr>
               ) : balances.length > 0 ? (
-                balances.map((b, idx) => (
-                  <tr key={`${b.warehouseId}-${b.variantId || b.batchId || idx}`} className="hover:bg-surface-muted/60 transition">
-                    <td className="px-5 py-3.5">
-                      <div className="font-bold text-foreground">{b.warehouseName}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {b.branchName} <span className="font-mono text-orange-600 dark:text-orange-400 font-semibold">({b.warehouseCode})</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {(b.size || b.color) ? (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {b.size && (
-                            <span className="px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800">
-                              Size: {b.size}
-                            </span>
-                          )}
-                          {b.color && (
-                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-border">
-                              Colour: {b.color}
-                            </span>
-                          )}
-                          {b.variantSku && (
-                            <span className="text-[10px] font-mono text-muted-foreground block w-full mt-0.5">
-                              {b.variantSku}
-                            </span>
-                          )}
+                balances.map((b, idx) => {
+                  const effectiveUnitVal = Number(b.unitPrice) || Number(b.mrp) || Number(b.purchasePrice) || 0;
+                  const curVal = Number(b.currentStockValue) || (Number(b.currentQuantity) * effectiveUnitVal);
+                  const soldQty = Number(b.soldQuantity) || 0;
+                  const soldVal = Number(b.soldStockValue) || (soldQty * effectiveUnitVal);
+                  const uomLabel = b.primaryUomSymbol || "Pcs";
+
+                  return (
+                    <tr key={`${b.warehouseId}-${b.variantId || b.batchId || idx}`} className="hover:bg-surface-muted/60 transition">
+                      <td className="px-5 py-3.5">
+                        <div className="font-bold text-foreground">{b.warehouseName}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {b.branchName} <span className="font-mono text-orange-600 dark:text-orange-400 font-semibold">({b.warehouseCode})</span>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">— (Standard)</span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {(b.size || b.color) ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {b.size && (
+                              <span className="px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800">
+                                Size: {b.size}
+                              </span>
+                            )}
+                            {b.color && (
+                              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-border">
+                                Colour: {b.color}
+                              </span>
+                            )}
+                            {b.variantSku && (
+                              <span className="text-[10px] font-mono text-muted-foreground block w-full mt-0.5">
+                                {b.variantSku}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">— (Standard)</span>
+                        )}
+                      </td>
+
+                      {!isGarments && (
+                        <td className="px-5 py-3.5 font-mono text-orange-600 dark:text-orange-400 font-bold">
+                          {b.batchNumber || "— (Non-Batch)"}
+                        </td>
                       )}
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-orange-600 dark:text-orange-400 font-bold">
-                      {b.batchNumber || "— (Non-Batch)"}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground font-mono font-medium">
-                      {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                      {b.currentQuantity}
-                    </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-bold text-sm text-foreground">
-                      {b.availableQuantity}
-                    </td>
-                  </tr>
-                ))
+                      {!isGarments && (
+                        <td className="px-5 py-3.5 text-muted-foreground font-mono font-medium">
+                          {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : "—"}
+                        </td>
+                      )}
+
+                      {/* Current Stock (Unit-wise & Value-wise) */}
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                          {b.currentQuantity} {isGarments ? uomLabel : ""}
+                        </div>
+                        {isGarments && (
+                          <div className="text-[11px] font-semibold text-muted-foreground mt-0.5">
+                            Value: ₹{curVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Sale Stock (Unit-wise & Value-wise for Garments) */}
+                      {isGarments && (
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="font-mono font-bold text-sm text-rose-600 dark:text-rose-400">
+                            {soldQty} {uomLabel}
+                          </div>
+                          <div className="text-[11px] font-semibold text-muted-foreground mt-0.5">
+                            Value: ₹{soldVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </td>
+                      )}
+
+                      {/* Available Stock */}
+                      <td className="px-5 py-3.5 text-right font-mono font-bold text-sm text-foreground">
+                        {b.availableQuantity} {isGarments ? uomLabel : ""}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={isGarments ? 5 : 6} className="py-12 text-center text-muted-foreground">
                     No active stock records in this warehouse.
                   </td>
                 </tr>

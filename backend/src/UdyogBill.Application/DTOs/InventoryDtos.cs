@@ -318,7 +318,16 @@ public record WarehouseStockDto(
     string? VariantSku = null,
     string? VariantName = null,
     string? Size = null,
-    string? Color = null
+    string? Color = null,
+    Guid? ItemId = null,
+    string? ItemName = null,
+    string? PrimaryUomSymbol = null,
+    decimal UnitPrice = 0m,
+    decimal Mrp = 0m,
+    decimal PurchasePrice = 0m,
+    decimal CurrentStockValue = 0m,
+    decimal SoldQuantity = 0m,
+    decimal SoldStockValue = 0m
 );
 
 public record StockAdjustmentRequest(

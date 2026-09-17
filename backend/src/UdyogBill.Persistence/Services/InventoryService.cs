@@ -4,6 +4,7 @@ using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Auditing;
 using UdyogBill.Domain.Entities.Inventory;
+using UdyogBill.Domain.Entities.Sales;
 using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
@@ -1286,6 +1287,8 @@ public class InventoryService : IInventoryService
                 .ThenInclude(w => w.Branch)
             .Include(ws => ws.Batch)
             .Include(ws => ws.Variant)
+            .Include(ws => ws.Item)
+                .ThenInclude(i => i.PrimaryUom)
             .AsQueryable();
 
         if (itemId.HasValue && itemId.Value != Guid.Empty)
@@ -1302,8 +1305,44 @@ public class InventoryService : IInventoryService
             .OrderBy(ws => ws.Warehouse.WarehouseName)
             .ToListAsync(cancellationToken);
 
+        // Pre-aggregate sold quantity and sold value from SalesInvoiceItems for these items
+        var itemIds = rawStocks.Select(ws => ws.ItemId).Distinct().ToList();
+        var salesInvoiceData = await _context.SalesInvoiceItems
+            .Where(sii => sii.TenantId == tenantId && !sii.IsDeleted && itemIds.Contains(sii.ItemId) && sii.Invoice.Status != InvoiceStatus.Cancelled)
+            .GroupBy(sii => new { sii.Invoice.WarehouseId, sii.ItemId, sii.VariantId })
+            .Select(g => new {
+                g.Key.WarehouseId,
+                g.Key.ItemId,
+                g.Key.VariantId,
+                TotalQty = g.Sum(x => x.Quantity),
+                TotalVal = g.Sum(x => x.TotalAmount)
+            })
+            .ToListAsync(cancellationToken);
+
+        var salesDict = salesInvoiceData.ToDictionary(
+            x => (x.WarehouseId, x.ItemId, x.VariantId),
+            x => (SoldQty: x.TotalQty, SoldVal: x.TotalVal)
+        );
+
         var items = rawStocks.Select(ws => {
             var (sz, col) = ExtractSizeAndColor(ws.Variant?.AttributesJson);
+            var priceAdjustment = ws.Variant?.PriceAdjustment ?? 0m;
+            var effectiveUnitPrice = (ws.Item?.SellingPrice ?? 0m) + priceAdjustment;
+            var effectiveMrp = (ws.Item?.MRP ?? 0m) + priceAdjustment;
+            var purchasePrice = ws.Item?.PurchasePrice ?? 0m;
+            var uomSymbol = ws.Item?.PrimaryUom?.Symbol ?? "Pcs";
+
+            var rateForValuation = effectiveUnitPrice > 0 ? effectiveUnitPrice : (effectiveMrp > 0 ? effectiveMrp : purchasePrice);
+            var currentVal = Math.Round(ws.CurrentQuantity * rateForValuation, 2);
+
+            decimal soldQty = 0m;
+            decimal soldVal = 0m;
+            if (salesDict.TryGetValue((ws.WarehouseId, ws.ItemId, ws.VariantId), out var sale))
+            {
+                soldQty = sale.SoldQty;
+                soldVal = sale.SoldVal;
+            }
+
             return new WarehouseStockDto(
                 ws.WarehouseId,
                 ws.Warehouse.WarehouseCode,
@@ -1320,7 +1359,16 @@ public class InventoryService : IInventoryService
                 ws.Variant?.VariantSku,
                 ws.Variant?.VariantName,
                 sz,
-                col
+                col,
+                ws.ItemId,
+                ws.Item?.Name,
+                uomSymbol,
+                effectiveUnitPrice,
+                effectiveMrp,
+                purchasePrice,
+                currentVal,
+                soldQty,
+                soldVal
             );
         }).ToList();
 

@@ -398,6 +398,15 @@ export interface WarehouseStock {
   variantName?: string;
   size?: string;
   color?: string;
+  itemId?: string;
+  itemName?: string;
+  primaryUomSymbol?: string;
+  unitPrice?: number;
+  mrp?: number;
+  purchasePrice?: number;
+  currentStockValue?: number;
+  soldQuantity?: number;
+  soldStockValue?: number;
 }
 
 export interface StockMovement {
