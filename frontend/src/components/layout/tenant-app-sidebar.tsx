@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Boxes,
+  Barcode,
   FileSpreadsheet,
   Users2,
   Building2,
@@ -259,11 +260,12 @@ export function TenantAppSidebar({
       },
       {
         id: "inventory",
-        title: "Catalog & Stock",
+        title: "Inventory & Stock",
         icon: Boxes,
         items: [
           { label: "Product Catalog", href: "/app/inventory/items", icon: Boxes },
           { label: "Live Stock Ledger", href: "/app/inventory/stock", icon: FileSpreadsheet },
+          { label: "Barcode Studio", href: "/app/inventory/barcode", icon: Barcode },
           { label: "Categories & Brands", href: "/app/inventory/categories", icon: BookOpen },
         ]
       },
