@@ -8,7 +8,7 @@ namespace UdyogBill.Application.Interfaces;
 
 public interface IBarcodeService
 {
-    Task<Result<BarcodeItemLabelDto>> GetBarcodeItemLabelAsync(Guid itemId, Guid? batchId = null, CancellationToken cancellationToken = default);
+    Task<Result<BarcodeItemLabelDto>> GetBarcodeItemLabelAsync(Guid itemId, Guid? batchId = null, Guid? variantId = null, CancellationToken cancellationToken = default);
     Task<Result<BarcodeScanResultDto>> ScanBarcodeOrSkuAsync(string barcodeOrSku, CancellationToken cancellationToken = default);
     Task<Result<UpiQrPayloadDto>> GenerateInvoiceUpiQrAsync(Guid invoiceId, CancellationToken cancellationToken = default);
 }

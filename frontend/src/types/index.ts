@@ -1183,7 +1183,16 @@ export interface ConvertQuotationRequest {
   notes?: string;
 }
 
-// --- Barcode & Label Types ---
+export interface BarcodeVariantOption {
+  id: string;
+  size: string;
+  color: string;
+  sku: string;
+  barcode: string;
+  priceAdjustment: number;
+  stockQuantity: number;
+}
+
 export interface BarcodeItemLabel {
   itemId: string;
   itemName: string;
@@ -1197,6 +1206,10 @@ export interface BarcodeItemLabel {
   categoryName?: string;
   tenantName: string;
   quantity: number;
+  variantId?: string;
+  size?: string;
+  color?: string;
+  variants?: BarcodeVariantOption[];
 }
 
 export interface BarcodeScanResult {

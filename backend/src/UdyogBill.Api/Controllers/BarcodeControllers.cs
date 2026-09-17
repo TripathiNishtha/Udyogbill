@@ -24,9 +24,9 @@ public class TenantBarcodeController : BaseApiController
     [HttpGet("item/{itemId:guid}")]
     [ProducesResponseType(typeof(BarcodeItemLabelDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetItemBarcode(Guid itemId, [FromQuery] Guid? batchId = null, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetItemBarcode(Guid itemId, [FromQuery] Guid? batchId = null, [FromQuery] Guid? variantId = null, CancellationToken cancellationToken = default)
     {
-        var result = await _barcodeService.GetBarcodeItemLabelAsync(itemId, batchId, cancellationToken);
+        var result = await _barcodeService.GetBarcodeItemLabelAsync(itemId, batchId, variantId, cancellationToken);
         return HandleResult(result);
     }
 

@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
+using UdyogBill.Domain.Entities.Inventory;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared;
 
@@ -32,7 +35,27 @@ public class BarcodeService : IBarcodeService
         return tenantId.Value;
     }
 
-    public async Task<Result<BarcodeItemLabelDto>> GetBarcodeItemLabelAsync(Guid itemId, Guid? batchId = null, CancellationToken cancellationToken = default)
+    private static (string Size, string Color) GetVariantSizeAndColor(ItemVariant v)
+    {
+        string size = "";
+        string color = "";
+        if (!string.IsNullOrWhiteSpace(v.AttributesJson))
+        {
+            try
+            {
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(v.AttributesJson);
+                if (dict != null)
+                {
+                    if (dict.TryGetValue("size", out var s)) size = s;
+                    if (dict.TryGetValue("color", out var c)) color = c;
+                }
+            }
+            catch { }
+        }
+        return (size, color);
+    }
+
+    public async Task<Result<BarcodeItemLabelDto>> GetBarcodeItemLabelAsync(Guid itemId, Guid? batchId = null, Guid? variantId = null, CancellationToken cancellationToken = default)
     {
         var tenantId = RequireTenantId();
 
@@ -53,6 +76,7 @@ public class BarcodeService : IBarcodeService
         DateTime? expDate = null;
         decimal mrp = item.MRP;
         decimal price = item.SellingPrice;
+        string itemSku = item.Sku;
 
         if (batchId.HasValue)
         {
@@ -70,11 +94,56 @@ public class BarcodeService : IBarcodeService
 
         var barcode = !string.IsNullOrWhiteSpace(item.Barcode) ? item.Barcode : item.Sku;
 
+        // Fetch variants if any exist
+        var variants = await _context.ItemVariants
+            .Where(v => v.TenantId == tenantId && v.ItemId == itemId && !v.IsDeleted)
+            .OrderBy(v => v.VariantSku)
+            .ToListAsync(cancellationToken);
+
+        var variantStockMap = await _context.ItemWarehouseStocks
+            .Where(s => s.TenantId == tenantId && s.ItemId == itemId && s.VariantId.HasValue)
+            .GroupBy(s => s.VariantId!.Value)
+            .Select(g => new { VariantId = g.Key, Stock = g.Sum(x => x.CurrentQuantity) })
+            .ToDictionaryAsync(x => x.VariantId, x => x.Stock, cancellationToken);
+
+        var variantOptions = variants.Select(v =>
+        {
+            var (s, c) = GetVariantSizeAndColor(v);
+            return new BarcodeVariantOptionDto
+            {
+                Id = v.Id,
+                Size = s,
+                Color = c,
+                Sku = v.VariantSku,
+                Barcode = !string.IsNullOrWhiteSpace(v.Barcode) ? v.Barcode : v.VariantSku,
+                PriceAdjustment = v.PriceAdjustment,
+                StockQuantity = variantStockMap.TryGetValue(v.Id, out var qty) ? qty : 0
+            };
+        }).ToList();
+
+        string? varSize = null;
+        string? varColor = null;
+
+        if (variantId.HasValue)
+        {
+            var selectedVariant = variants.FirstOrDefault(v => v.Id == variantId.Value);
+            if (selectedVariant != null)
+            {
+                var (s, c) = GetVariantSizeAndColor(selectedVariant);
+                varSize = s;
+                varColor = c;
+                barcode = !string.IsNullOrWhiteSpace(selectedVariant.Barcode) ? selectedVariant.Barcode : selectedVariant.VariantSku;
+                itemSku = selectedVariant.VariantSku;
+                mrp += selectedVariant.PriceAdjustment;
+                price += selectedVariant.PriceAdjustment;
+            }
+        }
+
         return Result<BarcodeItemLabelDto>.Success(new BarcodeItemLabelDto
         {
             ItemId = item.Id,
             ItemName = item.Name,
-            ItemSku = item.Sku,
+            ItemSku = itemSku,
             Barcode = barcode,
             Mrp = mrp,
             SellingPrice = price,
@@ -83,7 +152,11 @@ public class BarcodeService : IBarcodeService
             BrandName = item.Brand?.Name,
             CategoryName = item.Category?.Name,
             TenantName = tenant?.BusinessName ?? "UdyogBill",
-            Quantity = 1
+            Quantity = 1,
+            VariantId = variantId,
+            Size = varSize,
+            Color = varColor,
+            Variants = variantOptions
         });
     }
 
@@ -103,12 +176,26 @@ public class BarcodeService : IBarcodeService
             .FirstOrDefaultAsync(i => i.TenantId == tenantId && !i.IsDeleted &&
                 (i.Barcode == code || i.Sku.ToLower() == code.ToLower()), cancellationToken);
 
+        ItemVariant? matchedVariant = null;
+        if (item == null)
+        {
+            matchedVariant = await _context.ItemVariants
+                .Include(v => v.Item)
+                .ThenInclude(i => i.PrimaryUom)
+                .FirstOrDefaultAsync(v => v.TenantId == tenantId && !v.IsDeleted &&
+                    (v.Barcode == code || v.VariantSku.ToLower() == code.ToLower()), cancellationToken);
+
+            if (matchedVariant != null)
+            {
+                item = matchedVariant.Item;
+            }
+        }
+
         if (item == null)
         {
             return Result<BarcodeScanResultDto>.Failure($"No active item found matching barcode or SKU '{code}'.", "NOT_FOUND");
         }
 
-        // Fetch Total Stock
         var totalStock = await _context.ItemWarehouseStocks
             .Where(s => s.TenantId == tenantId && s.ItemId == item.Id)
             .SumAsync(s => s.CurrentQuantity, cancellationToken);
@@ -134,14 +221,25 @@ public class BarcodeService : IBarcodeService
             ))
             .ToListAsync(cancellationToken);
 
+        var scanSku = matchedVariant != null ? matchedVariant.VariantSku : item.Sku;
+        var scanBarcode = matchedVariant != null
+            ? (!string.IsNullOrWhiteSpace(matchedVariant.Barcode) ? matchedVariant.Barcode : matchedVariant.VariantSku)
+            : (!string.IsNullOrWhiteSpace(item.Barcode) ? item.Barcode : item.Sku);
+        var (matchedSize, matchedColor) = matchedVariant != null ? GetVariantSizeAndColor(matchedVariant) : ("", "");
+        var scanName = matchedVariant != null
+            ? $"{item.Name} ({matchedSize} - {matchedColor})"
+            : item.Name;
+        var scanMrp = matchedVariant != null ? item.MRP + matchedVariant.PriceAdjustment : item.MRP;
+        var scanSellingPrice = matchedVariant != null ? item.SellingPrice + matchedVariant.PriceAdjustment : item.SellingPrice;
+
         return Result<BarcodeScanResultDto>.Success(new BarcodeScanResultDto
         {
             ItemId = item.Id,
-            ItemSku = item.Sku,
-            Barcode = !string.IsNullOrWhiteSpace(item.Barcode) ? item.Barcode : item.Sku,
-            Name = item.Name,
-            Mrp = item.MRP,
-            SellingPrice = item.SellingPrice,
+            ItemSku = scanSku,
+            Barcode = scanBarcode,
+            Name = scanName,
+            Mrp = scanMrp,
+            SellingPrice = scanSellingPrice,
             PurchasePrice = item.PurchasePrice,
             TaxRate = item.TaxRate,
             HsnCode = item.HSNCode,

@@ -17,6 +17,21 @@ public class BarcodeItemLabelDto
     public string? CategoryName { get; set; }
     public string TenantName { get; set; } = string.Empty;
     public int Quantity { get; set; } = 1;
+    public Guid? VariantId { get; set; }
+    public string? Size { get; set; }
+    public string? Color { get; set; }
+    public List<BarcodeVariantOptionDto> Variants { get; set; } = new();
+}
+
+public class BarcodeVariantOptionDto
+{
+    public Guid Id { get; set; }
+    public string Size { get; set; } = string.Empty;
+    public string Color { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
+    public string Barcode { get; set; } = string.Empty;
+    public decimal PriceAdjustment { get; set; }
+    public decimal StockQuantity { get; set; }
 }
 
 public class GenerateBarcodeLabelsRequest

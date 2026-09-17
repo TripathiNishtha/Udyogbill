@@ -6,9 +6,12 @@ import {
 } from "@/types";
 
 export const barcodeService = {
-  getItemBarcode: async (itemId: string, batchId?: string): Promise<BarcodeItemLabel> => {
+  getItemBarcode: async (itemId: string, batchId?: string, variantId?: string): Promise<BarcodeItemLabel> => {
     const res = await apiClient.get<BarcodeItemLabel>(`/tenant/barcode/item/${itemId}`, {
-      params: batchId ? { batchId } : undefined
+      params: {
+        ...(batchId ? { batchId } : {}),
+        ...(variantId ? { variantId } : {})
+      }
     });
     return res.data;
   },

@@ -11,7 +11,10 @@ import {
   Settings2,
   RefreshCw,
   Eye,
-  Check
+  Check,
+  Shirt,
+  Tag,
+  Copy
 } from "lucide-react";
 import JsBarcode from "jsbarcode";
 import { inventoryService } from "@/services/inventory-services";
@@ -69,6 +72,12 @@ export default function BarcodeStudioPage() {
   const [labelData, setLabelData] = useState<BarcodeItemLabel | null>(null);
   const [fetchingLabel, setFetchingLabel] = useState(false);
 
+  // Garments Multi-Variant State
+  const [printMode, setPrintMode] = useState<"all-variants" | "single-variant" | "standard">("all-variants");
+  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
+  const [variantCopies, setVariantCopies] = useState<Record<string, number>>({});
+  const [bulkVariantCopies, setBulkVariantCopies] = useState<number | "">(2);
+
   // Label Customization Settings
   const [labelCopies, setLabelCopies] = useState<number>(24);
   const [sheetLayout, setSheetLayout] = useState<"a4-24" | "a4-40" | "a4-65" | "thermal-single">("a4-24");
@@ -98,11 +107,24 @@ export default function BarcodeStudioPage() {
     }
   };
 
-  const fetchItemBarcode = async (itemId: string) => {
+  const fetchItemBarcode = async (itemId: string, variantId?: string) => {
     setFetchingLabel(true);
     try {
-      const data = await barcodeService.getItemBarcode(itemId);
+      const data = await barcodeService.getItemBarcode(itemId, undefined, variantId);
       setLabelData(data);
+      if (data.variants && data.variants.length > 0) {
+        if (!variantId) {
+          setPrintMode("all-variants");
+          setSelectedVariantId(data.variants[0].id);
+          const initialMap: Record<string, number> = {};
+          data.variants.forEach((v) => {
+            initialMap[v.id] = initialMap[v.id] || 2;
+          });
+          setVariantCopies(initialMap);
+        }
+      } else {
+        setPrintMode("standard");
+      }
     } catch (err) {
       console.error("Failed to fetch barcode:", err);
     } finally {
@@ -112,6 +134,7 @@ export default function BarcodeStudioPage() {
 
   const handleItemSelect = (itemId: string) => {
     setSelectedItemId(itemId);
+    setSelectedVariantId("");
     fetchItemBarcode(itemId);
   };
 
@@ -125,6 +148,70 @@ export default function BarcodeStudioPage() {
       i.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (i.barcode && i.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const totalVariantCopies =
+    labelData?.variants && labelData.variants.length > 0
+      ? labelData.variants.reduce((sum, v) => sum + (variantCopies[v.id] ?? 2), 0)
+      : 0;
+
+  const totalEffectiveLabels =
+    printMode === "all-variants" && labelData?.variants && labelData.variants.length > 0
+      ? totalVariantCopies
+      : labelCopies;
+
+  interface RenderTagItem {
+    key: string;
+    tenantName: string;
+    itemName: string;
+    barcode: string;
+    sku: string;
+    size?: string;
+    color?: string;
+    mrp: number;
+    sellingPrice: number;
+    batchNumber?: string;
+    expiryDate?: string;
+  }
+
+  const renderedTags: RenderTagItem[] = [];
+  if (labelData) {
+    if (printMode === "all-variants" && labelData.variants && labelData.variants.length > 0) {
+      labelData.variants.forEach((v) => {
+        const count = variantCopies[v.id] ?? 2;
+        for (let i = 0; i < count; i++) {
+          renderedTags.push({
+            key: `${v.id}-${i}`,
+            tenantName: labelData.tenantName || "UdyogBill",
+            itemName: labelData.itemName,
+            barcode: v.barcode || v.sku,
+            sku: v.sku,
+            size: v.size,
+            color: v.color,
+            mrp: labelData.mrp + v.priceAdjustment,
+            sellingPrice: labelData.sellingPrice + v.priceAdjustment,
+            batchNumber: labelData.batchNumber,
+            expiryDate: labelData.expiryDate
+          });
+        }
+      });
+    } else {
+      for (let i = 0; i < labelCopies; i++) {
+        renderedTags.push({
+          key: `single-${i}`,
+          tenantName: labelData.tenantName || "UdyogBill",
+          itemName: labelData.itemName,
+          barcode: labelData.barcode || labelData.itemSku || "PRD-001",
+          sku: labelData.itemSku,
+          size: labelData.size,
+          color: labelData.color,
+          mrp: labelData.mrp,
+          sellingPrice: labelData.sellingPrice,
+          batchNumber: labelData.batchNumber,
+          expiryDate: labelData.expiryDate
+        });
+      }
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -152,11 +239,11 @@ export default function BarcodeStudioPage() {
 
         <button
           onClick={handlePrint}
-          disabled={!labelData}
+          disabled={!labelData || renderedTags.length === 0}
           className="inline-flex items-center space-x-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-500 active:scale-95 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-600/20 transition-all cursor-pointer"
         >
           <Printer className="w-4 h-4" />
-          <span>Print {labelCopies} Labels (Ctrl+P)</span>
+          <span>Print {totalEffectiveLabels} Labels (Ctrl+P)</span>
         </button>
       </div>
 
@@ -233,6 +320,173 @@ export default function BarcodeStudioPage() {
             </div>
           </div>
 
+          {/* Garments Multi-Variant Studio Card */}
+          {labelData?.variants && labelData.variants.length > 0 && (
+            <div className="bg-orange-50/70 dark:bg-orange-950/20 rounded-2xl border-2 border-orange-300 dark:border-orange-700/60 p-4 space-y-3.5 shadow-sm text-xs animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-orange-950 dark:text-orange-200 uppercase tracking-wider flex items-center space-x-1.5">
+                  <Shirt className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  <span>Garments Variant Studio</span>
+                </h3>
+                <span className="px-2 py-0.5 bg-orange-200/80 dark:bg-orange-900/60 text-orange-900 dark:text-orange-200 font-bold rounded-full text-[10px]">
+                  {labelData.variants.length} Variants Available
+                </span>
+              </div>
+
+              {/* Mode Switcher */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-orange-100/70 dark:bg-orange-950/50 rounded-xl border border-orange-200 dark:border-orange-800">
+                <button
+                  type="button"
+                  onClick={() => setPrintMode("all-variants")}
+                  className={`py-1.5 px-2 rounded-lg font-bold text-center transition cursor-pointer text-[11px] flex items-center justify-center gap-1.5 ${
+                    printMode === "all-variants"
+                      ? "bg-white dark:bg-orange-600 text-orange-900 dark:text-white shadow-xs font-black"
+                      : "text-orange-700 dark:text-orange-300 hover:text-orange-950"
+                  }`}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>1-Click All Variants</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPrintMode("single-variant")}
+                  className={`py-1.5 px-2 rounded-lg font-bold text-center transition cursor-pointer text-[11px] flex items-center justify-center gap-1.5 ${
+                    printMode === "single-variant"
+                      ? "bg-white dark:bg-orange-600 text-orange-900 dark:text-white shadow-xs font-black"
+                      : "text-orange-700 dark:text-orange-300 hover:text-orange-950"
+                  }`}
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  <span>Single Variant</span>
+                </button>
+              </div>
+
+              {printMode === "all-variants" ? (
+                <div className="space-y-3">
+                  {/* Bulk Fill for All Variants */}
+                  <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-orange-200 dark:border-orange-800/80 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        Stickers per Variant:
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={bulkVariantCopies}
+                          onChange={(e) => setBulkVariantCopies(e.target.value === "" ? "" : Number(e.target.value))}
+                          className="w-14 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (bulkVariantCopies !== "") {
+                              const updated: Record<string, number> = {};
+                              labelData.variants?.forEach((v) => {
+                                updated[v.id] = Number(bulkVariantCopies) || 1;
+                              });
+                              setVariantCopies(updated);
+                            }
+                          }}
+                          className="px-2 py-0.5 bg-orange-600 hover:bg-orange-500 text-white rounded text-[10px] font-bold cursor-pointer"
+                        >
+                          Apply All
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+                      <span className="text-slate-500 font-medium">Quick Fill:</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 4, 6].map((cnt) => (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={() => {
+                              const updated: Record<string, number> = {};
+                              labelData.variants?.forEach((v) => {
+                                updated[v.id] = cnt;
+                              });
+                              setVariantCopies(updated);
+                            }}
+                            className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded font-bold cursor-pointer"
+                          >
+                            {cnt} each
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Variants List with individual copy inputs */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400 px-1">
+                      <span>Variant (Size / Color)</span>
+                      <span>Stickers</span>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                      {labelData.variants.map((v) => (
+                        <div
+                          key={v.id}
+                          className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px]"
+                        >
+                          <div className="truncate pr-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.2 bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 rounded font-black font-mono text-[10px] border border-orange-300 dark:border-orange-800">
+                                {v.size}
+                              </span>
+                              <span className="font-bold text-slate-900 dark:text-white truncate">
+                                {v.color}
+                              </span>
+                            </div>
+                            <div className="text-[9.5px] font-mono text-slate-500 mt-0.5">
+                              {v.barcode || v.sku}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={variantCopies[v.id] ?? 2}
+                              onChange={(e) => {
+                                const val = e.target.value === "" ? 0 : Math.max(0, Number(e.target.value));
+                                setVariantCopies((prev) => ({ ...prev, [v.id]: val }));
+                              }}
+                              className="w-12 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white"
+                            />
+                            <span className="text-[10px] text-slate-400">tags</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Choose Specific Variant:
+                  </label>
+                  <select
+                    value={selectedVariantId}
+                    onChange={(e) => {
+                      const vId = e.target.value;
+                      setSelectedVariantId(vId);
+                      fetchItemBarcode(selectedItemId, vId);
+                    }}
+                    className="w-full bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded-xl p-2 text-slate-900 dark:text-white font-medium focus:outline-none"
+                  >
+                    {labelData.variants.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        Size: {v.size} | Color: {v.color} ({v.barcode || v.sku})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 2. Sheet Format & Count Card */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 shadow-sm text-xs">
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-2">
@@ -263,33 +517,35 @@ export default function BarcodeStudioPage() {
               </select>
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold">
-                  Number of Label Stickers
-                </label>
-                <div className="flex items-center gap-1">
-                  {[1, 24, 40, 65].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setLabelCopies(preset)}
-                      className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
-                    >
-                      {preset}
-                    </button>
-                  ))}
+            {printMode !== "all-variants" && (
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold">
+                    Number of Label Stickers
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {[1, 24, 40, 65].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setLabelCopies(preset)}
+                        className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={labelCopies}
+                  onChange={(e) => setLabelCopies(Math.max(1, Number(e.target.value)))}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-2 text-slate-900 dark:text-white text-right focus:outline-none focus:border-orange-500 font-mono font-bold"
+                />
               </div>
-              <input
-                type="number"
-                min="1"
-                max="500"
-                value={labelCopies}
-                onChange={(e) => setLabelCopies(Math.max(1, Number(e.target.value)))}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-2 text-slate-900 dark:text-white text-right focus:outline-none focus:border-orange-500 font-mono font-bold"
-              />
-            </div>
+            )}
 
             <div className="space-y-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
               <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -356,7 +612,7 @@ export default function BarcodeStudioPage() {
               <div className="flex items-center space-x-2">
                 <Layers className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                 <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                  Live Print Preview ({labelCopies} labels • {sheetLayout})
+                  Live Print Preview ({totalEffectiveLabels} labels • {sheetLayout})
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -386,9 +642,9 @@ export default function BarcodeStudioPage() {
                         : "grid-cols-5 gap-1.5")
                 }`}
               >
-                {Array.from({ length: labelCopies }).map((_, idx) => (
+                {renderedTags.map((tag) => (
                   <div
-                    key={idx}
+                    key={tag.key}
                     className="border border-dashed border-slate-300 print:border-none p-2 rounded-lg flex flex-col items-center justify-between text-center bg-white overflow-hidden"
                     style={{
                       minHeight:
@@ -404,19 +660,28 @@ export default function BarcodeStudioPage() {
                     {/* 1. Store Header */}
                     {showTenantName && (
                       <div className="text-[9px] font-extrabold tracking-tight text-slate-800 uppercase truncate w-full">
-                        {labelData.tenantName || "UdyogBill"}
+                        {tag.tenantName || "UdyogBill"}
                       </div>
                     )}
 
                     {/* 2. Product Name */}
                     <div className="text-[11px] font-black text-black leading-tight truncate w-full mt-0.5">
-                      {labelData.itemName}
+                      {tag.itemName}
                     </div>
+
+                    {/* 2B. SIZE & COLOR BADGE (CRITICAL FOR GARMENTS) */}
+                    {(tag.size || tag.color) && (
+                      <div className="my-0.5 px-2 py-0.5 bg-slate-100 rounded text-[9.5px] font-black tracking-wider text-black border border-slate-300 w-full flex items-center justify-center gap-1.5">
+                        {tag.size && <span className="text-orange-700 font-mono">SIZE: {tag.size}</span>}
+                        {tag.size && tag.color && <span className="text-slate-400 font-normal">|</span>}
+                        {tag.color && <span className="text-slate-900">{tag.color.toUpperCase()}</span>}
+                      </div>
+                    )}
 
                     {/* 3. REAL SCANNABLE CODE-128 BARCODE SVG */}
                     <div className="my-1 w-full flex flex-col items-center justify-center">
                       <BarcodeSvg
-                        value={labelData.barcode || labelData.itemSku || "PRD-001"}
+                        value={tag.barcode || tag.sku || "PRD-001"}
                         width={
                           sheetLayout === "a4-65"
                             ? 1.0
@@ -428,12 +693,12 @@ export default function BarcodeStudioPage() {
                         }
                         height={
                           sheetLayout === "a4-65"
-                            ? 24
+                            ? (tag.size || tag.color ? 20 : 24)
                             : sheetLayout === "a4-40"
-                            ? 28
+                            ? (tag.size || tag.color ? 24 : 28)
                             : sheetLayout === "thermal-single"
-                            ? 40
-                            : 34
+                            ? 36
+                            : (tag.size || tag.color ? 28 : 34)
                         }
                         displayValue={showBarcodeText}
                         fontSize={sheetLayout === "a4-65" ? 8 : 9}
@@ -444,24 +709,24 @@ export default function BarcodeStudioPage() {
                     <div className="flex items-center justify-between w-full text-[9px] font-semibold border-t border-slate-200 pt-1 mt-0.5 px-0.5">
                       {showMrp && (
                         <div className="text-slate-500 line-through">
-                          MRP: ₹{Number(labelData.mrp).toFixed(0)}
+                          MRP: ₹{Number(tag.mrp).toFixed(0)}
                         </div>
                       )}
                       {showPrice && (
                         <div className="text-black font-black text-[11px] ml-auto">
-                          ₹{Number(labelData.sellingPrice).toFixed(0)}
+                          ₹{Number(tag.sellingPrice).toFixed(0)}
                         </div>
                       )}
                     </div>
 
                     {/* 5. Batch & Expiry (if enabled and present) */}
-                    {showBatch && labelData.batchNumber && (
+                    {showBatch && tag.batchNumber && (
                       <div className="text-[7.5px] text-slate-600 flex justify-between w-full font-mono mt-0.5 border-t border-dashed border-slate-100 pt-0.5">
-                        <span className="truncate">B: {labelData.batchNumber}</span>
-                        {labelData.expiryDate && (
+                        <span className="truncate">B: {tag.batchNumber}</span>
+                        {tag.expiryDate && (
                           <span className="shrink-0 ml-1">
                             EXP:{" "}
-                            {new Date(labelData.expiryDate).toLocaleDateString("en-IN", {
+                            {new Date(tag.expiryDate).toLocaleDateString("en-IN", {
                               month: "2-digit",
                               year: "2-digit"
                             })}
