@@ -569,6 +569,16 @@ public class SalesService : ISalesService
             .Where(b => b.TenantId == tenantId && batchIds.Contains(b.Id) && !b.IsDeleted)
             .ToDictionaryAsync(b => b.Id, cancellationToken);
 
+        var variantIds = request.Items.Where(x => x.VariantId.HasValue && x.VariantId.Value != Guid.Empty).Select(x => x.VariantId!.Value).Distinct().ToList();
+        var variantsDict = variantIds.Any()
+            ? await _context.ItemVariants.Where(v => v.TenantId == tenantId && variantIds.Contains(v.Id) && !v.IsDeleted).ToDictionaryAsync(v => v.Id, cancellationToken)
+            : new Dictionary<Guid, ItemVariant>();
+
+        var garmentItemIds = itemsDict.Values.Where(it => it.TrackVariants).Select(it => it.Id).ToList();
+        var itemVariantsList = garmentItemIds.Any()
+            ? await _context.ItemVariants.Where(v => v.TenantId == tenantId && garmentItemIds.Contains(v.ItemId) && !v.IsDeleted && v.IsActive).ToListAsync(cancellationToken)
+            : new List<ItemVariant>();
+
         var existingStocks = await _context.ItemWarehouseStocks
             .Include(s => s.Batch)
             .Where(s => s.TenantId == tenantId && itemIds.Contains(s.ItemId) && s.WarehouseId == warehouseId && !s.IsDeleted)
@@ -723,6 +733,75 @@ public class SalesService : ISalesService
                 uomCode = uom.Code ?? "UNIT";
             }
 
+            var itemAttrs = new Dictionary<string, object>();
+            if (!string.IsNullOrWhiteSpace(reqItem.AttributesJson) && reqItem.AttributesJson != "{}")
+            {
+                try
+                {
+                    var parsed = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(reqItem.AttributesJson);
+                    if (parsed != null)
+                    {
+                        foreach (var kvp in parsed) itemAttrs[kvp.Key] = kvp.Value;
+                    }
+                }
+                catch { }
+            }
+
+            // Auto-resolve Variant if not passed but item has variants and size/color are present
+            if (!reqItem.VariantId.HasValue && item.TrackVariants && itemVariantsList.Any())
+            {
+                string? searchSize = itemAttrs.TryGetValue("size", out var sVal) ? sVal?.ToString()?.Trim() : null;
+                string? searchColor = itemAttrs.TryGetValue("color", out var cVal) ? cVal?.ToString()?.Trim() : null;
+                if (!string.IsNullOrWhiteSpace(searchSize) || !string.IsNullOrWhiteSpace(searchColor))
+                {
+                    var matchedV = itemVariantsList.FirstOrDefault(v =>
+                    {
+                        if (v.ItemId != item.Id) return false;
+                        var (vSz, vCol) = ExtractSizeAndColor(v.AttributesJson);
+                        bool sizeMatches = string.IsNullOrWhiteSpace(searchSize) || string.Equals(vSz, searchSize, StringComparison.OrdinalIgnoreCase);
+                        bool colorMatches = string.IsNullOrWhiteSpace(searchColor) || string.Equals(vCol, searchColor, StringComparison.OrdinalIgnoreCase);
+                        return sizeMatches && colorMatches;
+                    });
+                    if (matchedV != null)
+                    {
+                        reqItem.VariantId = matchedV.Id;
+                        if (!variantsDict.ContainsKey(matchedV.Id)) variantsDict[matchedV.Id] = matchedV;
+                    }
+                }
+            }
+
+            // If VariantId is set, enrich attributesJson with size, color, styleCode and variantName
+            if (reqItem.VariantId.HasValue && variantsDict.TryGetValue(reqItem.VariantId.Value, out var resolvedVariant))
+            {
+                if (!string.IsNullOrWhiteSpace(resolvedVariant.AttributesJson))
+                {
+                    try
+                    {
+                        using var vDoc = System.Text.Json.JsonDocument.Parse(resolvedVariant.AttributesJson);
+                        if (vDoc.RootElement.TryGetProperty("size", out var sProp) && !itemAttrs.ContainsKey("size"))
+                        {
+                            var szStr = sProp.GetString()?.Trim();
+                            if (!string.IsNullOrWhiteSpace(szStr)) itemAttrs["size"] = szStr;
+                        }
+                        if (vDoc.RootElement.TryGetProperty("color", out var cProp) && !itemAttrs.ContainsKey("color"))
+                        {
+                            var cStr = cProp.GetString()?.Trim();
+                            if (!string.IsNullOrWhiteSpace(cStr)) itemAttrs["color"] = cStr;
+                        }
+                        if (vDoc.RootElement.TryGetProperty("styleCode", out var stProp) && !itemAttrs.ContainsKey("styleCode"))
+                        {
+                            var stStr = stProp.GetString()?.Trim();
+                            if (!string.IsNullOrWhiteSpace(stStr)) itemAttrs["styleCode"] = stStr;
+                        }
+                    }
+                    catch { }
+                }
+                if (!itemAttrs.ContainsKey("variantName") && !string.IsNullOrWhiteSpace(resolvedVariant.VariantName))
+                {
+                    itemAttrs["variantName"] = resolvedVariant.VariantName;
+                }
+            }
+
             bool shouldDepleteStock = item.ItemType != ItemType.Service && item.TrackInventory;
             Guid? effectiveBatchId = reqItem.BatchId;
             string batchNo = reqItem.BatchNumber;
@@ -830,19 +909,6 @@ public class SalesService : ISalesService
                     expiryDate = DateTime.SpecifyKind(resolvedBatch.ExpiryDate, DateTimeKind.Utc);
             }
 
-            var itemAttrs = new Dictionary<string, object>();
-            if (!string.IsNullOrWhiteSpace(reqItem.AttributesJson) && reqItem.AttributesJson != "{}")
-            {
-                try
-                {
-                    var parsed = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(reqItem.AttributesJson);
-                    if (parsed != null)
-                    {
-                        foreach (var kvp in parsed) itemAttrs[kvp.Key] = kvp.Value;
-                    }
-                }
-                catch { }
-            }
             if (reqItem.FreeQuantity > 0) itemAttrs["freeQuantity"] = reqItem.FreeQuantity;
             if (lineInputs[i].ConversionRatio.HasValue && lineInputs[i].ConversionRatio.Value != 1m) 
                 itemAttrs["conversionRatio"] = lineInputs[i].ConversionRatio.Value;
@@ -1461,6 +1527,7 @@ public class SalesService : ISalesService
                 TenantId = tenantId,
                 Invoice = invoice,
                 ItemId = item.Id,
+                VariantId = reqItem.VariantId,
                 ItemSku = item.Sku,
                 ItemName = item.Name,
                 HsnCode = !string.IsNullOrWhiteSpace(reqItem.HsnCode) ? reqItem.HsnCode : item.HSNCode,
@@ -2766,6 +2833,24 @@ public class SalesService : ISalesService
         _context.LedgerAccounts.Add(acc);
         await _context.SaveChangesAsync(cancellationToken);
         return acc;
+    }
+
+    private static (string? size, string? color) ExtractSizeAndColor(string? attributesJson)
+    {
+        if (string.IsNullOrWhiteSpace(attributesJson) || attributesJson == "{}") return (null, null);
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(attributesJson);
+            string? size = null;
+            string? color = null;
+            if (doc.RootElement.TryGetProperty("size", out var sp)) size = sp.GetString()?.Trim();
+            if (doc.RootElement.TryGetProperty("color", out var cp)) color = cp.GetString()?.Trim();
+            return (size, color);
+        }
+        catch
+        {
+            return (null, null);
+        }
     }
 
     #endregion

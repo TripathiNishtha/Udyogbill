@@ -186,6 +186,7 @@ export default function TenantStockExplorerPage() {
             <thead className="text-muted-foreground uppercase tracking-wider bg-surface-muted border-b border-border font-bold">
               <tr>
                 <th className="px-5 py-3.5 font-bold text-foreground">Warehouse / Branch</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Variant (Size / Colour)</th>
                 <th className="px-5 py-3.5 font-bold text-foreground">Batch Number</th>
                 <th className="px-5 py-3.5 font-bold text-foreground">Expiry Date</th>
                 <th className="px-5 py-3.5 font-bold text-foreground text-right">Current Stock</th>
@@ -195,19 +196,42 @@ export default function TenantStockExplorerPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mb-1"></div>
                     <div>Loading stock balances...</div>
                   </td>
                 </tr>
               ) : balances.length > 0 ? (
                 balances.map((b, idx) => (
-                  <tr key={`${b.warehouseId}-${b.batchId || idx}`} className="hover:bg-surface-muted/60 transition">
+                  <tr key={`${b.warehouseId}-${b.variantId || b.batchId || idx}`} className="hover:bg-surface-muted/60 transition">
                     <td className="px-5 py-3.5">
                       <div className="font-bold text-foreground">{b.warehouseName}</div>
                       <div className="text-[11px] text-muted-foreground">
                         {b.branchName} <span className="font-mono text-orange-600 dark:text-orange-400 font-semibold">({b.warehouseCode})</span>
                       </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {(b.size || b.color) ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {b.size && (
+                            <span className="px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800">
+                              Size: {b.size}
+                            </span>
+                          )}
+                          {b.color && (
+                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-border">
+                              Colour: {b.color}
+                            </span>
+                          )}
+                          {b.variantSku && (
+                            <span className="text-[10px] font-mono text-muted-foreground block w-full mt-0.5">
+                              {b.variantSku}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">— (Standard)</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 font-mono text-orange-600 dark:text-orange-400 font-bold">
                       {b.batchNumber || "— (Non-Batch)"}
@@ -225,7 +249,7 @@ export default function TenantStockExplorerPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     No active stock records in this warehouse.
                   </td>
                 </tr>
@@ -242,7 +266,7 @@ export default function TenantStockExplorerPage() {
             <thead className="text-muted-foreground uppercase tracking-wider bg-surface-muted border-b border-border font-bold">
               <tr>
                 <th className="px-5 py-3.5 font-bold text-foreground">Date &amp; Type</th>
-                <th className="px-5 py-3.5 font-bold text-foreground">Item &amp; SKU</th>
+                <th className="px-5 py-3.5 font-bold text-foreground">Item &amp; SKU / Variant</th>
                 <th className="px-5 py-3.5 font-bold text-foreground">Warehouse / Batch</th>
                 <th className="px-5 py-3.5 font-bold text-foreground">Movement Qty</th>
                 <th className="px-5 py-3.5 font-bold text-foreground">Balance Before &rarr; After</th>
@@ -277,7 +301,14 @@ export default function TenantStockExplorerPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="font-bold text-foreground">{m.itemName}</div>
-                        <div className="font-mono text-[11px] text-orange-600 dark:text-orange-400 font-bold">{m.itemSku}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="font-mono text-[11px] text-orange-600 dark:text-orange-400 font-bold">{m.itemSku}</span>
+                          {(m.size || m.color) && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px] border border-rose-200 dark:border-rose-800">
+                              {[m.size ? `Size: ${m.size}` : '', m.color ? `Col: ${m.color}` : ''].filter(Boolean).join(' | ')}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-foreground">
                         <div>{m.warehouseName}</div>

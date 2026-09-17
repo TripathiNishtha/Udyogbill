@@ -7,6 +7,7 @@ import {
 
 export interface CreateInvoiceItemInput {
   itemId: string;
+  variantId?: string;
   batchId?: string;
   batchNumber?: string;
   expiryDate?: string;

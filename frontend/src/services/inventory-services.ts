@@ -6,13 +6,14 @@ import {
   UnitConversion,
   ItemList,
   ItemBatch,
+  ItemVariant,
   WarehouseStock,
   StockMovement,
   LowStockItem,
   PagedResponse,
 } from "@/types";
 
-export type { Brand, Category, UnitOfMeasure };
+export type { Brand, Category, UnitOfMeasure, ItemVariant };
 
 export interface OpeningBatchInput {
   warehouseId?: string;
@@ -192,6 +193,12 @@ export const inventoryService = {
 
   async createBatch(itemId: string, input: CreateBatchInput): Promise<string> {
     const response = await apiClient.post<string>(`/tenant/items/${itemId}/batches`, input);
+    return response.data;
+  },
+
+  // Variants (Size & Color)
+  async getItemVariants(itemId: string): Promise<ItemVariant[]> {
+    const response = await apiClient.get<ItemVariant[]>(`/tenant/items/${itemId}/variants`);
     return response.data;
   },
 

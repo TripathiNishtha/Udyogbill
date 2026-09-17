@@ -80,6 +80,7 @@ interface CustomerDealPoint {
 
 interface InvoiceLineItemForm {
   itemId: string;
+  variantId?: string;
   itemSku: string;
   itemName: string;
   batchId?: string;
@@ -1444,6 +1445,7 @@ function TenantInvoicesPageContent() {
 
       const itemsPayload: CreateInvoiceItemInput[] = invoiceLines.map((line) => ({
         itemId: line.itemId,
+        variantId: line.variantId || undefined,
         batchId: line.batchId || undefined,
         batchNumber: line.batchNumber || undefined,
         expiryDate: line.expiryDate

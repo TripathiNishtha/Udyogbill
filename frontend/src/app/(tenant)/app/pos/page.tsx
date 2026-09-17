@@ -40,7 +40,8 @@ import { partyService } from "@/services/party-services";
 import { salesService } from "@/services/sales-services";
 import { tenantAppService, BranchDetails, WarehouseDetails } from "@/services/tenant-app-services";
 import { apiClient } from "@/lib/api-client";
-import { MasterItem, PartyList, TenantDetails } from "@/types";
+import { barcodeService } from "@/services/barcode-services";
+import { MasterItem, PartyList, TenantDetails, ItemVariant } from "@/types";
 import { printRawHtml } from "@/lib/print-helper";
 import { printTemplateService } from "@/services/print-template-services";
 import { GST_STATE_MAP } from "@/lib/gst-helper";
@@ -54,6 +55,9 @@ interface CartItem {
   unitPrice: number;
   mrp: number;
   discountPercent: number;
+  variantId?: string;
+  size?: string;
+  color?: string;
   batchId?: string;
   batchNumber?: string;
   expiryDate?: string;
@@ -109,6 +113,11 @@ export default function TenantPosPage() {
 
   // Held Bills state (Database Backed)
   const [heldBills, setHeldBills] = useState<HeldBillRecord[]>([]);
+
+  // Garments Variant Selector State
+  const [variantModalItem, setVariantModalItem] = useState<MasterItem | null>(null);
+  const [itemVariants, setItemVariants] = useState<ItemVariant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
   const [isHeldModalOpen, setIsHeldModalOpen] = useState(false);
   const [isHolding, setIsHolding] = useState(false);
 
@@ -292,18 +301,33 @@ export default function TenantPosPage() {
     return list;
   }, [items, selectedCategory, searchQuery]);
 
-  // Add Item to Cart
-  const addToCart = (item: MasterItem) => {
+  // Add Item to Cart (with optional Garment Variant Size & Color)
+  const addToCart = (
+    item: MasterItem,
+    options?: {
+      variantId?: string;
+      size?: string;
+      color?: string;
+      unitPrice?: number;
+      mrp?: number;
+    }
+  ) => {
     playScanBeep();
     setCart((prev) => {
-      const existing = prev.find((c) => c.item.id === item.id);
+      const existing = prev.find(
+        (c) =>
+          c.item.id === item.id &&
+          c.variantId === (options?.variantId || undefined) &&
+          c.size === (options?.size || undefined) &&
+          c.color === (options?.color || undefined)
+      );
       if (existing) {
         return prev.map((c) =>
-          c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+          c === existing ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
-      const rate = item.sellingPrice || item.mrp || 0;
-      const mrp = item.mrp && item.mrp > 0 ? item.mrp : rate;
+      const rate = options?.unitPrice ?? (item.sellingPrice || item.mrp || 0);
+      const mrp = options?.mrp ?? (item.mrp && item.mrp > 0 ? item.mrp : rate);
       return [
         ...prev,
         {
@@ -312,13 +336,40 @@ export default function TenantPosPage() {
           unitPrice: rate,
           mrp: mrp,
           discountPercent: 0,
+          variantId: options?.variantId,
+          size: options?.size,
+          color: options?.color,
         },
       ];
     });
   };
 
+  // Click product in grid: If trackVariants is true, fetch & prompt variant selection
+  const handleProductClick = async (item: MasterItem) => {
+    if (item.trackVariants) {
+      setVariantModalItem(item);
+      setLoadingVariants(true);
+      try {
+        const vars = await inventoryService.getItemVariants(item.id);
+        setItemVariants(vars);
+        if (vars.length === 0) {
+          addToCart(item);
+          setVariantModalItem(null);
+        }
+      } catch (err) {
+        console.error("Failed to load item variants", err);
+        addToCart(item);
+        setVariantModalItem(null);
+      } finally {
+        setLoadingVariants(false);
+      }
+    } else {
+      addToCart(item);
+    }
+  };
+
   // Barcode / Fast Input Submit Handler
-  const handleBarcodeSubmit = (e: React.FormEvent) => {
+  const handleBarcodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
@@ -329,31 +380,81 @@ export default function TenantPosPage() {
         i.sku.toLowerCase() === q
     );
 
-    if (exactMatch) {
+    if (exactMatch && !exactMatch.trackVariants) {
       addToCart(exactMatch);
       setSearchQuery("");
       return;
     }
 
+    // Try scanning through backend barcode engine (matches variant barcodes and variant SKUs)
+    try {
+      const scanRes = await barcodeService.scanBarcode(q);
+      if (scanRes && scanRes.itemId) {
+        const parentItem = items.find((i) => i.id === scanRes.itemId) || ({
+          id: scanRes.itemId,
+          tenantId: "",
+          sku: scanRes.itemSku,
+          name: scanRes.name,
+          barcode: scanRes.barcode,
+          itemType: 1,
+          primaryUomId: scanRes.primaryUomId,
+          primaryUomCode: scanRes.primaryUomCode,
+          primaryUomSymbol: scanRes.primaryUomCode,
+          taxRate: scanRes.taxRate,
+          purchasePrice: scanRes.purchasePrice,
+          sellingPrice: scanRes.sellingPrice,
+          mrp: scanRes.mrp,
+          minimumSellingPrice: scanRes.sellingPrice,
+          totalStock: scanRes.totalStock,
+          minimumStockAlert: 0,
+          isLowStock: false,
+          trackBatches: scanRes.batches && scanRes.batches.length > 0,
+          trackSerialNumbers: false,
+          trackVariants: !!scanRes.variantId,
+          attributesJson: "{}",
+          isActive: true,
+          createdAtUtc: new Date().toISOString()
+        } as MasterItem);
+
+        addToCart(parentItem, {
+          variantId: scanRes.variantId,
+          size: scanRes.size,
+          color: scanRes.color,
+          unitPrice: scanRes.sellingPrice,
+          mrp: scanRes.mrp
+        });
+        setSearchQuery("");
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
+    if (exactMatch) {
+      handleProductClick(exactMatch);
+      setSearchQuery("");
+      return;
+    }
+
     if (filteredItems.length === 1) {
-      addToCart(filteredItems[0]);
+      handleProductClick(filteredItems[0]);
       setSearchQuery("");
       return;
     }
   };
 
-  const updateQuantity = (itemId: string, qty: number) => {
+  const updateQuantity = (index: number, qty: number) => {
     if (qty <= 0) {
-      removeFromCart(itemId);
+      removeFromCart(index);
       return;
     }
     setCart((prev) =>
-      prev.map((c) => (c.item.id === itemId ? { ...c, quantity: qty } : c))
+      prev.map((c, i) => (i === index ? { ...c, quantity: qty } : c))
     );
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCart((prev) => prev.filter((c) => c.item.id !== itemId));
+  const removeFromCart = (index: number) => {
+    setCart((prev) => prev.filter((_, i) => i !== index));
   };
 
   const clearCart = () => {
@@ -508,7 +609,10 @@ export default function TenantPosPage() {
       const itemsRows = data.items.map((it, idx) => `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 6px 8px; text-align: center; color: #64748b;">${idx + 1}</td>
-          <td style="padding: 6px 8px; font-weight: bold;">${it.name}</td>
+          <td style="padding: 6px 8px; font-weight: bold;">
+            ${it.name}
+            ${((it as any).size || (it as any).color) ? `<div style="font-size: 10px; font-weight: normal; color: #be123c; margin-top: 2px;"><span style="background:#fff1f2; border:1px solid #fecdd3; padding:1px 4px; border-radius:3px; font-weight:bold;">${[(it as any).size ? `Size: ${(it as any).size}` : '', (it as any).color ? `Colour: ${(it as any).color}` : ''].filter(Boolean).join(' | ')}</span></div>` : ''}
+          </td>
           <td style="padding: 6px 8px; text-align: center;">${it.qty}</td>
           <td style="padding: 6px 8px; text-align: right; font-family: monospace;">₹${it.rate.toFixed(2)}</td>
           <td style="padding: 6px 8px; text-align: right; font-weight: bold; font-family: monospace;">₹${it.total.toFixed(2)}</td>
@@ -620,7 +724,10 @@ export default function TenantPosPage() {
     const is58 = format === "thermal58";
     const itemsRows = data.items.map((it, idx) => `
       <tr>
-        <td style="padding:${is58 ? '2px 0' : '4px 0'};text-align:left;">${idx + 1}. ${it.name}</td>
+        <td style="padding:${is58 ? '2px 0' : '4px 0'};text-align:left;">
+          ${idx + 1}. ${it.name}
+          ${((it as any).size || (it as any).color) ? `<div style="font-size:${is58 ? '8px' : '9px'};font-weight:bold;color:#1e293b;">${[(it as any).size ? `Size: ${(it as any).size}` : '', (it as any).color ? `Col: ${(it as any).color}` : ''].filter(Boolean).join(' | ')}</div>` : ''}
+        </td>
         <td style="padding:${is58 ? '2px 0' : '4px 0'};text-align:center;">${it.qty}</td>
         <td style="padding:${is58 ? '2px 0' : '4px 0'};text-align:right;">₹${it.rate.toFixed(2)}</td>
         <td style="padding:${is58 ? '2px 0' : '4px 0'};text-align:right;font-weight:bold;">₹${it.total.toFixed(2)}</td>
@@ -800,6 +907,8 @@ export default function TenantPosPage() {
         branchGstin: currentBranch?.gstin || profile?.gstin || "",
         items: cart.map((c) => ({
           name: c.item.name,
+          size: c.size,
+          color: c.color,
           qty: c.quantity,
           rate: c.unitPrice,
           total: c.quantity * c.unitPrice - (c.quantity * c.unitPrice * c.discountPercent) / 100,
@@ -840,6 +949,8 @@ export default function TenantPosPage() {
         paidAmount: paymentMode === 6 ? 0 : (tenderedAmount >= netTotal ? netTotal : tenderedAmount),
         items: cart.map((c) => ({
           itemId: c.item.id,
+          variantId: c.variantId || undefined,
+          attributesJson: (c.size || c.color) ? JSON.stringify({ size: c.size, color: c.color }) : undefined,
           batchId: c.batchId,
           batchNumber: c.batchNumber,
           expiryDate: c.expiryDate,
@@ -1226,7 +1337,7 @@ export default function TenantPosPage() {
                     const lineNet = lineGross - lineDisc;
 
                     return (
-                      <tr key={c.item.id} className="hover:bg-table-hover transition-colors group">
+                      <tr key={`${c.item.id}-${c.variantId || 'std'}-${idx}`} className="hover:bg-table-hover transition-colors group">
                         <td className="py-1 pl-2.5 font-mono text-[11px] text-muted-foreground align-middle text-center">
                           {idx + 1}
                         </td>
@@ -1236,6 +1347,11 @@ export default function TenantPosPage() {
                             <span className="font-bold text-xs text-foreground truncate max-w-[180px] sm:max-w-[240px] lg:max-w-[320px]" title={c.item.name}>
                               {c.item.name}
                             </span>
+                            {(c.size || c.color) && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[9px] border border-rose-200 dark:border-rose-800 shrink-0">
+                                {[c.size ? `Size: ${c.size}` : '', c.color ? `Col: ${c.color}` : ''].filter(Boolean).join(' | ')}
+                              </span>
+                            )}
                             {!isWideCart && (
                               <span className="text-[9px] text-muted-foreground/80 font-mono shrink-0">
                                 #{c.item.sku}
@@ -1281,7 +1397,7 @@ export default function TenantPosPage() {
                           <div className="flex items-center justify-center space-x-1">
                             <button
                               type="button"
-                              onClick={() => updateQuantity(c.item.id, c.quantity - 1)}
+                              onClick={() => updateQuantity(idx, c.quantity - 1)}
                               className="w-4 h-4 rounded bg-danger/10 hover:bg-danger text-danger hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                               title="Decrease"
                             >
@@ -1291,12 +1407,12 @@ export default function TenantPosPage() {
                               type="number"
                               min="1"
                               value={c.quantity}
-                              onChange={(e) => updateQuantity(c.item.id, parseInt(e.target.value) || 1)}
+                              onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
                               className="w-7 py-0 text-center font-mono font-bold text-xs bg-transparent text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded"
                             />
                             <button
                               type="button"
-                              onClick={() => updateQuantity(c.item.id, c.quantity + 1)}
+                              onClick={() => updateQuantity(idx, c.quantity + 1)}
                               className="w-4 h-4 rounded bg-primary/15 hover:bg-primary text-primary hover:text-primary-foreground flex items-center justify-center transition-colors cursor-pointer"
                               title="Increase"
                             >
@@ -1312,7 +1428,7 @@ export default function TenantPosPage() {
                         <td className="py-1 pr-2 text-center align-middle">
                           <button
                             type="button"
-                            onClick={() => removeFromCart(c.item.id)}
+                            onClick={() => removeFromCart(idx)}
                             className="text-muted-foreground hover:text-danger p-0.5 transition-colors cursor-pointer"
                             title="Remove item"
                           >
@@ -1625,7 +1741,7 @@ export default function TenantPosPage() {
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => addToCart(item)}
+                    onClick={() => handleProductClick(item)}
                     className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all group relative shadow-2xs ${
                       inCart
                         ? "bg-surface-elevated border-primary/40 shadow-xs"
@@ -1640,9 +1756,16 @@ export default function TenantPosPage() {
 
                     <div>
                       <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                        <span className="font-semibold text-muted-foreground uppercase truncate max-w-[100px]">
-                          {item.sku}
-                        </span>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="font-semibold text-muted-foreground uppercase truncate max-w-[80px]">
+                            {item.sku}
+                          </span>
+                          {item.trackVariants && (
+                            <span className="px-1 py-0 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-[8px] border border-rose-500/20 shrink-0">
+                              Sizes
+                            </span>
+                          )}
+                        </div>
                         {item.categoryName && (
                           <span className="text-muted-foreground truncate max-w-[80px]">
                             {item.categoryName}
@@ -1948,6 +2071,111 @@ export default function TenantPosPage() {
             >
               Close [Esc]
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL 5: GARMENTS VARIANT PICKER (SIZE & COLOR) ─── */}
+      {variantModalItem && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-surface border border-border rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl text-foreground">
+            <div className="flex items-start justify-between border-b border-border pb-3">
+              <div>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">#{variantModalItem.sku}</span>
+                <h3 className="text-base font-bold text-foreground">{variantModalItem.name}</h3>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">Select Size &amp; Colour Variant</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVariantModalItem(null)}
+                className="text-muted-foreground hover:text-foreground p-1 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingVariants ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-2"></div>
+                <div>Loading variants...</div>
+              </div>
+            ) : itemVariants.length > 0 ? (
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {itemVariants.map((v) => {
+                    const price = (variantModalItem.sellingPrice || variantModalItem.mrp || 0) + v.priceAdjustment;
+                    const mrp = (variantModalItem.mrp || price) + v.priceAdjustment;
+                    const inCartCount = cart
+                      .filter((c) => c.item.id === variantModalItem.id && c.variantId === v.id)
+                      .reduce((sum, c) => sum + c.quantity, 0);
+
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => {
+                          addToCart(variantModalItem, {
+                            variantId: v.id,
+                            size: v.size,
+                            color: v.color,
+                            unitPrice: price,
+                            mrp: mrp
+                          });
+                          setVariantModalItem(null);
+                        }}
+                        className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all hover:border-primary hover:bg-primary/5 cursor-pointer relative shadow-2xs ${
+                          inCartCount > 0 ? "border-primary bg-primary/10" : "border-border bg-surface-elevated/40"
+                        }`}
+                      >
+                        {inCartCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-bold">
+                            {inCartCount}
+                          </span>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {v.size && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800">
+                                Size: {v.size}
+                              </span>
+                            )}
+                            {v.color && (
+                              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-border">
+                                {v.color}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground mt-1 truncate">
+                            {v.variantSku}
+                          </div>
+                        </div>
+
+                        <div className="mt-2 pt-1.5 border-t border-border/40 flex items-center justify-between">
+                          <span className="font-bold text-xs font-mono text-foreground">₹{price.toFixed(2)}</span>
+                          <span className={`text-[10px] font-semibold ${v.currentStock > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                            Stock: {v.currentStock}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground">
+                <p className="text-xs">No active variants found for this item.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    addToCart(variantModalItem);
+                    setVariantModalItem(null);
+                  }}
+                  className="mt-3 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
+                >
+                  Add Standard Item to Cart
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

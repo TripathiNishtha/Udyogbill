@@ -43,9 +43,10 @@ public interface IInventoryService
     Task<Result> UpdateItemAsync(Guid itemId, UpdateItemRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> DeleteItemAsync(Guid itemId, string? ipAddress = null, CancellationToken cancellationToken = default);
 
-    // Batches
+    // Batches & Variants
     Task<Result<IReadOnlyList<ItemBatchDto>>> GetItemBatchesAsync(Guid itemId, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreateItemBatchAsync(CreateItemBatchRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<IReadOnlyList<ItemVariantDto>>> GetItemVariantsAsync(Guid itemId, CancellationToken cancellationToken = default);
 
     // Stock Ledger & Adjustments
     Task<Result<IReadOnlyList<WarehouseStockDto>>> GetItemStockBalancesAsync(Guid? itemId = null, Guid? warehouseId = null, CancellationToken cancellationToken = default);

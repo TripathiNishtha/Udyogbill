@@ -279,6 +279,14 @@ public class TenantItemsController : BaseApiController
         var result = await _inventoryService.CreateItemBatchAsync(request with { ItemId = id }, ipAddress, cancellationToken);
         return HandleResult(result);
     }
+
+    [HttpGet("{id:guid}/variants")]
+    [ProducesResponseType(typeof(IReadOnlyList<ItemVariantDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetVariants(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _inventoryService.GetItemVariantsAsync(id, cancellationToken);
+        return HandleResult(result);
+    }
 }
 
 [Authorize]

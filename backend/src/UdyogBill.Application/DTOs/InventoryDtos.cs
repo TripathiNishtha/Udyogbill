@@ -288,6 +288,20 @@ public record ItemBatchDto(
     bool IsActive
 );
 
+public record ItemVariantDto(
+    Guid Id,
+    Guid ItemId,
+    string VariantSku,
+    string VariantName,
+    string AttributesJson,
+    string? Size,
+    string? Color,
+    decimal PriceAdjustment,
+    string? Barcode,
+    bool IsActive,
+    decimal CurrentStock = 0m
+);
+
 public record WarehouseStockDto(
     Guid WarehouseId,
     string WarehouseCode,
@@ -299,7 +313,12 @@ public record WarehouseStockDto(
     decimal CurrentQuantity,
     decimal ReservedQuantity,
     decimal AvailableQuantity,
-    decimal ReorderLevel
+    decimal ReorderLevel,
+    Guid? VariantId = null,
+    string? VariantSku = null,
+    string? VariantName = null,
+    string? Size = null,
+    string? Color = null
 );
 
 public record StockAdjustmentRequest(
@@ -332,7 +351,11 @@ public record StockMovementDto(
     string? ReferenceDocumentType,
     string? ReferenceDocumentNumber,
     string? Notes,
-    DateTimeOffset CreatedAtUtc
+    DateTimeOffset CreatedAtUtc,
+    Guid? VariantId = null,
+    string? VariantName = null,
+    string? Size = null,
+    string? Color = null
 );
 
 public record LowStockItemDto(

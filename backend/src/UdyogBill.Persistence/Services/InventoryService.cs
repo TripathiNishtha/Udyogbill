@@ -1223,6 +1223,59 @@ public class InventoryService : IInventoryService
 
     #region Stock Ledger & Adjustments
 
+    private static (string? size, string? color) ExtractSizeAndColor(string? attributesJson)
+    {
+        if (string.IsNullOrWhiteSpace(attributesJson) || attributesJson == "{}") return (null, null);
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(attributesJson);
+            string? size = null;
+            string? color = null;
+            if (doc.RootElement.TryGetProperty("size", out var sp)) size = sp.GetString()?.Trim();
+            if (doc.RootElement.TryGetProperty("color", out var cp)) color = cp.GetString()?.Trim();
+            return (size, color);
+        }
+        catch
+        {
+            return (null, null);
+        }
+    }
+
+    public async Task<Result<IReadOnlyList<ItemVariantDto>>> GetItemVariantsAsync(Guid itemId, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var variants = await _context.ItemVariants
+            .Where(v => v.TenantId == tenantId && v.ItemId == itemId && !v.IsDeleted && v.IsActive)
+            .OrderBy(v => v.VariantName)
+            .ToListAsync(cancellationToken);
+
+        var stocks = await _context.ItemWarehouseStocks
+            .Where(ws => ws.TenantId == tenantId && ws.ItemId == itemId && ws.VariantId.HasValue && !ws.IsDeleted)
+            .GroupBy(ws => ws.VariantId!.Value)
+            .Select(g => new { VariantId = g.Key, TotalStock = g.Sum(x => x.CurrentQuantity) })
+            .ToDictionaryAsync(x => x.VariantId, x => x.TotalStock, cancellationToken);
+
+        var dtos = variants.Select(v => {
+            var (sz, col) = ExtractSizeAndColor(v.AttributesJson);
+            stocks.TryGetValue(v.Id, out var stockQty);
+            return new ItemVariantDto(
+                v.Id,
+                v.ItemId,
+                v.VariantSku,
+                v.VariantName,
+                v.AttributesJson,
+                sz,
+                col,
+                v.PriceAdjustment,
+                v.Barcode,
+                v.IsActive,
+                stockQty
+            );
+        }).ToList();
+
+        return Result<IReadOnlyList<ItemVariantDto>>.Success(dtos);
+    }
+
     public async Task<Result<IReadOnlyList<WarehouseStockDto>>> GetItemStockBalancesAsync(Guid? itemId = null, Guid? warehouseId = null, CancellationToken cancellationToken = default)
     {
         var tenantId = RequireTenantId();
@@ -1232,6 +1285,7 @@ public class InventoryService : IInventoryService
             .Include(ws => ws.Warehouse)
                 .ThenInclude(w => w.Branch)
             .Include(ws => ws.Batch)
+            .Include(ws => ws.Variant)
             .AsQueryable();
 
         if (itemId.HasValue && itemId.Value != Guid.Empty)
@@ -1244,9 +1298,13 @@ public class InventoryService : IInventoryService
             query = query.Where(ws => ws.WarehouseId == warehouseId.Value);
         }
 
-        var items = await query
+        var rawStocks = await query
             .OrderBy(ws => ws.Warehouse.WarehouseName)
-            .Select(ws => new WarehouseStockDto(
+            .ToListAsync(cancellationToken);
+
+        var items = rawStocks.Select(ws => {
+            var (sz, col) = ExtractSizeAndColor(ws.Variant?.AttributesJson);
+            return new WarehouseStockDto(
                 ws.WarehouseId,
                 ws.Warehouse.WarehouseCode,
                 ws.Warehouse.WarehouseName,
@@ -1257,9 +1315,14 @@ public class InventoryService : IInventoryService
                 ws.CurrentQuantity,
                 ws.ReservedQuantity,
                 ws.CurrentQuantity - ws.ReservedQuantity,
-                ws.ReorderLevel
-            ))
-            .ToListAsync(cancellationToken);
+                ws.ReorderLevel,
+                ws.VariantId,
+                ws.Variant?.VariantSku,
+                ws.Variant?.VariantName,
+                sz,
+                col
+            );
+        }).ToList();
 
         return Result<IReadOnlyList<WarehouseStockDto>>.Success(items);
     }
@@ -1278,6 +1341,7 @@ public class InventoryService : IInventoryService
             .Include(sm => sm.Item)
             .Include(sm => sm.Warehouse)
             .Include(sm => sm.Batch)
+            .Include(sm => sm.Variant)
             .AsQueryable();
 
         if (itemId.HasValue && itemId.Value != Guid.Empty)
@@ -1297,27 +1361,34 @@ public class InventoryService : IInventoryService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = movements.Select(sm => new StockMovementDto(
-            sm.Id,
-            sm.TenantId,
-            sm.ItemId,
-            sm.Item.Sku,
-            sm.Item.Name,
-            sm.WarehouseId,
-            sm.Warehouse.WarehouseName,
-            sm.Batch?.BatchNumber,
-            sm.MovementType,
-            sm.MovementType.ToString(),
-            sm.Quantity,
-            sm.QuantityBefore,
-            sm.QuantityAfter,
-            sm.UnitCost,
-            sm.TotalCost,
-            sm.ReferenceDocumentType,
-            sm.ReferenceDocumentNumber,
-            sm.Notes,
-            sm.CreatedAtUtc
-        )).ToList();
+        var dtos = movements.Select(sm => {
+            var (sz, col) = ExtractSizeAndColor(sm.Variant?.AttributesJson);
+            return new StockMovementDto(
+                sm.Id,
+                sm.TenantId,
+                sm.ItemId,
+                sm.Item.Sku,
+                sm.Item.Name,
+                sm.WarehouseId,
+                sm.Warehouse.WarehouseName,
+                sm.Batch?.BatchNumber,
+                sm.MovementType,
+                sm.MovementType.ToString(),
+                sm.Quantity,
+                sm.QuantityBefore,
+                sm.QuantityAfter,
+                sm.UnitCost,
+                sm.TotalCost,
+                sm.ReferenceDocumentType,
+                sm.ReferenceDocumentNumber,
+                sm.Notes,
+                sm.CreatedAtUtc,
+                sm.VariantId,
+                sm.Variant?.VariantName,
+                sz,
+                col
+            );
+        }).ToList();
 
         return Result<PagedResult<StockMovementDto>>.Success(PagedResult<StockMovementDto>.Create(dtos, pageNumber, pageSize, totalCount));
     }

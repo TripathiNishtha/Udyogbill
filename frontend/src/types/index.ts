@@ -367,6 +367,20 @@ export interface ItemBatch {
   isActive: boolean;
 }
 
+export interface ItemVariant {
+  id: string;
+  itemId: string;
+  variantSku: string;
+  variantName: string;
+  attributesJson: string;
+  size?: string;
+  color?: string;
+  priceAdjustment: number;
+  barcode?: string;
+  isActive: boolean;
+  currentStock: number;
+}
+
 export interface WarehouseStock {
   warehouseId: string;
   warehouseCode: string;
@@ -379,6 +393,11 @@ export interface WarehouseStock {
   reservedQuantity: number;
   availableQuantity: number;
   reorderLevel: number;
+  variantId?: string;
+  variantSku?: string;
+  variantName?: string;
+  size?: string;
+  color?: string;
 }
 
 export interface StockMovement {
@@ -401,6 +420,10 @@ export interface StockMovement {
   referenceDocumentNumber?: string;
   notes?: string;
   createdAtUtc: string;
+  variantId?: string;
+  variantName?: string;
+  size?: string;
+  color?: string;
 }
 
 export interface LowStockItem {
@@ -1225,6 +1248,10 @@ export interface BarcodeScanResult {
   primaryUomId: string;
   primaryUomCode: string;
   totalStock: number;
+  variantId?: string;
+  variantSku?: string;
+  size?: string;
+  color?: string;
   batches: Array<{
     id: string;
     batchNumber: string;

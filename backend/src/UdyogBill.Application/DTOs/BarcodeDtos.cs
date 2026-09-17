@@ -59,6 +59,10 @@ public class BarcodeScanResultDto
     public Guid PrimaryUomId { get; set; }
     public string PrimaryUomCode { get; set; } = string.Empty;
     public decimal TotalStock { get; set; }
+    public Guid? VariantId { get; set; }
+    public string? VariantSku { get; set; }
+    public string? Size { get; set; }
+    public string? Color { get; set; }
     public List<ItemBatchDto> Batches { get; set; } = new();
 }
 

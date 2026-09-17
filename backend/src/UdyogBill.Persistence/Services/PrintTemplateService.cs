@@ -4276,7 +4276,23 @@ public class PrintTemplateService : IPrintTemplateService
         {
             foreach (var it in invoice.Items)
             {
-                itemsSb.Append($"<tr><td>{it.ItemName}</td><td style='text-align:center;'>{it.Quantity:N0}</td><td style='text-align:right;'>{it.UnitPrice:N2}</td><td style='text-align:right;'>{it.TotalAmount:N2}</td></tr>");
+                var gSub = "";
+                if (!string.IsNullOrWhiteSpace(it.AttributesJson) && it.AttributesJson != "{}")
+                {
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(it.AttributesJson);
+                        var gp = new List<string>();
+                        if (doc.RootElement.TryGetProperty("size", out var sp) && !string.IsNullOrWhiteSpace(sp.GetString()))
+                            gp.Add($"Size: {sp.GetString()!.Trim()}");
+                        if (doc.RootElement.TryGetProperty("color", out var cp) && !string.IsNullOrWhiteSpace(cp.GetString()))
+                            gp.Add($"Col: {cp.GetString()!.Trim()}");
+                        if (gp.Any())
+                            gSub = $"<br/><span style='font-size:9px; font-weight:bold;'>({string.Join(" | ", gp)})</span>";
+                    }
+                    catch {}
+                }
+                itemsSb.Append($"<tr><td style='padding:2px 0;'>{it.ItemName}{gSub}</td><td style='text-align:center;'>{it.Quantity:N0}</td><td style='text-align:right;'>{it.UnitPrice:N2}</td><td style='text-align:right;'>{it.TotalAmount:N2}</td></tr>");
             }
         }
 
@@ -4700,20 +4716,23 @@ public class PrintTemplateService : IPrintTemplateService
             }
 
             // Garments: Size, Color, Style
+            string? gSz = null;
+            string? gCol = null;
+            string? gSt = null;
             if (root.TryGetProperty("styleCode", out var stProp))
             {
-                var st = stProp.GetString()?.Trim();
-                if (!string.IsNullOrWhiteSpace(st)) parts.Add($"Style: {st}");
+                gSt = stProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(gSt)) parts.Add($"Style: {gSt}");
             }
             if (root.TryGetProperty("size", out var sProp))
             {
-                var sz = sProp.GetString()?.Trim();
-                if (!string.IsNullOrWhiteSpace(sz)) parts.Add($"Size: {sz}");
+                gSz = sProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(gSz)) parts.Add($"Size: {gSz}");
             }
             if (root.TryGetProperty("color", out var colProp))
             {
-                var col = colProp.GetString()?.Trim();
-                if (!string.IsNullOrWhiteSpace(col)) parts.Add($"Color: {col}");
+                gCol = colProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(gCol)) parts.Add($"Color: {gCol}");
             }
 
             // FMCG: Case packaging & Schemes
@@ -4750,6 +4769,15 @@ public class PrintTemplateService : IPrintTemplateService
             {
                 var js = jsProp.GetString()?.Trim();
                 if (!string.IsNullOrWhiteSpace(js)) parts.Add($"Job Ref: {js}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(gSz) || !string.IsNullOrWhiteSpace(gCol))
+            {
+                var gBadges = new List<string>();
+                if (!string.IsNullOrWhiteSpace(gSz)) gBadges.Add($"Size: <b>{gSz}</b>");
+                if (!string.IsNullOrWhiteSpace(gCol)) gBadges.Add($"Colour: <b>{gCol}</b>");
+                if (!string.IsNullOrWhiteSpace(gSt)) gBadges.Add($"Style: {gSt}");
+                return $"<div style='margin-top:2px;'><span style='font-size:9.5px; font-weight:600; color:#9f1239; background:#fff1f2; border:1px solid #fecdd3; padding:1px 5px; border-radius:3px; display:inline-block;'>{string.Join(" &nbsp;|&nbsp; ", gBadges)}</span></div>";
             }
 
             if (parts.Count > 0)

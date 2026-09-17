@@ -246,6 +246,10 @@ public class BarcodeService : IBarcodeService
             PrimaryUomId = item.PrimaryUomId,
             PrimaryUomCode = item.PrimaryUom?.Code ?? "UNIT",
             TotalStock = totalStock,
+            VariantId = matchedVariant?.Id,
+            VariantSku = matchedVariant?.VariantSku,
+            Size = matchedVariant != null && !string.IsNullOrWhiteSpace(matchedSize) ? matchedSize : null,
+            Color = matchedVariant != null && !string.IsNullOrWhiteSpace(matchedColor) ? matchedColor : null,
             Batches = batches
         });
     }
