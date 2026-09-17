@@ -16,6 +16,7 @@ using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared;
+using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Persistence.Services;
 
@@ -995,9 +996,13 @@ public class PrintTemplateService : IPrintTemplateService
         var invDate = invoice?.InvoiceDate.ToString("dd-MMM-yyyy") ?? DateTime.Now.ToString("dd-MMM-yyyy");
         var invTime = invoice?.InvoiceDate.ToString("hh:mm tt") ?? DateTime.Now.ToString("hh:mm tt");
         var dueDate = invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("dd-MMM-yyyy") : "";
-        var placeOfSupply = !string.IsNullOrWhiteSpace(invoice?.PlaceOfSupply)
-            ? invoice.PlaceOfSupply
-            : (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) ? invoice.BillingStateCode : sellerState);
+        var placeOfSupply = GstStateHelper.ResolvePlaceOfSupply(
+            invoice?.CustomerGSTIN,
+            invoice?.PlaceOfSupply,
+            invoice?.BillingStateCode,
+            sellerGstin,
+            invoice?.Branch?.State ?? tenant?.State,
+            sellerStateCodeOnly);
 
         // 4. Customer Details (Auto-adapts to B2B or B2C Counter Sale)
         var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (invoice != null ? "Counter Retail Customer" : "");
@@ -1006,7 +1011,7 @@ public class PrintTemplateService : IPrintTemplateService
         var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
         var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
-        var custStateCode = !string.IsNullOrWhiteSpace(invoice?.BillingStateCode) ? invoice.BillingStateCode : (isB2B ? (custGstin.Length >= 2 ? custGstin.Substring(0, 2) : "") : "");
+        var custStateCode = GstStateHelper.ExtractStateCodeFromGstin(custGstin) ?? (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) && invoice.BillingStateCode != "27" ? invoice.BillingStateCode : (isB2B ? "" : ""));
         var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
         var custDl = ExtractInvoiceBuyerDl(invoice);
 
@@ -1455,6 +1460,9 @@ public class PrintTemplateService : IPrintTemplateService
         var sellerState = !string.IsNullOrWhiteSpace(invoice?.Branch?.State)
             ? $"{invoice.Branch.State}{(string.IsNullOrWhiteSpace(invoice.Branch.StateCode) ? "" : $" (Code: {invoice.Branch.StateCode})")}"
             : (!string.IsNullOrWhiteSpace(tenant?.State) ? $"{tenant.State}{(string.IsNullOrWhiteSpace(tenant.StateCode) ? "" : $" (Code: {tenant.StateCode})")}" : "");
+        var sellerStateCodeOnly = !string.IsNullOrWhiteSpace(invoice?.Branch?.StateCode)
+            ? invoice.Branch.StateCode
+            : (!string.IsNullOrWhiteSpace(tenant?.StateCode) ? tenant.StateCode : (sellerGstin.Length >= 2 ? sellerGstin.Substring(0, 2) : ""));
 
         var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
         var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
@@ -1465,9 +1473,13 @@ public class PrintTemplateService : IPrintTemplateService
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd-MMM-yyyy") ?? DateTime.Now.ToString("dd-MMM-yyyy");
         var dueDate = invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("dd-MMM-yyyy") : "";
-        var placeOfSupply = !string.IsNullOrWhiteSpace(invoice?.PlaceOfSupply)
-            ? invoice.PlaceOfSupply
-            : (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) ? invoice.BillingStateCode : sellerState);
+        var placeOfSupply = GstStateHelper.ResolvePlaceOfSupply(
+            invoice?.CustomerGSTIN,
+            invoice?.PlaceOfSupply,
+            invoice?.BillingStateCode,
+            sellerGstin,
+            invoice?.Branch?.State ?? tenant?.State,
+            sellerStateCodeOnly);
 
         // Customer Details
         var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (invoice != null ? "Cash Customer" : "");
@@ -1475,7 +1487,7 @@ public class PrintTemplateService : IPrintTemplateService
         var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
         var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
-        var custStateCode = !string.IsNullOrWhiteSpace(invoice?.BillingStateCode) ? invoice.BillingStateCode : "";
+        var custStateCode = GstStateHelper.ExtractStateCodeFromGstin(custGstin) ?? (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) && invoice.BillingStateCode != "27" ? invoice.BillingStateCode : "");
         var custDl = ExtractInvoiceBuyerDl(invoice);
 
         // Logistics & Transport Metadata
@@ -1773,9 +1785,13 @@ public class PrintTemplateService : IPrintTemplateService
 
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd-MMM-yyyy") ?? DateTime.Now.ToString("dd-MMM-yyyy");
-        var placeOfSupply = !string.IsNullOrWhiteSpace(invoice?.PlaceOfSupply)
-            ? invoice.PlaceOfSupply
-            : (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) ? invoice.BillingStateCode : sellerStateName);
+        var placeOfSupply = GstStateHelper.ResolvePlaceOfSupply(
+            invoice?.CustomerGSTIN,
+            invoice?.PlaceOfSupply,
+            invoice?.BillingStateCode,
+            sellerGstin,
+            sellerStateName,
+            sellerStateCodeOnly);
 
         // 3. Customer & Consignee Details (100% Dynamic)
         var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (invoice != null ? "Counter Retail Customer" : "");
@@ -1784,7 +1800,7 @@ public class PrintTemplateService : IPrintTemplateService
         var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
         var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
-        var custState = !string.IsNullOrWhiteSpace(invoice?.BillingStateCode) ? invoice.BillingStateCode : (isB2B ? (custGstin.Length >= 2 ? custGstin.Substring(0, 2) : placeOfSupply) : placeOfSupply);
+        var custState = GstStateHelper.ExtractStateCodeFromGstin(custGstin) ?? (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) && invoice.BillingStateCode != "27" ? invoice.BillingStateCode : (isB2B ? "" : placeOfSupply));
         var custDl = ExtractInvoiceBuyerDl(invoice);
         var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
 
@@ -2312,7 +2328,13 @@ public class PrintTemplateService : IPrintTemplateService
         // Logistics & Doctor / Salesman Tracking
         var doctorName = !string.IsNullOrWhiteSpace(invoice?.DoctorName) ? invoice.DoctorName : "";
         var salesman = invoice?.SalesmanUserId.HasValue == true ? "Sales Team" : "";
-        var placeOfSupply = !string.IsNullOrWhiteSpace(invoice?.PlaceOfSupply) ? invoice.PlaceOfSupply : (!string.IsNullOrWhiteSpace(tenant?.State) ? tenant.State : "Delhi");
+        var placeOfSupply = GstStateHelper.ResolvePlaceOfSupply(
+            invoice?.CustomerGSTIN,
+            invoice?.PlaceOfSupply,
+            invoice?.BillingStateCode,
+            sellerGstin,
+            tenant?.State,
+            tenant?.StateCode);
 
         // Financial Totals
         var totalAmount = invoice?.TotalAmount ?? 0m;
@@ -4119,6 +4141,7 @@ public class PrintTemplateService : IPrintTemplateService
             ? $"{invoice.Branch.AddressLine1}, {invoice.Branch.City}"
             : (!string.IsNullOrWhiteSpace(tenant?.AddressLine1) ? $"{tenant.AddressLine1}, {tenant.City}" : "");
         var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN) ? invoice.Branch.GSTIN : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
+        var sellerStateCodeOnly = !string.IsNullOrWhiteSpace(invoice?.Branch?.StateCode) ? invoice.Branch.StateCode : (!string.IsNullOrWhiteSpace(tenant?.StateCode) ? tenant.StateCode : (sellerGstin.Length >= 2 ? sellerGstin.Substring(0, 2) : ""));
 
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
@@ -4182,7 +4205,7 @@ public class PrintTemplateService : IPrintTemplateService
         </div>
         <div style='display:flex; justify-content:space-between; margin:6px 0; font-size:10.5px; background:#f0fdfa; padding:4px 8px; border-radius:4px; border:1px solid #99f6e4;'>
             <div>Billed To: <strong style='color:#0f172a;'>{invoice?.CustomerName ?? ""}</strong> {(string.IsNullOrEmpty(invoice?.CustomerGSTIN) ? "" : $"| GSTIN: <span style='font-family:monospace;'>{invoice.CustomerGSTIN}</span>")}</div>
-            <div>Place of Supply: <strong>{invoice?.PlaceOfSupply ?? "Local"}</strong></div>
+            <div>Place of Supply: <strong>{GstStateHelper.ResolvePlaceOfSupply(invoice?.CustomerGSTIN, invoice?.PlaceOfSupply, invoice?.BillingStateCode, sellerGstin, invoice?.Branch?.State ?? tenant?.State, sellerStateCodeOnly)}</strong></div>
         </div>
     </div>
 

@@ -43,6 +43,7 @@ import { apiClient } from "@/lib/api-client";
 import { MasterItem, PartyList, TenantDetails } from "@/types";
 import { printRawHtml } from "@/lib/print-helper";
 import { printTemplateService } from "@/services/print-template-services";
+import { GST_STATE_MAP } from "@/lib/gst-helper";
 import { useAddons } from "@/context/addon-context";
 
 export type PosPrintFormat = "thermal80" | "thermal58" | "a4" | "a5";
@@ -813,6 +814,14 @@ export default function TenantPosPage() {
         paymentModeText: payModeMap[paymentMode] || "Cash",
       };
 
+      const custGstin = selectedParty?.gstin?.trim() || "";
+      const custStateCode = custGstin && custGstin.length >= 2 && /^\d{2}/.test(custGstin)
+        ? custGstin.slice(0, 2)
+        : (selectedParty?.stateCode || currentBranch?.stateCode || "");
+      const derivedPos = custGstin && custGstin.length >= 2 && /^\d{2}/.test(custGstin)
+        ? (GST_STATE_MAP[custGstin.slice(0, 2)] || "N/A")
+        : "N/A";
+
       const invoiceId = await salesService.createPosBill({
         invoiceType: 2,
         branchId: selectedBranchId,
@@ -820,10 +829,10 @@ export default function TenantPosPage() {
         partyId: selectedCustomerId || undefined,
         customerName: finalCustName,
         customerPhone: finalCustPhone || undefined,
-        customerGSTIN: selectedParty?.gstin,
-        billingStateCode: selectedParty?.stateCode || currentBranch?.stateCode || "27",
-        shippingStateCode: selectedParty?.stateCode || currentBranch?.stateCode || "27",
-        placeOfSupply: currentBranch?.state || "Maharashtra",
+        customerGSTIN: selectedParty?.gstin || undefined,
+        billingStateCode: custStateCode || "",
+        shippingStateCode: custStateCode || "",
+        placeOfSupply: derivedPos,
         invoiceDate: new Date().toISOString(),
         primaryPaymentMode: paymentMode,
         invoiceDiscountPercent: billDiscountType === "percent" ? billDiscountValue : 0,

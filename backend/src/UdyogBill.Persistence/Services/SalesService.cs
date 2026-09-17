@@ -12,6 +12,7 @@ using UdyogBill.Domain.Entities.Sales;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared;
+using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Persistence.Services;
 
@@ -504,24 +505,33 @@ public class SalesService : ISalesService
         }
 
         // Determine GST Supply Type (Intra-State vs Inter-State) with authoritative B2C/B2B fallback
-        var branchStateCode = branch.StateCode?.Trim() ?? "27";
-        string supplyStateCode;
+        var branchStateCode = branch.StateCode?.Trim();
+        if (string.IsNullOrWhiteSpace(branchStateCode))
+        {
+            branchStateCode = GstStateHelper.ExtractStateCodeFromGstin(branch.GSTIN);
+        }
+        if (string.IsNullOrWhiteSpace(branchStateCode))
+        {
+            var tenantObj = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+            branchStateCode = tenantObj?.StateCode?.Trim() ?? GstStateHelper.ExtractStateCodeFromGstin(tenantObj?.GSTIN) ?? "09";
+        }
 
-        if (!string.IsNullOrWhiteSpace(request.BillingStateCode))
-        {
-            supplyStateCode = request.BillingStateCode.Trim();
-        }
-        else if (party != null && !string.IsNullOrWhiteSpace(party.StateCode))
-        {
-            supplyStateCode = party.StateCode.Trim();
-        }
-        else if (!string.IsNullOrWhiteSpace(request.CustomerGSTIN) && request.CustomerGSTIN.Trim().Length >= 2 && char.IsDigit(request.CustomerGSTIN.Trim()[0]) && char.IsDigit(request.CustomerGSTIN.Trim()[1]))
+        string supplyStateCode;
+        if (!string.IsNullOrWhiteSpace(request.CustomerGSTIN) && request.CustomerGSTIN.Trim().Length >= 2 && char.IsDigit(request.CustomerGSTIN.Trim()[0]) && char.IsDigit(request.CustomerGSTIN.Trim()[1]))
         {
             supplyStateCode = request.CustomerGSTIN.Trim().Substring(0, 2);
         }
         else if (party != null && !string.IsNullOrWhiteSpace(party.GSTIN) && party.GSTIN.Trim().Length >= 2 && char.IsDigit(party.GSTIN.Trim()[0]) && char.IsDigit(party.GSTIN.Trim()[1]))
         {
             supplyStateCode = party.GSTIN.Trim().Substring(0, 2);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.BillingStateCode) && request.BillingStateCode != "27")
+        {
+            supplyStateCode = request.BillingStateCode.Trim();
+        }
+        else if (party != null && !string.IsNullOrWhiteSpace(party.StateCode))
+        {
+            supplyStateCode = party.StateCode.Trim();
         }
         else
         {
@@ -576,6 +586,16 @@ public class SalesService : ISalesService
             ? request.CustomerName.Trim() 
             : (party != null && !string.IsNullOrWhiteSpace(party.LegalName) ? party.LegalName : "Walk-in Customer");
 
+        var cleanCustGstin = request.CustomerGSTIN?.Trim().ToUpperInvariant();
+        var branchStateName = !string.IsNullOrWhiteSpace(branch.State) ? branch.State : GstStateHelper.GetStateNameByCode(branchStateCode);
+        var resolvedPos = GstStateHelper.ResolvePlaceOfSupply(
+            cleanCustGstin,
+            request.PlaceOfSupply,
+            request.BillingStateCode,
+            branch.GSTIN,
+            branchStateName,
+            branchStateCode);
+
         // Create Invoice Master Instance
         var invoice = new SalesInvoice
         {
@@ -589,13 +609,13 @@ public class SalesService : ISalesService
             CustomerName = customerName,
             CustomerPhone = request.CustomerPhone?.Trim(),
             CustomerEmail = request.CustomerEmail?.Trim().ToLowerInvariant(),
-            CustomerGSTIN = request.CustomerGSTIN?.Trim().ToUpperInvariant(),
+            CustomerGSTIN = cleanCustGstin,
             CustomerPAN = request.CustomerPAN?.Trim().ToUpperInvariant(),
             BillingAddress = request.BillingAddress?.Trim(),
             ShippingAddress = request.ShippingAddress?.Trim() ?? request.BillingAddress?.Trim(),
             BillingStateCode = supplyStateCode,
             ShippingStateCode = request.ShippingStateCode?.Trim() ?? supplyStateCode,
-            PlaceOfSupply = request.PlaceOfSupply?.Trim() ?? (isIntraState ? (branch.State ?? "Intra-State") : "Inter-State"),
+            PlaceOfSupply = resolvedPos,
             InvoiceDate = invDate,
             DueDate = request.DueDate.HasValue ? DateTime.SpecifyKind(request.DueDate.Value, DateTimeKind.Utc) : null,
             TaxSupplyType = taxSupplyType,
@@ -1222,8 +1242,31 @@ public class SalesService : ISalesService
             .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == invoice.BranchId && !b.IsDeleted, cancellationToken)
             ?? await _context.TenantBranches.FirstOrDefaultAsync(b => b.TenantId == tenantId && !b.IsDeleted, cancellationToken);
 
-        var sellerStateCode = branch?.StateCode ?? "27";
-        var supplyStateCode = !string.IsNullOrWhiteSpace(request.BillingStateCode) ? request.BillingStateCode.Trim() : sellerStateCode;
+        var sellerStateCode = branch?.StateCode?.Trim();
+        if (string.IsNullOrWhiteSpace(sellerStateCode) && branch != null)
+        {
+            sellerStateCode = GstStateHelper.ExtractStateCodeFromGstin(branch.GSTIN);
+        }
+        if (string.IsNullOrWhiteSpace(sellerStateCode))
+        {
+            var tenantObj = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+            sellerStateCode = tenantObj?.StateCode?.Trim() ?? GstStateHelper.ExtractStateCodeFromGstin(tenantObj?.GSTIN) ?? "09";
+        }
+
+        string supplyStateCode;
+        if (!string.IsNullOrWhiteSpace(request.CustomerGSTIN) && request.CustomerGSTIN.Trim().Length >= 2 && char.IsDigit(request.CustomerGSTIN.Trim()[0]) && char.IsDigit(request.CustomerGSTIN.Trim()[1]))
+        {
+            supplyStateCode = request.CustomerGSTIN.Trim().Substring(0, 2);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.BillingStateCode) && request.BillingStateCode != "27")
+        {
+            supplyStateCode = request.BillingStateCode.Trim();
+        }
+        else
+        {
+            supplyStateCode = sellerStateCode;
+        }
+
         var isIntraState = string.Equals(sellerStateCode, supplyStateCode, StringComparison.OrdinalIgnoreCase);
 
         var itemIds = request.Items.Select(it => it.ItemId).Distinct().ToList();
@@ -1242,19 +1285,28 @@ public class SalesService : ISalesService
             .ToListAsync(cancellationToken);
 
         var customerName = !string.IsNullOrWhiteSpace(request.CustomerName) ? request.CustomerName.Trim() : invoice.CustomerName;
+        var cleanCustGstin = request.CustomerGSTIN?.Trim().ToUpperInvariant();
+        var branchStateName = branch?.State ?? GstStateHelper.GetStateNameByCode(sellerStateCode);
+        var resolvedPos = GstStateHelper.ResolvePlaceOfSupply(
+            cleanCustGstin,
+            request.PlaceOfSupply,
+            request.BillingStateCode,
+            branch?.GSTIN,
+            branchStateName,
+            sellerStateCode);
 
         // 3. Update Invoice Metadata
         invoice.PartyId = request.PartyId ?? invoice.PartyId;
         invoice.CustomerName = customerName;
         invoice.CustomerPhone = request.CustomerPhone?.Trim() ?? invoice.CustomerPhone;
         invoice.CustomerEmail = request.CustomerEmail?.Trim().ToLowerInvariant() ?? invoice.CustomerEmail;
-        invoice.CustomerGSTIN = request.CustomerGSTIN?.Trim().ToUpperInvariant();
+        invoice.CustomerGSTIN = cleanCustGstin;
         invoice.CustomerPAN = request.CustomerPAN?.Trim().ToUpperInvariant();
         invoice.BillingAddress = request.BillingAddress?.Trim();
         invoice.ShippingAddress = request.ShippingAddress?.Trim() ?? request.BillingAddress?.Trim();
         invoice.BillingStateCode = supplyStateCode;
         invoice.ShippingStateCode = request.ShippingStateCode?.Trim() ?? supplyStateCode;
-        invoice.PlaceOfSupply = request.PlaceOfSupply?.Trim() ?? invoice.PlaceOfSupply;
+        invoice.PlaceOfSupply = resolvedPos;
         if (request.DueDate.HasValue)
         {
             invoice.DueDate = DateTime.SpecifyKind(request.DueDate.Value, DateTimeKind.Utc);

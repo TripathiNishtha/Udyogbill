@@ -51,6 +51,7 @@ import { p0ReportService } from "@/services/p0-reports.service";
 import { tenantAppService, BranchDetails, WarehouseDetails } from "@/services/tenant-app-services";
 import { printTemplateService } from "@/services/print-template-services";
 import { printRawHtml } from "@/lib/print-helper";
+import { GST_STATE_MAP } from "@/lib/gst-helper";
 import { SalesInvoiceList, MasterItem, PartyList } from "@/types";
 import { QuickAddCustomerModal } from "@/components/sales/quick-add-customer-modal";
 import { QuickAddProductModal } from "@/components/sales/quick-add-product-modal";
@@ -234,7 +235,7 @@ function TenantInvoicesPageContent() {
   const [billingAddress, setBillingAddress] = useState<string>("");
   const [shippingAddress, setShippingAddress] = useState<string>("");
   const [isSameAsBilling, setIsSameAsBilling] = useState<boolean>(true);
-  const [billingStateCode, setBillingStateCode] = useState<string>("27");
+  const [billingStateCode, setBillingStateCode] = useState<string>("");
   const [invoiceDate, setInvoiceDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState<string>(() => {
     const d = new Date();
@@ -551,7 +552,7 @@ function TenantInvoicesPageContent() {
       if (brRes.length > 0 && !selectedBranchId) {
         const ho = brRes.find((b) => b.isHeadOffice) || brRes[0];
         setSelectedBranchId(ho.id);
-        setBillingStateCode(ho.stateCode || "27");
+        if (ho.stateCode) setBillingStateCode(ho.stateCode);
       }
       if (whRes.length > 0 && !selectedWarehouseId) {
         const def = whRes.find((w) => w.isDefault) || whRes[0];
@@ -1516,9 +1517,20 @@ function TenantInvoicesPageContent() {
         customerGSTIN: selectedParty?.gstin || customerGstin || undefined,
         billingAddress: billingAddress || undefined,
         shippingAddress: shippingAddress || billingAddress || undefined,
-        billingStateCode: billingStateCode,
-        shippingStateCode: billingStateCode,
-        placeOfSupply: currentBranch?.state || "Maharashtra",
+        billingStateCode: (selectedParty?.gstin && selectedParty.gstin.length >= 2 && /^\d{2}/.test(selectedParty.gstin))
+          ? selectedParty.gstin.slice(0, 2)
+          : (billingStateCode || ""),
+        shippingStateCode: (selectedParty?.gstin && selectedParty.gstin.length >= 2 && /^\d{2}/.test(selectedParty.gstin))
+          ? selectedParty.gstin.slice(0, 2)
+          : (billingStateCode || ""),
+        placeOfSupply: (() => {
+          const gstin = (selectedParty?.gstin || customerGstin || "").trim();
+          if (gstin.length >= 2 && /^\d{2}/.test(gstin)) {
+            const sc = gstin.slice(0, 2);
+            return GST_STATE_MAP[sc] || "N/A";
+          }
+          return "N/A";
+        })(),
         invoiceDate: new Date(invoiceDate).toISOString(),
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         primaryPaymentMode: primaryPaymentMode,
@@ -2012,7 +2024,10 @@ function TenantInvoicesPageContent() {
                             if (isSameAsBilling) {
                               setShippingAddress(addr);
                             }
-                            setBillingStateCode(found.stateCode || "27");
+                            const derivedCode = (found.gstin && found.gstin.length >= 2 && /^\d{2}/.test(found.gstin))
+                              ? found.gstin.slice(0, 2)
+                              : (found.stateCode || "");
+                            setBillingStateCode(derivedCode);
 
                             const cType = Number((found as any).customerType);
                             if (cType === 4) {
@@ -2042,7 +2057,7 @@ function TenantInvoicesPageContent() {
                             setCustomerDlNumber("");
                             setBillingAddress("");
                             setShippingAddress("");
-                            setBillingStateCode("27");
+                            setBillingStateCode("");
                             if (hasPharmaAddon) {
                               setPharmaTradeTier("chemist_to_patient");
                             }
@@ -2142,7 +2157,7 @@ function TenantInvoicesPageContent() {
                         onChange={(e) => {
                           setSelectedBranchId(e.target.value);
                           const b = branches.find((br) => br.id === e.target.value);
-                          if (b) setBillingStateCode(b.stateCode || "27");
+                          if (b && b.stateCode) setBillingStateCode(b.stateCode);
                         }}
                         className="px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white max-w-[130px] shadow-2xs font-medium"
                       >

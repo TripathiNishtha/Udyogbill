@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, UserPlus, Building2, Phone, Mail, FileText, MapPin, Check } from "lucide-react";
 import { partyService, CreatePartyInput } from "@/services/party-services";
 import { PartyList } from "@/types";
+import { GST_STATE_MAP } from "@/lib/gst-helper";
 import {
   PartyLicenseEditor,
   PartyLicenseItem,
@@ -24,9 +25,9 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
   const [gstin, setGstin] = useState("");
   const [licenses, setLicenses] = useState<PartyLicenseItem[]>([]);
   const [addressLine1, setAddressLine1] = useState("");
-  const [city, setCity] = useState("Mumbai");
-  const [state, setState] = useState("Maharashtra");
-  const [stateCode, setStateCode] = useState("27");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [stateCode, setStateCode] = useState("");
   const [pincode, setPincode] = useState("");
   const [creditLimit, setCreditLimit] = useState(0);
   const [creditPeriodDays, setCreditPeriodDays] = useState(30);
@@ -72,10 +73,10 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
           ? {
               addressType: 1,
               addressLine1: addressLine1.trim(),
-              city: city.trim() || "Mumbai",
-              state: state.trim() || "Maharashtra",
-              stateCode: stateCode.trim() || "27",
-              pincode: pincode.trim() || "400001",
+              city: city.trim(),
+              state: state.trim(),
+              stateCode: stateCode.trim(),
+              pincode: pincode.trim(),
             }
           : undefined,
       };
@@ -231,9 +232,19 @@ export function QuickAddCustomerModal({ isOpen, onClose, onCustomerCreated }: Pr
                 <input
                   type="text"
                   maxLength={15}
-                  placeholder="27AAAAA0000A1Z5"
+                  placeholder="e.g. 29AAAAA0000A1Z5"
                   value={gstin}
-                  onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase();
+                    setGstin(val);
+                    if (val.length >= 2 && /^\d{2}/.test(val)) {
+                      const code = val.slice(0, 2);
+                      setStateCode(code);
+                      if (GST_STATE_MAP[code]) {
+                        setState(GST_STATE_MAP[code]);
+                      }
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 font-mono font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                 />
               </div>

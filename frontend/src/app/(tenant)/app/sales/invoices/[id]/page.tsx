@@ -43,6 +43,7 @@ import { barcodeService } from "@/services/barcode-services";
 import { printTemplateService, PrintTemplate } from "@/services/print-template-services";
 import { SalesInvoiceDetails, TenantDetails, UpiQrPayload, SalesInvoicePayment } from "@/types";
 import { printRawHtml } from "@/lib/print-helper";
+import { GST_STATE_MAP } from "@/lib/gst-helper";
 import { generateInvoicePdfBlob, downloadBlob } from "@/lib/invoice-pdf-helper";
 import { useAddons } from "@/context/addon-context";
 
@@ -2441,7 +2442,17 @@ export default function SalesInvoiceDetailsPage({
                       {invoice.shippingAddress || invoice.billingAddress || "Same as Billing Address"}
                     </div>
                     <div className="text-[10.5px] text-slate-700 pt-2">
-                      <b>Place of Supply:</b> {invoice.placeOfSupply} (State Code: {invoice.shippingStateCode || invoice.billingStateCode})
+                      <b>Place of Supply:</b> {(() => {
+                        const gstin = (invoice.customerGSTIN || "").trim();
+                        if (gstin.length >= 2 && /^\d{2}/.test(gstin)) {
+                          const sc = gstin.slice(0, 2);
+                          return `${invoice.placeOfSupply && invoice.placeOfSupply !== "Maharashtra" ? invoice.placeOfSupply : (sc in GST_STATE_MAP ? (GST_STATE_MAP as any)[sc] : sc)} (State Code: ${sc})`;
+                        }
+                        if (invoice.placeOfSupply && !["maharashtra", "intra-state", "inter-state"].includes(invoice.placeOfSupply.toLowerCase())) {
+                          return `${invoice.placeOfSupply} (State Code: ${invoice.shippingStateCode || invoice.billingStateCode || "N/A"})`;
+                        }
+                        return "N/A";
+                      })()}
                     </div>
                   </div>
                 </div>
