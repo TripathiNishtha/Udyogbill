@@ -61,11 +61,11 @@ export default function MobileAppManagementPage() {
     popupBannerExpiresAt: "",
 
     // 3. Version Control & Force Update
-    latestAndroidVersionCode: 1,
-    latestAndroidVersionName: "1.0.0",
+    latestAndroidVersionCode: 13,
+    latestAndroidVersionName: "1.1.2",
     minSupportedVersionCode: 1,
     isForceUpdateEnabled: false,
-    updateChangelog: "• Added Near-Expiry Stock Radar\n• Added Continuous POS Barcode Scanner\n• Added NIC E-Way Bill & E-Invoice Export\n• Dynamic UPI QR with Payment verification",
+    updateChangelog: "• Industry-specific dashboard (Shoe/Garments clean view)\n• Fixed B2B invoice Add Item cart button\n• Compact keyboard-friendly Add Product form\n• Faster offline billing performance",
     apkDownloadUrl: "https://udyogbill.com/downloads/udyogbill-billing.apk",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.udyogbill.mobile",
 
@@ -284,7 +284,7 @@ export default function MobileAppManagementPage() {
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Registered Devices</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Installed Devices</p>
             <p className="text-2xl font-black text-slate-900">{telemetry.totalRegisteredDevices}</p>
           </div>
         </div>

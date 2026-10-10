@@ -14,6 +14,12 @@ import '../../invoices/screens/invoice_detail_preview_screen.dart';
 import '../../payments/screens/record_payment_screen.dart';
 import '../../sales_returns/screens/sales_returns_list_screen.dart';
 import '../../inventory/screens/expiry_watchlist_screen.dart';
+import '../../settings/screens/business_settings_screen.dart';
+import '../../quotations/screens/quotations_list_screen.dart';
+import '../../expenses/screens/expenses_list_screen.dart';
+import '../../ai_purchase_scanner/screens/ai_purchase_scanner_screen.dart';
+import '../../pharma_sfa/screens/pharma_sfa_shell_screen.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/services/mobile_remote_config_service.dart';
 
 class NativeDashboardScreen extends StatefulWidget {
@@ -26,12 +32,17 @@ class NativeDashboardScreen extends StatefulWidget {
 }
 
 class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
+  final ApiClient _apiClient = ApiClient();
   final InvoiceDao _invoiceDao = InvoiceDao();
   final ItemDao _itemDao = ItemDao();
   final SyncService _syncService = SyncService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   String _tenantName = 'My Business';
+  String _selectedPeriod = 'THIS_MONTH'; // TODAY, YESTERDAY, THIS_WEEK, THIS_MONTH, ALL_TIME, CUSTOM
+  DateTime? _customStartDate;
+  DateTime? _customEndDate;
+
   Map<String, double> _metrics = {
     'todaySales': 0.0,
     'totalReceivable': 0.0,
@@ -48,6 +59,21 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
   List<InvoiceModel> _recentInvoices = [];
   bool _isLoading = true;
   bool _isSyncing = false;
+  int _pendingSyncCount = 0;
+  bool _hasCompletedFirstBill = true;
+  bool _hasBankConfigured = false;
+  int _itemCount = 0;
+  String _tenantIndustry = 'OTHER';
+
+  bool get _isPharmaIndustry {
+    final ind = _tenantIndustry.toUpperCase();
+    return ind.contains('PHARMA') || ind.contains('CHEMIST') || ind.contains('MEDIC') || ind.contains('HEALTH');
+  }
+
+  bool get _isFootwearOrGarmentIndustry {
+    final ind = _tenantIndustry.toUpperCase();
+    return ind.contains('SHOE') || ind.contains('FOOTWEAR') || ind.contains('GARMENT') || ind.contains('CLOTH') || ind.contains('TEXTILE') || ind.contains('FASHION');
+  }
 
   @override
   void initState() {
@@ -55,22 +81,168 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
     _loadDashboardData();
   }
 
+  Future<void> _pickCustomDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: DateTimeRange(
+        start: _customStartDate ?? now.subtract(const Duration(days: 7)),
+        end: _customEndDate ?? now,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedPeriod = 'CUSTOM';
+        _customStartDate = picked.start;
+        _customEndDate = picked.end;
+      });
+      _loadDashboardData();
+    }
+  }
+
+  String _getPeriodHeading() {
+    switch (_selectedPeriod) {
+      case 'TODAY':
+        return "TODAY'S TOTAL SALES";
+      case 'YESTERDAY':
+        return "YESTERDAY'S SALES";
+      case 'THIS_WEEK':
+        return "THIS WEEK'S SALES";
+      case 'THIS_MONTH':
+        return "THIS MONTH'S TOTAL SALES";
+      case 'ALL_TIME':
+        return "ALL-TIME TOTAL SALES";
+      case 'CUSTOM':
+        final s = _customStartDate != null ? "${_customStartDate!.day}/${_customStartDate!.month}" : "";
+        final e = _customEndDate != null ? "${_customEndDate!.day}/${_customEndDate!.month}" : "";
+        return "SALES ($s to $e)";
+      default:
+        return "TOTAL SALES";
+    }
+  }
+
+  Future<void> _handleDashboardRefresh() async {
+    final activeTenantId = await _storage.read(key: AppConstants.keyTenantId) ?? '';
+    await _syncService.syncInvoicesFromWeb(tenantId: activeTenantId);
+    await _loadDashboardData();
+  }
+
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
 
     final storedName = await _storage.read(key: AppConstants.keyTenantName);
-    final metrics = await _invoiceDao.getDashboardMetrics();
-    final recents = await _invoiceDao.getRecentInvoices(limit: 5);
-    final expiry = await _itemDao.getExpirySummary();
+    final activeTenantId = await _storage.read(key: AppConstants.keyTenantId) ?? '';
+
+    DateTime? fromDate;
+    DateTime? toDate;
+    final now = DateTime.now();
+
+    switch (_selectedPeriod) {
+      case 'TODAY':
+        fromDate = DateTime(now.year, now.month, now.day);
+        toDate = DateTime(now.year, now.month, now.day);
+        break;
+      case 'YESTERDAY':
+        final y = now.subtract(const Duration(days: 1));
+        fromDate = DateTime(y.year, y.month, y.day);
+        toDate = DateTime(y.year, y.month, y.day);
+        break;
+      case 'THIS_WEEK':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        fromDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        toDate = DateTime(now.year, now.month, now.day);
+        break;
+      case 'THIS_MONTH':
+        fromDate = DateTime(now.year, now.month, 1);
+        toDate = DateTime(now.year, now.month, now.day);
+        break;
+      case 'ALL_TIME':
+        fromDate = null;
+        toDate = null;
+        break;
+      case 'CUSTOM':
+        fromDate = _customStartDate;
+        toDate = _customEndDate;
+        break;
+    }
+
+    String? fromDateStr = fromDate != null ? "${fromDate.year}-${fromDate.month.toString().padLeft(2, '0')}-${fromDate.day.toString().padLeft(2, '0')}" : null;
+    String? toDateStr = toDate != null ? "${toDate.year}-${toDate.month.toString().padLeft(2, '0')}-${toDate.day.toString().padLeft(2, '0')}" : null;
+
+    Map<String, String> queryParams = {};
+    if (fromDateStr != null) queryParams['fromDate'] = fromDateStr;
+    if (toDateStr != null) queryParams['toDate'] = toDateStr;
+
+    Map<String, double> metrics = {};
+
+    // 1. Auto-flush pending queue and sync invoices from web first so metrics reflect instantly
+    try {
+      await _syncService.flushSyncQueue();
+      await _syncService.syncInvoicesFromWeb(tenantId: activeTenantId);
+    } catch (_) {}
+
+    // 2. Fetch authoritative real-time summary from backend API
+    try {
+      final summaryRes = await _apiClient.get(
+        '/tenant/reports/summary',
+        queryParameters: queryParams.isEmpty ? null : queryParams,
+      );
+
+      if (summaryRes.statusCode == 200 && summaryRes.data != null) {
+        final d = summaryRes.data;
+        metrics = {
+          'todaySales': (d['totalSales'] as num?)?.toDouble() ?? 0.0,
+          'totalReceivable': (d['totalPendingReceivables'] as num?)?.toDouble() ?? 0.0,
+          'totalPayable': (d['totalPayables'] as num?)?.toDouble() ?? 0.0,
+        };
+      }
+    } catch (_) {
+      // Offline fallback
+    }
+
+    // 3. Fallback to local SQLite strictly isolated by tenantId if offline
+    if (metrics.isEmpty) {
+      metrics = await _invoiceDao.getDashboardMetrics(activeTenantId, fromDateStr, toDateStr);
+    } else {
+      // If online summary was loaded, include any remaining unsynced local bills for this period
+      final unsyncedSales = await _invoiceDao.getUnsyncedSalesTotal(activeTenantId, fromDateStr, toDateStr);
+      if (unsyncedSales > 0) {
+        metrics['todaySales'] = (metrics['todaySales'] ?? 0.0) + unsyncedSales;
+      }
+    }
+
+    final pendingCount = await _syncService.getPendingSyncCount();
+
+    final recents = await _invoiceDao.getRecentInvoices(
+      tenantId: activeTenantId,
+      limit: 10,
+      fromDate: fromDateStr,
+      toDate: toDateStr,
+    );
+    final expiry = await _itemDao.getExpirySummary(tenantId: activeTenantId);
+    final firstBillDone = await _storage.read(key: AppConstants.keyHasCompletedFirstBill);
+    final upi = await _storage.read(key: AppConstants.keyStoreUpiId) ?? '';
+    final bank = await _storage.read(key: AppConstants.keyBankName) ?? '';
+    final allItems = await _itemDao.getAllItems(activeTenantId);
+    final storedIndustry = await _storage.read(key: AppConstants.keyTenantIndustry);
 
     if (mounted) {
       setState(() {
         if (storedName != null && storedName.isNotEmpty) {
           _tenantName = storedName;
         }
+        if (storedIndustry != null && storedIndustry.isNotEmpty) {
+          _tenantIndustry = storedIndustry;
+        }
         _metrics = metrics;
         _recentInvoices = recents;
         _expirySummary = expiry;
+        _pendingSyncCount = pendingCount;
+        _hasCompletedFirstBill = (firstBillDone == 'true');
+        _hasBankConfigured = upi.trim().isNotEmpty || bank.trim().isNotEmpty;
+        _itemCount = allItems.length;
         _isLoading = false;
       });
     }
@@ -79,14 +251,16 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
   Future<void> _triggerSync() async {
     setState(() => _isSyncing = true);
     try {
+      final activeTenantId = await _storage.read(key: AppConstants.keyTenantId) ?? '';
+      final flushed = await _syncService.flushSyncQueue();
       final catalogSynced = await _syncService.syncCatalogFromWeb();
       final partiesSynced = await _syncService.syncPartiesFromWeb();
-      final flushed = await _syncService.flushSyncQueue();
+      final invoicesSynced = await _syncService.syncInvoicesFromWeb(tenantId: activeTenantId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sync complete! Items: $catalogSynced, Parties: $partiesSynced, Invoices: $flushed'),
+            content: Text('Sync complete! Flushed: $flushed, Items: $catalogSynced, Parties: $partiesSynced, Web Invoices: $invoicesSynced'),
             backgroundColor: AppTheme.success,
           ),
         );
@@ -221,13 +395,367 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
     );
   }
 
+  Widget _buildAddonSuiteCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required String badge,
+    required Color accentColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: accentColor.withValues(alpha: 0.12),
+                  child: Icon(icon, size: 16, color: accentColor),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    badge,
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF0F172A)),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodSelector() {
+    final periods = [
+      {'key': 'TODAY', 'label': 'Today'},
+      {'key': 'YESTERDAY', 'label': 'Yesterday'},
+      {'key': 'THIS_WEEK', 'label': 'This Week'},
+      {'key': 'THIS_MONTH', 'label': 'This Month'},
+      {'key': 'ALL_TIME', 'label': 'All Time'},
+      {'key': 'CUSTOM', 'label': 'Custom 📅'},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: periods.map((p) {
+          final isSelected = _selectedPeriod == p['key'];
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              selected: isSelected,
+              label: Text(
+                p['label']!,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF334155),
+                ),
+              ),
+              selectedColor: AppTheme.primary,
+              backgroundColor: Colors.white,
+              checkmarkColor: Colors.white,
+              showCheckmark: isSelected,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: isSelected ? AppTheme.primary : const Color(0xFFCBD5E1),
+                ),
+              ),
+              onSelected: (selected) {
+                if (p['key'] == 'CUSTOM') {
+                  _pickCustomDateRange();
+                } else {
+                  setState(() => _selectedPeriod = p['key']!);
+                  _loadDashboardData();
+                }
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildGuidedOnboardingCard() {
+    int completedSteps = 0;
+    if (_hasBankConfigured) completedSteps++;
+    if (_itemCount > 0) completedSteps++;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFD8B2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF6A00).withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text('🎯', style: TextStyle(fontSize: 20)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Getting Started Checklist',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$completedSteps of 3 steps completed',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFEA580C)),
+                    ),
+                  ],
+                ),
+              ),
+              CircularProgressIndicator(
+                value: (completedSteps / 3).clamp(0.05, 1.0),
+                backgroundColor: const Color(0xFFFFEDD5),
+                color: const Color(0xFFFF6A00),
+                strokeWidth: 4,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 12),
+
+          // Step 1: Business Profile & Bank Details
+          _buildGuidedStepRow(
+            stepNumber: '1',
+            title: 'Store & Bank Setup',
+            subtitle: _hasBankConfigured ? 'Bank details configured' : 'Add UPI ID & Bank Account for QR receipts',
+            isCompleted: _hasBankConfigured,
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BusinessSettingsScreen()),
+              );
+              _loadDashboardData();
+            },
+          ),
+          const SizedBox(height: 10),
+
+          // Step 2: Add First Product / Service
+          _buildGuidedStepRow(
+            stepNumber: '2',
+            title: 'Add First Item',
+            subtitle: _itemCount > 0 ? '$_itemCount item(s) added' : 'Add products with rate, HSN, and GST',
+            isCompleted: _itemCount > 0,
+            onTap: () async {
+              await showDialog(
+                context: context,
+                builder: (_) => const AddItemDialog(),
+              );
+              _loadDashboardData();
+            },
+          ),
+          const SizedBox(height: 10),
+
+          // Step 3: Create Your First Bill (Highlighted with pulsing pointer)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF7ED), Color(0xFFFFEDD5)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFF6A00), width: 1.5),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF6A00),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Text('3', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Text(
+                            'Create First Sale Bill',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                          ),
+                          SizedBox(width: 4),
+                          Text('👆', style: TextStyle(fontSize: 15)),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Tap here to create your first GST bill & share PDF',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF78350F), fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final res = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateInvoiceScreen()),
+                    );
+                    if (res == true) _loadDashboardData();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6A00),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 2,
+                  ),
+                  child: const Text('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuidedStepRow({
+    required String stepNumber,
+    required String title,
+    required String subtitle,
+    required bool isCompleted,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: isCompleted ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: isCompleted
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : Text(stepNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF475569))),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: isCompleted ? const Color(0xFF0F172A) : const Color(0xFF334155),
+                      decoration: isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              isCompleted ? Icons.check_circle : Icons.chevron_right,
+              color: isCompleted ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgLight,
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: _loadDashboardData,
+          onRefresh: _handleDashboardRefresh,
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
@@ -267,92 +795,105 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _tenantName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 16,
-                                      color: Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: const BoxDecoration(
-                                          color: AppTheme.success,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      const Text(
-                                        'Offline-Ready SQLite',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: _isSyncing ? null : _triggerSync,
-                              icon: _isSyncing
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
-                                    )
-                                  : const Icon(Icons.sync_rounded, color: AppTheme.primary),
-                              tooltip: 'Cloud Sync',
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Today's Sales Hero Card
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF4F46E5), Color(0xFF3730A3)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF4F46E5).withValues(alpha: 0.35),
-                              blurRadius: 14,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "TODAY'S TOTAL SALES",
-                                  style: TextStyle(
+                                Text(
+                                  _tenantName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: _pendingSyncCount == 0 ? AppTheme.success : AppTheme.warning,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _pendingSyncCount == 0 ? 'Cloud Synced • Live' : '$_pendingSyncCount Pending Sync',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: _pendingSyncCount == 0 ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _isSyncing ? null : _triggerSync,
+                            icon: _isSyncing
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                                  )
+                                : const Icon(Icons.sync_rounded, color: AppTheme.primary),
+                            tooltip: 'Cloud Sync',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Guided Onboarding Banner (if first bill not completed)
+                    if (!_hasCompletedFirstBill) ...[
+                      _buildGuidedOnboardingCard(),
+                    ],
+
+                    // Date Period Selector Row
+                    _buildPeriodSelector(),
+                    const SizedBox(height: 14),
+
+                    // Sales Hero Card
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6A00), Color(0xFFEA580C)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF6A00).withValues(alpha: 0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _getPeriodHeading(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
+                              ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
@@ -412,12 +953,12 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Receivables (Lene Hain) & Payables (Dene Hain)
+                      // Receivables & Payables
                       Row(
                         children: [
                           _buildExecutiveMetricCard(
                             title: "You'll Get",
-                            subtitle: "Lene Hain (Receivables)",
+                            subtitle: "Total Receivables",
                             amount: _metrics['totalReceivable'] ?? 0.0,
                             color: AppTheme.success,
                             icon: Icons.arrow_downward_rounded,
@@ -428,7 +969,7 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                           const SizedBox(width: 12),
                           _buildExecutiveMetricCard(
                             title: "You'll Pay",
-                            subtitle: "Dene Hain (Payables)",
+                            subtitle: "Total Payables",
                             amount: _metrics['totalPayable'] ?? 0.0,
                             color: AppTheme.danger,
                             icon: Icons.arrow_upward_rounded,
@@ -437,6 +978,98 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                             },
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ─── AI Purchase Scanner Hero Banner ───
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0F172A).withValues(alpha: 0.25),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)]),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.auto_awesome, color: Colors.white, size: 12),
+                                      SizedBox(width: 4),
+                                      Text('AI PRO ADD-ON', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Color(0xFF34D399), size: 12),
+                                      SizedBox(width: 4),
+                                      Text('Instant OCR', style: TextStyle(color: Color(0xFF34D399), fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'AI Purchase Bill Scanner',
+                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Camera se paper purchase bill ki photo kheecho aur 1-tap me live inventory stock & khata inward karo.',
+                              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, height: 1.3),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFF59E0B),
+                                  foregroundColor: const Color(0xFF0F172A),
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  elevation: 0,
+                                ),
+                                icon: const Icon(Icons.camera_alt_rounded, size: 18),
+                                label: const Text('Scan Purchase Bill (Photo to Stock)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const AiPurchaseScannerScreen()),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 20),
 
@@ -456,10 +1089,10 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                         children: [
                           Expanded(
                             child: _buildQuickActionButton(
-                              label: '+ Sale Bill',
+                              label: _hasCompletedFirstBill ? '+ Sale Bill' : '+ Sale Bill 👆',
                               icon: Icons.receipt_long,
-                              bgGradientStart: const Color(0xFF4F46E5),
-                              bgGradientEnd: const Color(0xFF6366F1),
+                              bgGradientStart: const Color(0xFFFF6A00),
+                              bgGradientEnd: const Color(0xFFFF8533),
                               onTap: () async {
                                 final res = await Navigator.push(
                                   context,
@@ -472,7 +1105,7 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _buildQuickActionButton(
-                              label: '💰 Payment-In (Vasooli)',
+                              label: '💰 Payment-In',
                               icon: Icons.account_balance_wallet_rounded,
                               bgGradientStart: const Color(0xFF059669),
                               bgGradientEnd: const Color(0xFF10B981),
@@ -540,6 +1173,173 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Operational Actions (Quotations/Estimates + Daily Shop Expenses)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildQuickActionButton(
+                              label: '📋 Estimate / Quote',
+                              icon: Icons.request_quote_rounded,
+                              bgGradientStart: const Color(0xFF2563EB),
+                              bgGradientEnd: const Color(0xFF3B82F6),
+                              onTap: () async {
+                                final res = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const QuotationsListScreen()),
+                                );
+                                if (res == true) _loadDashboardData();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildQuickActionButton(
+                              label: '💸 Shop Expense',
+                              icon: Icons.money_off_rounded,
+                              bgGradientStart: const Color(0xFFE11D48),
+                              bgGradientEnd: const Color(0xFFF43F5E),
+                              onTap: () async {
+                                final res = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const ExpensesListScreen()),
+                                );
+                                if (res == true) _loadDashboardData();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ─── All Add-on Suites & Power Features Grid ───
+                      const Text(
+                        'All Add-on Suites & Modules',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Builder(
+                        builder: (ctx) {
+                          final List<Widget> suiteCards = [];
+
+                          // 1. AI Bill Scanner (Show PRO badge)
+                          suiteCards.add(
+                            _buildAddonSuiteCard(
+                              title: 'AI Bill Scanner',
+                              subtitle: 'Photo to Stock Inward',
+                              icon: Icons.document_scanner_rounded,
+                              badge: 'AI PRO',
+                              accentColor: const Color(0xFFD97706),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiPurchaseScannerScreen())),
+                            ),
+                          );
+
+                          // 2. Fast Barcode POS (Retail, Shoes, Grocery, Pharma)
+                          suiteCards.add(
+                            _buildAddonSuiteCard(
+                              title: 'Fast Barcode POS',
+                              subtitle: 'Continuous Barcode',
+                              icon: Icons.point_of_sale_rounded,
+                              badge: 'POS',
+                              accentColor: const Color(0xFF0D9488),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BillingPosScreen())),
+                            ),
+                          );
+
+                          // 3. Quotations (B2B, Footwear wholesale, General)
+                          suiteCards.add(
+                            _buildAddonSuiteCard(
+                              title: 'Quotations',
+                              subtitle: 'Kaccha Bill & Estimate',
+                              icon: Icons.request_quote_rounded,
+                              badge: 'SALES',
+                              accentColor: const Color(0xFF2563EB),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuotationsListScreen())),
+                            ),
+                          );
+
+                          // 4. Shop Expenses (Universal)
+                          suiteCards.add(
+                            _buildAddonSuiteCard(
+                              title: 'Shop Expenses',
+                              subtitle: 'Daily Galla & Kharcha',
+                              icon: Icons.money_off_rounded,
+                              badge: 'CASH',
+                              accentColor: const Color(0xFFE11D48),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpensesListScreen())),
+                            ),
+                          );
+
+                          // 5. Expiry Radar (ONLY for Pharma / Chemist / Grocery Perishables - NOT for Shoes/Garments)
+                          if (!_isFootwearOrGarmentIndustry) {
+                            suiteCards.add(
+                              _buildAddonSuiteCard(
+                                title: 'Expiry Radar',
+                                subtitle: 'Near-Expiry Stock Alert',
+                                icon: Icons.radar_rounded,
+                                badge: 'ALERTS',
+                                accentColor: const Color(0xFFEA580C),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpiryWatchlistScreen())),
+                              ),
+                            );
+                          }
+
+                          // 6. Sales Returns (Universal)
+                          suiteCards.add(
+                            _buildAddonSuiteCard(
+                              title: 'Sales Returns',
+                              subtitle: 'Credit Notes & Returns',
+                              icon: Icons.assignment_return_outlined,
+                              badge: 'RETURNS',
+                              accentColor: const Color(0xFFDC2626),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesReturnsListScreen())),
+                            ),
+                          );
+
+                          // 7. Pharma SFA (ONLY for Pharma & Chemist industry - STRICTLY hidden for Shoes/Garments/Auto)
+                          if (_isPharmaIndustry) {
+                            suiteCards.add(
+                              _buildAddonSuiteCard(
+                                title: 'Pharma SFA',
+                                subtitle: 'MR Calls & Orders',
+                                icon: Icons.medical_services_outlined,
+                                badge: 'FIELD SFA',
+                                accentColor: const Color(0xFF7C3AED),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PharmaSfaShellScreen())),
+                              ),
+                            );
+                          }
+
+                          // 8. Parties & Ledgers (Universal)
+                          suiteCards.add(
+                            _buildAddonSuiteCard(
+                              title: 'Parties & Ledgers',
+                              subtitle: 'Customer & Supplier Khata',
+                              icon: Icons.account_balance_wallet_outlined,
+                              badge: 'KHATA',
+                              accentColor: const Color(0xFF059669),
+                              onTap: () {
+                                if (widget.onNavigateTab != null) widget.onNavigateTab!(2);
+                              },
+                            ),
+                          );
+
+                          return GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 1.6,
+                            children: suiteCards,
+                          );
+                        },
                       ),
                       const SizedBox(height: 16),
 
@@ -749,9 +1549,19 @@ class _NativeDashboardScreenState extends State<NativeDashboardScreen> {
                                 inv.partyName,
                                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                               ),
-                              subtitle: Text(
-                                '${inv.invoiceNumber} • ${inv.invoiceDate}',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              subtitle: Row(
+                                children: [
+                                  Text(
+                                    '${inv.invoiceNumber} • ${inv.invoiceDate}',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    inv.isSynced ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                                    size: 13,
+                                    color: inv.isSynced ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                  ),
+                                ],
                               ),
                               trailing: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,

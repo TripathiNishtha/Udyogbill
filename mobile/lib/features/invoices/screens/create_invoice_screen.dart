@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/constants/app_constants.dart';
@@ -6,11 +8,13 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/daos/invoice_dao.dart';
 import '../../../../core/database/daos/item_dao.dart';
 import '../../../../core/database/daos/party_dao.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/sync/sync_service.dart';
 import '../../../../core/utils/indian_states.dart';
 import '../../../../core/utils/pharma_pricing_calculator.dart';
 import '../../../../core/widgets/continuous_barcode_scanner_sheet.dart';
 import '../../parties/screens/add_party_dialog.dart';
+import '../../items/screens/add_item_dialog.dart';
 import 'invoice_detail_preview_screen.dart';
 
 class CreateInvoiceScreen extends StatefulWidget {
@@ -35,6 +39,10 @@ class _InvoiceEntryItem {
   String? batchNumber;
   String? expiryDate;
   String? hsnCode;
+  String? autoBrand;
+  String? autoSpecNumber;
+  String? autoPartNumber;
+  String? rackLocation;
 
   _InvoiceEntryItem({
     required this.item,
@@ -49,6 +57,10 @@ class _InvoiceEntryItem {
     this.batchNumber,
     this.expiryDate,
     this.hsnCode,
+    this.autoBrand,
+    this.autoSpecNumber,
+    this.autoPartNumber,
+    this.rackLocation,
   });
 
   double get gross => quantity * unitPrice;
@@ -66,6 +78,8 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   final ItemDao _itemDao = ItemDao();
   final PartyDao _partyDao = PartyDao();
   final SyncService _syncService = SyncService();
+  final ApiClient _apiClient = ApiClient();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   String _invoiceNumber = 'Loading...';
   DateTime _invoiceDate = DateTime.now();
@@ -80,6 +94,16 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         sellerStateCode: _sellerStateCode,
         buyerPosCode: _placeOfSupply.code,
       );
+
+  String _tenantIndustry = 'OTHER';
+  bool get _isPharmaIndustry {
+    final ind = _tenantIndustry.toUpperCase();
+    return ind.contains('PHARMA') || ind.contains('CHEMIST') || ind.contains('MEDIC') || ind.contains('HEALTH');
+  }
+  bool get _isAutoPartsIndustry {
+    final ind = _tenantIndustry.toUpperCase();
+    return ind.contains('AUTO') || ind.contains('SPARE') || ind.contains('MOTOR') || ind.contains('GARAGE') || ind.contains('TYRE') || ind.contains('BATTERY') || ind.contains('TRACTOR');
+  }
 
   PartyModel? _selectedParty;
   List<PartyModel> _allCustomers = [];
@@ -111,6 +135,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   @override
   void initState() {
     super.initState();
+    _loadTenantIndustry();
     _loadInitialData();
   }
 
@@ -126,6 +151,15 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     _ewayBillNumberController.dispose();
     _lrNumberController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTenantIndustry() async {
+    try {
+      final ind = await _storage.read(key: AppConstants.keyTenantIndustry);
+      if (ind != null && ind.isNotEmpty && mounted) {
+        setState(() => _tenantIndustry = ind);
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadInitialData() async {
@@ -182,6 +216,124 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     }
   }
 
+  _InvoiceEntryItem _buildNewEntryItem(ItemModel item) {
+    final mrp = item.salePrice > 0 ? item.salePrice : (item.purchasePrice * 1.3);
+    final pharmaRates = PharmaPricingCalculator.calculateMargRates(
+      mrp: mrp,
+      gstRate: item.gstRate,
+    );
+
+    final now = DateTime.now();
+    final defaultBatch = item.batchNumber != null && item.batchNumber!.isNotEmpty
+        ? item.batchNumber!
+        : 'B${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final defaultExp = item.expiryDate != null && item.expiryDate!.isNotEmpty
+        ? item.expiryDate!
+        : '${now.month.toString().padLeft(2, '0')}/${(now.year + 2).toString().substring(2)}';
+
+    String? apBrand;
+    String? apSpecNumber;
+    String? apPartNumber;
+    String? apRack;
+    double? apRate;
+    double? apMrp;
+
+    if (item.attributesJson != null && item.attributesJson!.isNotEmpty) {
+      try {
+        final parsed = jsonDecode(item.attributesJson!);
+        if (parsed is Map && parsed['autoPartsMatrix'] is List && (parsed['autoPartsMatrix'] as List).isNotEmpty) {
+          final firstRow = (parsed['autoPartsMatrix'] as List).first as Map;
+          apBrand = firstRow['brand']?.toString();
+          apSpecNumber = firstRow['specNumber']?.toString();
+          apPartNumber = firstRow['partNumber']?.toString();
+          apRack = firstRow['rackLocation']?.toString();
+          apRate = double.tryParse((firstRow['sellingPrice'] ?? 0).toString());
+          apMrp = double.tryParse((firstRow['mrp'] ?? 0).toString());
+        }
+      } catch (_) {}
+    }
+
+    return _InvoiceEntryItem(
+      item: item,
+      unitPrice: (apRate != null && apRate > 0) ? apRate : (item.ptr > 0 ? item.ptr : (pharmaRates.ptr > 0 ? pharmaRates.ptr : item.salePrice)),
+      quantity: 1.0,
+      freeQuantity: 0.0,
+      mrp: (apMrp != null && apMrp > 0) ? apMrp : mrp,
+      ptr: item.ptr > 0 ? item.ptr : pharmaRates.ptr,
+      pts: item.pts > 0 ? item.pts : pharmaRates.pts,
+      batchNumber: defaultBatch,
+      expiryDate: defaultExp,
+      hsnCode: item.hsnCode ?? (_isAutoPartsIndustry ? '8708' : '3004'),
+      autoBrand: apBrand,
+      autoSpecNumber: apSpecNumber,
+      autoPartNumber: apPartNumber,
+      rackLocation: apRack,
+    );
+  }
+
+  void _addItemToBill(ItemModel item) {
+    final newItem = _buildNewEntryItem(item);
+
+    setState(() {
+      _billItems.add(newItem);
+      _updateReceivedDefault();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text('Added "${item.name}" to bill', style: const TextStyle(fontWeight: FontWeight.bold))),
+          ],
+        ),
+        backgroundColor: const Color(0xFF16A34A),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    // Open the item edit sheet so user can immediately adjust batch, free qty, rate
+    _openItemEditSheet(newItem, _billItems.length - 1);
+  }
+
+  void _addMultipleItemsToBill(List<ItemModel> items) {
+    if (items.isEmpty) return;
+
+    setState(() {
+      for (final item in items) {
+        final existingIdx = _billItems.indexWhere((it) => it.item.id == item.id);
+        if (existingIdx >= 0) {
+          _billItems[existingIdx].quantity += 1.0;
+        } else {
+          _billItems.add(_buildNewEntryItem(item));
+        }
+      }
+      _updateReceivedDefault();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Added ${items.length} product(s) to bill',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF16A34A),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   void _openItemPicker() {
     showModalBottomSheet(
       context: context,
@@ -190,38 +342,12 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => _ItemPickerSheet(
         itemDao: _itemDao,
+        initialSelectedIds: _billItems.map((b) => b.item.id).toSet(),
         onItemSelected: (item) {
-          // Pre-calculate pharma Marg rates
-          final mrp = item.salePrice > 0 ? item.salePrice : (item.purchasePrice * 1.3);
-          final pharmaRates = PharmaPricingCalculator.calculateMargRates(
-            mrp: mrp,
-            gstRate: item.gstRate,
-          );
-
-          final now = DateTime.now();
-          final defaultBatch = 'B${now.year}-${now.month.toString().padLeft(2, '0')}';
-          final defaultExp = '${now.month.toString().padLeft(2, '0')}/${(now.year + 2).toString().substring(2)}';
-
-          final newItem = _InvoiceEntryItem(
-            item: item,
-            unitPrice: pharmaRates.ptr > 0 ? pharmaRates.ptr : item.salePrice,
-            quantity: 1.0,
-            freeQuantity: 0.0,
-            mrp: mrp,
-            ptr: pharmaRates.ptr,
-            pts: pharmaRates.pts,
-            batchNumber: defaultBatch,
-            expiryDate: defaultExp,
-            hsnCode: item.hsnCode ?? '3004',
-          );
-
-          setState(() {
-            _billItems.add(newItem);
-            _updateReceivedDefault();
-          });
-
-          // Open the item edit sheet so user can immediately adjust batch, free qty, rate
-          _openItemEditSheet(newItem, _billItems.length - 1);
+          _addItemToBill(item);
+        },
+        onItemsSelected: (items) {
+          _addMultipleItemsToBill(items);
         },
       ),
     );
@@ -235,6 +361,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => _ItemEditSheet(
         itemEntry: entry,
+        isAutoParts: _isAutoPartsIndustry,
         onSave: (updated) {
           setState(() {
             _billItems[index] = updated;
@@ -261,31 +388,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
               _updateReceivedDefault();
             });
           } else {
-            final mrp = item.mrp > 0 ? item.mrp : (item.salePrice > 0 ? item.salePrice : (item.purchasePrice * 1.3));
-            final pharmaRates = PharmaPricingCalculator.calculateMargRates(
-              mrp: mrp,
-              gstRate: item.gstRate,
-            );
-            final now = DateTime.now();
-            final defaultBatch = item.batchNumber != null && item.batchNumber!.isNotEmpty
-                ? item.batchNumber!
-                : 'B${now.year}-${now.month.toString().padLeft(2, '0')}';
-            final defaultExp = item.expiryDate != null && item.expiryDate!.isNotEmpty
-                ? item.expiryDate!
-                : '${now.month.toString().padLeft(2, '0')}/${(now.year + 2).toString().substring(2)}';
-
-            final newItem = _InvoiceEntryItem(
-              item: item,
-              unitPrice: item.ptr > 0 ? item.ptr : (pharmaRates.ptr > 0 ? pharmaRates.ptr : item.salePrice),
-              quantity: 1.0,
-              freeQuantity: 0.0,
-              mrp: mrp,
-              ptr: item.ptr > 0 ? item.ptr : pharmaRates.ptr,
-              pts: item.pts > 0 ? item.pts : pharmaRates.pts,
-              batchNumber: defaultBatch,
-              expiryDate: defaultExp,
-              hsnCode: item.hsnCode ?? '3004',
-            );
+            final newItem = _buildNewEntryItem(item);
 
             setState(() {
               _billItems.add(newItem);
@@ -384,7 +487,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         }
       }
 
-      final invoiceModel = InvoiceModel(
+      InvoiceModel invoiceModel = InvoiceModel(
         id: invoiceId,
         tenantId: activeTenantId,
         invoiceNumber: _invoiceNumber,
@@ -425,11 +528,17 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
             isInterState: _isInterState,
           );
 
+          final autoBadge = [
+            if (bi.autoSpecNumber != null && bi.autoSpecNumber!.isNotEmpty) 'No: ${bi.autoSpecNumber}',
+            if (bi.autoBrand != null && bi.autoBrand!.isNotEmpty) bi.autoBrand!,
+          ].join(' | ');
+          final finalItemName = autoBadge.isNotEmpty ? '${bi.item.name} ($autoBadge)' : bi.item.name;
+
           return InvoiceItemModel(
             id: const Uuid().v4(),
             invoiceId: invoiceId,
             itemId: bi.item.id,
-            itemName: bi.item.name,
+            itemName: finalItemName,
             itemSku: bi.item.sku,
             hsnCode: bi.hsnCode ?? bi.item.hsnCode,
             batchNumber: bi.batchNumber,
@@ -452,20 +561,50 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         }).toList(),
       );
 
+      // Online-First approach: Submit directly to backend API
+      bool onlineSuccess = false;
+      final apiPayload = invoiceModel.toApiPayload();
+
+      try {
+        final res = await _apiClient.post('/tenant/invoices', data: apiPayload);
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          onlineSuccess = true;
+          invoiceModel = invoiceModel.copyWith(isSynced: true);
+        }
+      } catch (_) {
+        // Retained offline for automatic background sync
+      }
+
       // Save to SQLite
       await _invoiceDao.insertInvoice(invoiceModel);
 
-      // Queue for background sync
-      await _syncService.queueOfflineInvoice(
-        invoiceId: invoiceId,
-        invoicePayload: invoiceModel.toMap(),
-      );
+      // Deduct item stock locally for immediate stock parity
+      for (final bi in _billItems) {
+        await _itemDao.deductStock(bi.item.id, bi.quantity + bi.freeQuantity);
+      }
+
+      if (!onlineSuccess) {
+        // Queue for background sync with authoritative API payload format
+        await _syncService.queueOfflineInvoice(
+          invoiceId: invoiceId,
+          invoicePayload: apiPayload,
+        );
+      } else {
+        // When online creation succeeds, trigger background pull to sync latest state
+        _syncService.syncInvoicesFromWeb().catchError((_) => 0);
+      }
+
+      final wasFirstBill = (await _storage.read(key: AppConstants.keyHasCompletedFirstBill)) != 'true';
+      await _storage.write(key: AppConstants.keyHasCompletedFirstBill, value: 'true');
 
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => InvoiceDetailPreviewScreen(invoice: invoiceModel),
+            builder: (_) => InvoiceDetailPreviewScreen(
+              invoice: invoiceModel,
+              isFirstBillCelebration: wasFirstBill,
+            ),
           ),
         );
       }
@@ -483,7 +622,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgLight,
       appBar: AppBar(
         title: Text(
           _invoiceType == 1 ? 'New B2B Tax Invoice' : 'New Retail Cash Bill',
@@ -671,26 +810,26 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: _isInterState ? const Color(0xFFEFF6FF) : const Color(0xFFF0FDF4),
+                            color: _isInterState ? const Color(0xFFFFF7ED) : const Color(0xFFF0FDF4),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: _isInterState ? const Color(0xFFBFDBFE) : const Color(0xFFBBF7D0)),
+                            border: Border.all(color: _isInterState ? const Color(0xFFFED7AA) : const Color(0xFFBBF7D0)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                _isInterState ? '🔵 INTER-STATE' : '🟢 INTRA-STATE',
+                                _isInterState ? '🟠 INTER-STATE' : '🟢 INTRA-STATE',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
-                                  color: _isInterState ? const Color(0xFF1D4ED8) : const Color(0xFF15803D),
+                                  color: _isInterState ? const Color(0xFFEA580C) : const Color(0xFF15803D),
                                 ),
                               ),
                               Text(
                                 _isInterState ? 'IGST 100%' : 'CGST + SGST (50/50)',
                                 style: TextStyle(
                                   fontSize: 9,
-                                  color: _isInterState ? const Color(0xFF1D4ED8) : const Color(0xFF15803D),
+                                  color: _isInterState ? const Color(0xFFEA580C) : const Color(0xFF15803D),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -744,13 +883,94 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(value: false, label: Text('Registered Party', style: TextStyle(fontSize: 11)), icon: Icon(Icons.people_outline, size: 14)),
-                            ButtonSegment(value: true, label: Text('⚡ Instant Buyer', style: TextStyle(fontSize: 11)), icon: Icon(Icons.flash_on, size: 14)),
-                          ],
-                          selected: {_isQuickCustomer},
-                          onSelectionChanged: (val) => setState(() => _isQuickCustomer = val.first),
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _isQuickCustomer = false),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: !_isQuickCustomer ? AppTheme.primary : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: !_isQuickCustomer
+                                          ? [
+                                              BoxShadow(
+                                                color: AppTheme.primary.withValues(alpha: 0.25),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Center(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.people_outline, size: 14, color: !_isQuickCustomer ? Colors.white : const Color(0xFF64748B)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Registered Party',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: !_isQuickCustomer ? FontWeight.bold : FontWeight.w500,
+                                              color: !_isQuickCustomer ? Colors.white : const Color(0xFF475569),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _isQuickCustomer = true),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: _isQuickCustomer ? AppTheme.primary : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: _isQuickCustomer
+                                          ? [
+                                              BoxShadow(
+                                                color: AppTheme.primary.withValues(alpha: 0.25),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Center(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.flash_on, size: 14, color: _isQuickCustomer ? Colors.white : const Color(0xFF64748B)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Instant Buyer',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: _isQuickCustomer ? FontWeight.bold : FontWeight.w500,
+                                              color: _isQuickCustomer ? Colors.white : const Color(0xFF475569),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 10),
                         if (_isQuickCustomer) ...[
@@ -770,11 +990,19 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                 child: TextFormField(
                                   controller: _quickPhoneController,
                                   keyboardType: TextInputType.phone,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(10),
+                                  ],
+                                  maxLength: 10,
+                                  buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                                   decoration: const InputDecoration(
                                     labelText: 'Mobile Number',
                                     hintText: '10 digits',
-                                    prefixIcon: Icon(Icons.phone_outlined, size: 18),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    prefixIcon: Icon(Icons.phone_outlined, size: 16),
+                                    prefixIconConstraints: BoxConstraints(minWidth: 34, minHeight: 34),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                                   ),
                                 ),
                               ),
@@ -791,9 +1019,11 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                   },
                                   decoration: const InputDecoration(
                                     labelText: 'GSTIN (Optional)',
-                                    hintText: '15 characters',
-                                    prefixIcon: Icon(Icons.verified_outlined, size: 18),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    hintText: '15 chars',
+                                    prefixIcon: Icon(Icons.verified_outlined, size: 16),
+                                    prefixIconConstraints: BoxConstraints(minWidth: 34, minHeight: 34),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                                   ),
                                 ),
                               ),
@@ -870,24 +1100,31 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         ),
                         children: [
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                            padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                // Block 1: PO Number & PO Date
                                 Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
+                                      flex: 6,
                                       child: TextFormField(
                                         controller: _poNumberController,
                                         decoration: const InputDecoration(
                                           labelText: 'Buyer PO Number',
                                           hintText: 'e.g. PO-8921',
-                                          prefixIcon: Icon(Icons.receipt, size: 16),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          prefixIcon: Icon(Icons.receipt_outlined, size: 18),
+                                          prefixIconConstraints: BoxConstraints(minWidth: 38, minHeight: 38),
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
+                                      flex: 5,
                                       child: InkWell(
                                         onTap: () async {
                                           final picked = await showDatePicker(
@@ -898,20 +1135,35 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                           );
                                           if (picked != null) setState(() => _poDate = picked);
                                         },
+                                        borderRadius: BorderRadius.circular(10),
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                          height: 48,
+                                          padding: const EdgeInsets.symmetric(horizontal: 10),
                                           decoration: BoxDecoration(
+                                            color: Colors.white,
                                             border: Border.all(color: const Color(0xFFCBD5E1)),
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(10),
                                           ),
                                           child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(
-                                                _poDate != null ? '${_poDate!.day}/${_poDate!.month}/${_poDate!.year}' : 'PO Date',
-                                                style: TextStyle(fontSize: 12, color: _poDate != null ? Colors.black : const Color(0xFF64748B)),
+                                              const Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.primary),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Text(
+                                                  _poDate != null ? '${_poDate!.day}/${_poDate!.month}/${_poDate!.year}' : 'PO Date',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: _poDate != null ? FontWeight.bold : FontWeight.normal,
+                                                    color: _poDate != null ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
-                                              const Icon(Icons.calendar_today, size: 14, color: Color(0xFF64748B)),
+                                              if (_poDate != null)
+                                                GestureDetector(
+                                                  onTap: () => setState(() => _poDate = null),
+                                                  child: const Icon(Icons.close, size: 14, color: Colors.grey),
+                                                ),
                                             ],
                                           ),
                                         ),
@@ -919,18 +1171,51 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 10),
+
+                                // Block 2: Vehicle Number (Full Width with Auto-Capitalization)
+                                TextFormField(
+                                  controller: _vehicleNumberController,
+                                  textCapitalization: TextCapitalization.characters,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Vehicle Number (गाड़ी नंबर)',
+                                    hintText: 'e.g. UP 32 AB 1234 / DL 01 A 9999',
+                                    prefixIcon: Icon(Icons.local_shipping_outlined, size: 18),
+                                    prefixIconConstraints: BoxConstraints(minWidth: 38, minHeight: 38),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+
+                                // Block 3: Transporter Name (Full Width)
+                                TextFormField(
+                                  controller: _transporterNameController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Transporter Name (ट्रांसपोर्ट कंपनी)',
+                                    hintText: 'e.g. V-Trans Logistics, SafeX, BlueDart',
+                                    prefixIcon: Icon(Icons.business_outlined, size: 18),
+                                    prefixIconConstraints: BoxConstraints(minWidth: 38, minHeight: 38),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+
+                                // Block 4: LR / Bilty Number & E-Way Bill Number
                                 Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
                                       child: TextFormField(
-                                        controller: _vehicleNumberController,
-                                        textCapitalization: TextCapitalization.characters,
+                                        controller: _lrNumberController,
                                         decoration: const InputDecoration(
-                                          labelText: 'Vehicle Number',
-                                          hintText: 'e.g. UP-32-AB-1234',
-                                          prefixIcon: Icon(Icons.directions_car, size: 16),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          labelText: 'LR / Bilty No.',
+                                          hintText: 'e.g. LR-4029',
+                                          prefixIcon: Icon(Icons.confirmation_number_outlined, size: 18),
+                                          prefixIconConstraints: BoxConstraints(minWidth: 36, minHeight: 36),
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                                         ),
                                       ),
                                     ),
@@ -938,51 +1223,37 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                     Expanded(
                                       child: TextFormField(
                                         controller: _ewayBillNumberController,
+                                        keyboardType: TextInputType.number,
                                         decoration: const InputDecoration(
-                                          labelText: 'E-Way Bill Number',
+                                          labelText: 'E-Way Bill No.',
                                           hintText: '12-digit number',
-                                          prefixIcon: Icon(Icons.qr_code, size: 16),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          prefixIcon: Icon(Icons.qr_code_2_outlined, size: 18),
+                                          prefixIconConstraints: BoxConstraints(minWidth: 36, minHeight: 36),
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: _transporterNameController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Transporter Name',
-                                          hintText: 'e.g. V-Trans Logistics',
-                                          prefixIcon: Icon(Icons.business, size: 16),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: _lrNumberController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'LR / Bilty Number',
-                                          hintText: 'e.g. LR-4029',
-                                          prefixIcon: Icon(Icons.confirmation_number, size: 16),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                SwitchListTile(
-                                  value: _isReverseCharge,
-                                  onChanged: (val) => setState(() => _isReverseCharge = val),
-                                  contentPadding: EdgeInsets.zero,
-                                  title: const Text('Reverse Charge Mechanism (RCM)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                  subtitle: const Text('Tax payable by recipient under RCM', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                const SizedBox(height: 10),
+
+                                // Block 5: Reverse Charge Mechanism Switch
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: SwitchListTile(
+                                    value: _isReverseCharge,
+                                    onChanged: (val) => setState(() => _isReverseCharge = val),
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                    title: const Text('Reverse Charge Mechanism (RCM)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    subtitle: const Text('Tax payable by recipient under RCM', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                  ),
                                 ),
                               ],
                             ),
@@ -997,30 +1268,64 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Billed Items (${_billItems.length})',
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                            ),
+                            if (_isPharmaIndustry) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(6)),
+                                child: const Text('Pharma Ready', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFC2410C))),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Billed Items (${_billItems.length})',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final newItem = await showDialog<ItemModel>(
+                                context: context,
+                                builder: (_) => const AddItemDialog(),
+                              );
+                              if (newItem != null) {
+                                _addItemToBill(newItem);
+                              }
+                            },
+                            icon: const Icon(Icons.add, size: 14),
+                            label: const Text('New', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primary,
+                              side: const BorderSide(color: AppTheme.primary),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: const Color(0xFFE0E7FF), borderRadius: BorderRadius.circular(6)),
-                            child: const Text('Pharma & Wholesale Ready', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF3730A3))),
+                          const SizedBox(width: 6),
+                          ElevatedButton.icon(
+                            onPressed: _openItemPicker,
+                            icon: const Icon(Icons.add_shopping_cart, size: 15),
+                            label: const Text('+ Add Item', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              elevation: 1,
+                            ),
                           ),
                         ],
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: _openItemPicker,
-                        icon: const Icon(Icons.add_shopping_cart, size: 16),
-                        label: const Text('+ Add Item', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
                       ),
                     ],
                   ),
@@ -1029,7 +1334,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                   // Items Cards List
                   if (_billItems.isEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 36),
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
@@ -1038,11 +1343,23 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                       child: Center(
                         child: Column(
                           children: [
-                            Icon(Icons.inventory_2_outlined, size: 42, color: Colors.grey[400]),
+                            Icon(Icons.inventory_2_outlined, size: 38, color: Colors.grey[400]),
                             const SizedBox(height: 8),
                             const Text('No items in bill yet', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700, fontSize: 14)),
                             const SizedBox(height: 4),
-                            const Text('Tap "+ Add Item" or scan product barcode above', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                            const Text('Choose an option to add products:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                            const SizedBox(height: 14),
+                            ElevatedButton.icon(
+                              onPressed: _openItemPicker,
+                              icon: const Icon(Icons.playlist_add_check_circle, size: 18),
+                              label: const Text('Select Products from Catalog', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1092,11 +1409,17 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                   ],
                                 ),
 
-                                // Pharma / B2B Tags Row (HSN, Batch, Exp, GST)
+                                // Pharma / AutoParts / B2B Tags Row
                                 Wrap(
                                   spacing: 6,
                                   runSpacing: 4,
                                   children: [
+                                    if (it.autoSpecNumber != null && it.autoSpecNumber!.isNotEmpty)
+                                      _buildTag('No: ${it.autoSpecNumber}', const Color(0xFFFFF7ED), const Color(0xFFC2410C)),
+                                    if (it.autoBrand != null && it.autoBrand!.isNotEmpty)
+                                      _buildTag(it.autoBrand!, const Color(0xFFF1F5F9), const Color(0xFF0F172A)),
+                                    if (it.rackLocation != null && it.rackLocation!.isNotEmpty)
+                                      _buildTag('📍 ${it.rackLocation}', const Color(0xFFF8FAFC), const Color(0xFF64748B)),
                                     if (it.hsnCode != null && it.hsnCode!.isNotEmpty)
                                       _buildTag('HSN: ${it.hsnCode}', const Color(0xFFF1F5F9), const Color(0xFF475569)),
                                     if (it.batchNumber != null && it.batchNumber!.isNotEmpty)
@@ -1374,12 +1697,19 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   }
 }
 
-/// Modal Sheet for Picking Items
+/// Modal Sheet for Picking Items with Multi-Select and Highlighting
 class _ItemPickerSheet extends StatefulWidget {
   final ItemDao itemDao;
-  final Function(ItemModel) onItemSelected;
+  final Set<String>? initialSelectedIds;
+  final Function(ItemModel)? onItemSelected;
+  final Function(List<ItemModel>)? onItemsSelected;
 
-  const _ItemPickerSheet({required this.itemDao, required this.onItemSelected});
+  const _ItemPickerSheet({
+    required this.itemDao,
+    this.initialSelectedIds,
+    this.onItemSelected,
+    this.onItemsSelected,
+  });
 
   @override
   State<_ItemPickerSheet> createState() => _ItemPickerSheetState();
@@ -1389,77 +1719,366 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
   final TextEditingController _searchController = TextEditingController();
   List<ItemModel> _items = [];
   bool _isLoading = true;
+  final Set<String> _selectedItemIds = {};
+  final Map<String, ItemModel> _selectedItems = {};
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialSelectedIds != null) {
+      _selectedItemIds.addAll(widget.initialSelectedIds!);
+    }
     _loadItems('');
   }
 
   void _loadItems(String query) async {
-    final list = await widget.itemDao.searchItems(query, limit: 30);
+    final list = await widget.itemDao.searchItems(query, limit: 40);
     if (mounted) {
       setState(() {
         _items = list;
         _isLoading = false;
+        // Cache found items if they were already selected
+        for (final it in list) {
+          if (_selectedItemIds.contains(it.id)) {
+            _selectedItems[it.id] = it;
+          }
+        }
       });
     }
+  }
+
+  void _toggleItemSelection(ItemModel it) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (_selectedItemIds.contains(it.id)) {
+        _selectedItemIds.remove(it.id);
+        _selectedItems.remove(it.id);
+      } else {
+        _selectedItemIds.add(it.id);
+        _selectedItems[it.id] = it;
+      }
+    });
+  }
+
+  void _submitSelection() {
+    final itemsToAdd = _selectedItems.values.toList();
+    if (itemsToAdd.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    if (widget.onItemsSelected != null) {
+      widget.onItemsSelected!(itemsToAdd);
+    } else if (widget.onItemSelected != null) {
+      for (final it in itemsToAdd) {
+        widget.onItemSelected!(it);
+      }
+    }
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.78,
+      height: MediaQuery.of(context).size.height * 0.85,
       child: Column(
         children: [
+          // Top Header Bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Select Product for Bill', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                Row(
+                  children: [
+                    const Icon(Icons.playlist_add_check_rounded, color: AppTheme.primary, size: 22),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Select Products for Bill',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final navigator = Navigator.of(context);
+                        final newItem = await showDialog<ItemModel>(
+                          context: context,
+                          builder: (_) => const AddItemDialog(),
+                        );
+                        if (newItem != null && mounted) {
+                          _loadItems('');
+                          setState(() {
+                            _selectedItemIds.add(newItem.id);
+                            _selectedItems[newItem.id] = newItem;
+                          });
+                          if (widget.onItemsSelected != null) {
+                            widget.onItemsSelected!([newItem]);
+                          } else {
+                            widget.onItemSelected?.call(newItem);
+                          }
+                          navigator.pop();
+                        }
+                      },
+                      icon: const Icon(Icons.add, size: 14),
+                      label: const Text('New Product', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
               ],
             ),
           ),
+
+          // Search Field
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: TextField(
               controller: _searchController,
               onChanged: _loadItems,
-              decoration: const InputDecoration(
-                hintText: 'Search medicine, SKU, barcode...',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: 'Search product name, SKU, barcode...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          _loadItems('');
+                        },
+                      )
+                    : null,
               ),
             ),
           ),
+
+          // Selected counter pill strip
+          if (_selectedItemIds.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_selectedItemIds.length} item(s) selected',
+                        style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedItemIds.clear();
+                        _selectedItems.clear();
+                      });
+                    },
+                    child: const Text(
+                      'Clear Selection',
+                      style: TextStyle(color: Color(0xFFDC2626), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Products List
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _items.length,
-                    separatorBuilder: (_, index) => const SizedBox(height: 8),
-                    itemBuilder: (ctx, idx) {
-                      final it = _items[idx];
-                      return ListTile(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                : _items.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.inventory_2_outlined, size: 40, color: Colors.grey[400]),
+                            const SizedBox(height: 8),
+                            const Text('No products found', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final navigator = Navigator.of(context);
+                                final newItem = await showDialog<ItemModel>(
+                                  context: context,
+                                  builder: (_) => const AddItemDialog(),
+                                );
+                                if (newItem != null && mounted) {
+                                  _loadItems('');
+                                  if (widget.onItemsSelected != null) {
+                                    widget.onItemsSelected!([newItem]);
+                                  } else {
+                                    widget.onItemSelected?.call(newItem);
+                                  }
+                                  navigator.pop();
+                                }
+                              },
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Add This Product Now'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
-                        title: Text(it.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        subtitle: Text('Stock: ${it.stockQuantity} ${it.uom ?? "Pcs"} | GST: ${it.gstRate}% | HSN: ${it.hsnCode ?? "3004"}', style: const TextStyle(fontSize: 11)),
-                        trailing: Text(
-                          '₹${it.salePrice.toStringAsFixed(2)}',
-                          style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary, fontSize: 14),
-                        ),
-                        onTap: () {
-                          widget.onItemSelected(it);
-                          Navigator.pop(context);
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        itemCount: _items.length,
+                        separatorBuilder: (_, index) => const SizedBox(height: 8),
+                        itemBuilder: (ctx, idx) {
+                          final it = _items[idx];
+                          final isSelected = _selectedItemIds.contains(it.id);
+
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFFF0FDF4) : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
+                                width: isSelected ? 2 : 1,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFF16A34A).withValues(alpha: 0.18),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: ListTile(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              leading: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? const Color(0xFF16A34A) : const Color(0xFFFFF7ED),
+                                  shape: isSelected ? BoxShape.circle : BoxShape.rectangle,
+                                  borderRadius: isSelected ? null : BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  isSelected ? Icons.check : Icons.inventory_2_outlined,
+                                  color: isSelected ? Colors.white : AppTheme.primary,
+                                  size: 18,
+                                ),
+                              ),
+                              title: Text(
+                                it.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: isSelected ? const Color(0xFF14532D) : const Color(0xFF0F172A),
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Stock: ${it.stockQuantity} ${it.uom ?? "Pcs"} | GST: ${it.gstRate}% | HSN: ${it.hsnCode ?? "3004"}',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              trailing: isSelected
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF16A34A),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check, color: Colors.white, size: 13),
+                                          SizedBox(width: 4),
+                                          Text('Selected', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                        ],
+                                      ),
+                                    )
+                                  : Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '₹${it.salePrice.toStringAsFixed(2)}',
+                                          style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary, fontSize: 14),
+                                        ),
+                                        const Text('Tap to select', style: TextStyle(fontSize: 9, color: Color(0xFF94A3B8))),
+                                      ],
+                                    ),
+                              onTap: () => _toggleItemSelection(it),
+                            ),
+                          );
                         },
-                      );
-                    },
+                      ),
+          ),
+
+          // Sticky Bottom Action Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${_selectedItemIds.length} Products Selected',
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
+                        ),
+                        Text(
+                          _selectedItemIds.isEmpty ? 'Tap products above to pick multiple' : 'Ready to add to bill',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
                   ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _selectedItemIds.isNotEmpty ? const Color(0xFF16A34A) : Colors.grey[400],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: _selectedItemIds.isNotEmpty ? 2 : 0,
+                    ),
+                    onPressed: _selectedItemIds.isNotEmpty ? _submitSelection : null,
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: Text(
+                      'Add to Bill (${_selectedItemIds.length})',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -1470,9 +2089,10 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
 /// Comprehensive Pharma & Wholesale Line Item Edit Sheet
 class _ItemEditSheet extends StatefulWidget {
   final _InvoiceEntryItem itemEntry;
+  final bool isAutoParts;
   final Function(_InvoiceEntryItem) onSave;
 
-  const _ItemEditSheet({required this.itemEntry, required this.onSave});
+  const _ItemEditSheet({required this.itemEntry, this.isAutoParts = false, required this.onSave});
 
   @override
   State<_ItemEditSheet> createState() => _ItemEditSheetState();
@@ -1490,6 +2110,11 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
   late TextEditingController _discController;
   late TextEditingController _schemeDiscController;
   late TextEditingController _hsnController;
+  late TextEditingController _specNoController;
+  late TextEditingController _brandController;
+  late TextEditingController _partNoController;
+  late TextEditingController _rackController;
+  List<Map<String, dynamic>> _autoMatrix = [];
 
   @override
   void initState() {
@@ -1505,7 +2130,23 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
     _expController = TextEditingController(text: it.expiryDate ?? '');
     _discController = TextEditingController(text: it.discountPercent.toStringAsFixed(1));
     _schemeDiscController = TextEditingController(text: it.schemeDiscountPercent.toStringAsFixed(1));
-    _hsnController = TextEditingController(text: it.hsnCode ?? it.item.hsnCode ?? '3004');
+    _hsnController = TextEditingController(text: it.hsnCode ?? it.item.hsnCode ?? (widget.isAutoParts ? '8708' : '3004'));
+    _specNoController = TextEditingController(text: it.autoSpecNumber ?? '');
+    _brandController = TextEditingController(text: it.autoBrand ?? '');
+    _partNoController = TextEditingController(text: it.autoPartNumber ?? '');
+    _rackController = TextEditingController(text: it.rackLocation ?? '');
+
+    if (it.item.attributesJson != null && it.item.attributesJson!.isNotEmpty) {
+      try {
+        final parsed = jsonDecode(it.item.attributesJson!);
+        if (parsed is Map && parsed['autoPartsMatrix'] is List) {
+          _autoMatrix = (parsed['autoPartsMatrix'] as List)
+              .whereType<Map>()
+              .map((m) => Map<String, dynamic>.from(m))
+              .toList();
+        }
+      } catch (_) {}
+    }
   }
 
   @override
@@ -1521,6 +2162,10 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
     _discController.dispose();
     _schemeDiscController.dispose();
     _hsnController.dispose();
+    _specNoController.dispose();
+    _brandController.dispose();
+    _partNoController.dispose();
+    _rackController.dispose();
     super.dispose();
   }
 
@@ -1611,9 +2256,8 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
-                      labelText: 'Free Qty (Scheme)',
-                      hintText: 'e.g. 1',
-                      prefixIcon: Icon(Icons.card_giftcard, size: 16),
+                      labelText: 'Free Qty',
+                      hintText: 'Scheme',
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                   ),
@@ -1621,6 +2265,125 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
               ],
             ),
             const SizedBox(height: 12),
+
+            // Auto Parts Section (Spec, Brand, Part Number & Rack Bin)
+            if (widget.isAutoParts || _specNoController.text.isNotEmpty || _brandController.text.isNotEmpty || _autoMatrix.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFED7AA)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.precision_manufacturing_rounded, size: 14, color: Color(0xFFC2410C)),
+                    SizedBox(width: 6),
+                    Text('⚙️ Auto Parts Number, Brand & Rack', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFC2410C))),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Quick Variant Chips from item's matrix
+              if (_autoMatrix.isNotEmpty) ...[
+                const Text('Select Number & Make:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _autoMatrix.map((m) {
+                    final spec = m['specNumber']?.toString() ?? '';
+                    final brand = m['brand']?.toString() ?? '';
+                    final price = (m['sellingPrice'] ?? 0).toString();
+                    final label = [if (spec.isNotEmpty) spec, if (brand.isNotEmpty) brand].join(' - ');
+                    final isSel = _specNoController.text == spec && _brandController.text == brand;
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          _specNoController.text = spec;
+                          _brandController.text = brand;
+                          if (m['partNumber'] != null) _partNoController.text = m['partNumber'].toString();
+                          if (m['rackLocation'] != null) _rackController.text = m['rackLocation'].toString();
+                          if (m['sellingPrice'] != null) _rateController.text = (m['sellingPrice']).toString();
+                          if (m['mrp'] != null) _mrpController.text = (m['mrp']).toString();
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSel ? const Color(0xFFEA580C) : const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: isSel ? const Color(0xFFC2410C) : const Color(0xFFFED7AA)),
+                        ),
+                        child: Text(
+                          label.isNotEmpty ? '$label (₹$price)' : '₹$price',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isSel ? Colors.white : const Color(0xFFC2410C),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _specNoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Spec / Gear No.',
+                        hintText: 'e.g. 39/8, 6201',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _brandController,
+                      decoration: const InputDecoration(
+                        labelText: 'Brand / Make',
+                        hintText: 'e.g. Bosch, MGP',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _partNoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Part Number',
+                        hintText: 'e.g. 16510M68K00',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _rackController,
+                      decoration: const InputDecoration(
+                        labelText: 'Rack / Bin',
+                        hintText: 'e.g. R-1/B-2',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Pharma Pricing Section Header
             Container(
@@ -1643,7 +2406,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: _onMrpChanged,
                     decoration: const InputDecoration(
-                      labelText: 'MRP (₹)',
+                      labelText: 'MRP',
                       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
                   ),
@@ -1655,7 +2418,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
-                      labelText: 'PTR (Retailer)',
+                      labelText: 'PTR',
                       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
                   ),
@@ -1667,7 +2430,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
-                      labelText: 'PTS (Stockist)',
+                      labelText: 'PTS',
                       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
                   ),
@@ -1720,8 +2483,8 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
-                      labelText: 'Billed Rate / Unit Price (₹) *',
-                      prefixIcon: Icon(Icons.currency_rupee, size: 16),
+                      labelText: 'Billed Rate *',
+                      prefixText: '₹ ',
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                   ),
@@ -1731,9 +2494,8 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                   child: TextFormField(
                     controller: _hsnController,
                     decoration: const InputDecoration(
-                      labelText: 'HSN / SAC Code',
+                      labelText: 'HSN Code',
                       hintText: 'e.g. 3004',
-                      prefixIcon: Icon(Icons.tag, size: 16),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                   ),
@@ -1749,9 +2511,8 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                   child: TextFormField(
                     controller: _batchController,
                     decoration: const InputDecoration(
-                      labelText: 'Batch Number',
+                      labelText: 'Batch No.',
                       hintText: 'e.g. B204-1',
-                      prefixIcon: Icon(Icons.qr_code, size: 16),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                   ),
@@ -1763,7 +2524,6 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     decoration: const InputDecoration(
                       labelText: 'Expiry (MM/YY)',
                       hintText: 'e.g. 08/28',
-                      prefixIcon: Icon(Icons.event, size: 16),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                   ),
@@ -1781,9 +2541,8 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
-                      labelText: 'Item Discount %',
+                      labelText: 'Item Disc. %',
                       hintText: '0.0',
-                      prefixIcon: Icon(Icons.percent, size: 16),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                   ),
@@ -1795,9 +2554,8 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
-                      labelText: 'Scheme Disc %',
+                      labelText: 'Scheme Disc. %',
                       hintText: '0.0',
-                      prefixIcon: Icon(Icons.discount_outlined, size: 16),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                   ),
@@ -1855,6 +2613,10 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                   batchNumber: _batchController.text.trim().isNotEmpty ? _batchController.text.trim() : null,
                   expiryDate: _expController.text.trim().isNotEmpty ? _expController.text.trim() : null,
                   hsnCode: _hsnController.text.trim().isNotEmpty ? _hsnController.text.trim() : null,
+                  autoSpecNumber: _specNoController.text.trim().isNotEmpty ? _specNoController.text.trim() : null,
+                  autoBrand: _brandController.text.trim().isNotEmpty ? _brandController.text.trim() : null,
+                  autoPartNumber: _partNoController.text.trim().isNotEmpty ? _partNoController.text.trim() : null,
+                  rackLocation: _rackController.text.trim().isNotEmpty ? _rackController.text.trim() : null,
                 );
                 widget.onSave(updated);
                 Navigator.pop(context);

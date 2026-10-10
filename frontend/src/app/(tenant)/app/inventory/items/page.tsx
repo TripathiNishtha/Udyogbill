@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Boxes,
@@ -30,11 +30,18 @@ import {
   Warehouse as WarehouseIcon,
   Receipt,
   Eye,
-  Shirt
+  Shirt,
+  Cake,
+  IndianRupee,
+  Pencil,
+  Zap,
+  Loader2,
 } from "lucide-react";
 import {
   inventoryService,
   CreateItemInput,
+  ItemVariant,
+  ItemVariantUpdateInput,
 } from "@/services/inventory-services";
 import { downloadMasterMigrationTemplate } from "@/lib/master-migration-template";
 import { tenantAppService, BranchDetails } from "@/services/tenant-app-services";
@@ -51,6 +58,109 @@ import {
 } from "@/types";
 import { Badge, Button, EmptyState, TableSkeleton } from "@/components/ui";
 
+const DEFAULT_GARMENT_SIZES = ["36", "38", "40", "42", "44", "46", "S", "M", "L", "XL", "XXL", "3XL", "28", "30", "32", "34"];
+const DEFAULT_HARDWARE_PACKS = ["500 ml", "1 L", "4 L", "10 L", "20 L", "1 Kg", "5 Kg", "20 Kg"];
+const DEFAULT_FMCG_PACKS = ["250 g", "500 g", "1 Kg", "2 Kg", "3 Kg", "5 Kg", "10 Kg", "25 Kg", "100 g", "500 ml", "1 L", "2 L", "5 L"];
+
+interface GarmentColorOption {
+  name: string;
+  hex: string;
+  border?: boolean;
+  isCustom?: boolean;
+}
+
+const DEFAULT_FMCG_VARIETIES: GarmentColorOption[] = [
+  { name: "Regular / Standard", hex: "#f97316" },
+  { name: "Vanilla", hex: "#fef3c7", border: true },
+  { name: "Chocolate", hex: "#78350f" },
+  { name: "Butterscotch", hex: "#d97706" },
+  { name: "Black Forest", hex: "#1f2937" },
+  { name: "Red Velvet", hex: "#b91c1c" },
+  { name: "Pineapple", hex: "#eab308" },
+  { name: "Multigrain", hex: "#ca8a04" },
+  { name: "Diet / Sugar Free", hex: "#16a34a" },
+  { name: "Premium / Sharbati", hex: "#881337" },
+];
+
+const DEFAULT_SWEETS_BAKERY_PACKS = ["100 g", "250 g", "500 g", "1 Kg", "2 Kg", "3 Kg", "5 Kg", "10 Kg", "1 Piece", "1 Box", "1 Pack"];
+
+const DEFAULT_SWEETS_BAKERY_VARIETIES: GarmentColorOption[] = [
+  { name: "Regular / Standard", hex: "#f97316" },
+  { name: "Vanilla", hex: "#fef3c7", border: true },
+  { name: "Chocolate / Truffle", hex: "#78350f" },
+  { name: "Butterscotch", hex: "#d97706" },
+  { name: "Black Forest", hex: "#1f2937" },
+  { name: "Red Velvet", hex: "#b91c1c" },
+  { name: "Pineapple", hex: "#eab308" },
+  { name: "Strawberry", hex: "#ec4899" },
+  { name: "Desi Ghee", hex: "#ca8a04" },
+  { name: "Kesar Pista", hex: "#16a34a" },
+  { name: "Sugar Free", hex: "#06b6d4" },
+  { name: "Dry Fruit / Mawa", hex: "#881337" },
+];
+
+const DEFAULT_GARMENT_COLORS: GarmentColorOption[] = [
+  { name: "Black", hex: "#111827" },
+  { name: "Navy Blue", hex: "#1e3a8a" },
+  { name: "White", hex: "#ffffff", border: true },
+  { name: "Wine / Maroon", hex: "#881337" },
+  { name: "Olive Green", hex: "#4d7c0f" },
+  { name: "Charcoal Gray", hex: "#4b5563" },
+  { name: "Beige / Cream", hex: "#fef3c7", border: true },
+  { name: "Royal Blue", hex: "#2563eb" },
+];
+
+const COLOR_HEX_MAP: Record<string, string> = {
+  black: "#111827",
+  white: "#ffffff",
+  blue: "#2563eb",
+  "navy blue": "#1e3a8a",
+  navy: "#1e3a8a",
+  red: "#ef4444",
+  maroon: "#881337",
+  green: "#16a34a",
+  "olive green": "#4d7c0f",
+  olive: "#4d7c0f",
+  yellow: "#eab308",
+  orange: "#f97316",
+  pink: "#ec4899",
+  purple: "#9333ea",
+  violet: "#8b5cf6",
+  lavender: "#c084fc",
+  teal: "#0d9488",
+  cyan: "#06b6d4",
+  gray: "#4b5563",
+  grey: "#4b5563",
+  charcoal: "#374151",
+  brown: "#78350f",
+  beige: "#fef3c7",
+  cream: "#fef3c7",
+  gold: "#d97706",
+  silver: "#94a3b8",
+  peach: "#fed7aa",
+  rust: "#c2410c",
+  mustard: "#ca8a04",
+  magenta: "#c026d3",
+  coral: "#f43f5e",
+  burgundy: "#800020",
+  khaki: "#c3b091",
+  mint: "#6ee7b7",
+  turquoise: "#14b8a6",
+  sky: "#38bdf8",
+  indigo: "#4f46e5",
+};
+
+const getCustomColorHex = (name: string): string => {
+  const clean = name.trim().toLowerCase();
+  if (COLOR_HEX_MAP[clean]) return COLOR_HEX_MAP[clean];
+  const customPalette = ["#f97316", "#ec4899", "#8b5cf6", "#06b6d4", "#10b981", "#eab308", "#6366f1", "#14b8a6", "#f43f5e", "#0284c7"];
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) {
+    hash = clean.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return customPalette[Math.abs(hash) % customPalette.length];
+};
+
 export default function TenantItemsCatalogPage() {
   const [items, setItems] = useState<ItemList[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -62,6 +172,7 @@ export default function TenantItemsCatalogPage() {
   const { isAddonActive, isFeatureActive, activePack, industryCode: contextIndustryCode } = useAddons();
   const activeIndustryCode = contextIndustryCode || activePack?.activeIndustryModule || activePack?.industryTypeCode || profile?.industryCode || "GENERAL";
   const industryConfig = getIndustryConfig(activeIndustryCode);
+  const isGarments = activeIndustryCode.toUpperCase() === "GARMENTS" || isAddonActive("garments");
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,6 +184,61 @@ export default function TenantItemsCatalogPage() {
   const [pageSize, setPageSize] = useState(50);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<ItemList | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+
+  // Bulk Delete State
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Edit Product / Variant Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<ItemList | null>(null);
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    sku: string;
+    barcode: string;
+    categoryId: string;
+    brandId: string;
+    primaryUomId: string;
+    hsnCode: string;
+    taxRate: number;
+    purchasePrice: number | "";
+    sellingPrice: number | "";
+    minimumSellingPrice: number | "";
+    mrp: number | "";
+    minimumStockAlert: number | "";
+    rackLocation: string;
+    trackVariants: boolean;
+  }>({
+    name: "",
+    sku: "",
+    barcode: "",
+    categoryId: "",
+    brandId: "",
+    primaryUomId: "",
+    hsnCode: "",
+    taxRate: 18,
+    purchasePrice: 0,
+    sellingPrice: 0,
+    minimumSellingPrice: 0,
+    mrp: 0,
+    minimumStockAlert: 5,
+    rackLocation: "",
+    trackVariants: false,
+  });
+
+  const [editVariants, setEditVariants] = useState<ItemVariant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+  const [updatingProduct, setUpdatingProduct] = useState(false);
+
+  // Quick Pack Rate Applicator for Edit Modal
+  const [editQuickPackSelect, setEditQuickPackSelect] = useState("");
+  const [editQuickPurchase, setEditQuickPurchase] = useState<number | "">("");
+  const [editQuickWholesale, setEditQuickWholesale] = useState<number | "">("");
+  const [editQuickRetail, setEditQuickRetail] = useState<number | "">("");
+  const [editQuickMrp, setEditQuickMrp] = useState<number | "">("");
 
   // Add Product / Service Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -125,13 +291,89 @@ export default function TenantItemsCatalogPage() {
   const [hardwareDimension, setHardwareDimension] = useState("");
   const [hardwareGrade, setHardwareGrade] = useState("");
 
-  // Garments 2D Size x Color Matrix State
-  const [isMatrixEnabled, setIsMatrixEnabled] = useState(true);
-  const [matrixSizes, setMatrixSizes] = useState<string[]>(["38", "40", "42", "44"]);
-  const [matrixColors, setMatrixColors] = useState<string[]>(["Black", "Navy Blue"]);
+  // Garments, Hardware Paints, FMCG & Sweets/Bakery 2D Size/Pack x Color/Shade/Variety/Flavor Matrix State
+  const [isMatrixEnabled, setIsMatrixEnabled] = useState(industryConfig.code !== "FMCG");
+  const isHardwareMatrix = industryConfig.code === "HARDWARE" && isMatrixEnabled;
+  const isFmcgMatrix = industryConfig.code === "FMCG" && isMatrixEnabled;
+  const isSweetsBakeryMatrix = industryConfig.code === "SWEETS_BAKERY" && isMatrixEnabled;
+  const [availableSizes, setAvailableSizes] = useState<string[]>(
+    industryConfig.code === "HARDWARE"
+      ? DEFAULT_HARDWARE_PACKS
+      : industryConfig.code === "FMCG"
+      ? DEFAULT_FMCG_PACKS
+      : industryConfig.code === "SWEETS_BAKERY"
+      ? DEFAULT_SWEETS_BAKERY_PACKS
+      : DEFAULT_GARMENT_SIZES
+  );
+  const [availableColors, setAvailableColors] = useState<GarmentColorOption[]>(
+    industryConfig.code === "FMCG"
+      ? DEFAULT_FMCG_VARIETIES
+      : industryConfig.code === "SWEETS_BAKERY"
+      ? DEFAULT_SWEETS_BAKERY_VARIETIES
+      : DEFAULT_GARMENT_COLORS
+  );
+  const [matrixSizes, setMatrixSizes] = useState<string[]>([]);
+  const [matrixColors, setMatrixColors] = useState<string[]>([]);
   const [customSizeInput, setCustomSizeInput] = useState("");
   const [customColorInput, setCustomColorInput] = useState("");
   const [matrixBulkQty, setMatrixBulkQty] = useState<number | "">("");
+
+  useEffect(() => {
+    if (industryConfig.code === "HARDWARE") {
+      setAvailableSizes(DEFAULT_HARDWARE_PACKS);
+      setAvailableColors(DEFAULT_GARMENT_COLORS);
+      setIsMatrixEnabled(true);
+      setMatrixSizes([]);
+      setMatrixColors([]);
+    } else if (industryConfig.code === "GARMENTS") {
+      setAvailableSizes(DEFAULT_GARMENT_SIZES);
+      setAvailableColors(DEFAULT_GARMENT_COLORS);
+      setIsMatrixEnabled(true);
+      setMatrixSizes([]);
+      setMatrixColors([]);
+    } else if (industryConfig.code === "FMCG") {
+      setAvailableSizes(DEFAULT_FMCG_PACKS);
+      setAvailableColors(DEFAULT_FMCG_VARIETIES);
+      setIsMatrixEnabled(false);
+      setMatrixSizes([]);
+      setMatrixColors([]);
+    } else if (industryConfig.code === "SWEETS_BAKERY") {
+      setAvailableSizes(DEFAULT_SWEETS_BAKERY_PACKS);
+      setAvailableColors(DEFAULT_SWEETS_BAKERY_VARIETIES);
+      setIsMatrixEnabled(true);
+      setMatrixSizes([]);
+      setMatrixColors([]);
+    }
+  }, [industryConfig.code]);
+
+  const handleAddCustomSize = () => {
+    const clean = customSizeInput.trim();
+    if (!clean) return;
+    const formatted = (industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? clean : clean.toUpperCase();
+    if (!availableSizes.includes(formatted)) {
+      setAvailableSizes((prev) => [...prev, formatted]);
+    }
+    if (!matrixSizes.includes(formatted)) {
+      setMatrixSizes((prev) => [...prev, formatted]);
+    }
+    setCustomSizeInput("");
+  };
+
+  const handleAddCustomColor = () => {
+    const clean = customColorInput.trim();
+    if (!clean) return;
+    const lower = clean.toLowerCase();
+    const hex = getCustomColorHex(clean);
+    const isLight = hex.toLowerCase() === "#ffffff" || hex.toLowerCase() === "#fef3c7" || hex.toLowerCase() === "#fed7aa";
+
+    if (!availableColors.some((c) => c.name.toLowerCase() === lower)) {
+      setAvailableColors((prev) => [...prev, { name: clean, hex, border: isLight, isCustom: true }]);
+    }
+    if (!matrixColors.some((c) => c.toLowerCase() === lower)) {
+      setMatrixColors((prev) => [...prev, clean]);
+    }
+    setCustomColorInput("");
+  };
 
   interface VariantMatrixRow {
     size: string;
@@ -139,38 +381,291 @@ export default function TenantItemsCatalogPage() {
     sku: string;
     barcode: string;
     quantity: number | "";
+    rate?: number | "";
+    purchasePrice?: number | "";
+    wholesalePrice?: number | "";
+    mrp?: number | "";
     priceAdjustment: number;
   }
 
   const [matrixRows, setMatrixRows] = useState<VariantMatrixRow[]>([]);
+  const [matrixPackRates, setMatrixPackRates] = useState<Record<string, number | "">>({});
+
+  interface HardwarePackRate {
+    purchasePrice: number | "";
+    wholesalePrice: number | "";
+    retailPrice: number | "";
+    mrp: number | "";
+  }
+
+  const [hardwarePackRates, setHardwarePackRates] = useState<Record<string, HardwarePackRate>>({});
+  const [quickPackSelect, setQuickPackSelect] = useState<string>("");
+  const [quickPackPurchase, setQuickPackPurchase] = useState<number | "">("");
+  const [quickPackWholesale, setQuickPackWholesale] = useState<number | "">("");
+  const [quickPackRetail, setQuickPackRetail] = useState<number | "">("");
+  const [quickPackMrp, setQuickPackMrp] = useState<number | "">("");
+
+  // Quick Variety / Flavor Rates for FMCG & Bakery
+  const [quickVarietySelect, setQuickVarietySelect] = useState<string>("");
+  const [quickVarietyPurchase, setQuickVarietyPurchase] = useState<number | "">("");
+  const [quickVarietyWholesale, setQuickVarietyWholesale] = useState<number | "">("");
+  const [quickVarietyRetail, setQuickVarietyRetail] = useState<number | "">("");
+  const [quickVarietyMrp, setQuickVarietyMrp] = useState<number | "">("");
 
   useEffect(() => {
-    if (industryConfig.code !== "GARMENTS") return;
+    if (industryConfig.code !== "GARMENTS" && industryConfig.code !== "HARDWARE" && industryConfig.code !== "FMCG" && industryConfig.code !== "SWEETS_BAKERY") return;
     const baseSku = form.sku?.trim() || "PRD";
+    const baseRate = Number(form.sellingPrice || 0);
+
+    const hasSizes = matrixSizes.length > 0;
+    const hasColors = matrixColors.length > 0;
+    if (!hasSizes && !hasColors) {
+      setMatrixRows([]);
+      return;
+    }
+
+    const effectiveSizes = hasSizes ? matrixSizes : ["Standard"];
+    const effectiveColors = hasColors ? matrixColors : ["Regular / Standard"];
+
     setMatrixRows((prev) => {
       const rows: VariantMatrixRow[] = [];
-      matrixSizes.forEach((s) => {
-        matrixColors.forEach((c) => {
-          const colorPrefix = c.trim().substring(0, Math.min(3, c.trim().length)).toUpperCase();
-          const cleanSize = s.trim().toUpperCase();
-          const variantSku = `${baseSku}-${cleanSize}-${colorPrefix}`;
-          const barcodeSeed = Math.abs(variantSku.split("").reduce((acc, ch) => ((acc << 5) - acc) + ch.charCodeAt(0), 0) % 1000000000);
-          const autoBarcode = `890${barcodeSeed.toString().padStart(9, "0")}`;
+      if (industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") {
+        effectiveColors.forEach((c) => {
+          effectiveSizes.forEach((s) => {
+            const colorPrefix = c.trim().substring(0, Math.min(3, c.trim().length)).toUpperCase();
+            const cleanSize = s.trim().toUpperCase().replace(/\s+/g, "");
+            const variantSku = `${baseSku}-${cleanSize}-${colorPrefix}`;
+            const barcodeSeed = Math.abs(variantSku.split("").reduce((acc, ch) => ((acc << 5) - acc) + ch.charCodeAt(0), 0) % 1000000000);
+            const autoBarcode = `890${barcodeSeed.toString().padStart(9, "0")}`;
 
-          const existing = prev.find((r) => r.size === s && r.color === c);
-          rows.push({
-            size: s,
-            color: c,
-            sku: variantSku,
-            barcode: existing?.barcode || autoBarcode,
-            quantity: existing !== undefined ? existing.quantity : "",
-            priceAdjustment: existing ? existing.priceAdjustment : 0,
+            const existing = prev.find((r) => r.size === s && r.color === c);
+            const hwPack = hardwarePackRates[s];
+
+            let rowRate: number | "" = "";
+            if (existing?.rate !== undefined && existing?.rate !== "") {
+              rowRate = Number(existing.rate);
+            } else if (hwPack?.retailPrice !== undefined && hwPack?.retailPrice !== "") {
+              rowRate = Number(hwPack.retailPrice);
+            } else if (matrixPackRates[s] !== undefined && matrixPackRates[s] !== "") {
+              rowRate = Number(matrixPackRates[s]);
+            } else if (existing && existing.priceAdjustment !== 0) {
+              rowRate = baseRate + existing.priceAdjustment;
+            } else {
+              rowRate = baseRate > 0 ? baseRate : "";
+            }
+
+            const rowPurchase: number | "" = existing?.purchasePrice !== undefined && existing?.purchasePrice !== ""
+              ? existing.purchasePrice
+              : (hwPack?.purchasePrice !== undefined && hwPack?.purchasePrice !== "" ? hwPack.purchasePrice : (form.purchasePrice ? Number(form.purchasePrice) : ""));
+
+            const rowWholesale: number | "" = existing?.wholesalePrice !== undefined && existing?.wholesalePrice !== ""
+              ? existing.wholesalePrice
+              : (hwPack?.wholesalePrice !== undefined && hwPack?.wholesalePrice !== "" ? hwPack.wholesalePrice : (form.minimumSellingPrice ? Number(form.minimumSellingPrice) : ""));
+
+            const rowMrp: number | "" = existing?.mrp !== undefined && existing?.mrp !== ""
+              ? existing.mrp
+              : (hwPack?.mrp !== undefined && hwPack?.mrp !== "" ? hwPack.mrp : (form.mrp ? Number(form.mrp) : ""));
+
+            const adj = rowRate !== "" ? Number(rowRate) - baseRate : (existing ? existing.priceAdjustment : 0);
+
+            rows.push({
+              size: s,
+              color: c,
+              sku: variantSku,
+              barcode: existing?.barcode !== undefined ? existing.barcode : "",
+              quantity: existing !== undefined ? existing.quantity : "",
+              rate: rowRate,
+              purchasePrice: rowPurchase,
+              wholesalePrice: rowWholesale,
+              mrp: rowMrp,
+              priceAdjustment: adj,
+            });
           });
         });
-      });
+      } else {
+        effectiveSizes.forEach((s) => {
+          effectiveColors.forEach((c) => {
+            const colorPrefix = c.trim().substring(0, Math.min(3, c.trim().length)).toUpperCase();
+            const cleanSize = s.trim().toUpperCase().replace(/\s+/g, "");
+            const variantSku = `${baseSku}-${cleanSize}-${colorPrefix}`;
+            const barcodeSeed = Math.abs(variantSku.split("").reduce((acc, ch) => ((acc << 5) - acc) + ch.charCodeAt(0), 0) % 1000000000);
+            const autoBarcode = `890${barcodeSeed.toString().padStart(9, "0")}`;
+
+            const existing = prev.find((r) => r.size === s && r.color === c);
+            const hwPack = hardwarePackRates[s];
+
+            let rowRate: number | "" = "";
+            if (existing?.rate !== undefined && existing?.rate !== "") {
+              rowRate = Number(existing.rate);
+            } else if (hwPack?.retailPrice !== undefined && hwPack?.retailPrice !== "") {
+              rowRate = Number(hwPack.retailPrice);
+            } else if (matrixPackRates[s] !== undefined && matrixPackRates[s] !== "") {
+              rowRate = Number(matrixPackRates[s]);
+            } else if (existing && existing.priceAdjustment !== 0) {
+              rowRate = baseRate + existing.priceAdjustment;
+            } else {
+              rowRate = baseRate > 0 ? baseRate : "";
+            }
+
+            const rowPurchase: number | "" = existing?.purchasePrice !== undefined && existing?.purchasePrice !== ""
+              ? existing.purchasePrice
+              : (hwPack?.purchasePrice !== undefined && hwPack?.purchasePrice !== "" ? hwPack.purchasePrice : (form.purchasePrice ? Number(form.purchasePrice) : ""));
+
+            const rowWholesale: number | "" = existing?.wholesalePrice !== undefined && existing?.wholesalePrice !== ""
+              ? existing.wholesalePrice
+              : (hwPack?.wholesalePrice !== undefined && hwPack?.wholesalePrice !== "" ? hwPack.wholesalePrice : (form.minimumSellingPrice ? Number(form.minimumSellingPrice) : ""));
+
+            const rowMrp: number | "" = existing?.mrp !== undefined && existing?.mrp !== ""
+              ? existing.mrp
+              : (hwPack?.mrp !== undefined && hwPack?.mrp !== "" ? hwPack.mrp : (form.mrp ? Number(form.mrp) : ""));
+
+            const adj = rowRate !== "" ? Number(rowRate) - baseRate : (existing ? existing.priceAdjustment : 0);
+
+            rows.push({
+              size: s,
+              color: c,
+              sku: variantSku,
+              barcode: existing?.barcode !== undefined ? existing.barcode : "",
+              quantity: existing !== undefined ? existing.quantity : "",
+              rate: rowRate,
+              purchasePrice: rowPurchase,
+              wholesalePrice: rowWholesale,
+              mrp: rowMrp,
+              priceAdjustment: adj,
+            });
+          });
+        });
+      }
       return rows;
     });
-  }, [matrixSizes, matrixColors, form.sku, form.name, industryConfig.code]);
+  }, [matrixSizes, matrixColors, form.sku, form.name, industryConfig.code, form.sellingPrice]);
+
+  const handlePackRateChange = (size: string, val: string | number) => {
+    const newRate = val === "" ? "" : Number(val);
+    setMatrixPackRates((prev) => ({ ...prev, [size]: newRate }));
+    const baseRate = Number(form.sellingPrice || 0);
+    setMatrixRows((prev) =>
+      prev.map((row) => {
+        if (row.size === size) {
+          const adj = newRate !== "" ? Number(newRate) - baseRate : 0;
+          return {
+            ...row,
+            rate: newRate,
+            priceAdjustment: adj,
+          };
+        }
+        return row;
+      })
+    );
+  };
+
+  const handleRowRateChange = (idx: number, newRateStr: string) => {
+    const newRate = newRateStr === "" ? "" : Number(newRateStr);
+    const baseRate = Number(form.sellingPrice || 0);
+    setMatrixRows((prev) =>
+      prev.map((row, i) => {
+        if (i === idx) {
+          const adj = newRate !== "" ? Number(newRate) - baseRate : 0;
+          return {
+            ...row,
+            rate: newRate,
+            priceAdjustment: adj,
+          };
+        }
+        return row;
+      })
+    );
+  };
+
+  const handleMatrixFieldChange = (
+    idx: number,
+    field: "quantity" | "rate" | "purchasePrice" | "wholesalePrice" | "mrp" | "barcode",
+    valStr: string
+  ) => {
+    setMatrixRows((prev) =>
+      prev.map((row, i) => {
+        if (i !== idx) return row;
+        if (field === "barcode") {
+          return { ...row, barcode: valStr.trim() };
+        }
+        const numVal = valStr === "" ? "" : Number(valStr);
+        const baseRate = Number(form.sellingPrice || 0);
+        if (field === "rate") {
+          const adj = numVal !== "" ? Number(numVal) - baseRate : 0;
+          return { ...row, rate: numVal, priceAdjustment: adj };
+        }
+        return { ...row, [field]: numVal };
+      })
+    );
+  };
+
+  const handleApplyQuickPackRates = () => {
+    const targetPack = quickPackSelect || matrixSizes[0];
+    if (!targetPack) return;
+    const baseRate = Number(form.sellingPrice || 0);
+
+    setMatrixRows((prev) =>
+      prev.map((row) => {
+        if (row.size === targetPack) {
+          const newRate = quickPackRetail !== "" ? Number(quickPackRetail) : row.rate;
+          const adj = newRate !== "" && newRate !== undefined ? Number(newRate) - baseRate : row.priceAdjustment;
+          return {
+            ...row,
+            purchasePrice: quickPackPurchase !== "" ? Number(quickPackPurchase) : row.purchasePrice,
+            wholesalePrice: quickPackWholesale !== "" ? Number(quickPackWholesale) : row.wholesalePrice,
+            rate: newRate,
+            mrp: quickPackMrp !== "" ? Number(quickPackMrp) : row.mrp,
+            priceAdjustment: adj,
+          };
+        }
+        return row;
+      })
+    );
+
+    setHardwarePackRates((prev) => ({
+      ...prev,
+      [targetPack]: {
+        purchasePrice: quickPackPurchase,
+        wholesalePrice: quickPackWholesale,
+        retailPrice: quickPackRetail,
+        mrp: quickPackMrp,
+      },
+    }));
+
+    if (matrixSizes[0] === targetPack) {
+      setForm((f) => ({
+        ...f,
+        purchasePrice: quickPackPurchase !== "" ? Number(quickPackPurchase) : f.purchasePrice,
+        minimumSellingPrice: quickPackWholesale !== "" ? Number(quickPackWholesale) : f.minimumSellingPrice,
+        sellingPrice: quickPackRetail !== "" ? Number(quickPackRetail) : f.sellingPrice,
+        mrp: quickPackMrp !== "" ? Number(quickPackMrp) : f.mrp,
+      }));
+    }
+  };
+
+  const handleApplyQuickVarietyRates = () => {
+    const targetVariety = quickVarietySelect || matrixColors[0];
+    if (!targetVariety) return;
+    const baseRate = Number(form.sellingPrice || 0);
+
+    setMatrixRows((prev) =>
+      prev.map((row) => {
+        if (row.color === targetVariety) {
+          const newRate = quickVarietyRetail !== "" ? Number(quickVarietyRetail) : row.rate;
+          const adj = newRate !== "" && newRate !== undefined ? Number(newRate) - baseRate : row.priceAdjustment;
+          return {
+            ...row,
+            purchasePrice: quickVarietyPurchase !== "" ? Number(quickVarietyPurchase) : row.purchasePrice,
+            wholesalePrice: quickVarietyWholesale !== "" ? Number(quickVarietyWholesale) : row.wholesalePrice,
+            rate: newRate,
+            mrp: quickVarietyMrp !== "" ? Number(quickVarietyMrp) : row.mrp,
+            priceAdjustment: adj,
+          };
+        }
+        return row;
+      })
+    );
+  };
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -349,14 +844,65 @@ export default function TenantItemsCatalogPage() {
     }
   };
 
-  // Reset to page 1 when search or filters change
+  // Reset to page 1 and clear selection when search or filters change
   useEffect(() => {
     setPageNumber(1);
-  }, [searchTerm, selectedCategory, selectedBrand, lowStockOnly]);
+    setSelectedItemIds(new Set());
+  }, [searchTerm, selectedCategory, selectedBrand, lowStockOnly, selectedTypeFilter]);
 
   useEffect(() => {
     loadData();
+    setSelectedItemIds(new Set());
   }, [pageNumber, pageSize, searchTerm, selectedCategory, selectedBrand, lowStockOnly]);
+
+  const visibleItems = useMemo(() => {
+    return items.filter((i) => {
+      if (selectedTypeFilter === "product" && i.itemType === 2) return false;
+      if (selectedTypeFilter === "service" && i.itemType !== 2) return false;
+      return true;
+    });
+  }, [items, selectedTypeFilter]);
+
+  const handleToggleSelectAll = () => {
+    if (visibleItems.length === 0) return;
+    const allSelected = visibleItems.length > 0 && visibleItems.every((i) => selectedItemIds.has(i.id));
+    const next = new Set(selectedItemIds);
+    if (allSelected) {
+      visibleItems.forEach((i) => next.delete(i.id));
+    } else {
+      visibleItems.forEach((i) => next.add(i.id));
+    }
+    setSelectedItemIds(next);
+  };
+
+  const handleToggleSelectItem = (id: string) => {
+    const next = new Set(selectedItemIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedItemIds(next);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedItemIds.size === 0) return;
+    const idsToDelete = Array.from(selectedItemIds);
+    try {
+      setIsBulkDeleting(true);
+      const res = await inventoryService.bulkDeleteItems(idsToDelete);
+      setItems((prev) => prev.filter((i) => !selectedItemIds.has(i.id)));
+      setTotalCount((prev) => Math.max(0, prev - selectedItemIds.size));
+      setSelectedItemIds(new Set());
+      setIsBulkDeleteModalOpen(false);
+      alert(`✅ ${res?.deletedCount || idsToDelete.length} products successfully deleted from catalog.`);
+    } catch (err: any) {
+      console.error("Bulk delete failed:", err);
+      alert(err?.response?.data?.message || err?.message || "Product delete karne me samasya aayi.");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,6 +932,11 @@ export default function TenantItemsCatalogPage() {
     } else if (industryConfig.code === "HARDWARE") {
       if (hardwareDimension) attributes.dimension = hardwareDimension;
       if (hardwareGrade) attributes.grade = hardwareGrade;
+      if (apparelSize) attributes.packSize = apparelSize;
+      if (apparelColor) attributes.shade = apparelColor;
+    } else if (industryConfig.code === "SWEETS_BAKERY") {
+      if (apparelSize) attributes.packSize = apparelSize;
+      if (apparelColor) attributes.flavor = apparelColor;
     }
 
     // Process multi-batch opening stock rows
@@ -400,20 +951,58 @@ export default function TenantItemsCatalogPage() {
         mrp: Number(b.mrp) || Number(form.mrp) || 0,
       }));
 
-    const isGarmentsMatrix = industryConfig.code === "GARMENTS" && isMatrixEnabled && matrixRows.length > 0;
+    const isMatrixActive = (industryConfig.code === "GARMENTS" || industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") && isMatrixEnabled && matrixRows.length > 0;
     const variantStockSum = matrixRows.reduce((acc, r) => acc + (Number(r.quantity) || 0), 0);
-    const openingVariantsPayload = isGarmentsMatrix
-      ? matrixRows.map((r) => ({
-          size: r.size,
-          color: r.color,
-          variantSku: r.sku,
-          barcode: r.barcode,
-          quantity: Number(r.quantity) || 0,
-          priceAdjustment: Number(r.priceAdjustment) || 0,
-        }))
+    const firstRow = matrixRows[0];
+    const effSellingPrice = isMatrixActive && firstRow?.rate !== "" && firstRow?.rate !== undefined
+      ? Number(firstRow.rate)
+      : Number(form.sellingPrice || 0);
+    const effPurchasePrice = isMatrixActive && firstRow?.purchasePrice !== "" && firstRow?.purchasePrice !== undefined
+      ? Number(firstRow.purchasePrice)
+      : Number(form.purchasePrice || 0);
+    const effWholesalePrice = isMatrixActive && firstRow?.wholesalePrice !== "" && firstRow?.wholesalePrice !== undefined
+      ? Number(firstRow.wholesalePrice)
+      : Number(form.minimumSellingPrice || 0);
+    const effMrp = isMatrixActive && firstRow?.mrp !== "" && firstRow?.mrp !== undefined
+      ? Number(firstRow.mrp)
+      : Number(form.mrp || 0);
+
+    const baseSellingPrice = effSellingPrice;
+    const openingVariantsPayload = isMatrixActive
+      ? matrixRows.map((r) => {
+          const barcodeSeed = Math.abs(r.sku.split("").reduce((acc, ch) => ((acc << 5) - acc) + ch.charCodeAt(0), 0) % 1000000000);
+          const autoBarcode = `890${barcodeSeed.toString().padStart(9, "0")}`;
+          const effectiveRate = r.rate !== "" && r.rate !== undefined ? Number(r.rate) : (baseSellingPrice + Number(r.priceAdjustment || 0));
+          const adjustment = effectiveRate - baseSellingPrice;
+          const hwPrices = hardwarePackRates[r.size];
+
+          const pPrice = r.purchasePrice !== "" && r.purchasePrice !== undefined
+            ? Number(r.purchasePrice)
+            : (hwPrices?.purchasePrice !== "" && hwPrices?.purchasePrice !== undefined ? Number(hwPrices.purchasePrice) : undefined);
+
+          const wPrice = r.wholesalePrice !== "" && r.wholesalePrice !== undefined
+            ? Number(r.wholesalePrice)
+            : (hwPrices?.wholesalePrice !== "" && hwPrices?.wholesalePrice !== undefined ? Number(hwPrices.wholesalePrice) : undefined);
+
+          const mrpVal = r.mrp !== "" && r.mrp !== undefined
+            ? Number(r.mrp)
+            : (hwPrices?.mrp !== "" && hwPrices?.mrp !== undefined ? Number(hwPrices.mrp) : undefined);
+
+          return {
+            size: r.size,
+            color: r.color,
+            variantSku: r.sku,
+            barcode: r.barcode && r.barcode.trim() !== "" ? r.barcode.trim() : autoBarcode,
+            quantity: Number(r.quantity) || 0,
+            priceAdjustment: adjustment,
+            purchasePrice: pPrice,
+            wholesalePrice: wPrice,
+            mrp: mrpVal,
+          };
+        })
       : undefined;
 
-    const totalOpeningStock = isGarmentsMatrix
+    const totalOpeningStock = isMatrixActive
       ? variantStockSum
       : validBatches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0);
 
@@ -435,22 +1024,22 @@ export default function TenantItemsCatalogPage() {
         taxRate: Number(form.taxRate) || 0,
         cessRate: Number(form.cessRate) || 0,
         isTaxInclusive: form.isTaxInclusive || false,
-        purchasePrice: Number(form.purchasePrice) || 0,
-        sellingPrice: Number(form.sellingPrice) || 0,
-        minimumSellingPrice: Number(form.minimumSellingPrice) || 0,
-        mrp: Number(form.mrp) || 0,
+        purchasePrice: effPurchasePrice,
+        sellingPrice: effSellingPrice,
+        minimumSellingPrice: effWholesalePrice,
+        mrp: effMrp,
         minimumStockAlert: Number(form.minimumStockAlert) || 0,
         maximumStockAlert: Number(form.maximumStockAlert) || 0,
         reorderQuantity: Number(form.reorderQuantity) || 0,
-        trackBatches: isGarmentsMatrix ? false : Boolean(form.trackBatches),
-        trackSerialNumbers: isGarmentsMatrix ? false : Boolean(form.trackSerialNumbers),
-        trackVariants: isGarmentsMatrix ? true : Boolean(form.trackVariants),
+        trackBatches: isMatrixActive ? false : Boolean(form.trackBatches),
+        trackSerialNumbers: isMatrixActive ? false : Boolean(form.trackSerialNumbers),
+        trackVariants: isMatrixActive ? true : Boolean(form.trackVariants),
         attributesJson: JSON.stringify(attributes),
         initialStock: totalOpeningStock,
         initialWarehouseId: form.initialWarehouseId && form.initialWarehouseId.trim() !== "" ? form.initialWarehouseId : undefined,
         initialBatchNumber: form.initialBatchNumber?.trim() || undefined,
         initialBatchExpiryDate: form.initialBatchExpiryDate ? new Date(form.initialBatchExpiryDate).toISOString() : undefined,
-        openingBatches: isGarmentsMatrix ? undefined : (validBatches.length > 0 ? validBatches : undefined),
+        openingBatches: isMatrixActive ? undefined : (validBatches.length > 0 ? validBatches : undefined),
         openingVariants: openingVariantsPayload,
       });
 
@@ -489,6 +1078,21 @@ export default function TenantItemsCatalogPage() {
       setApparelColor("");
       setPharmaSalt("");
       setFmcgNetWeight("");
+      setMatrixSizes([]);
+      setMatrixColors([]);
+      setMatrixRows([]);
+      setMatrixPackRates({});
+      setQuickPackSelect("");
+      setQuickPackPurchase("");
+      setQuickPackWholesale("");
+      setQuickPackRetail("");
+      setQuickPackMrp("");
+      setQuickVarietySelect("");
+      setQuickVarietyPurchase("");
+      setQuickVarietyWholesale("");
+      setQuickVarietyRetail("");
+      setQuickVarietyMrp("");
+      setIsMatrixEnabled(industryConfig.code !== "FMCG");
       setOpeningBatches([
         { warehouseId: "", batchNumber: "", expiryDate: "", serialNumbers: "", quantity: "", purchaseRate: "", mrp: "" }
       ]);
@@ -516,6 +1120,150 @@ export default function TenantItemsCatalogPage() {
     }
   };
 
+  const handleOpenEditModal = async (item: ItemList) => {
+    setEditingItem(item);
+    let attrs: any = {};
+    try {
+      attrs = JSON.parse(item.attributesJson || "{}");
+    } catch {}
+
+    setEditForm({
+      name: item.name,
+      sku: item.sku,
+      barcode: item.barcode || "",
+      categoryId: item.categoryId || categories.find((c) => c.name === item.categoryName)?.id || "",
+      brandId: item.brandId || brands.find((b) => b.name === item.brandName)?.id || "",
+      primaryUomId: item.primaryUomId,
+      hsnCode: item.hsnCode || "",
+      taxRate: item.taxRate,
+      purchasePrice: item.purchasePrice,
+      sellingPrice: item.sellingPrice,
+      minimumSellingPrice: item.minimumSellingPrice,
+      mrp: item.mrp,
+      minimumStockAlert: item.minimumStockAlert,
+      rackLocation: attrs.rackLocation || "",
+      trackVariants: Boolean(item.trackVariants),
+    });
+
+    setEditVariants([]);
+    setEditQuickPurchase("");
+    setEditQuickWholesale("");
+    setEditQuickRetail("");
+    setEditQuickMrp("");
+    setIsEditModalOpen(true);
+
+    if (item.trackVariants) {
+      try {
+        setLoadingVariants(true);
+        const vars = await inventoryService.getItemVariants(item.id);
+        setEditVariants(vars);
+        if (vars.length > 0) {
+          const firstSz = vars[0].size || "";
+          setEditQuickPackSelect(firstSz);
+        }
+      } catch (err) {
+        console.error("Failed to load variants:", err);
+      } finally {
+        setLoadingVariants(false);
+      }
+    }
+  };
+
+  const handleApplyEditQuickPackRates = () => {
+    if (!editQuickPackSelect) return;
+    setEditVariants((prev) =>
+      prev.map((v) => {
+        if (v.size !== editQuickPackSelect) return v;
+        return {
+          ...v,
+          purchasePrice: editQuickPurchase !== "" ? Number(editQuickPurchase) : v.purchasePrice,
+          wholesalePrice: editQuickWholesale !== "" ? Number(editQuickWholesale) : v.wholesalePrice,
+          sellingPrice: editQuickRetail !== "" ? Number(editQuickRetail) : v.sellingPrice,
+          mrp: editQuickMrp !== "" ? Number(editQuickMrp) : v.mrp,
+        };
+      })
+    );
+  };
+
+  const handleEditVariantField = (idx: number, field: string, value: any) => {
+    setEditVariants((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    try {
+      setUpdatingProduct(true);
+      // 1. Update master product
+      await inventoryService.updateItem(editingItem.id, {
+        name: editForm.name.trim(),
+        barcode: editForm.barcode?.trim() || undefined,
+        categoryId: editForm.categoryId || undefined,
+        brandId: editForm.brandId || undefined,
+        primaryUomId: editForm.primaryUomId,
+        hsnCode: editForm.hsnCode?.trim() || undefined,
+        taxRate: Number(editForm.taxRate) || 0,
+        purchasePrice: Number(editForm.purchasePrice) || 0,
+        sellingPrice: Number(editForm.sellingPrice) || 0,
+        minimumSellingPrice: Number(editForm.minimumSellingPrice) || 0,
+        mrp: Number(editForm.mrp) || 0,
+        minimumStockAlert: Number(editForm.minimumStockAlert) || 0,
+      });
+
+      // 2. If item has variants, update variants
+      if (editVariants.length > 0) {
+        const payload: ItemVariantUpdateInput[] = editVariants.map((v) => ({
+          variantId: v.id,
+          variantSku: v.variantSku,
+          barcode: v.barcode,
+          rate: Number(v.sellingPrice ?? (Number(editForm.sellingPrice) + v.priceAdjustment)),
+          purchasePrice: v.purchasePrice !== undefined ? Number(v.purchasePrice) : undefined,
+          wholesalePrice: v.wholesalePrice !== undefined ? Number(v.wholesalePrice) : undefined,
+          mrp: v.mrp !== undefined ? Number(v.mrp) : undefined,
+        }));
+        await inventoryService.updateItemVariants(editingItem.id, payload);
+      }
+
+      // 3. Update table item state
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== editingItem.id) return it;
+          return {
+            ...it,
+            name: editForm.name.trim(),
+            barcode: editForm.barcode?.trim() || undefined,
+            categoryId: editForm.categoryId || undefined,
+            categoryName: categories.find((c) => c.id === editForm.categoryId)?.name || it.categoryName,
+            brandId: editForm.brandId || undefined,
+            brandName: brands.find((b) => b.id === editForm.brandId)?.name || it.brandName,
+            primaryUomId: editForm.primaryUomId,
+            primaryUomCode: units.find((u) => u.id === editForm.primaryUomId)?.code || it.primaryUomCode,
+            hsnCode: editForm.hsnCode?.trim() || it.hsnCode,
+            taxRate: Number(editForm.taxRate) || it.taxRate,
+            purchasePrice: Number(editForm.purchasePrice) || it.purchasePrice,
+            sellingPrice: Number(editForm.sellingPrice) || it.sellingPrice,
+            minimumSellingPrice: Number(editForm.minimumSellingPrice) || it.minimumSellingPrice,
+            mrp: Number(editForm.mrp) || it.mrp,
+            minimumStockAlert: Number(editForm.minimumStockAlert) || it.minimumStockAlert,
+          };
+        })
+      );
+
+      setIsEditModalOpen(false);
+      setEditingItem(null);
+    } catch (err: any) {
+      console.error("Failed to update product:", err);
+      alert(err?.response?.data?.message || err?.message || "Product update karne me samasya aayi.");
+    } finally {
+      setUpdatingProduct(false);
+    }
+  };
+
   const allWarehouses = branches.flatMap((b) => b.warehouses);
 
   return (
@@ -534,6 +1282,27 @@ export default function TenantItemsCatalogPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {selectedItemIds.size > 0 && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-sm"
+              icon={<Trash2 className="w-4 h-4" />}
+            >
+              Bulk Delete ({selectedItemIds.size})
+            </Button>
+          )}
+          <Link href="/app/inventory/price-list">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-bold shadow-2xs"
+              icon={<Zap className="w-4 h-4 text-amber-500 fill-amber-500" />}
+            >
+              ⚡ Quick Price Editor
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
@@ -577,6 +1346,10 @@ export default function TenantItemsCatalogPage() {
                 trackBatches: industryConfig.trackingDefaults.trackBatches,
                 trackSerialNumbers: industryConfig.trackingDefaults.trackSerialNumbers,
               }));
+              setMatrixSizes([]);
+              setMatrixColors([]);
+              setMatrixRows([]);
+              setIsMatrixEnabled(industryConfig.code !== "FMCG");
               setIsModalOpen(true);
             }}
             icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
@@ -681,15 +1454,67 @@ export default function TenantItemsCatalogPage() {
         </div>
       </div>
 
+      {/* Bulk Selection Bar */}
+      {selectedItemIds.size > 0 && (
+        <div className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-3 p-3.5 bg-rose-950/95 dark:bg-rose-950/95 border-2 border-rose-500/60 text-white rounded-xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-rose-500 text-white font-bold text-xs shadow-xs">
+              {selectedItemIds.size}
+            </span>
+            <div>
+              <p className="text-xs font-bold text-white tracking-tight">
+                {selectedItemIds.size} {selectedItemIds.size === 1 ? "Product" : "Products"} Selected
+              </p>
+              <p className="text-[11px] text-rose-200/90">
+                This page: {visibleItems.filter((i) => selectedItemIds.has(i.id)).length} of {visibleItems.length} selected
+              </p>
+            </div>
+            <span className="text-rose-400/40">|</span>
+            <button
+              type="button"
+              onClick={() => {
+                const next = new Set(selectedItemIds);
+                visibleItems.forEach((i) => next.add(i.id));
+                setSelectedItemIds(next);
+              }}
+              className="text-xs text-rose-200 hover:text-white underline font-medium cursor-pointer"
+            >
+              Select all {visibleItems.length} on this page
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedItemIds(new Set())}
+              className="text-xs text-rose-300 hover:text-white hover:underline cursor-pointer"
+            >
+              Deselect All
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedItemIds(new Set())}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              className="px-4 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-lg flex items-center space-x-1.5 transition-all transform active:scale-95 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+              <span>Bulk Delete ({selectedItemIds.size})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Product Items Table */}
       <div className="rounded-xl bg-surface border border-border overflow-hidden shadow-xs">
         {loading ? (
-          <TableSkeleton rows={8} columns={6} />
-        ) : items.filter((i) => {
-            if (selectedTypeFilter === "product" && i.itemType === 2) return false;
-            if (selectedTypeFilter === "service" && i.itemType !== 2) return false;
-            return true;
-          }).length === 0 ? (
+          <TableSkeleton rows={8} columns={7} />
+        ) : visibleItems.length === 0 ? (
           <EmptyState
             icon={Boxes}
             title="No items found in catalog"
@@ -701,6 +1526,10 @@ export default function TenantItemsCatalogPage() {
                 itemType: 1,
                 trackInventory: true,
               }));
+              setMatrixSizes([]);
+              setMatrixColors([]);
+              setMatrixRows([]);
+              setIsMatrixEnabled(industryConfig.code !== "FMCG");
               setIsModalOpen(true);
             }}
             actionIcon={Plus}
@@ -710,32 +1539,49 @@ export default function TenantItemsCatalogPage() {
             <table className="w-full text-left text-xs text-foreground">
               <thead className="text-table-headerForeground uppercase tracking-wider bg-table-header border-b border-border text-[11px] font-bold">
                 <tr>
+                  <th className="w-10 px-3 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer accent-primary"
+                      checked={visibleItems.length > 0 && visibleItems.every((i) => selectedItemIds.has(i.id))}
+                      onChange={handleToggleSelectAll}
+                      title="Select / Deselect all on this page"
+                    />
+                  </th>
                   <th className="px-4 py-3 font-semibold">SKU &amp; Item Name</th>
                   <th className="px-4 py-3 font-semibold">Category / Brand</th>
                   <th className="px-4 py-3 font-semibold">HSN / GST</th>
                   <th className="px-4 py-3 font-semibold">Pricing (₹)</th>
                   <th className="px-4 py-3 font-semibold">Stock Balance</th>
-                  <th className="px-4 py-3 font-semibold text-right">Attributes</th>
+                  <th className="px-4 py-3 font-semibold text-right">Attributes &amp; Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {items
-                  .filter((i) => {
-                    if (selectedTypeFilter === "product" && i.itemType === 2) return false;
-                    if (selectedTypeFilter === "service" && i.itemType !== 2) return false;
-                    return true;
-                  })
-                  .map((item) => {
-                    let attrs: any = {};
-                    try {
-                      attrs = JSON.parse(item.attributesJson || "{}");
-                    } catch {}
+                {visibleItems.map((item) => {
+                  let attrs: any = {};
+                  try {
+                    attrs = JSON.parse(item.attributesJson || "{}");
+                  } catch {}
 
-                    return (
-                      <tr key={item.id} className="hover:bg-table-rowHover transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center space-x-2">
-                            <button
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`hover:bg-table-rowHover transition-colors ${
+                        selectedItemIds.has(item.id) ? "bg-rose-500/5 dark:bg-rose-950/20" : ""
+                      }`}
+                    >
+                      <td className="w-10 px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer accent-primary"
+                          checked={selectedItemIds.has(item.id)}
+                          onChange={() => handleToggleSelectItem(item.id)}
+                          title={`Select ${item.name}`}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center space-x-2">
+                          <button
                               type="button"
                               onClick={() => handleOpenItemLedger(item)}
                               className="font-bold text-foreground hover:text-primary transition-colors tracking-tight text-left cursor-pointer flex items-center space-x-1.5 group"
@@ -822,6 +1668,17 @@ export default function TenantItemsCatalogPage() {
                                   ★ Serial/IMEI Tracked
                                 </span>
                               )}
+                              {(item.trackVariants || isGarments) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenItemLedger(item)}
+                                  className="inline-flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-bold hover:underline mt-1 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900 cursor-pointer"
+                                  title="Click to view remaining stock for each size"
+                                >
+                                  {isGarments ? <Shirt className="w-3 h-3 text-rose-500" /> : <Layers className="w-3 h-3 text-rose-500" />}
+                                  <span>{isGarments ? "View Size Breakdown →" : "View Variant Breakdown →"}</span>
+                                </button>
+                              )}
                             </>
                           )}
                         </td>
@@ -878,6 +1735,24 @@ export default function TenantItemsCatalogPage() {
                                 <span>Ledger</span>
                               </button>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(item)}
+                              className="inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors cursor-pointer"
+                              title="Edit Rates & Product Details"
+                            >
+                              <Pencil className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmItem(item)}
+                              className="inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/80 transition-colors cursor-pointer"
+                              title="Delete Product"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -965,13 +1840,14 @@ export default function TenantItemsCatalogPage() {
         </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* Add Product Modal (Full Screen View) */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-6xl w-full p-4 sm:p-5 shadow-2xl relative my-auto max-h-[96vh] flex flex-col justify-between overflow-hidden">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-full h-full p-3 sm:p-4 flex flex-col justify-between overflow-hidden">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer z-10"
+              className="absolute top-3.5 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer z-10"
+              title="Close modal (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1484,69 +2360,82 @@ export default function TenantItemsCatalogPage() {
                           </div>
                         </div>
 
-                        {/* 4 Pricing Cards Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {/* Purchase Rate */}
-                          <div className="p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1 shadow-2xs">
-                            <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                              <span>Purchase (₹)</span>
+                        {/* 4 Pricing Cards Grid OR Hardware Master Notice */}
+                        {industryConfig.code === "HARDWARE" && isMatrixEnabled && matrixSizes.length > 0 ? (
+                          <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl space-y-1">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                              <IndianRupee className="w-4 h-4 text-emerald-600" />
+                              <span>Pack &amp; Shade-Wise Complete Pricing Active</span>
                             </div>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={form.purchasePrice || ""}
-                              onChange={(e) => setForm({ ...form, purchasePrice: parseFloat(e.target.value) || 0 })}
-                              className="w-full px-2 py-1 bg-slate-50/50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-semibold focus:outline-none focus:border-emerald-600"
-                            />
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                              Complete <strong>Purchase, Wholesale, Retail Rate, and MRP</strong> are managed directly per variant combination in the <strong>Generated Variants Master Matrix</strong> table on the right.
+                            </p>
                           </div>
+                        ) : (
+                          /* 4 Pricing Cards Grid */
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {/* Purchase Rate */}
+                            <div className="p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1 shadow-2xs">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                                <span>Purchase (₹)</span>
+                              </div>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={form.purchasePrice || ""}
+                                onChange={(e) => setForm({ ...form, purchasePrice: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-2 py-1 bg-slate-50/50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-semibold focus:outline-none focus:border-emerald-600"
+                              />
+                            </div>
 
-                          {/* Retail Rate */}
-                          <div className="p-2 bg-emerald-50/40 dark:bg-emerald-950/20 border-2 border-emerald-500/70 dark:border-emerald-500/50 rounded-lg space-y-1 shadow-2xs">
-                            <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
-                              <span>Retail Rate (₹) *</span>
+                            {/* Retail Rate */}
+                            <div className="p-2 bg-emerald-50/40 dark:bg-emerald-950/20 border-2 border-emerald-500/70 dark:border-emerald-500/50 rounded-lg space-y-1 shadow-2xs">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+                                <span>Retail Rate (₹) *</span>
+                              </div>
+                              <input
+                                type="number"
+                                step="0.01"
+                                required
+                                placeholder="0.00"
+                                value={form.sellingPrice || ""}
+                                onChange={(e) => setForm({ ...form, sellingPrice: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-2 py-1 bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded text-xs text-emerald-950 dark:text-emerald-300 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+                              />
                             </div>
-                            <input
-                              type="number"
-                              step="0.01"
-                              required
-                              placeholder="0.00"
-                              value={form.sellingPrice || ""}
-                              onChange={(e) => setForm({ ...form, sellingPrice: parseFloat(e.target.value) || 0 })}
-                              className="w-full px-2 py-1 bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded text-xs text-emerald-950 dark:text-emerald-300 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
-                            />
-                          </div>
 
-                          {/* Wholesale Rate */}
-                          <div className="p-2 bg-orange-50/40 dark:bg-orange-950/20 border-2 border-orange-400/70 dark:border-orange-500/50 rounded-lg space-y-1 shadow-2xs">
-                            <div className="flex items-center justify-between text-[10px] font-bold text-orange-800 dark:text-orange-300">
-                              <span>Wholesale (₹)</span>
+                            {/* Wholesale Rate */}
+                            <div className="p-2 bg-orange-50/40 dark:bg-orange-950/20 border-2 border-orange-400/70 dark:border-orange-500/50 rounded-lg space-y-1 shadow-2xs">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-orange-800 dark:text-orange-300">
+                                <span>Wholesale (₹)</span>
+                              </div>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={form.minimumSellingPrice || ""}
+                                onChange={(e) => setForm({ ...form, minimumSellingPrice: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-2 py-1 bg-white dark:bg-slate-900 border-2 border-orange-400 rounded text-xs text-orange-950 dark:text-orange-300 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-orange-500/20"
+                              />
                             </div>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={form.minimumSellingPrice || ""}
-                              onChange={(e) => setForm({ ...form, minimumSellingPrice: parseFloat(e.target.value) || 0 })}
-                              className="w-full px-2 py-1 bg-white dark:bg-slate-900 border-2 border-orange-400 rounded text-xs text-orange-950 dark:text-orange-300 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-orange-500/20"
-                            />
-                          </div>
 
-                          {/* MRP */}
-                          <div className="p-2 bg-amber-50/40 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-500/40 rounded-lg space-y-1 shadow-2xs">
-                            <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 dark:text-amber-300">
-                              <span>MRP (₹)</span>
+                            {/* MRP */}
+                            <div className="p-2 bg-amber-50/40 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-500/40 rounded-lg space-y-1 shadow-2xs">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 dark:text-amber-300">
+                                <span>MRP (₹)</span>
+                              </div>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={form.mrp || ""}
+                                onChange={(e) => setForm({ ...form, mrp: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded text-xs text-amber-950 dark:text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-600"
+                              />
                             </div>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={form.mrp || ""}
-                              onChange={(e) => setForm({ ...form, mrp: parseFloat(e.target.value) || 0 })}
-                              className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded text-xs text-amber-950 dark:text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-600"
-                            />
                           </div>
-                        </div>
+                        )}
 
                         {/* GST Tax Slab & Calculation Preview inline */}
                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-emerald-100/80 dark:border-slate-800 items-center">
@@ -1589,12 +2478,408 @@ export default function TenantItemsCatalogPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Storage, Specifications & Inventory Notice on Left Column for Hardware Matrix to utilize space */}
+                      {/* Storage, Specifications & Inventory Notice on Left Column for Hardware Matrix & FMCG Matrix to utilize space */}
+                      {(isHardwareMatrix || isFmcgMatrix || isSweetsBakeryMatrix) && (
+                        <>
+                          <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 space-y-2 shadow-2xs">
+                            <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-1.5">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                                <Sliders className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                <span>Storage &amp; Specifications</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                                Step 3 • Storage
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Min Stock Alert</label>
+                                <input
+                                  type="number"
+                                  placeholder="e.g. 5"
+                                  value={form.minimumStockAlert || ""}
+                                  onChange={(e) => setForm({ ...form, minimumStockAlert: parseFloat(e.target.value) || 0 })}
+                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Rack / Location</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Rack A-12"
+                                  value={form.rackLocation || ""}
+                                  onChange={(e) => setForm({ ...form, rackLocation: e.target.value })}
+                                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition"
+                                />
+                              </div>
+                              {isHardwareMatrix && (
+                                <>
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Dimension / Length</label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. 90m, 1/2 inch, 2.5mm"
+                                      value={hardwareDimension}
+                                      onChange={(e) => setHardwareDimension(e.target.value)}
+                                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Grade / Finish</label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. SS-304, FR PVC"
+                                      value={hardwareGrade}
+                                      onChange={(e) => setHardwareGrade(e.target.value)}
+                                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                    />
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 space-y-1.5 shadow-2xs">
+                            <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-1.5">
+                              <label className="flex items-center space-x-1.5 text-xs text-slate-900 dark:text-white font-bold cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={form.trackInventory !== false}
+                                  onChange={(e) => setForm({ ...form, trackInventory: e.target.checked })}
+                                  className="rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-orange-600 focus:ring-orange-500 w-3.5 h-3.5 cursor-pointer"
+                                />
+                                <span>Manage Stock</span>
+                              </label>
+                              <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-800">
+                                Matrix Managed
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Opening stock is managed directly per variant in the <strong>Generated Variants Master Matrix Table</strong> below.
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* ──── RIGHT COLUMN: Storage, Dynamic Attributes & Inventory ──── */}
                     <div className="lg:col-span-6 space-y-2.5">
-                      {/* Card 3: Storage & Industry Attributes */}
-                      <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 space-y-2">
+                      {(isHardwareMatrix || isFmcgMatrix || isSweetsBakeryMatrix) ? (
+                        /* Hardware Paints / FMCG & Bakery Variant Setup Card (Pack Sizes & Varieties / Shades) */
+                        <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 space-y-3 shadow-2xs">
+                          {/* Header & Mode Switch */}
+                          <div className="flex items-center justify-between border-b border-orange-100 dark:border-slate-800 pb-2">
+                            <div className="flex items-center gap-1.5">
+                              {(isFmcgMatrix || isSweetsBakeryMatrix) ? (
+                                <Boxes className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                              )}
+                              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                {isFmcgMatrix
+                                  ? "FMCG & Bakery Pack Sizes × Varieties / Flavors Setup"
+                                  : "Paint Pack Sizes × Shades Setup"}
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
+                                {matrixRows.length} SKUs
+                              </span>
+                            </div>
+                            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isMatrixEnabled}
+                                onChange={(e) => setIsMatrixEnabled(e.target.checked)}
+                                className="rounded border-slate-300 text-orange-600 w-3.5 h-3.5 focus:ring-0 cursor-pointer"
+                              />
+                              <span>Multiple Variants</span>
+                            </label>
+                          </div>
+
+                          {/* Step 1: Pack Sizes */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                1. Select {(isFmcgMatrix || isSweetsBakeryMatrix) ? "Pack Sizes / Weights" : "Pack Sizes"} ({matrixSizes.length} selected)
+                              </span>
+                              <div className="flex flex-wrap gap-1 text-[10px]">
+                                {(isFmcgMatrix || isSweetsBakeryMatrix) ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes(["500 g", "1 Kg", "2 Kg", "3 Kg", "5 Kg"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Cakes/Bakery (500g-5k)
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes(["1 Kg", "2 Kg", "5 Kg", "10 Kg"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Kg (1k-10k)
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes(["100 g", "250 g", "500 g", "1 Kg"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Grams (100g-1k)
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes(["500 ml", "1 L", "2 L", "5 L"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Litres (500ml-5L)
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes([])}
+                                      className="text-slate-500 hover:underline cursor-pointer"
+                                    >
+                                      Clear
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes(["1 L", "4 L", "10 L", "20 L"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Litres (1L-20L)
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes(["1 Kg", "5 Kg", "20 Kg"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Bags (1kg-20kg)
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes(["500 ml", "1 L", "4 L"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Cans (500ml-4L)
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixSizes([])}
+                                      className="text-slate-500 hover:underline cursor-pointer"
+                                    >
+                                      Clear
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {availableSizes.map((sz) => {
+                                const selected = matrixSizes.includes(sz);
+                                const isCustom = !(isFmcgMatrix ? DEFAULT_FMCG_PACKS : DEFAULT_HARDWARE_PACKS).includes(sz);
+                                return (
+                                  <button
+                                    key={sz}
+                                    type="button"
+                                    onClick={() => {
+                                      setMatrixSizes((prev) =>
+                                        prev.includes(sz) ? prev.filter((x) => x !== sz) : [...prev, sz]
+                                      );
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                                      selected
+                                        ? "bg-orange-600 text-white shadow-2xs"
+                                        : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-orange-400"
+                                    }`}
+                                  >
+                                    <span>{sz}</span>
+                                    {selected && <CheckCircle2 className="w-3 h-3" />}
+                                    {isCustom && (
+                                      <span
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setAvailableSizes((prev) => prev.filter((x) => x !== sz));
+                                          setMatrixSizes((prev) => prev.filter((x) => x !== sz));
+                                        }}
+                                        className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-black/25 text-xs leading-none"
+                                        title={`Remove custom pack ${sz}`}
+                                      >
+                                        ×
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {/* Custom Pack Size Input */}
+                            <div className="flex items-center gap-2 pt-1.5">
+                              <input
+                                type="text"
+                                placeholder={(isFmcgMatrix || isSweetsBakeryMatrix) ? "+ Type pack size (e.g. 3kg, 1.5kg, 500g)..." : "+ Type pack size (e.g. 200ml, 50kg, 2L)..."}
+                                value={customSizeInput}
+                                onChange={(e) => setCustomSizeInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddCustomSize();
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-white dark:bg-slate-900 border-2 border-orange-400/80 dark:border-orange-500/80 rounded-lg text-xs w-64 text-slate-900 dark:text-white placeholder:text-slate-500 font-medium shadow-xs focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddCustomSize}
+                                className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
+                              >
+                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>+ Add Pack</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Step 2: Varieties / Flavors or Shades */}
+                          <div className="space-y-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                2. Select {(isFmcgMatrix || isSweetsBakeryMatrix) ? "Varieties / Flavors" : "Shades / Colors"} ({matrixColors.length} selected)
+                              </span>
+                              <div className="flex flex-wrap gap-1 text-[10px]">
+                                {(isFmcgMatrix || isSweetsBakeryMatrix) ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixColors(["Vanilla", "Chocolate", "Butterscotch", "Black Forest", "Red Velvet"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Bakery Flavors
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixColors(["Regular / Standard", "Multigrain", "Diet / Sugar Free", "Premium / Sharbati"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Atta Types
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixColors([])}
+                                      className="text-slate-500 hover:underline cursor-pointer"
+                                    >
+                                      Clear
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixColors(["White", "Off White", "Grey", "Ivory"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      Base Shades
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixColors(["White", "Off White", "Grey", "Ivory", "Black", "Terracotta"])}
+                                      className="text-orange-600 hover:underline cursor-pointer"
+                                    >
+                                      All Popular
+                                    </button>
+                                    <span>•</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixColors([])}
+                                      className="text-slate-500 hover:underline cursor-pointer"
+                                    >
+                                      Clear
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                              {availableColors.map((c) => {
+                                const selected = matrixColors.includes(c.name);
+                                return (
+                                  <button
+                                    key={c.name}
+                                    type="button"
+                                    onClick={() => {
+                                      setMatrixColors((prev) =>
+                                        prev.includes(c.name) ? prev.filter((x) => x !== c.name) : [...prev, c.name]
+                                      );
+                                    }}
+                                    className={`px-2 py-0.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer ${
+                                      selected
+                                        ? "bg-orange-100 dark:bg-orange-950/80 border-2 border-orange-500 text-orange-950 dark:text-orange-200 font-bold"
+                                        : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-orange-300"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.border ? "border border-slate-300 dark:border-slate-600" : ""}`}
+                                      style={{ backgroundColor: c.hex }}
+                                    />
+                                    <span>{c.name}</span>
+                                    {selected && <CheckCircle2 className="w-3 h-3 text-orange-600" />}
+                                    {c.isCustom && (
+                                      <span
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setAvailableColors((prev) => prev.filter((x) => x.name !== c.name));
+                                          setMatrixColors((prev) => prev.filter((x) => x !== c.name));
+                                        }}
+                                        className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-red-100 dark:hover:bg-red-950/40 text-red-500 text-xs leading-none"
+                                        title={`Remove custom ${c.name}`}
+                                      >
+                                        ×
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {/* Custom Variety / Flavor / Shade Input */}
+                            <div className="flex items-center gap-2 pt-1.5">
+                              <input
+                                type="text"
+                                placeholder={(isFmcgMatrix || isSweetsBakeryMatrix) ? "+ Type flavor / variety (e.g. Vanilla, Pineapple, Sharbati)..." : "+ Type shade (e.g. 0912 Morning Glory, Base 1)..."}
+                                value={customColorInput}
+                                onChange={(e) => setCustomColorInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddCustomColor();
+                                  }
+                                }}
+                                className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-900 border-2 border-orange-400/80 dark:border-orange-500/80 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-500 font-medium shadow-xs focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddCustomColor}
+                                className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
+                              >
+                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>{(isFmcgMatrix || isSweetsBakeryMatrix) ? "+ Add Flavor" : "+ Add Shade"}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                        {/* Card 3: Storage & Industry Attributes (Standard non-hardware) */}
+                        <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3 space-y-2">
                         <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-1.5">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                             <Sliders className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
@@ -1711,9 +2996,23 @@ export default function TenantItemsCatalogPage() {
                               {/* Header & Mode Switch */}
                               <div className="flex items-center justify-between border-b border-orange-100 dark:border-slate-800 pb-2">
                                 <div className="flex items-center gap-1.5">
-                                  <Shirt className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                  {industryConfig.code === "HARDWARE" ? (
+                                    <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                  ) : industryConfig.code === "FMCG" ? (
+                                    <Boxes className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                  ) : industryConfig.code === "SWEETS_BAKERY" ? (
+                                    <Cake className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                                  ) : (
+                                    <Shirt className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                  )}
                                   <span className="text-xs font-bold text-slate-900 dark:text-white">
-                                    2D Size × Color Variant Matrix
+                                    {industryConfig.code === "HARDWARE"
+                                      ? "Paint Pack Sizes × Shades Variant Matrix"
+                                      : industryConfig.code === "FMCG"
+                                      ? "FMCG Pack Sizes × Varieties Variant Matrix"
+                                      : industryConfig.code === "SWEETS_BAKERY"
+                                      ? "Sweets & Bakery Weights/Packs × Flavors/Varieties Matrix"
+                                      : "2D Size × Color Variant Matrix"}
                                   </span>
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
                                     {matrixRows.length} SKUs
@@ -1733,20 +3032,27 @@ export default function TenantItemsCatalogPage() {
                               {!isMatrixEnabled ? (
                                 <div className="grid grid-cols-2 gap-2 pt-1">
                                   <div className="space-y-1">
-                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Single Size</label>
+                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                      {industryConfig.code === "HARDWARE" ? "Single Pack Size" : (industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? "Weight / Pack Size" : "Single Size"}
+                                    </label>
                                     <input
                                       type="text"
-                                      placeholder="e.g. Free Size / Standard"
-                                      value={apparelSize}
-                                      onChange={(e) => setApparelSize(e.target.value)}
+                                      placeholder={industryConfig.code === "HARDWARE" ? "e.g. 4 Litre / 20 Kg" : (industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? "e.g. 500g / 1 Kg" : "e.g. Free Size / Standard"}
+                                      value={industryConfig.code === "FMCG" ? (fmcgNetWeight || apparelSize) : apparelSize}
+                                      onChange={(e) => {
+                                        setApparelSize(e.target.value);
+                                        if (industryConfig.code === "FMCG") setFmcgNetWeight(e.target.value);
+                                      }}
                                       className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Single Color</label>
+                                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                      {industryConfig.code === "HARDWARE" ? "Single Shade / Base" : (industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? "Single Variety / Flavor" : "Single Color"}
+                                    </label>
                                     <input
                                       type="text"
-                                      placeholder="e.g. Navy Blue"
+                                      placeholder={industryConfig.code === "HARDWARE" ? "e.g. 0912 Morning Glory / Base 1" : industryConfig.code === "SWEETS_BAKERY" ? "e.g. Kesar Pista / Chocolate Truffle" : industryConfig.code === "FMCG" ? "e.g. Regular / Multigrain" : "e.g. Navy Blue"}
                                       value={apparelColor}
                                       onChange={(e) => setApparelColor(e.target.value)}
                                       className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
@@ -1759,37 +3065,150 @@ export default function TenantItemsCatalogPage() {
                                   <div className="space-y-1.5">
                                     <div className="flex items-center justify-between text-[11px]">
                                       <span className="font-bold text-slate-800 dark:text-slate-200">
-                                        1. Select Sizes ({matrixSizes.length} selected)
+                                        1. Select {industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY" ? "Pack Sizes / Weights" : "Sizes"} ({matrixSizes.length} selected)
                                       </span>
-                                      <div className="flex gap-1 text-[10px]">
-                                        <button
-                                          type="button"
-                                          onClick={() => setMatrixSizes(["S", "M", "L", "XL", "XXL"])}
-                                          className="text-orange-600 hover:underline cursor-pointer"
-                                        >
-                                          Letter (S-XXL)
-                                        </button>
-                                        <span>•</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => setMatrixSizes(["38", "40", "42", "44"])}
-                                          className="text-orange-600 hover:underline cursor-pointer"
-                                        >
-                                          Suits (38-44)
-                                        </button>
-                                        <span>•</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => setMatrixSizes(["30", "32", "34", "36"])}
-                                          className="text-orange-600 hover:underline cursor-pointer"
-                                        >
-                                          Waist (30-36)
-                                        </button>
-                                      </div>
+                                      {industryConfig.code === "HARDWARE" ? (
+                                        <div className="flex gap-1 text-[10px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["1 L", "4 L", "10 L", "20 L"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Litres (1L-20L)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["1 Kg", "5 Kg", "20 Kg"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Bags (1kg-20kg)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["500 ml", "1 L", "4 L"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Cans (500ml-4L)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes([])}
+                                            className="text-slate-500 hover:underline cursor-pointer"
+                                          >
+                                            Clear
+                                          </button>
+                                        </div>
+                                      ) : industryConfig.code === "SWEETS_BAKERY" ? (
+                                        <div className="flex gap-1 text-[10px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["100 g", "250 g", "500 g", "1 Kg"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Grams (100g-1kg)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["1 Kg", "2 Kg", "3 Kg", "5 Kg"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Kg (1kg-5kg)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["1 Piece", "1 Box", "1 Pack"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Box / Pcs
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes([])}
+                                            className="text-slate-500 hover:underline cursor-pointer"
+                                          >
+                                            Clear
+                                          </button>
+                                        </div>
+                                      ) : industryConfig.code === "FMCG" ? (
+                                        <div className="flex gap-1 text-[10px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["1 Kg", "2 Kg", "5 Kg", "10 Kg"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Kg (1k-10k)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["100 g", "250 g", "500 g", "1 Kg"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Grams (100g-1k)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["500 ml", "1 L", "2 L", "5 L"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Litres (500ml-5L)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes([])}
+                                            className="text-slate-500 hover:underline cursor-pointer"
+                                          >
+                                            Clear
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex gap-1 text-[10px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["S", "M", "L", "XL", "XXL"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Letter (S-XXL)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["38", "40", "42", "44"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Suits (38-44)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes(["30", "32", "34", "36"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Waist (30-36)
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixSizes([])}
+                                            className="text-slate-500 hover:underline cursor-pointer"
+                                          >
+                                            Clear
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {["36", "38", "40", "42", "44", "46", "S", "M", "L", "XL", "XXL", "3XL", "28", "30", "32", "34"].map((sz) => {
+                                      {availableSizes.map((sz) => {
                                         const isSel = matrixSizes.includes(sz);
+                                        const isCustom = !(industryConfig.code === "HARDWARE" ? DEFAULT_HARDWARE_PACKS : (industryConfig.code === "FMCG" ? DEFAULT_FMCG_PACKS : DEFAULT_GARMENT_SIZES)).includes(sz);
                                         return (
                                           <button
                                             key={sz}
@@ -1799,13 +3218,26 @@ export default function TenantItemsCatalogPage() {
                                                 prev.includes(sz) ? prev.filter((x) => x !== sz) : [...prev, sz]
                                               );
                                             }}
-                                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition cursor-pointer ${
+                                            className={`group inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border transition cursor-pointer ${
                                               isSel
                                                 ? "bg-orange-600 text-white border-orange-600 shadow-xs"
                                                 : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-orange-400"
                                             }`}
                                           >
-                                            {sz}
+                                            <span>{sz}</span>
+                                            {isCustom && (
+                                              <span
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setAvailableSizes((prev) => prev.filter((x) => x !== sz));
+                                                  setMatrixSizes((prev) => prev.filter((x) => x !== sz));
+                                                }}
+                                                className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-black/25 text-xs leading-none"
+                                                title={`Remove custom size ${sz}`}
+                                              >
+                                                ×
+                                              </span>
+                                            )}
                                           </button>
                                         );
                                       })}
@@ -1814,19 +3246,20 @@ export default function TenantItemsCatalogPage() {
                                     <div className="flex items-center gap-1.5 pt-1">
                                       <input
                                         type="text"
-                                        placeholder="Add custom size (e.g. 48, 4XL)"
+                                        placeholder={industryConfig.code === "HARDWARE" ? "Add pack size (e.g. 200ml, 50kg)" : (industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? "Add pack size (e.g. 250g, 1.5kg)" : "Add custom size (e.g. 48, 4XL)"}
                                         value={customSizeInput}
                                         onChange={(e) => setCustomSizeInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleAddCustomSize();
+                                          }
+                                        }}
                                         className="px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs w-48 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                       />
                                       <button
                                         type="button"
-                                        onClick={() => {
-                                          if (customSizeInput.trim() && !matrixSizes.includes(customSizeInput.trim())) {
-                                            setMatrixSizes([...matrixSizes, customSizeInput.trim().toUpperCase()]);
-                                            setCustomSizeInput("");
-                                          }
-                                        }}
+                                        onClick={handleAddCustomSize}
                                         className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-lg text-[11px] font-bold cursor-pointer"
                                       >
                                         + Add
@@ -1838,20 +3271,72 @@ export default function TenantItemsCatalogPage() {
                                   <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                                     <div className="flex items-center justify-between text-[11px]">
                                       <span className="font-bold text-slate-800 dark:text-slate-200">
-                                        2. Select Colors ({matrixColors.length} selected)
+                                        2. Select {industryConfig.code === "HARDWARE" ? "Paint Shades / Colors" : (industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? "Varieties / Flavors" : "Colors"} ({matrixColors.length} selected)
                                       </span>
+                                      {industryConfig.code === "SWEETS_BAKERY" ? (
+                                        <div className="flex gap-1 text-[10px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixColors(["Vanilla", "Chocolate / Truffle", "Butterscotch", "Black Forest", "Red Velvet", "Pineapple", "Strawberry"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Cake Flavors
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixColors(["Regular / Standard", "Desi Ghee", "Kesar Pista", "Sugar Free", "Dry Fruit / Mawa"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Mithai Varieties
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixColors([])}
+                                            className="text-slate-500 hover:underline cursor-pointer"
+                                          >
+                                            Clear
+                                          </button>
+                                        </div>
+                                      ) : industryConfig.code === "FMCG" ? (
+                                        <div className="flex gap-1 text-[10px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixColors(["Regular / Standard", "Multigrain"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Atta Types
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixColors(["Regular / Standard"])}
+                                            className="text-orange-600 hover:underline cursor-pointer"
+                                          >
+                                            Regular
+                                          </button>
+                                          <span>•</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setMatrixColors([])}
+                                            className="text-slate-500 hover:underline cursor-pointer"
+                                          >
+                                            Clear
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => setMatrixColors([])}
+                                          className="text-slate-500 hover:underline cursor-pointer text-[10px]"
+                                        >
+                                          Clear
+                                        </button>
+                                      )}
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {[
-                                        { name: "Black", hex: "#111827" },
-                                        { name: "Navy Blue", hex: "#1e3a8a" },
-                                        { name: "White", hex: "#ffffff", border: true },
-                                        { name: "Wine / Maroon", hex: "#881337" },
-                                        { name: "Olive Green", hex: "#4d7c0f" },
-                                        { name: "Charcoal Gray", hex: "#4b5563" },
-                                        { name: "Beige / Cream", hex: "#fef3c7", border: true },
-                                        { name: "Royal Blue", hex: "#2563eb" },
-                                      ].map((clr) => {
+                                      {availableColors.map((clr) => {
                                         const isSel = matrixColors.includes(clr.name);
                                         return (
                                           <button
@@ -1864,7 +3349,7 @@ export default function TenantItemsCatalogPage() {
                                                   : [...prev, clr.name]
                                               );
                                             }}
-                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition cursor-pointer ${
+                                            className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition cursor-pointer ${
                                               isSel
                                                 ? "bg-orange-50 dark:bg-orange-950/60 text-orange-950 dark:text-orange-200 border-orange-500 ring-1 ring-orange-500/40"
                                                 : "bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-orange-400"
@@ -1878,6 +3363,19 @@ export default function TenantItemsCatalogPage() {
                                               }}
                                             />
                                             <span>{clr.name}</span>
+                                            {clr.isCustom && (
+                                              <span
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setAvailableColors((prev) => prev.filter((x) => x.name !== clr.name));
+                                                  setMatrixColors((prev) => prev.filter((x) => x !== clr.name));
+                                                }}
+                                                className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-red-100 dark:hover:bg-red-950/40 text-red-500 text-xs leading-none"
+                                                title={`Remove custom color ${clr.name}`}
+                                              >
+                                                ×
+                                              </span>
+                                            )}
                                           </button>
                                         );
                                       })}
@@ -1886,19 +3384,20 @@ export default function TenantItemsCatalogPage() {
                                     <div className="flex items-center gap-1.5 pt-1">
                                       <input
                                         type="text"
-                                        placeholder="Add custom color (e.g. Lavender, Teal)"
+                                        placeholder={industryConfig.code === "HARDWARE" ? "Add shade (e.g. 0912 Morning Glory, Base 1)" : industryConfig.code === "FMCG" ? "Add variety (e.g. Sharbati, Sugar Free, Classic)" : "Add custom color (e.g. Lavender, Teal)"}
                                         value={customColorInput}
                                         onChange={(e) => setCustomColorInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleAddCustomColor();
+                                          }
+                                        }}
                                         className="px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs w-48 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
                                       />
                                       <button
                                         type="button"
-                                        onClick={() => {
-                                          if (customColorInput.trim() && !matrixColors.includes(customColorInput.trim())) {
-                                            setMatrixColors([...matrixColors, customColorInput.trim()]);
-                                            setCustomColorInput("");
-                                          }
-                                        }}
+                                        onClick={handleAddCustomColor}
                                         className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-lg text-[11px] font-bold cursor-pointer"
                                       >
                                         + Add
@@ -1937,6 +3436,138 @@ export default function TenantItemsCatalogPage() {
                                     </div>
                                   </div>
 
+                                  {/* Step C2: Pack-wise / Size-wise Default Selling Rate (For Garments) */}
+                                  {matrixSizes.length > 0 && industryConfig.code === "GARMENTS" && (
+                                    <div className="p-2 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 rounded-lg text-xs space-y-1.5">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5 font-semibold text-emerald-900 dark:text-emerald-300">
+                                          <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
+                                          <span>Size Wise Rates (₹):</span>
+                                        </div>
+                                        <span className="text-[10px] text-emerald-700 dark:text-emerald-400">
+                                          Auto-fills rate for all shades of that pack
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-2 items-center">
+                                        {matrixSizes.map((sz) => (
+                                          <div key={sz} className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800">
+                                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{sz}:</span>
+                                            <div className="relative">
+                                              <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                placeholder={form.sellingPrice ? String(form.sellingPrice) : "Rate"}
+                                                value={matrixPackRates[sz] ?? ""}
+                                                onChange={(e) => handlePackRateChange(sz, e.target.value)}
+                                                className="w-20 pl-4 pr-1 py-0.5 bg-transparent border-0 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded"
+                                              />
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Step C3: Quick Pack Default Rates for Hardware & Paints / FMCG / Sweets & Bakery */}
+                                  {matrixSizes.length > 0 && (industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") && (
+                                    <div className="p-2.5 bg-gradient-to-r from-orange-50/70 via-amber-50/50 to-orange-50/70 dark:from-orange-950/20 dark:via-amber-950/10 dark:to-orange-950/20 border border-orange-200/90 dark:border-orange-900/50 rounded-lg text-xs space-y-2 shadow-2xs">
+                                      <div className="flex flex-wrap items-center justify-between gap-1">
+                                        <div className="flex items-center gap-1.5 font-bold text-orange-900 dark:text-orange-300">
+                                          <Sparkles className="w-3.5 h-3.5 text-orange-600 animate-pulse" />
+                                          <span>Quick Pack Default Rates:</span>
+                                        </div>
+                                        <span className="text-[10px] text-orange-700/80 dark:text-orange-400">
+                                          Set rates once per pack size & apply to all {industryConfig.code === "SWEETS_BAKERY" ? "flavors/varieties" : industryConfig.code === "FMCG" ? "varieties" : "shades"} (editable per row below)
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Pack:</span>
+                                          <select
+                                            value={quickPackSelect || matrixSizes[0] || ""}
+                                            onChange={(e) => setQuickPackSelect(e.target.value)}
+                                            className="px-2 py-1 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                          >
+                                            {matrixSizes.map((sz) => (
+                                              <option key={sz} value={sz}>
+                                                {sz}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] text-slate-600 dark:text-slate-400">Purchase:</span>
+                                          <div className="relative">
+                                            <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              placeholder="0"
+                                              value={quickPackPurchase}
+                                              onChange={(e) => setQuickPackPurchase(e.target.value === "" ? "" : Number(e.target.value))}
+                                              className="w-16 pl-3.5 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] text-slate-600 dark:text-slate-400">Wholesale:</span>
+                                          <div className="relative">
+                                            <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              placeholder="0"
+                                              value={quickPackWholesale}
+                                              onChange={(e) => setQuickPackWholesale(e.target.value === "" ? "" : Number(e.target.value))}
+                                              className="w-16 pl-3.5 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Retail Rate*:</span>
+                                          <div className="relative">
+                                            <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              placeholder="0"
+                                              value={quickPackRetail}
+                                              onChange={(e) => setQuickPackRetail(e.target.value === "" ? "" : Number(e.target.value))}
+                                              className="w-18 pl-3.5 pr-1 py-1 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] text-slate-600 dark:text-slate-400">MRP:</span>
+                                          <div className="relative">
+                                            <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              placeholder="0"
+                                              value={quickPackMrp}
+                                              onChange={(e) => setQuickPackMrp(e.target.value === "" ? "" : Number(e.target.value))}
+                                              className="w-16 pl-3.5 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={handleApplyQuickPackRates}
+                                          className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded text-xs font-bold shadow-2xs transition cursor-pointer"
+                                        >
+                                          Apply to {industryConfig.code === "SWEETS_BAKERY" ? "Flavors" : industryConfig.code === "FMCG" ? "Varieties" : "Shades"}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
                                   {/* Step D: Live 2D Matrix Table Preview */}
                                   <div className="space-y-1">
                                     <div className="flex items-center justify-between text-[11px]">
@@ -1951,56 +3582,164 @@ export default function TenantItemsCatalogPage() {
                                       </span>
                                     </div>
 
-                                    <div className="max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto">
+                                    <div className="max-h-80 sm:max-h-96 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto shadow-2xs">
                                       <table className="w-full text-left border-collapse text-[11px]">
-                                        <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
-                                          <tr>
-                                            <th className="p-1.5">Size &amp; Color</th>
-                                            <th className="p-1.5">Auto SKU</th>
-                                            <th className="p-1.5">Barcode</th>
-                                            <th className="p-1.5 text-center w-24">Opening Stock</th>
-                                            <th className="p-1.5 text-center w-24">Rate (₹)</th>
-                                          </tr>
+                                        <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700 z-10">
+                                          {(industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? (
+                                            <tr>
+                                              <th className="p-1.5 whitespace-nowrap">Pack &amp; {industryConfig.code === "SWEETS_BAKERY" ? "Flavor/Type" : industryConfig.code === "FMCG" ? "Variety" : "Shade"}</th>
+                                              <th className="p-1.5 whitespace-nowrap">Auto SKU</th>
+                                              <th className="p-1.5 whitespace-nowrap text-center">Barcode</th>
+                                              <th className="p-1.5 whitespace-nowrap text-center w-20">Purchase (₹)</th>
+                                              <th className="p-1.5 whitespace-nowrap text-center w-20">Wholesale (₹)</th>
+                                              <th className="p-1.5 whitespace-nowrap text-center w-24 text-emerald-700 dark:text-emerald-400">Retail Rate (₹)*</th>
+                                              <th className="p-1.5 whitespace-nowrap text-center w-20">MRP (₹)</th>
+                                              <th className="p-1.5 whitespace-nowrap text-center w-20 text-orange-600 dark:text-orange-400">Opening Stock</th>
+                                            </tr>
+                                          ) : (
+                                            <tr>
+                                              <th className="p-1.5">Size &amp; Color</th>
+                                              <th className="p-1.5">Auto SKU</th>
+                                              <th className="p-1.5">Barcode</th>
+                                              <th className="p-1.5 text-center w-24">Opening Stock</th>
+                                              <th className="p-1.5 text-center w-28">Rate (₹)</th>
+                                            </tr>
+                                          )}
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                                          {matrixRows.map((r, idx) => (
+                                          {matrixRows.length === 0 ? (
+                                            <tr>
+                                              <td colSpan={(industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? 8 : 5} className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                                                Please select at least one {industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY" ? "pack size / weight" : "size"} and one {industryConfig.code === "HARDWARE" ? "shade" : (industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY" ? "variety/flavor" : "color")} above to generate variants.
+                                              </td>
+                                            </tr>
+                                          ) : (
+                                            matrixRows.map((r, idx) => (
                                             <tr key={`${r.size}-${r.color}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                              <td className="p-1.5 font-semibold text-slate-900 dark:text-white">
+                                              <td className="p-1.5 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                                                 <span className="inline-flex items-center gap-1">
-                                                  <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold border border-slate-200 dark:border-slate-700">
+                                                  <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold border border-slate-200 dark:border-slate-700">
                                                     {r.size}
                                                   </span>
                                                   <span>{r.color}</span>
                                                 </span>
                                               </td>
-                                              <td className="p-1.5 font-mono text-[10px] text-slate-600 dark:text-slate-400">
+                                              <td className="p-1.5 font-mono text-[10px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
                                                 {r.sku}
-                                              </td>
-                                              <td className="p-1.5 font-mono text-[10px] text-slate-500">
-                                                {r.barcode}
                                               </td>
                                               <td className="p-1.5 text-center">
                                                 <input
-                                                  type="number"
-                                                  min="0"
-                                                  value={r.quantity}
-                                                  placeholder="0"
-                                                  onChange={(e) => {
-                                                    const val = e.target.value === "" ? "" : Number(e.target.value);
-                                                    setMatrixRows((prev) =>
-                                                      prev.map((row, i) => (i === idx ? { ...row, quantity: val } : row))
-                                                    );
-                                                  }}
-                                                  className="w-18 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                                  type="text"
+                                                  value={r.barcode || ""}
+                                                  placeholder="Scan / Auto"
+                                                  onChange={(e) => handleMatrixFieldChange(idx, "barcode", e.target.value)}
+                                                  className="w-24 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 placeholder:text-slate-400 placeholder:font-sans placeholder:text-[10px]"
+                                                  title="Scan manufacturer can barcode or leave empty for auto barcode"
                                                 />
                                               </td>
-                                              <td className="p-1.5 text-center">
-                                                <div className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                                  ₹{(Number(form.sellingPrice || 0) + Number(r.priceAdjustment || 0)).toFixed(0)}
-                                                </div>
-                                              </td>
+
+                                              {(industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") ? (
+                                                <>
+                                                  <td className="p-1.5 text-center">
+                                                    <div className="relative inline-flex items-center">
+                                                      <span className="absolute left-1 text-[10px] text-slate-400 font-mono">₹</span>
+                                                      <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={r.purchasePrice ?? ""}
+                                                        placeholder="0"
+                                                        onChange={(e) => handleMatrixFieldChange(idx, "purchasePrice", e.target.value)}
+                                                        className="w-18 pl-3.5 pr-1 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                                      />
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-1.5 text-center">
+                                                    <div className="relative inline-flex items-center">
+                                                      <span className="absolute left-1 text-[10px] text-slate-400 font-mono">₹</span>
+                                                      <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={r.wholesalePrice ?? ""}
+                                                        placeholder="0"
+                                                        onChange={(e) => handleMatrixFieldChange(idx, "wholesalePrice", e.target.value)}
+                                                        className="w-18 pl-3.5 pr-1 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                                      />
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-1.5 text-center">
+                                                    <div className="relative inline-flex items-center">
+                                                      <span className="absolute left-1 text-[10px] text-slate-400 font-mono">₹</span>
+                                                      <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={r.rate ?? ""}
+                                                        placeholder={String(Number(form.sellingPrice || 0) + Number(r.priceAdjustment || 0))}
+                                                        onChange={(e) => handleMatrixFieldChange(idx, "rate", e.target.value)}
+                                                        className="w-20 pl-3.5 pr-1 py-0.5 bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-700 rounded text-center text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:border-emerald-500"
+                                                        title="Selling / Retail Rate (₹)"
+                                                      />
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-1.5 text-center">
+                                                    <div className="relative inline-flex items-center">
+                                                      <span className="absolute left-1 text-[10px] text-slate-400 font-mono">₹</span>
+                                                      <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={r.mrp ?? ""}
+                                                        placeholder="0"
+                                                        onChange={(e) => handleMatrixFieldChange(idx, "mrp", e.target.value)}
+                                                        className="w-18 pl-3.5 pr-1 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                                      />
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-1.5 text-center">
+                                                    <input
+                                                      type="number"
+                                                      min="0"
+                                                      value={r.quantity}
+                                                      placeholder="0"
+                                                      onChange={(e) => handleMatrixFieldChange(idx, "quantity", e.target.value)}
+                                                      className="w-18 px-1.5 py-0.5 bg-orange-50/40 dark:bg-orange-950/20 border border-orange-300 dark:border-orange-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                                      title="Opening Stock (Qty)"
+                                                    />
+                                                  </td>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <td className="p-1.5 text-center">
+                                                    <input
+                                                      type="number"
+                                                      min="0"
+                                                      value={r.quantity}
+                                                      placeholder="0"
+                                                      onChange={(e) => {
+                                                        const val = e.target.value === "" ? "" : Number(e.target.value);
+                                                        setMatrixRows((prev) =>
+                                                          prev.map((row, i) => (i === idx ? { ...row, quantity: val } : row))
+                                                        );
+                                                      }}
+                                                      className="w-18 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                                    />
+                                                  </td>
+                                                  <td className="p-1.5 text-center">
+                                                    <div className="relative inline-flex items-center">
+                                                      <span className="absolute left-1.5 text-[10px] text-slate-400 font-mono">₹</span>
+                                                      <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={r.rate ?? ""}
+                                                        placeholder={String(Number(form.sellingPrice || 0) + Number(r.priceAdjustment || 0))}
+                                                        onChange={(e) => handleRowRateChange(idx, e.target.value)}
+                                                        className="w-20 pl-4 pr-1 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:border-emerald-500"
+                                                        title="Variant Selling Rate (₹)"
+                                                      />
+                                                    </div>
+                                                  </td>
+                                                </>
+                                              )}
                                             </tr>
-                                          ))}
+                                          )))}
                                         </tbody>
                                       </table>
                                     </div>
@@ -2035,18 +3774,6 @@ export default function TenantItemsCatalogPage() {
                             </>
                           )}
 
-                          {industryConfig.code === "FMCG" && (
-                            <div className="col-span-2 space-y-1">
-                              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Net Weight / Volume</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. 500g / 1 Litre"
-                                value={fmcgNetWeight}
-                                onChange={(e) => setFmcgNetWeight(e.target.value)}
-                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-                              />
-                            </div>
-                          )}
                         </div>
                       </div>
 
@@ -2092,10 +3819,18 @@ export default function TenantItemsCatalogPage() {
                         </div>
 
                         {form.trackInventory !== false && (
-                          industryConfig.code === "GARMENTS" && isMatrixEnabled && matrixRows.length > 0 ? (
+                          (industryConfig.code === "GARMENTS" || industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") && isMatrixEnabled && matrixRows.length > 0 ? (
                             <div className="p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 rounded-lg flex items-center justify-between text-xs">
                               <div className="flex items-center gap-2">
-                                <Shirt className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                {industryConfig.code === "HARDWARE" ? (
+                                  <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                ) : industryConfig.code === "FMCG" ? (
+                                  <Boxes className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                ) : industryConfig.code === "SWEETS_BAKERY" ? (
+                                  <Cake className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                                ) : (
+                                  <Shirt className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                )}
                                 <div>
                                   <span className="font-semibold text-slate-800 dark:text-slate-200">
                                     Variant Opening Stock Managed in Matrix Above
@@ -2264,7 +3999,355 @@ export default function TenantItemsCatalogPage() {
                           )
                         )}
                       </div>
+                      </>
+                      )}
                     </div>
+
+                    {/* ──── FULL WIDTH BOTTOM SECTION: Hardware & FMCG/Bakery Master Matrix & Quick Rates ──── */}
+                    {(isHardwareMatrix || isFmcgMatrix || isSweetsBakeryMatrix) && matrixRows.length > 0 && (
+                      <div className="lg:col-span-12 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-950/80 rounded-xl p-3.5 space-y-3 shadow-2xs">
+                        <div className="flex items-center justify-between border-b border-orange-100 dark:border-slate-800 pb-2">
+                          <div className="flex items-center gap-2">
+                            {(isFmcgMatrix || isSweetsBakeryMatrix) ? (
+                              <Boxes className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                              <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            )}
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">
+                              3. Generated Variants Master Matrix ({matrixRows.length} combinations)
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-mono">
+                              Total Stock:{" "}
+                              <strong className="text-orange-600 dark:text-orange-400 font-bold">
+                                {matrixRows.reduce((a, b) => a + (Number(b.quantity) || 0), 0)} Pcs
+                              </strong>
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500">
+                            {isFmcgMatrix
+                              ? "Rates auto-save per flavor / variety & pack for accurate billing"
+                              : "Rates auto-save per shade & pack for accurate wholesale and retail billing"}
+                          </span>
+                        </div>
+
+                        {/* Top Controls Toolbar: Quick Pack Rates, Quick Flavor Rates + Bulk Stock */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 dark:from-orange-950/30 dark:via-amber-950/20 dark:to-orange-950/30 border border-orange-200/90 dark:border-orange-900/50 rounded-lg text-xs">
+                          {/* Quick Pack Rates Filler */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-1 font-bold text-orange-900 dark:text-orange-300">
+                              <Sparkles className="w-3.5 h-3.5 text-orange-600 animate-pulse" />
+                              <span>Quick Pack Rates:</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Pack:</span>
+                              <select
+                                value={quickPackSelect || matrixSizes[0] || ""}
+                                onChange={(e) => setQuickPackSelect(e.target.value)}
+                                className="px-2 py-1 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                              >
+                                {matrixSizes.map((sz) => (
+                                  <option key={sz} value={sz}>{sz}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400">Purchase:</span>
+                              <div className="relative">
+                                <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={quickPackPurchase}
+                                  onChange={(e) => setQuickPackPurchase(e.target.value === "" ? "" : Number(e.target.value))}
+                                  className="w-18 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400">Wholesale:</span>
+                              <div className="relative">
+                                <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={quickPackWholesale}
+                                  onChange={(e) => setQuickPackWholesale(e.target.value === "" ? "" : Number(e.target.value))}
+                                  className="w-18 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Retail Rate*:</span>
+                              <div className="relative">
+                                <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={quickPackRetail}
+                                  onChange={(e) => setQuickPackRetail(e.target.value === "" ? "" : Number(e.target.value))}
+                                  className="w-20 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400">MRP:</span>
+                              <div className="relative">
+                                <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={quickPackMrp}
+                                  onChange={(e) => setQuickPackMrp(e.target.value === "" ? "" : Number(e.target.value))}
+                                  className="w-18 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleApplyQuickPackRates}
+                              className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded text-xs font-bold shadow-2xs transition cursor-pointer"
+                            >
+                              Apply to {(isFmcgMatrix || isSweetsBakeryMatrix) ? "All Flavors" : "Shades"}
+                            </button>
+                          </div>
+
+                          {/* Bulk Stock Helper */}
+                          <div className="flex items-center gap-1.5 pl-3 border-l border-orange-200 dark:border-orange-800">
+                            <span className="text-[11px] font-semibold text-orange-950 dark:text-orange-300">Bulk Stock:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="Qty"
+                              value={matrixBulkQty}
+                              onChange={(e) => setMatrixBulkQty(e.target.value === "" ? "" : Number(e.target.value))}
+                              className="w-18 px-2 py-1 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (matrixBulkQty !== "") {
+                                  setMatrixRows((prev) =>
+                                    prev.map((r) => ({ ...r, quantity: Number(matrixBulkQty) || 0 }))
+                                  );
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold cursor-pointer transition"
+                            >
+                              Apply All
+                            </button>
+                          </div>
+
+                          {/* Quick Variety / Flavor Rates for FMCG & Bakery */}
+                          {(isFmcgMatrix || isSweetsBakeryMatrix) && (
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-orange-200/60 dark:border-orange-900/40 w-full">
+                              <div className="flex items-center gap-1 font-bold text-emerald-900 dark:text-emerald-300">
+                                <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                                <span>Quick Flavor Rates:</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Flavor:</span>
+                                <select
+                                  value={quickVarietySelect || matrixColors[0] || ""}
+                                  onChange={(e) => setQuickVarietySelect(e.target.value)}
+                                  className="px-2 py-1 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                >
+                                  {matrixColors.map((col) => (
+                                    <option key={col} value={col}>{col}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-slate-600 dark:text-slate-400">Purchase:</span>
+                                <div className="relative">
+                                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={quickVarietyPurchase}
+                                    onChange={(e) => setQuickVarietyPurchase(e.target.value === "" ? "" : Number(e.target.value))}
+                                    className="w-18 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-slate-600 dark:text-slate-400">Wholesale:</span>
+                                <div className="relative">
+                                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={quickVarietyWholesale}
+                                    onChange={(e) => setQuickVarietyWholesale(e.target.value === "" ? "" : Number(e.target.value))}
+                                    className="w-18 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Retail Rate*:</span>
+                                <div className="relative">
+                                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={quickVarietyRetail}
+                                    onChange={(e) => setQuickVarietyRetail(e.target.value === "" ? "" : Number(e.target.value))}
+                                    className="w-20 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-slate-600 dark:text-slate-400">MRP:</span>
+                                <div className="relative">
+                                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={quickVarietyMrp}
+                                    onChange={(e) => setQuickVarietyMrp(e.target.value === "" ? "" : Number(e.target.value))}
+                                    className="w-18 pl-4 pr-1 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleApplyQuickVarietyRates}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold shadow-2xs transition cursor-pointer"
+                              >
+                                Apply to All Packs of Flavor
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Full Width Master Matrix Table */}
+                        <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs max-h-96 overflow-y-auto">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700 z-10">
+                              <tr>
+                                <th className="py-2.5 px-3 whitespace-nowrap">{(isFmcgMatrix || isSweetsBakeryMatrix) ? "Flavor & Pack Size" : "Pack & Shade"}</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap">Auto SKU</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap text-center">Barcode</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap text-center w-28">Purchase (₹)</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap text-center w-28">Wholesale (₹)</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap text-center w-32 text-emerald-700 dark:text-emerald-400">Retail Rate (₹)*</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap text-center w-28">MRP (₹)</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap text-center w-28 text-orange-600 dark:text-orange-400">Opening Stock</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                              {matrixRows.map((r, idx) => (
+                                <tr key={`${r.size}-${r.color}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                  <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5">
+                                      {(isFmcgMatrix || isSweetsBakeryMatrix) ? (
+                                        <>
+                                          <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 rounded text-xs font-bold border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300">
+                                            {r.color}
+                                          </span>
+                                          <span className="font-bold text-slate-800 dark:text-slate-200">{r.size}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                                            {r.size}
+                                          </span>
+                                          <span className="font-bold">{r.color}</span>
+                                        </>
+                                      )}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-3 font-mono text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                    {r.sku}
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <input
+                                      type="text"
+                                      value={r.barcode || ""}
+                                      placeholder="Scan / Auto"
+                                      onChange={(e) => handleMatrixFieldChange(idx, "barcode", e.target.value)}
+                                      className="w-24 px-1.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 placeholder:text-slate-400 placeholder:font-sans placeholder:text-[10px]"
+                                      title="Scan manufacturer can barcode or leave empty for auto barcode"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <div className="relative inline-flex items-center w-full max-w-[95px]">
+                                      <span className="absolute left-2 text-xs text-slate-400 font-mono">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={r.purchasePrice ?? ""}
+                                        placeholder="0"
+                                        onChange={(e) => handleMatrixFieldChange(idx, "purchasePrice", e.target.value)}
+                                        className="w-full pl-5 pr-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <div className="relative inline-flex items-center w-full max-w-[95px]">
+                                      <span className="absolute left-2 text-xs text-slate-400 font-mono">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={r.wholesalePrice ?? ""}
+                                        placeholder="0"
+                                        onChange={(e) => handleMatrixFieldChange(idx, "wholesalePrice", e.target.value)}
+                                        className="w-full pl-5 pr-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <div className="relative inline-flex items-center w-full max-w-[95px]">
+                                      <span className="absolute left-2 text-xs text-emerald-600 font-mono">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={r.rate ?? ""}
+                                        placeholder={String(Number(form.sellingPrice || 0) + Number(r.priceAdjustment || 0))}
+                                        onChange={(e) => handleMatrixFieldChange(idx, "rate", e.target.value)}
+                                        className="w-full pl-5 pr-2 py-1 bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-400 dark:border-emerald-600 rounded text-center text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                                        title="Selling / Retail Rate (₹)"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <div className="relative inline-flex items-center w-full max-w-[95px]">
+                                      <span className="absolute left-2 text-xs text-slate-400 font-mono">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={r.mrp ?? ""}
+                                        placeholder="0"
+                                        onChange={(e) => handleMatrixFieldChange(idx, "mrp", e.target.value)}
+                                        className="w-full pl-5 pr-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={r.quantity}
+                                      placeholder="0"
+                                      onChange={(e) => handleMatrixFieldChange(idx, "quantity", e.target.value)}
+                                      className="w-20 px-1.5 py-1 bg-orange-50/50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-700 rounded text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                      title="Opening Stock (Qty)"
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2295,7 +4378,7 @@ export default function TenantItemsCatalogPage() {
                         : "Saving Product..."
                       : form.itemType === 2
                       ? "Save Service to Catalog"
-                      : industryConfig.code === "GARMENTS" && isMatrixEnabled && matrixRows.length > 0
+                      : (industryConfig.code === "GARMENTS" || industryConfig.code === "HARDWARE" || industryConfig.code === "FMCG" || industryConfig.code === "SWEETS_BAKERY") && isMatrixEnabled && matrixRows.length > 0
                       ? `Save Product & ${matrixRows.length} Variants`
                       : "Save Product to Catalog"}
                   </span>
@@ -2471,37 +4554,33 @@ export default function TenantItemsCatalogPage() {
           ITEM STOCK LEDGER MODAL — Detailed Opening, Billed, In/Out, Remaining Stock
       ══════════════════════════════════════════════════════════════════════════════ */}
       {ledgerModalOpen && selectedLedgerItem && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 z-[200000] animate-in fade-in">
-          <div className="bg-surface border border-border rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-border bg-surface-elevated/40 flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2.5">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
-                    <FileSpreadsheet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
-                        {selectedLedgerItem.name}
-                      </h2>
-                      <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-mono font-bold">
-                        {selectedLedgerItem.sku}
-                      </span>
-                      {selectedLedgerItem.categoryName && (
-                        <span className="text-xs text-muted-foreground hidden sm:inline">
-                          &bull; {selectedLedgerItem.categoryName}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Item Stock Ledger &bull; Complete Opening, Purchase/GRN, Billing (Sales), Returns &amp; Current Balance
-                    </p>
-                  </div>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-1 sm:p-2 z-[200000] animate-in fade-in">
+          <div className="bg-surface border border-border rounded-xl w-full max-w-[99vw] h-[98vh] shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header (Compact & Sleek) */}
+            <div className="px-4 py-2 border-b border-border bg-surface-elevated/40 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center space-x-2 min-w-0">
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+                  <FileSpreadsheet className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <h2 className="text-sm sm:text-base font-black text-foreground tracking-tight truncate">
+                    {selectedLedgerItem.name}
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-mono font-bold">
+                    {selectedLedgerItem.sku}
+                  </span>
+                  {selectedLedgerItem.categoryName && (
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      &bull; {selectedLedgerItem.categoryName}
+                    </span>
+                  )}
+                  <span className="text-[11px] text-muted-foreground hidden lg:inline border-l border-border pl-2">
+                    Item Stock Ledger &bull; Complete Opening, Purchase/GRN, Billing (Sales), Returns &amp; Current Balance
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 shrink-0">
+              <div className="flex items-center space-x-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => handleOpenItemLedger(selectedLedgerItem)}
@@ -2520,10 +4599,9 @@ export default function TenantItemsCatalogPage() {
               </div>
             </div>
 
-            {/* Top Summary KPI Cards */}
+            {/* Top Summary KPI Cards - Compact High-Density Grid */}
             {(() => {
               // Calculate statistics
-              // Opening Stock: Earliest movement of type Initial/Opening or first movement before
               const openingMoves = ledgerMovements.filter((m) =>
                 m.movementTypeName?.toLowerCase().includes("opening") ||
                 m.movementTypeName?.toLowerCase().includes("initial") ||
@@ -2544,87 +4622,144 @@ export default function TenantItemsCatalogPage() {
               const currentRemain = selectedLedgerItem.totalStock;
 
               return (
-                <div className="p-4 bg-surface border-b border-border grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+                <div className="px-4 py-2 bg-surface border-b border-border grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
                   {/* Card 1: Opening / Inward */}
-                  <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-950 dark:text-orange-200">
-                    <span className="text-[10px] uppercase font-bold text-orange-800 dark:text-orange-300 tracking-wider block">
-                      Opening / Total Inward
-                    </span>
-                    <div className="text-lg font-black font-mono mt-0.5 text-orange-700 dark:text-orange-300">
-                      +{totalIn || totalOpening} <span className="text-xs font-normal text-muted-foreground">{selectedLedgerItem.primaryUomCode}</span>
+                  <div className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-orange-800 dark:text-orange-300 tracking-wider block truncate">
+                        Opening / Inward
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block truncate">Purchases &amp; Opening</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground block mt-0.5">Purchases, Opening &amp; Returns</span>
+                    <div className="text-base font-black font-mono text-orange-700 dark:text-orange-300 whitespace-nowrap">
+                      +{totalIn || totalOpening} <span className="text-[10px] font-normal text-muted-foreground">{selectedLedgerItem.primaryUomCode}</span>
+                    </div>
                   </div>
 
                   {/* Card 2: Total Billed Out */}
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-950 dark:text-rose-200">
-                    <span className="text-[10px] uppercase font-bold text-rose-800 dark:text-rose-300 tracking-wider block">
-                      Total Billed Out (Sales)
-                    </span>
-                    <div className="text-lg font-black font-mono mt-0.5 text-rose-700 dark:text-rose-300">
-                      -{totalBilledOut} <span className="text-xs font-normal text-muted-foreground">{selectedLedgerItem.primaryUomCode}</span>
+                  <div className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-rose-800 dark:text-rose-300 tracking-wider block truncate">
+                        Total Billed Out
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block truncate">Invoices &amp; Dispatches</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground block mt-0.5">Invoices &amp; Dispatches</span>
+                    <div className="text-base font-black font-mono text-rose-700 dark:text-rose-300 whitespace-nowrap">
+                      -{totalBilledOut} <span className="text-[10px] font-normal text-muted-foreground">{selectedLedgerItem.primaryUomCode}</span>
+                    </div>
                   </div>
 
                   {/* Card 3: Remaining / Current Stock */}
-                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200">
-                    <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 tracking-wider block">
-                      Remaining Stock (Current)
-                    </span>
-                    <div className="text-lg font-black font-mono mt-0.5 text-emerald-700 dark:text-emerald-300">
-                      {currentRemain} <span className="text-xs font-normal text-muted-foreground">{selectedLedgerItem.primaryUomCode}</span>
+                  <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 tracking-wider block truncate">
+                        Remaining Stock
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block truncate">Live On-Hand</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground block mt-0.5">Live On-Hand Balance</span>
+                    <div className="text-base font-black font-mono text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
+                      {currentRemain} <span className="text-[10px] font-normal text-muted-foreground">{selectedLedgerItem.primaryUomCode}</span>
+                    </div>
                   </div>
 
                   {/* Card 4: Pricing & Value */}
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-950 dark:text-amber-200">
-                    <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 tracking-wider block">
-                      Stock Asset Value
-                    </span>
-                    <div className="text-lg font-black font-mono mt-0.5 text-amber-700 dark:text-amber-300">
+                  <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 tracking-wider block truncate">
+                        Asset Value
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block truncate">@ Cost ₹{selectedLedgerItem.purchasePrice.toFixed(2)}</span>
+                    </div>
+                    <div className="text-base font-black font-mono text-amber-700 dark:text-amber-300 whitespace-nowrap">
                       ₹{(currentRemain * selectedLedgerItem.purchasePrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </div>
-                    <span className="text-[10px] text-muted-foreground block mt-0.5">@ Cost ₹{selectedLedgerItem.purchasePrice.toFixed(2)}</span>
                   </div>
                 </div>
               );
             })()}
 
-            {/* Warehouse / Batch Breakdown if Available */}
+            {/* Warehouse / Variant (Size/Color) / Batch Breakdown (Compact Horizontal Scrolling Strip) */}
             {ledgerStockBalances.length > 0 && (
-              <div className="px-4 py-2.5 bg-surface-elevated/20 border-b border-border flex flex-wrap items-center gap-2 text-xs shrink-0">
-                <span className="font-bold text-muted-foreground flex items-center space-x-1">
-                  <WarehouseIcon className="w-3.5 h-3.5 text-primary" />
-                  <span>Warehouse &amp; Batch Balances:</span>
-                </span>
-                {ledgerStockBalances.map((ws, i) => (
-                  <span
-                    key={`${ws.warehouseId}-${ws.batchId || i}`}
-                    className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-surface border border-border text-[11px] font-mono"
-                  >
-                    <span className="font-semibold text-foreground">{ws.warehouseName}:</span>
-                    {ws.batchNumber && (
-                      <span className="text-purple-600 dark:text-purple-400 font-bold">[{ws.batchNumber}]</span>
-                    )}
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                      {ws.currentQuantity} {selectedLedgerItem.primaryUomCode}
-                    </span>
+              <div className="px-4 py-1.5 bg-surface-elevated/20 border-b border-border flex items-center gap-2 text-xs shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin">
+                <span className="font-bold text-muted-foreground flex items-center space-x-1 shrink-0 text-[11px]">
+                  {selectedLedgerItem.trackVariants || isGarments ? (
+                    <Shirt className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  ) : (
+                    <WarehouseIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+                  )}
+                  <span>
+                    {selectedLedgerItem.trackVariants || isGarments
+                      ? "Variant & Size Breakdown:"
+                      : "Warehouse Balances:"}
                   </span>
-                ))}
+                </span>
+                <div className="flex items-center gap-1.5 overflow-x-auto">
+                  {ledgerStockBalances.map((ws, i) => {
+                    const hasGarmentAttr = Boolean(ws.size || ws.color || ws.variantName);
+                    const isZero = Number(ws.currentQuantity) <= 0;
+
+                    return (
+                      <span
+                        key={`${ws.warehouseId}-${ws.variantId || ws.batchId || i}`}
+                        className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-md border text-[11px] font-mono transition shrink-0 ${
+                          isZero
+                            ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50"
+                            : "bg-surface border-border"
+                        }`}
+                      >
+                        {hasGarmentAttr ? (
+                          <>
+                            {ws.size && (
+                              <span className="px-1 py-0.2 rounded bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-800 text-[10px]">
+                                Size: {ws.size}
+                              </span>
+                            )}
+                            {ws.color && (
+                              <span className="px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold border border-border text-[10px]">
+                                Col: {ws.color}
+                              </span>
+                            )}
+                            {!ws.size && !ws.color && ws.variantName && (
+                              <span className="font-bold text-foreground text-[10px]">
+                                {ws.variantName}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {(selectedLedgerItem.trackVariants || isGarments) ? (
+                              <span className="px-1 py-0.2 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-semibold border border-amber-200 dark:border-amber-800 text-[10px]">
+                                Standard
+                              </span>
+                            ) : (
+                              <span className="font-semibold text-foreground text-[10px]">{ws.warehouseName}:</span>
+                            )}
+                            {ws.batchNumber && (
+                              <span className="text-purple-600 dark:text-purple-400 font-bold text-[10px]">[{ws.batchNumber}]</span>
+                            )}
+                          </>
+                        )}
+
+                        <span className={`font-bold text-[10px] ${isZero ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                          {ws.currentQuantity} {selectedLedgerItem.primaryUomCode}
+                          {isZero && <span className="ml-1 text-[9px] font-semibold text-rose-500">(0)</span>}
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {/* Filter Sub-bar */}
-            <div className="p-3 bg-surface border-b border-border flex items-center justify-between gap-3 text-xs shrink-0">
+            {/* Filter Sub-bar (Slim) */}
+            <div className="px-4 py-1.5 bg-surface border-b border-border flex items-center justify-between gap-2 text-xs shrink-0">
               <div className="flex items-center space-x-2">
-                <span className="text-muted-foreground font-semibold">Filter Movements:</span>
+                <span className="text-muted-foreground font-semibold text-[11px]">Filter:</span>
                 <div className="flex items-center bg-surface-elevated border border-border rounded-lg p-0.5">
                   <button
                     type="button"
                     onClick={() => setLedgerFilterType("all")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-semibold transition ${
                       ledgerFilterType === "all" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -2633,31 +4768,35 @@ export default function TenantItemsCatalogPage() {
                   <button
                     type="button"
                     onClick={() => setLedgerFilterType("in")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-semibold transition ${
                       ledgerFilterType === "in" ? "bg-emerald-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Inward (Opening / Purchases)
+                    Inward ({ledgerMovements.filter(m => m.quantity > 0).length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setLedgerFilterType("out")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-semibold transition ${
                       ledgerFilterType === "out" ? "bg-rose-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Outward (Billed / Sales)
+                    Outward ({ledgerMovements.filter(m => m.quantity < 0).length})
                   </button>
                 </div>
               </div>
 
-              <span className="text-[11px] text-muted-foreground hidden sm:inline font-mono">
-                Showing item stock movement history
+              <span className="text-[11px] text-muted-foreground font-mono">
+                Showing {ledgerMovements.filter((m) => {
+                  if (ledgerFilterType === "in") return m.quantity > 0;
+                  if (ledgerFilterType === "out") return m.quantity < 0;
+                  return true;
+                }).length} stock movement records
               </span>
             </div>
 
-            {/* Modal Body: Transactions Table */}
-            <div className="flex-1 overflow-y-auto p-4">
+            {/* Modal Body: Transactions Table (Maximized Visible Rows) */}
+            <div className="flex-1 overflow-y-auto px-3 py-2">
               {loadingLedger ? (
                 <div className="py-16 text-center text-muted-foreground text-xs space-y-2">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -2673,17 +4812,19 @@ export default function TenantItemsCatalogPage() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-border overflow-hidden bg-surface shadow-xs">
+                <div className="rounded-lg border border-border overflow-hidden bg-surface shadow-xs">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-table-header text-table-headerForeground uppercase tracking-wider text-[11px] font-bold border-b border-border">
+                    <thead className="bg-table-header text-table-headerForeground uppercase tracking-wider text-[10px] font-bold border-b border-border sticky top-0 z-10">
                       <tr>
-                        <th className="px-4 py-3">Date &amp; Time</th>
-                        <th className="px-4 py-3">Transaction Type</th>
-                        <th className="px-4 py-3">Ref Document</th>
-                        <th className="px-4 py-3">Warehouse / Batch</th>
-                        <th className="px-4 py-3 text-right">In / Out Qty</th>
-                        <th className="px-4 py-3 text-right">Stock (Before &rarr; After)</th>
-                        <th className="px-4 py-3">Notes</th>
+                        <th className="px-3 py-2">Date &amp; Time</th>
+                        <th className="px-3 py-2">Transaction Type</th>
+                        <th className="px-3 py-2">Ref Document</th>
+                        <th className="px-3 py-2">
+                          Warehouse / {selectedLedgerItem.trackVariants || isGarments ? "Variant (Size/Color)" : "Batch"}
+                        </th>
+                        <th className="px-3 py-2 text-right">In / Out Qty</th>
+                        <th className="px-3 py-2 text-right">Stock (Before &rarr; After)</th>
+                        <th className="px-3 py-2">Notes</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -2695,31 +4836,29 @@ export default function TenantItemsCatalogPage() {
                         })
                         .map((m) => {
                           const isPositive = m.quantity > 0;
-                          const isInvoice = m.movementTypeName?.toLowerCase().includes("sale") || m.movementTypeName?.toLowerCase().includes("invoice") || m.referenceDocumentType?.toLowerCase().includes("invoice");
-                          const isPurchase = m.movementTypeName?.toLowerCase().includes("purchase") || m.movementTypeName?.toLowerCase().includes("grn") || m.movementTypeName?.toLowerCase().includes("opening");
 
                           return (
                             <tr key={m.id} className="hover:bg-table-rowHover transition-colors">
-                              {/* Date */}
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="font-semibold text-foreground">
+                              {/* Date & Time */}
+                              <td className="px-3 py-1.5 whitespace-nowrap">
+                                <span className="font-semibold text-foreground">
                                   {new Date(m.createdAtUtc).toLocaleDateString("en-IN", {
                                     day: "2-digit",
                                     month: "short",
                                     year: "numeric"
                                   })}
-                                </div>
-                                <div className="text-[10px] text-muted-foreground font-mono">
+                                </span>
+                                <span className="text-[10px] text-muted-foreground font-mono ml-1.5">
                                   {new Date(m.createdAtUtc).toLocaleTimeString("en-IN", {
                                     hour: "2-digit",
                                     minute: "2-digit"
                                   })}
-                                </div>
+                                </span>
                               </td>
 
                               {/* Movement Type */}
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <span className={`inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              <td className="px-3 py-1.5 whitespace-nowrap">
+                                <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                                   isPositive
                                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                     : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
@@ -2734,9 +4873,9 @@ export default function TenantItemsCatalogPage() {
                               </td>
 
                               {/* Document Reference */}
-                              <td className="px-4 py-3 font-mono">
+                              <td className="px-3 py-1.5 font-mono">
                                 {m.referenceDocumentNumber ? (
-                                  <span className="font-bold text-primary">
+                                  <span className="font-bold text-primary text-xs">
                                     {m.referenceDocumentNumber}
                                   </span>
                                 ) : (
@@ -2744,32 +4883,50 @@ export default function TenantItemsCatalogPage() {
                                 )}
                               </td>
 
-                              {/* Warehouse / Batch */}
-                              <td className="px-4 py-3">
-                                <div className="text-foreground font-medium">{m.warehouseName || "Main Warehouse"}</div>
-                                {m.batchNumber && (
-                                  <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-bold">
-                                    Batch: {m.batchNumber}
+                              {/* Warehouse / Batch / Variant */}
+                              <td className="px-3 py-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-foreground font-medium text-xs">
+                                    {m.warehouseName || "Main Storage Warehouse"}
                                   </span>
-                                )}
+                                  {m.batchNumber && (
+                                    <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-bold">
+                                      Batch: {m.batchNumber}
+                                    </span>
+                                  )}
+                                  {(m.size || m.color || m.variantName) && (
+                                    <div className="inline-flex items-center gap-1">
+                                      {m.size && (
+                                        <span className="px-1.5 py-0.2 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px] border border-rose-200 dark:border-rose-800">
+                                          Size: {m.size}
+                                        </span>
+                                      )}
+                                      {m.color && (
+                                        <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-[10px] border border-border">
+                                          Col: {m.color}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </td>
 
                               {/* Movement Qty */}
-                              <td className="px-4 py-3 text-right font-mono font-bold text-sm whitespace-nowrap">
+                              <td className="px-3 py-1.5 text-right font-mono font-bold text-xs whitespace-nowrap">
                                 <span className={isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
                                   {isPositive ? `+${m.quantity}` : m.quantity} {selectedLedgerItem.primaryUomCode}
                                 </span>
                               </td>
 
                               {/* Balance Progression (Before -> After) */}
-                              <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
+                              <td className="px-3 py-1.5 text-right font-mono whitespace-nowrap text-xs">
                                 <span className="text-muted-foreground font-medium">{m.quantityBefore}</span>
-                                <span className="mx-1.5 text-muted-foreground/60">&rarr;</span>
-                                <span className="text-foreground font-extrabold text-sm">{m.quantityAfter}</span>
+                                <span className="mx-1 text-muted-foreground/60">&rarr;</span>
+                                <span className="text-foreground font-extrabold">{m.quantityAfter}</span>
                               </td>
 
                               {/* Notes */}
-                              <td className="px-4 py-3 text-muted-foreground italic max-w-[200px] truncate text-[11px]">
+                              <td className="px-3 py-1.5 text-muted-foreground max-w-[280px] truncate text-[11px]">
                                 {m.notes || "—"}
                               </td>
                             </tr>
@@ -2781,17 +4938,594 @@ export default function TenantItemsCatalogPage() {
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-3 sm:p-4 border-t border-border bg-surface-elevated/40 flex items-center justify-between">
+            {/* Modal Footer (Compact) */}
+            <div className="px-4 py-2 border-t border-border bg-surface-elevated/40 flex items-center justify-between shrink-0">
               <div className="text-xs text-muted-foreground">
                 Total Movements: <strong className="text-foreground">{ledgerMovements.length}</strong> entries
               </div>
               <button
                 type="button"
                 onClick={() => setLedgerModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-foreground text-xs font-bold transition shadow-xs cursor-pointer"
+                className="px-4 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-foreground text-xs font-bold transition shadow-xs cursor-pointer"
               >
                 Close Ledger
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════════
+          EDIT PRODUCT & VARIANTS MODAL (RATES, PACKS, SHADES & DETAILS)
+      ══════════════════════════════════════════════════════════════════════════════ */}
+      {isEditModalOpen && editingItem && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-[96vw] xl:max-w-6xl max-h-[94vh] shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-950/40">
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div className="p-2 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 shrink-0">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                      Edit Product: {editingItem.name}
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 font-mono text-[11px] font-bold">
+                      SKU: {editingItem.sku}
+                    </span>
+                    {editingItem.trackVariants && (
+                      <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-[11px] font-semibold">
+                        Multi-Variant Product ({editVariants.length} Variants)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Update master product details, wholesale rates, retail prices, and individual variant pricing.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingItem(null);
+                }}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+                {/* Section 1: General Details */}
+                <div className="bg-slate-50/70 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Boxes className="w-3.5 h-3.5 text-orange-600" />
+                    <span>General Product Details</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Product Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Category</label>
+                      <select
+                        value={editForm.categoryId}
+                        onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      >
+                        <option value="">No Category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Brand / Maker</label>
+                      <select
+                        value={editForm.brandId}
+                        onChange={(e) => setEditForm({ ...editForm, brandId: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      >
+                        <option value="">Generic / No Brand</option>
+                        {brands.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">HSN Code</label>
+                      <input
+                        type="text"
+                        value={editForm.hsnCode}
+                        onChange={(e) => setEditForm({ ...editForm, hsnCode: e.target.value })}
+                        placeholder="e.g. 3208, 6203"
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">GST Tax Rate (%)</label>
+                      <select
+                        value={editForm.taxRate}
+                        onChange={(e) => setEditForm({ ...editForm, taxRate: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      >
+                        <option value="0">0% (Nil / Exempt)</option>
+                        <option value="5">5%</option>
+                        <option value="12">12%</option>
+                        <option value="18">18%</option>
+                        <option value="28">28%</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Primary Unit (UOM)</label>
+                      <select
+                        value={editForm.primaryUomId}
+                        onChange={(e) => setEditForm({ ...editForm, primaryUomId: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      >
+                        {units.map((u) => (
+                          <option key={u.id} value={u.id}>{u.name} ({u.symbol || u.code})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Barcode</label>
+                      <input
+                        type="text"
+                        value={editForm.barcode}
+                        onChange={(e) => setEditForm({ ...editForm, barcode: e.target.value })}
+                        placeholder="Scan or enter barcode"
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 2: Standard Product Pricing (When no variants exist) */}
+                {editVariants.length === 0 && (
+                  <div className="bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 rounded-xl p-3.5 space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-400 flex items-center gap-1.5">
+                      <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Product Rates &amp; Pricing</span>
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Purchase Cost (₹)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={editForm.purchasePrice}
+                          onChange={(e) => setEditForm({ ...editForm, purchasePrice: e.target.value === "" ? "" : parseFloat(e.target.value) || 0 })}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Wholesale Rate (₹)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={editForm.minimumSellingPrice}
+                          onChange={(e) => setEditForm({ ...editForm, minimumSellingPrice: e.target.value === "" ? "" : parseFloat(e.target.value) || 0 })}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono font-bold text-primary focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">Retail Rate (₹)*</label>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          required
+                          value={editForm.sellingPrice}
+                          onChange={(e) => setEditForm({ ...editForm, sellingPrice: e.target.value === "" ? "" : parseFloat(e.target.value) || 0 })}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border-2 border-emerald-400 dark:border-emerald-600 rounded-lg text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">MRP (₹)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={editForm.mrp}
+                          onChange={(e) => setEditForm({ ...editForm, mrp: e.target.value === "" ? "" : parseFloat(e.target.value) || 0 })}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 3: Variants Rates & Matrix (When variants exist) */}
+                {editVariants.length > 0 && (
+                  <div className="bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-950 rounded-xl p-3.5 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-orange-100 dark:border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                          Variants Price Master ({editVariants.length} Combinations)
+                        </h3>
+                      </div>
+                      <span className="text-[11px] text-slate-500">
+                        Edit rates per variant or use Quick Pack Rates to bulk-apply to all shades of a pack size.
+                      </span>
+                    </div>
+
+                    {/* Quick Pack Rates Tool */}
+                    {(() => {
+                      const distinctSizes = Array.from(new Set(editVariants.map((v) => v.size).filter(Boolean))) as string[];
+                      if (distinctSizes.length === 0) return null;
+
+                      return (
+                        <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-orange-50/80 dark:from-orange-950/30 dark:via-amber-950/20 dark:to-orange-950/30 border border-orange-200/90 dark:border-orange-900/50 rounded-lg text-xs">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-1 font-bold text-orange-900 dark:text-orange-300">
+                              <Sparkles className="w-3.5 h-3.5 text-orange-600 animate-pulse" />
+                              <span>Quick Pack Rates:</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Pack:</span>
+                              <select
+                                value={editQuickPackSelect || distinctSizes[0] || ""}
+                                onChange={(e) => setEditQuickPackSelect(e.target.value)}
+                                className="px-2 py-1 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                              >
+                                {distinctSizes.map((sz) => (
+                                  <option key={sz} value={sz}>{sz}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400">Purchase:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={editQuickPurchase}
+                                onChange={(e) => setEditQuickPurchase(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-18 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400">Wholesale:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={editQuickWholesale}
+                                onChange={(e) => setEditQuickWholesale(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-18 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Retail*:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={editQuickRetail}
+                                onChange={(e) => setEditQuickRetail(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-20 px-2 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-400 dark:border-emerald-600 rounded text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400">MRP:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={editQuickMrp}
+                                onChange={(e) => setEditQuickMrp(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-18 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleApplyEditQuickPackRates}
+                              className="px-3 py-1 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white rounded text-xs font-bold transition shadow-xs cursor-pointer"
+                            >
+                              Apply to Shades
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Variants Table */}
+                    <div className="max-h-80 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-lg shadow-2xs">
+                      <table className="w-full text-left border-collapse text-[11px]">
+                        <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700 z-10">
+                          <tr>
+                            <th className="p-2 whitespace-nowrap">Pack / Size &amp; Shade</th>
+                            <th className="p-2 whitespace-nowrap">Variant SKU</th>
+                            <th className="p-2 whitespace-nowrap text-center">Barcode</th>
+                            <th className="p-2 whitespace-nowrap text-center w-24">Purchase (₹)</th>
+                            <th className="p-2 whitespace-nowrap text-center w-24">Wholesale (₹)</th>
+                            <th className="p-2 whitespace-nowrap text-center w-28 text-emerald-700 dark:text-emerald-400">Retail Rate (₹)*</th>
+                            <th className="p-2 whitespace-nowrap text-center w-24">MRP (₹)</th>
+                            <th className="p-2 whitespace-nowrap text-center w-20">Stock</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                          {editVariants.map((v, idx) => {
+                            const effRate = v.sellingPrice !== undefined ? v.sellingPrice : (Number(editForm.sellingPrice) + (v.priceAdjustment || 0));
+                            return (
+                              <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                <td className="p-2 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                                  <div className="flex items-center gap-1.5">
+                                    {v.size && (
+                                      <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold border border-slate-200 dark:border-slate-700">
+                                        {v.size}
+                                      </span>
+                                    )}
+                                    <span>{v.color || v.variantName}</span>
+                                  </div>
+                                </td>
+                                <td className="p-2 font-mono text-[10px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                  {v.variantSku}
+                                </td>
+                                <td className="p-2 text-center">
+                                  <input
+                                    type="text"
+                                    value={v.barcode || ""}
+                                    placeholder="Barcode"
+                                    onChange={(e) => handleEditVariantField(idx, "barcode", e.target.value)}
+                                    className="w-24 px-2 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={v.purchasePrice ?? ""}
+                                    placeholder="0"
+                                    onChange={(e) => handleEditVariantField(idx, "purchasePrice", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+                                    className="w-22 px-2 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={v.wholesalePrice ?? ""}
+                                    placeholder="0"
+                                    onChange={(e) => handleEditVariantField(idx, "wholesalePrice", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+                                    className="w-22 px-2 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={effRate ?? ""}
+                                    placeholder="0"
+                                    onChange={(e) => handleEditVariantField(idx, "sellingPrice", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+                                    className="w-24 px-2 py-0.5 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-400 dark:border-emerald-600 rounded text-center text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 focus:outline-none focus:border-emerald-500"
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={v.mrp ?? ""}
+                                    placeholder="0"
+                                    onChange={(e) => handleEditVariantField(idx, "mrp", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+                                    className="w-22 px-2 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                  />
+                                </td>
+                                <td className="p-2 text-center font-mono font-bold text-slate-700 dark:text-slate-300">
+                                  {v.currentStock} {editingItem.primaryUomCode}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-end space-x-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingProduct}
+                  className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 active:bg-orange-800 transition flex items-center gap-1.5 shadow-md shadow-orange-600/25 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    {updatingProduct
+                      ? "Saving Changes..."
+                      : editVariants.length > 0
+                      ? `Save Product & ${editVariants.length} Variants`
+                      : "Save Product Changes"}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Product Confirmation Modal */}
+      {deleteConfirmItem && (
+        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 text-slate-900 dark:text-slate-100 animate-in fade-in-50 zoom-in-95">
+            <div className="flex items-center space-x-3 text-rose-600 dark:text-rose-400 mb-4">
+              <div className="p-3 bg-rose-100 dark:bg-rose-950/80 rounded-full border border-rose-200 dark:border-rose-800 shrink-0">
+                <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Product Delete Karein</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Are you sure you want to delete this product?</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800 mb-4 text-xs space-y-1">
+              <div className="font-bold text-slate-900 dark:text-white text-sm">{deleteConfirmItem.name}</div>
+              <div className="font-mono text-primary font-semibold">SKU: {deleteConfirmItem.sku}</div>
+              <div className="text-slate-600 dark:text-slate-400">
+                Current Stock: <span className="font-bold text-slate-900 dark:text-white">{deleteConfirmItem.totalStock} {deleteConfirmItem.primaryUomCode}</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-300 text-xs mb-6 leading-relaxed">
+              ⚠️ Ye product aapke active product catalog se permanent delete ho jayega. Purane invoices aur bills ka record surakshit rahega.
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmItem(null)}
+                disabled={deletingItemId !== null}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
+              >
+                Cancel (रद्द करें)
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setDeletingItemId(deleteConfirmItem.id);
+                    await inventoryService.deleteItem(deleteConfirmItem.id);
+                    setItems((prev) => prev.filter((i) => i.id !== deleteConfirmItem.id));
+                    setTotalCount((prev) => Math.max(0, prev - 1));
+                    setDeleteConfirmItem(null);
+                  } catch (err: any) {
+                    console.error("Failed to delete item:", err);
+                    alert(err?.response?.data?.message || err?.message || "Product delete karne me samasya aayi.");
+                  } finally {
+                    setDeletingItemId(null);
+                  }
+                }}
+                disabled={deletingItemId !== null}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50 shadow-md"
+              >
+                {deletingItemId !== null ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Haan, Delete Karein</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Products Confirmation Modal */}
+      {isBulkDeleteModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 text-slate-900 dark:text-slate-100 animate-in fade-in-50 zoom-in-95 space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600 dark:text-rose-400">
+              <div className="p-3 bg-rose-100 dark:bg-rose-950/80 rounded-full border border-rose-200 dark:border-rose-800 shrink-0">
+                <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Bulk Delete {selectedItemIds.size} Products
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  क्या आप वाकई चुने हुए <span className="font-bold text-rose-600 dark:text-rose-400">{selectedItemIds.size}</span> प्रोडक्ट्स को डिलीट करना चाहते हैं?
+                </p>
+              </div>
+            </div>
+
+            {/* Selected items preview */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-3 max-h-52 overflow-y-auto space-y-2 text-xs divide-y divide-slate-200 dark:divide-slate-800">
+              <div className="font-bold text-slate-600 dark:text-slate-300 text-[11px] pb-1 uppercase tracking-wider">
+                Selected Products ({selectedItemIds.size}):
+              </div>
+              {items
+                .filter((i) => selectedItemIds.has(i.id))
+                .slice(0, 15)
+                .map((item) => (
+                  <div key={item.id} className="pt-2 flex items-center justify-between text-xs">
+                    <div className="truncate pr-2">
+                      <span className="font-bold text-slate-800 dark:text-slate-100">{item.name}</span>
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 ml-1.5 font-semibold">({item.sku})</span>
+                    </div>
+                    <span className="text-[11px] text-slate-600 dark:text-slate-300 shrink-0 font-mono font-bold">
+                      Stock: {item.totalStock} {item.primaryUomCode}
+                    </span>
+                  </div>
+                ))}
+              {selectedItemIds.size > 15 && (
+                <div className="pt-2 text-[11px] text-slate-500 dark:text-slate-400 font-semibold italic text-center">
+                  ... and {selectedItemIds.size - 15} more products selected
+                </div>
+              )}
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-200 text-xs space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+                <span>⚠️ Important Safety Notice:</span>
+              </p>
+              <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
+                Ye products aapke active catalog se remove ho jayenge. Purane bills, invoices aur historical reports 100% surakshit rahenge.
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsBulkDeleteModalOpen(false)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
+              >
+                Cancel (रद्द करें)
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteConfirm}
+                disabled={isBulkDeleting}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50 shadow-lg shadow-rose-600/30"
+              >
+                {isBulkDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting {selectedItemIds.size} Products...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Haan, {selectedItemIds.size} Products Delete Karein</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
