@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Auditing;
+using UdyogBill.Domain.Entities.Catalog;
 using UdyogBill.Domain.Entities.Inventory;
 using UdyogBill.Domain.Entities.Sales;
 using UdyogBill.Domain.Entities.Tenants;
@@ -778,12 +779,34 @@ public class InventoryService : IInventoryService
             return Result<Guid>.Failure($"Item SKU '{normalizedSku}' already exists.", "SKU_ALREADY_EXISTS");
         }
 
-        var uomExists = await _context.UnitsOfMeasure
-            .AnyAsync(u => u.TenantId == tenantId && u.Id == request.PrimaryUomId && !u.IsDeleted, cancellationToken);
+        Guid effectiveUomId = request.PrimaryUomId;
+        var uomExists = effectiveUomId != Guid.Empty && await _context.UnitsOfMeasure
+            .AnyAsync(u => u.TenantId == tenantId && u.Id == effectiveUomId && !u.IsDeleted, cancellationToken);
 
         if (!uomExists)
         {
-            return Result<Guid>.Failure("Primary Unit of Measure not found.", "UOM_NOT_FOUND");
+            // Auto-fallback to tenant's default active UOM (PCS, UNIT, etc.) or create a standard UNIT UOM
+            var defaultUom = await _context.UnitsOfMeasure
+                .Where(u => u.TenantId == tenantId && !u.IsDeleted)
+                .OrderBy(u => u.Code == "PCS" ? 0 : (u.Code == "UNIT" ? 1 : 2))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (defaultUom == null)
+            {
+                defaultUom = new UnitOfMeasure
+                {
+                    TenantId = tenantId,
+                    Code = "UNIT",
+                    Name = "Unit",
+                    Symbol = "U",
+                    DecimalPlaces = 0,
+                    IsActive = true
+                };
+                _context.UnitsOfMeasure.Add(defaultUom);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
+            effectiveUomId = defaultUom.Id;
         }
 
         var item = new Item
@@ -796,7 +819,7 @@ public class InventoryService : IInventoryService
             ItemType = request.ItemType,
             CategoryId = request.CategoryId,
             BrandId = request.BrandId,
-            PrimaryUomId = request.PrimaryUomId,
+            PrimaryUomId = effectiveUomId,
             SecondaryUomId = request.SecondaryUomId,
             ConversionRatio = request.ConversionRatio,
             HSNCode = request.HSNCode?.Trim(),
@@ -955,14 +978,15 @@ public class InventoryService : IInventoryService
                 var defaultWarehouse = await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && w.IsDefault && !w.IsDeleted, cancellationToken)
                     ?? await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, cancellationToken);
 
-                foreach (var ov in request.OpeningVariants.Where(v => !string.IsNullOrWhiteSpace(v.Size) && !string.IsNullOrWhiteSpace(v.Color)))
+                foreach (var ov in request.OpeningVariants.Where(v => !string.IsNullOrWhiteSpace(v.Size) || !string.IsNullOrWhiteSpace(v.Color)))
                 {
-                    var size = ov.Size.Trim().ToUpperInvariant();
-                    var color = ov.Color.Trim();
-                    var colorPrefix = color.Substring(0, Math.Min(3, color.Length)).ToUpperInvariant();
+                    var size = !string.IsNullOrWhiteSpace(ov.Size) ? ov.Size.Trim() : "Standard";
+                    var color = !string.IsNullOrWhiteSpace(ov.Color) ? ov.Color.Trim() : "Regular";
+                    var sizeCode = size.ToUpperInvariant().Replace(" ", "");
+                    var colorPrefix = color.Length > 0 ? color.Substring(0, Math.Min(3, color.Length)).ToUpperInvariant() : "REG";
                     var variantSku = !string.IsNullOrWhiteSpace(ov.VariantSku)
                         ? ov.VariantSku.Trim().ToUpperInvariant()
-                        : $"{item.Sku}-{size}-{colorPrefix}";
+                        : $"{item.Sku}-{sizeCode}-{colorPrefix}";
 
                     var barcode = !string.IsNullOrWhiteSpace(ov.Barcode)
                         ? ov.Barcode.Trim()
@@ -973,13 +997,20 @@ public class InventoryService : IInventoryService
                         ["size"] = size,
                         ["color"] = color
                     };
+                    if (ov.PurchasePrice.HasValue) attrDict["purchasePrice"] = ov.PurchasePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (ov.WholesalePrice.HasValue) attrDict["wholesalePrice"] = ov.WholesalePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (ov.Mrp.HasValue) attrDict["mrp"] = ov.Mrp.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                    var variantName = (!string.IsNullOrWhiteSpace(ov.Size) && !string.IsNullOrWhiteSpace(ov.Color) && ov.Color != "Regular" && ov.Color != "Standard")
+                        ? $"{item.Name} ({size}, {color})"
+                        : (!string.IsNullOrWhiteSpace(ov.Size) ? $"{item.Name} ({size})" : $"{item.Name} ({color})");
 
                     var variant = new ItemVariant
                     {
                         TenantId = tenantId,
                         ItemId = item.Id,
                         VariantSku = variantSku,
-                        VariantName = $"{item.Name} ({size}, {color})",
+                        VariantName = variantName,
                         AttributesJson = JsonSerializer.Serialize(attrDict),
                         PriceAdjustment = ov.PriceAdjustment ?? 0m,
                         Barcode = barcode,
@@ -1027,6 +1058,65 @@ public class InventoryService : IInventoryService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Crowdsourced Master Catalog Self-Learning Sync
+        if (!string.IsNullOrWhiteSpace(item.Barcode))
+        {
+            var cleanBarcode = item.Barcode.Trim();
+            try
+            {
+                var alreadyInMaster = await _context.GlobalProductCatalogs
+                    .AnyAsync(g => g.Barcode == cleanBarcode, cancellationToken);
+
+                if (!alreadyInMaster)
+                {
+                    string? bName = null;
+                    if (item.BrandId.HasValue)
+                    {
+                        bName = await _context.Brands
+                            .Where(b => b.Id == item.BrandId.Value)
+                            .Select(b => b.Name)
+                            .FirstOrDefaultAsync(cancellationToken);
+                    }
+
+                    string? catName = null;
+                    if (item.CategoryId.HasValue)
+                    {
+                        catName = await _context.Categories
+                            .Where(c => c.Id == item.CategoryId.Value)
+                            .Select(c => c.Name)
+                            .FirstOrDefaultAsync(cancellationToken);
+                    }
+
+                    var uomCode = await _context.UnitsOfMeasure
+                        .Where(u => u.Id == item.PrimaryUomId)
+                        .Select(u => u.Code)
+                        .FirstOrDefaultAsync(cancellationToken) ?? "PCS";
+
+                    var crowdsourcedGlobal = new GlobalProductCatalog
+                    {
+                        Id = Guid.NewGuid(),
+                        Barcode = cleanBarcode,
+                        ProductName = item.Name,
+                        BrandName = bName,
+                        CategoryName = catName ?? "General",
+                        HsnCode = item.HSNCode,
+                        TaxRate = item.TaxRate,
+                        MRP = item.MRP,
+                        UnitCode = uomCode,
+                        IndustryCode = "FMCG",
+                        ShortDescription = !string.IsNullOrWhiteSpace(bName) ? $"{bName} - {item.Name}" : item.Name,
+                        AttributesJson = JsonSerializer.Serialize(new { source = "crowdsourced_tenant_sync", tenantId = tenantId.ToString() }),
+                        CreatedAtUtc = DateTime.UtcNow,
+                        IsVerified = true
+                    };
+
+                    _context.GlobalProductCatalogs.Add(crowdsourcedGlobal);
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch { /* Non-blocking background sync */ }
+        }
 
         await _auditService.LogAsync(new AuditLog
         {
@@ -1100,18 +1190,187 @@ public class InventoryService : IInventoryService
             return Result.Failure("Item not found.", "NOT_FOUND");
         }
 
-        var hasStock = item.WarehouseStocks.Any(ws => !ws.IsDeleted && ws.CurrentQuantity > 0);
-        if (hasStock)
-        {
-            return Result.Failure("Cannot delete item with active stock balance.", "HAS_STOCK");
-        }
-
         item.IsDeleted = true;
         item.DeletedAtUtc = DateTimeOffset.UtcNow;
         item.DeletedBy = _currentUserContext.UserId;
 
+        foreach (var ws in item.WarehouseStocks)
+        {
+            ws.IsDeleted = true;
+            ws.DeletedAtUtc = DateTimeOffset.UtcNow;
+            ws.DeletedBy = _currentUserContext.UserId;
+        }
+
+        var variants = await _context.ItemVariants
+            .Where(v => v.TenantId == tenantId && v.ItemId == itemId && !v.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var v in variants)
+        {
+            v.IsDeleted = true;
+            v.DeletedAtUtc = DateTimeOffset.UtcNow;
+            v.DeletedBy = _currentUserContext.UserId;
+        }
+
+        var batches = await _context.ItemBatches
+            .Where(b => b.TenantId == tenantId && b.ItemId == itemId && !b.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var b in batches)
+        {
+            b.IsDeleted = true;
+            b.DeletedAtUtc = DateTimeOffset.UtcNow;
+            b.DeletedBy = _currentUserContext.UserId;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();
+    }
+
+    public async Task<Result<BulkDeleteResultDto>> BulkDeleteItemsAsync(BulkDeleteItemRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        if (request?.ItemIds == null || request.ItemIds.Count == 0)
+        {
+            return Result<BulkDeleteResultDto>.Failure("No items provided for deletion.", "INVALID_REQUEST");
+        }
+
+        var itemIds = request.ItemIds.Distinct().ToList();
+
+        var items = await _context.Items
+            .Include(i => i.WarehouseStocks)
+            .Where(i => i.TenantId == tenantId && itemIds.Contains(i.Id) && !i.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (items.Count == 0)
+        {
+            return Result<BulkDeleteResultDto>.Success(new BulkDeleteResultDto(0, "No active matching items found to delete."));
+        }
+
+        var foundIds = items.Select(i => i.Id).ToList();
+        var now = DateTimeOffset.UtcNow;
+        var userId = _currentUserContext.UserId;
+
+        foreach (var item in items)
+        {
+            item.IsDeleted = true;
+            item.DeletedAtUtc = now;
+            item.DeletedBy = userId;
+
+            foreach (var ws in item.WarehouseStocks)
+            {
+                ws.IsDeleted = true;
+                ws.DeletedAtUtc = now;
+                ws.DeletedBy = userId;
+            }
+        }
+
+        var variants = await _context.ItemVariants
+            .Where(v => v.TenantId == tenantId && foundIds.Contains(v.ItemId) && !v.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var v in variants)
+        {
+            v.IsDeleted = true;
+            v.DeletedAtUtc = now;
+            v.DeletedBy = userId;
+        }
+
+        var batches = await _context.ItemBatches
+            .Where(b => b.TenantId == tenantId && foundIds.Contains(b.ItemId) && !b.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var b in batches)
+        {
+            b.IsDeleted = true;
+            b.DeletedAtUtc = now;
+            b.DeletedBy = userId;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<BulkDeleteResultDto>.Success(new BulkDeleteResultDto(items.Count, $"{items.Count} items deleted successfully."));
+    }
+
+    public async Task<Result<BulkUpdateItemsResultDto>> BulkUpdateItemsAsync(BulkUpdateItemsRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        if (request?.ItemIds == null || request.ItemIds.Count == 0)
+        {
+            return Result<BulkUpdateItemsResultDto>.Failure("No items selected for update.", "INVALID_REQUEST");
+        }
+
+        var itemIds = request.ItemIds.Distinct().ToList();
+
+        var items = await _context.Items
+            .Where(i => i.TenantId == tenantId && itemIds.Contains(i.Id) && !i.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (items.Count == 0)
+        {
+            return Result<BulkUpdateItemsResultDto>.Failure("No valid active items found to update.", "NOT_FOUND");
+        }
+
+        foreach (var item in items)
+        {
+            if (request.TrackInventory.HasValue)
+            {
+                item.TrackInventory = item.ItemType != ItemType.Service && request.TrackInventory.Value;
+            }
+            if (request.TaxRate.HasValue)
+            {
+                item.TaxRate = request.TaxRate.Value;
+            }
+            if (request.IsTaxInclusive.HasValue)
+            {
+                item.IsTaxInclusive = request.IsTaxInclusive.Value;
+            }
+            if (request.ClearCategory)
+            {
+                item.CategoryId = null;
+            }
+            else if (request.CategoryId.HasValue)
+            {
+                item.CategoryId = request.CategoryId.Value;
+            }
+            if (request.ClearBrand)
+            {
+                item.BrandId = null;
+            }
+            else if (request.BrandId.HasValue)
+            {
+                item.BrandId = request.BrandId.Value;
+            }
+            if (request.PrimaryUomId.HasValue)
+            {
+                item.PrimaryUomId = request.PrimaryUomId.Value;
+            }
+            if (request.HsnCode != null)
+            {
+                item.HSNCode = request.HsnCode.Trim();
+            }
+            if (request.MinimumStockAlert.HasValue)
+            {
+                item.MinimumStockAlert = request.MinimumStockAlert.Value;
+            }
+            if (request.TrackBatches.HasValue)
+            {
+                item.TrackBatches = request.TrackBatches.Value;
+            }
+            if (request.TrackSerialNumbers.HasValue)
+            {
+                item.TrackSerialNumbers = request.TrackSerialNumbers.Value;
+            }
+            if (request.IsActive.HasValue)
+            {
+                item.IsActive = request.IsActive.Value;
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<BulkUpdateItemsResultDto>.Success(new BulkUpdateItemsResultDto(
+            items.Count,
+            $"{items.Count} product(s) updated successfully."
+        ));
     }
 
     #endregion
@@ -1224,22 +1483,43 @@ public class InventoryService : IInventoryService
 
     #region Stock Ledger & Adjustments
 
-    private static (string? size, string? color) ExtractSizeAndColor(string? attributesJson)
+    private static (string? size, string? color) ExtractSizeAndColor(string? attributesJson, string? variantName = null)
     {
-        if (string.IsNullOrWhiteSpace(attributesJson) || attributesJson == "{}") return (null, null);
-        try
+        string? size = null;
+        string? color = null;
+        if (!string.IsNullOrWhiteSpace(attributesJson) && attributesJson != "{}")
         {
-            using var doc = System.Text.Json.JsonDocument.Parse(attributesJson);
-            string? size = null;
-            string? color = null;
-            if (doc.RootElement.TryGetProperty("size", out var sp)) size = sp.GetString()?.Trim();
-            if (doc.RootElement.TryGetProperty("color", out var cp)) color = cp.GetString()?.Trim();
-            return (size, color);
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(attributesJson);
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    if (prop.Name.Equals("size", StringComparison.OrdinalIgnoreCase))
+                        size = prop.Value.GetString()?.Trim();
+                    else if (prop.Name.Equals("color", StringComparison.OrdinalIgnoreCase) || prop.Name.Equals("colour", StringComparison.OrdinalIgnoreCase))
+                        color = prop.Value.GetString()?.Trim();
+                }
+            }
+            catch { }
         }
-        catch
+
+        // Fallback: If attributesJson had no size/color, try extracting from VariantName (e.g. "... (2, Black)")
+        if (string.IsNullOrEmpty(size) && !string.IsNullOrWhiteSpace(variantName))
         {
-            return (null, null);
+            var openParen = variantName.LastIndexOf('(');
+            var closeParen = variantName.LastIndexOf(')');
+            if (openParen >= 0 && closeParen > openParen)
+            {
+                var inside = variantName.Substring(openParen + 1, closeParen - openParen - 1).Trim();
+                var parts = inside.Split(',');
+                if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0]))
+                    size = parts[0].Trim();
+                if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]) && string.IsNullOrEmpty(color))
+                    color = parts[1].Trim();
+            }
         }
+
+        return (size, color);
     }
 
     public async Task<Result<IReadOnlyList<ItemVariantDto>>> GetItemVariantsAsync(Guid itemId, CancellationToken cancellationToken = default)
@@ -1250,6 +1530,10 @@ public class InventoryService : IInventoryService
             .OrderBy(v => v.VariantName)
             .ToListAsync(cancellationToken);
 
+        var item = await _context.Items
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == itemId && !i.IsDeleted, cancellationToken);
+
         var stocks = await _context.ItemWarehouseStocks
             .Where(ws => ws.TenantId == tenantId && ws.ItemId == itemId && ws.VariantId.HasValue && !ws.IsDeleted)
             .GroupBy(ws => ws.VariantId!.Value)
@@ -1257,8 +1541,31 @@ public class InventoryService : IInventoryService
             .ToDictionaryAsync(x => x.VariantId, x => x.TotalStock, cancellationToken);
 
         var dtos = variants.Select(v => {
-            var (sz, col) = ExtractSizeAndColor(v.AttributesJson);
+            var (sz, col) = ExtractSizeAndColor(v.AttributesJson, v.VariantName);
             stocks.TryGetValue(v.Id, out var stockQty);
+
+            decimal? pPrice = null;
+            decimal? wPrice = null;
+            decimal? mrpVal = null;
+            if (!string.IsNullOrWhiteSpace(v.AttributesJson) && v.AttributesJson != "{}")
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(v.AttributesJson);
+                    if (doc.RootElement.TryGetProperty("purchasePrice", out var pElem) && decimal.TryParse(pElem.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p))
+                        pPrice = p;
+                    if (doc.RootElement.TryGetProperty("wholesalePrice", out var wElem) && decimal.TryParse(wElem.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var w))
+                        wPrice = w;
+                    if (doc.RootElement.TryGetProperty("mrp", out var mElem) && decimal.TryParse(mElem.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var m))
+                        mrpVal = m;
+                }
+                catch { }
+            }
+            var effSellingPrice = (item?.SellingPrice ?? 0m) + v.PriceAdjustment;
+            pPrice ??= item?.PurchasePrice;
+            wPrice ??= item?.MinimumSellingPrice;
+            mrpVal ??= item?.MRP;
+
             return new ItemVariantDto(
                 v.Id,
                 v.ItemId,
@@ -1270,11 +1577,379 @@ public class InventoryService : IInventoryService
                 v.PriceAdjustment,
                 v.Barcode,
                 v.IsActive,
-                stockQty
+                stockQty,
+                pPrice,
+                wPrice,
+                mrpVal,
+                effSellingPrice
             );
         }).ToList();
 
         return Result<IReadOnlyList<ItemVariantDto>>.Success(dtos);
+    }
+
+    public async Task<Result> UpdateItemVariantsAsync(Guid itemId, UpdateItemVariantsRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var item = await _context.Items
+            .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == itemId && !i.IsDeleted, cancellationToken);
+        if (item == null)
+            return Result.Failure("Product not found.", "Item.NotFound");
+
+        var existingVariants = await _context.ItemVariants
+            .Where(v => v.TenantId == tenantId && v.ItemId == itemId && !v.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var variantMap = existingVariants.ToDictionary(v => v.Id);
+
+        var defaultWarehouse = await _context.TenantWarehouses
+            .FirstOrDefaultAsync(w => w.TenantId == tenantId && w.IsDefault && !w.IsDeleted, cancellationToken)
+            ?? await _context.TenantWarehouses
+            .FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, cancellationToken);
+
+        foreach (var u in request.Variants)
+        {
+            // Case 1: Existing Variant -> Update
+            if (u.VariantId.HasValue && u.VariantId.Value != Guid.Empty && variantMap.TryGetValue(u.VariantId.Value, out var variant))
+            {
+                variant.PriceAdjustment = u.Rate - item.SellingPrice;
+
+                if (!string.IsNullOrWhiteSpace(u.VariantSku))
+                    variant.VariantSku = u.VariantSku.Trim().ToUpperInvariant();
+
+                if (!string.IsNullOrWhiteSpace(u.Barcode))
+                    variant.Barcode = u.Barcode.Trim();
+
+                var attrDict = new Dictionary<string, string>();
+                if (!string.IsNullOrWhiteSpace(variant.AttributesJson) && variant.AttributesJson != "{}")
+                {
+                    try
+                    {
+                        var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(variant.AttributesJson);
+                        if (parsed != null) attrDict = parsed;
+                    }
+                    catch { }
+                }
+
+                if (u.PurchasePrice.HasValue)
+                    attrDict["purchasePrice"] = u.PurchasePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (u.WholesalePrice.HasValue)
+                    attrDict["wholesalePrice"] = u.WholesalePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (u.MRP.HasValue)
+                    attrDict["mrp"] = u.MRP.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (!string.IsNullOrWhiteSpace(u.Size))
+                    attrDict["size"] = u.Size.Trim();
+                if (!string.IsNullOrWhiteSpace(u.Color))
+                    attrDict["color"] = u.Color.Trim();
+
+                if (!string.IsNullOrWhiteSpace(u.VariantName))
+                    variant.VariantName = u.VariantName.Trim();
+
+                variant.AttributesJson = JsonSerializer.Serialize(attrDict);
+            }
+            // Case 2: Brand New Variant -> Insert & Link Initial Stock
+            else
+            {
+                var size = !string.IsNullOrWhiteSpace(u.Size) ? u.Size.Trim() : "Standard";
+                var color = !string.IsNullOrWhiteSpace(u.Color) ? u.Color.Trim() : "Regular";
+                var sizeCode = size.ToUpperInvariant().Replace(" ", "");
+                var colorPrefix = color.Length > 0 ? color.Substring(0, Math.Min(3, color.Length)).ToUpperInvariant() : "REG";
+
+                var variantSku = !string.IsNullOrWhiteSpace(u.VariantSku)
+                    ? u.VariantSku.Trim().ToUpperInvariant()
+                    : $"{item.Sku}-{sizeCode}-{colorPrefix}";
+
+                var barcode = !string.IsNullOrWhiteSpace(u.Barcode)
+                    ? u.Barcode.Trim()
+                    : $"890{Math.Abs(variantSku.GetHashCode() % 1000000000):D9}";
+
+                var attrDict = new Dictionary<string, string>
+                {
+                    ["size"] = size,
+                    ["color"] = color
+                };
+                if (u.PurchasePrice.HasValue) attrDict["purchasePrice"] = u.PurchasePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (u.WholesalePrice.HasValue) attrDict["wholesalePrice"] = u.WholesalePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (u.MRP.HasValue) attrDict["mrp"] = u.MRP.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                var variantName = !string.IsNullOrWhiteSpace(u.VariantName)
+                    ? u.VariantName.Trim()
+                    : ((!string.IsNullOrWhiteSpace(u.Size) && !string.IsNullOrWhiteSpace(u.Color) && u.Color != "Regular" && u.Color != "Standard")
+                        ? $"{item.Name} ({size}, {color})"
+                        : (!string.IsNullOrWhiteSpace(u.Size) ? $"{item.Name} ({size})" : $"{item.Name} ({color})"));
+
+                var newVariant = new ItemVariant
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    ItemId = itemId,
+                    VariantSku = variantSku,
+                    VariantName = variantName,
+                    Barcode = barcode,
+                    PriceAdjustment = u.Rate - item.SellingPrice,
+                    AttributesJson = JsonSerializer.Serialize(attrDict),
+                    IsActive = true,
+                    CreatedAtUtc = DateTimeOffset.UtcNow
+                };
+                _context.ItemVariants.Add(newVariant);
+
+                if (defaultWarehouse != null)
+                {
+                    var ws = new ItemWarehouseStock
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        WarehouseId = defaultWarehouse.Id,
+                        ItemId = itemId,
+                        VariantId = newVariant.Id,
+                        CurrentQuantity = u.OpeningStock ?? 0,
+                        ReservedQuantity = 0,
+                        ReorderLevel = 0,
+                        CreatedAtUtc = DateTimeOffset.UtcNow
+                    };
+                    _context.ItemWarehouseStocks.Add(ws);
+
+                    if ((u.OpeningStock ?? 0) > 0)
+                    {
+                        var movement = new StockMovement
+                        {
+                            TenantId = tenantId,
+                            ItemId = item.Id,
+                            WarehouseId = defaultWarehouse.Id,
+                            VariantId = newVariant.Id,
+                            MovementType = StockMovementType.PhysicalAdjustment,
+                            Quantity = u.OpeningStock!.Value,
+                            QuantityBefore = 0,
+                            QuantityAfter = u.OpeningStock!.Value,
+                            UnitCost = u.PurchasePrice ?? item.PurchasePrice,
+                            TotalCost = u.OpeningStock!.Value * (u.PurchasePrice ?? item.PurchasePrice),
+                            ReferenceDocumentType = "InitialStockNewVariant",
+                            Notes = $"Opening stock for variant {newVariant.VariantName} ({variantSku})"
+                        };
+                        _context.StockMovements.Add(movement);
+                    }
+                }
+            }
+        }
+
+        item.TrackVariants = true;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditService.LogAsync(new AuditLog
+        {
+            TenantId = tenantId,
+            UserId = _currentUserContext.UserId,
+            UserEmail = _currentUserContext.Email,
+            Action = AuditActionType.Update,
+            ActionName = "UpdateItemVariantsRates",
+            EntityName = "ItemVariant",
+            EntityId = itemId.ToString(),
+            NewValuesJson = JsonSerializer.Serialize(new { UpdatedCount = request.Variants.Count }),
+            IpAddress = ipAddress
+        }, cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result<BulkPriceUpdateResultDto>> BulkUpdatePricesAsync(BulkPriceUpdateRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        if (request.Items == null || request.Items.Count == 0)
+            return Result<BulkPriceUpdateResultDto>.Success(new BulkPriceUpdateResultDto(0, 0, "No items to update."));
+
+        var itemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
+        var items = await _context.Items
+            .Where(i => i.TenantId == tenantId && itemIds.Contains(i.Id) && !i.IsDeleted)
+            .ToListAsync(cancellationToken);
+        var itemMap = items.ToDictionary(i => i.Id);
+
+        var variantIds = request.Items.Where(i => i.VariantId.HasValue).Select(i => i.VariantId!.Value).Distinct().ToList();
+        var variants = variantIds.Count > 0
+            ? await _context.ItemVariants.Where(v => v.TenantId == tenantId && variantIds.Contains(v.Id) && !v.IsDeleted).ToListAsync(cancellationToken)
+            : new List<ItemVariant>();
+        var variantMap = variants.ToDictionary(v => v.Id);
+
+        int updatedItems = 0;
+        int updatedVariants = 0;
+
+        foreach (var row in request.Items)
+        {
+            if (row.VariantId.HasValue && variantMap.TryGetValue(row.VariantId.Value, out var variant))
+            {
+                itemMap.TryGetValue(variant.ItemId, out var parentItem);
+                var baseSelling = parentItem?.SellingPrice ?? 0m;
+
+                if (row.SellingPrice.HasValue)
+                    variant.PriceAdjustment = row.SellingPrice.Value - baseSelling;
+
+                var attrDict = new Dictionary<string, string>();
+                if (!string.IsNullOrWhiteSpace(variant.AttributesJson) && variant.AttributesJson != "{}")
+                {
+                    try
+                    {
+                        var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(variant.AttributesJson);
+                        if (parsed != null) attrDict = parsed;
+                    }
+                    catch { }
+                }
+
+                if (row.PurchasePrice.HasValue)
+                    attrDict["purchasePrice"] = row.PurchasePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (row.WholesalePrice.HasValue)
+                    attrDict["wholesalePrice"] = row.WholesalePrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (row.MRP.HasValue)
+                    attrDict["mrp"] = row.MRP.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                variant.AttributesJson = JsonSerializer.Serialize(attrDict);
+                updatedVariants++;
+            }
+            else if (itemMap.TryGetValue(row.ItemId, out var item))
+            {
+                if (row.PurchasePrice.HasValue) item.PurchasePrice = Math.Max(0m, row.PurchasePrice.Value);
+                if (row.WholesalePrice.HasValue) item.MinimumSellingPrice = Math.Max(0m, row.WholesalePrice.Value);
+                if (row.SellingPrice.HasValue) item.SellingPrice = Math.Max(0m, row.SellingPrice.Value);
+                if (row.MRP.HasValue) item.MRP = Math.Max(0m, row.MRP.Value);
+                updatedItems++;
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditService.LogAsync(new AuditLog
+        {
+            TenantId = tenantId,
+            UserId = _currentUserContext.UserId,
+            UserEmail = _currentUserContext.Email,
+            Action = AuditActionType.Update,
+            ActionName = "BulkUpdatePrices",
+            EntityName = "Item",
+            EntityId = "Multiple",
+            NewValuesJson = JsonSerializer.Serialize(new { updatedItems, updatedVariants }),
+            IpAddress = ipAddress
+        }, cancellationToken);
+
+        return Result<BulkPriceUpdateResultDto>.Success(new BulkPriceUpdateResultDto(
+            updatedItems,
+            updatedVariants,
+            $"{updatedItems} products and {updatedVariants} variants updated successfully."
+        ));
+    }
+
+    public async Task<Result<IReadOnlyList<PriceListRowDto>>> GetPriceListAsync(Guid? categoryId = null, Guid? brandId = null, string? searchTerm = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var query = _context.Items
+            .AsNoTracking()
+            .Where(i => i.TenantId == tenantId && !i.IsDeleted && i.IsActive);
+
+        if (categoryId.HasValue && categoryId.Value != Guid.Empty)
+            query = query.Where(i => i.CategoryId == categoryId.Value);
+
+        if (brandId.HasValue && brandId.Value != Guid.Empty)
+            query = query.Where(i => i.BrandId == brandId.Value);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim().ToUpperInvariant();
+            query = query.Where(i => i.Name.ToUpper().Contains(term) || i.Sku.ToUpper().Contains(term) || (i.Barcode != null && i.Barcode.Contains(term)));
+        }
+
+        var items = await query
+            .Include(i => i.Category)
+            .Include(i => i.Brand)
+            .Include(i => i.PrimaryUom)
+            .Include(i => i.Variants.Where(v => !v.IsDeleted && v.IsActive))
+            .OrderBy(i => i.Name)
+            .ToListAsync(cancellationToken);
+
+        var itemIds = items.Select(i => i.Id).ToList();
+
+        var stockBalances = await _context.ItemWarehouseStocks
+            .AsNoTracking()
+            .Where(ws => ws.TenantId == tenantId && itemIds.Contains(ws.ItemId) && !ws.IsDeleted)
+            .GroupBy(ws => new { ws.ItemId, ws.VariantId })
+            .Select(g => new { g.Key.ItemId, g.Key.VariantId, TotalStock = g.Sum(x => x.CurrentQuantity) })
+            .ToListAsync(cancellationToken);
+
+        var itemStockDict = stockBalances.Where(s => !s.VariantId.HasValue).ToDictionary(s => s.ItemId, s => s.TotalStock);
+        var variantStockDict = stockBalances.Where(s => s.VariantId.HasValue).ToDictionary(s => s.VariantId!.Value, s => s.TotalStock);
+
+        var result = new List<PriceListRowDto>();
+
+        foreach (var it in items)
+        {
+            if (it.TrackVariants && it.Variants.Count > 0)
+            {
+                foreach (var v in it.Variants)
+                {
+                    var (sz, col) = ExtractSizeAndColor(v.AttributesJson, v.VariantName);
+                    variantStockDict.TryGetValue(v.Id, out var vStock);
+
+                    decimal pPrice = it.PurchasePrice;
+                    decimal wPrice = it.MinimumSellingPrice;
+                    decimal mrpVal = it.MRP;
+                    if (!string.IsNullOrWhiteSpace(v.AttributesJson) && v.AttributesJson != "{}")
+                    {
+                        try
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(v.AttributesJson);
+                            if (doc.RootElement.TryGetProperty("purchasePrice", out var pe) && decimal.TryParse(pe.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p))
+                                pPrice = p;
+                            if (doc.RootElement.TryGetProperty("wholesalePrice", out var we) && decimal.TryParse(we.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var w))
+                                wPrice = w;
+                            if (doc.RootElement.TryGetProperty("mrp", out var me) && decimal.TryParse(me.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var m))
+                                mrpVal = m;
+                        }
+                        catch { }
+                    }
+
+                    result.Add(new PriceListRowDto(
+                        it.Id,
+                        v.Id,
+                        v.VariantSku,
+                        it.Name,
+                        it.Category?.Name,
+                        it.Brand?.Name,
+                        it.PrimaryUom?.Symbol ?? it.PrimaryUom?.Code ?? "PCS",
+                        true,
+                        sz,
+                        col,
+                        v.Barcode ?? it.Barcode,
+                        pPrice,
+                        wPrice,
+                        it.SellingPrice + v.PriceAdjustment,
+                        mrpVal,
+                        vStock,
+                        it.TaxRate
+                    ));
+                }
+            }
+            else
+            {
+                itemStockDict.TryGetValue(it.Id, out var iStock);
+                result.Add(new PriceListRowDto(
+                    it.Id,
+                    null,
+                    it.Sku,
+                    it.Name,
+                    it.Category?.Name,
+                    it.Brand?.Name,
+                    it.PrimaryUom?.Symbol ?? it.PrimaryUom?.Code ?? "PCS",
+                    false,
+                    null,
+                    null,
+                    it.Barcode,
+                    it.PurchasePrice,
+                    it.MinimumSellingPrice,
+                    it.SellingPrice,
+                    it.MRP,
+                    iStock,
+                    it.TaxRate
+                ));
+            }
+        }
+
+        return Result<IReadOnlyList<PriceListRowDto>>.Success(result);
     }
 
     public async Task<Result<IReadOnlyList<WarehouseStockDto>>> GetItemStockBalancesAsync(Guid? itemId = null, Guid? warehouseId = null, CancellationToken cancellationToken = default)
@@ -1325,7 +2000,7 @@ public class InventoryService : IInventoryService
         );
 
         var items = rawStocks.Select(ws => {
-            var (sz, col) = ExtractSizeAndColor(ws.Variant?.AttributesJson);
+            var (sz, col) = ExtractSizeAndColor(ws.Variant?.AttributesJson, ws.Variant?.VariantName);
             var priceAdjustment = ws.Variant?.PriceAdjustment ?? 0m;
             var effectiveUnitPrice = (ws.Item?.SellingPrice ?? 0m) + priceAdjustment;
             var effectiveMrp = (ws.Item?.MRP ?? 0m) + priceAdjustment;
@@ -1410,7 +2085,7 @@ public class InventoryService : IInventoryService
             .ToListAsync(cancellationToken);
 
         var dtos = movements.Select(sm => {
-            var (sz, col) = ExtractSizeAndColor(sm.Variant?.AttributesJson);
+            var (sz, col) = ExtractSizeAndColor(sm.Variant?.AttributesJson, sm.Variant?.VariantName);
             return new StockMovementDto(
                 sm.Id,
                 sm.TenantId,
@@ -1768,9 +2443,9 @@ public class InventoryService : IInventoryService
         {
             line.ReceivedQuantity = line.TransferQuantity;
 
-            // Inward to destination warehouse
+            // Inward to destination warehouse preserving BatchId traceability
             var destStock = await _context.ItemWarehouseStocks
-                .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == transfer.DestinationWarehouseId, cancellationToken);
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == transfer.DestinationWarehouseId && s.BatchId == line.BatchId, cancellationToken);
 
             if (destStock == null)
             {
@@ -1779,6 +2454,7 @@ public class InventoryService : IInventoryService
                     TenantId = tenantId,
                     ItemId = line.ItemId,
                     WarehouseId = transfer.DestinationWarehouseId,
+                    BatchId = line.BatchId,
                     CurrentQuantity = line.TransferQuantity
                 };
                 _context.ItemWarehouseStocks.Add(destStock);

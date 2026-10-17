@@ -15,6 +15,27 @@ import {
 
 export type { Brand, Category, UnitOfMeasure, ItemVariant };
 
+export interface BarcodeLookupResult {
+  barcode: string;
+  existsInStore: boolean;
+  storeItem?: ItemList;
+  masterCatalogItem?: {
+    barcode: string;
+    productName: string;
+    brandName?: string;
+    categoryName?: string;
+    hsnCode?: string;
+    taxRate?: number;
+    mrp?: number;
+    sellingPrice?: number;
+    purchasePrice?: number;
+    unitCode?: string;
+    packaging?: string;
+    industry?: string;
+    source?: string;
+  };
+}
+
 export interface OpeningBatchInput {
   warehouseId?: string;
   batchNumber?: string;
@@ -32,6 +53,9 @@ export interface OpeningVariantInput {
   quantity?: number;
   priceAdjustment?: number;
   warehouseId?: string;
+  purchasePrice?: number;
+  wholesalePrice?: number;
+  mrp?: number;
 }
 
 export interface CreateItemInput {
@@ -93,6 +117,56 @@ export interface StockAdjustmentInput {
   notes?: string;
 }
 
+export interface ItemVariantUpdateInput {
+  variantId?: string | null;
+  variantSku?: string;
+  rate: number;
+  purchasePrice?: number;
+  wholesalePrice?: number;
+  mrp?: number;
+  barcode?: string;
+  size?: string;
+  color?: string;
+  variantName?: string;
+  openingStock?: number;
+}
+
+export interface BulkPriceUpdateItemInput {
+  itemId: string;
+  variantId?: string;
+  sku?: string;
+  purchasePrice?: number;
+  wholesalePrice?: number;
+  sellingPrice?: number;
+  mrp?: number;
+}
+
+export interface BulkPriceUpdateResult {
+  updatedItemsCount: number;
+  updatedVariantsCount: number;
+  message: string;
+}
+
+export interface PriceListRow {
+  itemId: string;
+  variantId?: string | null;
+  sku: string;
+  itemName: string;
+  categoryName?: string;
+  brandName?: string;
+  primaryUomCode: string;
+  isVariant: boolean;
+  sizeOrPack?: string;
+  colorOrShade?: string;
+  barcode?: string;
+  purchasePrice: number;
+  wholesalePrice: number;
+  sellingPrice: number;
+  mrp: number;
+  currentStock: number;
+  taxRate: number;
+}
+
 export const inventoryService = {
   // Categories
   async getCategories(): Promise<Category[]> {
@@ -126,8 +200,11 @@ export const inventoryService = {
 
   // Units
   async getUnits(): Promise<UnitOfMeasure[]> {
-    const response = await apiClient.get<UnitOfMeasure[]>("/tenant/units");
-    return response.data;
+    const response = await apiClient.get<any>("/tenant/units");
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
   },
 
   async getUnitsOfMeasure(): Promise<UnitOfMeasure[]> {
@@ -185,6 +262,70 @@ export const inventoryService = {
     await apiClient.delete(`/tenant/items/${id}`);
   },
 
+  async bulkDeleteItems(itemIds: string[]): Promise<{ deletedCount: number; message: string }> {
+    try {
+      const response = await apiClient.post<{ deletedCount: number; message: string }>("/tenant/items/bulk-delete", { itemIds });
+      return response.data;
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.response?.status === 501) {
+        let deleted = 0;
+        for (const id of itemIds) {
+          await apiClient.delete(`/tenant/items/${id}`);
+          deleted++;
+        }
+        return { deletedCount: deleted, message: `${deleted} items deleted successfully.` };
+      }
+      throw err;
+    }
+  },
+
+  async bulkUpdateItems(input: {
+    itemIds: string[];
+    trackInventory?: boolean;
+    taxRate?: number;
+    isTaxInclusive?: boolean;
+    categoryId?: string;
+    clearCategory?: boolean;
+    brandId?: string;
+    clearBrand?: boolean;
+    primaryUomId?: string;
+    hsnCode?: string;
+    minimumStockAlert?: number;
+    trackBatches?: boolean;
+    trackSerialNumbers?: boolean;
+    isActive?: boolean;
+  }): Promise<{ updatedCount: number; message: string }> {
+    try {
+      const response = await apiClient.post<{ updatedCount: number; message: string }>("/tenant/items/bulk-update", input);
+      return response.data;
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.response?.status === 501 || err?.response?.status === 405) {
+        // Fallback: update sequentially if endpoint not yet deployed or method disallowed
+        let count = 0;
+        for (const id of input.itemIds) {
+          const updatePayload: any = {};
+          if (input.trackInventory !== undefined) updatePayload.trackInventory = input.trackInventory;
+          if (input.taxRate !== undefined) updatePayload.taxRate = input.taxRate;
+          if (input.isTaxInclusive !== undefined) updatePayload.isTaxInclusive = input.isTaxInclusive;
+          if (input.clearCategory) updatePayload.categoryId = null;
+          else if (input.categoryId !== undefined) updatePayload.categoryId = input.categoryId;
+          if (input.clearBrand) updatePayload.brandId = null;
+          else if (input.brandId !== undefined) updatePayload.brandId = input.brandId;
+          if (input.primaryUomId !== undefined) updatePayload.primaryUomId = input.primaryUomId;
+          if (input.hsnCode !== undefined) updatePayload.hsnCode = input.hsnCode;
+          if (input.minimumStockAlert !== undefined) updatePayload.minimumStockAlert = input.minimumStockAlert;
+          if (input.trackBatches !== undefined) updatePayload.trackBatches = input.trackBatches;
+          if (input.trackSerialNumbers !== undefined) updatePayload.trackSerialNumbers = input.trackSerialNumbers;
+          if (input.isActive !== undefined) updatePayload.isActive = input.isActive;
+          await apiClient.put(`/tenant/items/${id}`, updatePayload);
+          count++;
+        }
+        return { updatedCount: count, message: `${count} items updated successfully.` };
+      }
+      throw err;
+    }
+  },
+
   // Batches
   async getBatches(itemId: string): Promise<ItemBatch[]> {
     const response = await apiClient.get<ItemBatch[]>(`/tenant/items/${itemId}/batches`);
@@ -199,6 +340,20 @@ export const inventoryService = {
   // Variants (Size & Color)
   async getItemVariants(itemId: string): Promise<ItemVariant[]> {
     const response = await apiClient.get<ItemVariant[]>(`/tenant/items/${itemId}/variants`);
+    return response.data;
+  },
+
+  async updateItemVariants(itemId: string, variants: ItemVariantUpdateInput[]): Promise<void> {
+    await apiClient.put(`/tenant/items/${itemId}/variants`, { variants });
+  },
+
+  async bulkUpdatePrices(items: BulkPriceUpdateItemInput[]): Promise<BulkPriceUpdateResult> {
+    const response = await apiClient.post<BulkPriceUpdateResult>("/tenant/inventory/bulk-price-update", { items });
+    return response.data;
+  },
+
+  async getPriceList(params?: { categoryId?: string; brandId?: string; searchTerm?: string }): Promise<PriceListRow[]> {
+    const response = await apiClient.get<PriceListRow[]>("/tenant/inventory/price-list", { params });
     return response.data;
   },
 
@@ -247,6 +402,11 @@ export const inventoryService = {
 
   async receiveStockTransfer(id: string, notes?: string): Promise<void> {
     await apiClient.post(`/tenant/inventory/transfers/${id}/receive`, null, { params: { notes } });
+  },
+
+  async lookupBarcode(barcode: string): Promise<BarcodeLookupResult> {
+    const response = await apiClient.get<BarcodeLookupResult>(`/tenant/barcode/lookup/${encodeURIComponent(barcode)}`);
+    return response.data;
   }
 };
 
