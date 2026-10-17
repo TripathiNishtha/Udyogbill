@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -43,6 +43,7 @@ import {
   Edit,
   ExternalLink,
   Boxes,
+  Scale,
 } from "lucide-react";
 import { salesService, CreateSalesInvoiceInput, CreateInvoiceItemInput } from "@/services/sales-services";
 import { inventoryService } from "@/services/inventory-services";
@@ -52,13 +53,23 @@ import { tenantAppService, BranchDetails, WarehouseDetails } from "@/services/te
 import { printTemplateService } from "@/services/print-template-services";
 import { printRawHtml } from "@/lib/print-helper";
 import { GST_STATE_MAP } from "@/lib/gst-helper";
-import { SalesInvoiceList, MasterItem, PartyList } from "@/types";
+import { filterItemsWithSmartSearch } from "@/lib/smart-item-search";
+import { autopartsService, PartCrossReference } from "@/services/autoparts-services";
+import { jewelleryService, DailyMetalRateDto, OldGoldExchangeVoucherDto, GoldSavingsSchemeDto } from "@/services/jewellery-services";
+import { SalesInvoiceList, MasterItem, PartyList, ItemVariant, LastDealHint } from "@/types";
 import { QuickAddCustomerModal } from "@/components/sales/quick-add-customer-modal";
 import { QuickAddProductModal } from "@/components/sales/quick-add-product-modal";
+import { GarmentsSetBoxModal, GarmentsSetLineOutput } from "@/components/sales/garments-set-box-modal";
+import { readWeightFromSerial } from "@/lib/weighing-scale";
 import { useAddons } from "@/context/addon-context";
 import { Badge, Button, EmptyState, TableSkeleton } from "@/components/ui";
 import { OnboardingTour, LaunchTourButton, TourStep } from "@/components/onboarding/onboarding-tour";
 import { FloatingWhatsAppWidget } from "@/components/common/floating-whatsapp-widget";
+import {
+  DateRangeFilterDropdown,
+  DateRangeValue,
+  computeDateRange,
+} from "@/components/common/date-range-filter-dropdown";
 
 interface ItemBatch {
   id: string;
@@ -83,6 +94,7 @@ interface InvoiceLineItemForm {
   variantId?: string;
   itemSku: string;
   itemName: string;
+  lineDescription?: string;
   batchId?: string;
   batchNumber?: string;
   expiryDate?: string;
@@ -100,6 +112,7 @@ interface InvoiceLineItemForm {
   size?: string;
   color?: string;
   unitPrice: number;
+  isTaxInclusive?: boolean;
   discountType: "percent" | "fixed";
   discountValue: number;
   discountAmount: number;
@@ -108,6 +121,8 @@ interface InvoiceLineItemForm {
   totalAmount: number;
   availableBatches: ItemBatch[];
   loadingBatches?: boolean;
+  availableVariants?: ItemVariant[];
+  variantStock?: number;
 
   // Electronics Vertical
   imeiSerial?: string;
@@ -117,6 +132,8 @@ interface InvoiceLineItemForm {
   warrantyMonths?: number;
 
   // Hardware Vertical
+  hasDimension?: boolean;
+  productDimension?: string;
   dimLength?: number;
   dimWidth?: number;
   dimUnit?: "INCH" | "FEET" | "MM" | "METER";
@@ -126,6 +143,11 @@ interface InvoiceLineItemForm {
   totalWeightKg?: number;
   rateBasis?: "per_unit" | "per_sqft" | "per_kg" | "per_running_ft";
   contractorName?: string;
+  shadeCode?: string;
+  shadeName?: string;
+  packSize?: string;
+  tintingCharge?: number;
+  baseUnitPrice?: number;
 
   // Garments Vertical
   styleCode?: string;
@@ -143,6 +165,27 @@ interface InvoiceLineItemForm {
   servicePeriodTo?: string;
   jobSheetRef?: string;
   billingBasis?: "fixed" | "hourly" | "daily";
+
+  // Auto Parts Vertical
+  oemPartNumber?: string;
+  applicableVehicles?: string;
+  positionSide?: string;
+  rackLocation?: string;
+  specNumber?: string;
+
+  // Jewellery Vertical
+  purityKarat?: string;
+  grossWeightGrams?: number;
+  stoneWeightGrams?: number;
+  netWeightGrams?: number;
+  metalRatePerGram?: number;
+  makingChargeType?: "per_gram" | "percentage" | "flat";
+  makingChargeRate?: number;
+  makingChargeAmount?: number;
+  stoneAmount?: number;
+  huid?: string;
+
+  lastDealHint?: LastDealHint | null;
 }
 
 // Marg ERP Standard DPCO Reverse Pharma Pricing Formula (MRP -> PTR -> PTS)
@@ -168,29 +211,44 @@ function TenantInvoicesPageContent() {
   const [branches, setBranches] = useState<BranchDetails[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isAddonActive, isFeatureActive, activePack, industryCode: contextIndustryCode } = useAddons();
+  const { isAddonActive, isFeatureActive, activePack, industryCode: contextIndustryCode, apparelSubType, hardwareSubType } = useAddons();
 
   // Canonical Multi-Industry Pack Resolution
   const activeIndustry = (
     contextIndustryCode ||
     activePack?.activeIndustryModule ||
     activePack?.industryTypeCode ||
-    (isAddonActive("pharma") ? "PHARMA" : isAddonActive("fmcg") ? "FMCG" : isAddonActive("garments") ? "GARMENTS" : isAddonActive("electronics") ? "ELECTRONICS" : isAddonActive("hardware") ? "HARDWARE" : isAddonActive("service_sector") ? "SERVICE_SECTOR" : "OTHER")
+    (isAddonActive("pharma") ? "PHARMA" : isAddonActive("fmcg") ? "FMCG" : isAddonActive("sweets_bakery") ? "SWEETS_BAKERY" : isAddonActive("garments") ? "GARMENTS" : isAddonActive("electronics") ? "ELECTRONICS" : isAddonActive("hardware") ? "HARDWARE" : isAddonActive("service_sector") ? "SERVICE_SECTOR" : isAddonActive("autoparts") ? "AUTOPARTS" : isAddonActive("jewellery") ? "JEWELLERY" : "OTHER")
   ).toUpperCase();
 
   const isPharma = activeIndustry === "PHARMA" || isAddonActive("pharma");
   const isFmcg = activeIndustry === "FMCG" || isAddonActive("fmcg");
+  const isSweetsBakery = activeIndustry === "SWEETS_BAKERY" || isAddonActive("sweets_bakery");
   const isElectronics = activeIndustry === "ELECTRONICS" || isAddonActive("electronics");
   const isGarments = activeIndustry === "GARMENTS" || isAddonActive("garments");
   const isHardware = activeIndustry === "HARDWARE" || isAddonActive("hardware");
   const isService = activeIndustry === "SERVICE_SECTOR" || isAddonActive("service") || isAddonActive("service_sector");
+  const isAutoParts = activeIndustry === "AUTOPARTS" || activeIndustry === "AUTO_PARTS" || isAddonActive("autoparts") || isAddonActive("auto_parts");
+  const isJewellery = activeIndustry === "JEWELLERY" || isAddonActive("jewellery");
   const isOther = activeIndustry === "OTHER";
+
+  // Footwear vs Clothing Store Specialization
+  const isFootwearStore = isGarments && apparelSubType === "SHOES";
+  const isClothingStore = isGarments && apparelSubType === "GARMENTS";
+  const isBothApparelStore = isGarments && (!apparelSubType || apparelSubType === "BOTH");
+
+  // Hardware vs Paints Store Specialization
+  const isPureHardwareStore = isHardware && hardwareSubType === "HARDWARE";
+  const isPurePaintStore = isHardware && hardwareSubType === "PAINTS";
+  const isBothHardwareStore = isHardware && (!hardwareSubType || hardwareSubType === "BOTH");
+  const showPaintFields = isHardware && (isPurePaintStore || isBothHardwareStore);
+  const showHardwareSpecs = isHardware && (isPureHardwareStore || isBothHardwareStore);
 
   const hasPharmaAddon = isPharma;
   const hasFmcgAddon = isFmcg;
   const hasGarmentsAddon = isGarments;
-  const hasBatchTracking = isPharma || isFmcg || isFeatureActive("enableBatchTracking");
-  const hasPackingFreeQty = isPharma || isFmcg || isFeatureActive("enableMultiUnitConversion");
+  const hasBatchTracking = (isPharma || isFmcg || isFeatureActive("enableBatchTracking")) && !isAutoParts && !isJewellery;
+  const hasPackingFreeQty = (isPharma || isFmcg || isFeatureActive("enableMultiUnitConversion")) && !isAutoParts && !isJewellery;
 
   // Pharma 3-Tier Margin Privacy & Rate Engine
   const [pharmaTradeTier, setPharmaTradeTier] = useState<"company_to_stockist" | "stockist_to_chemist" | "chemist_to_patient">("stockist_to_chemist");
@@ -206,8 +264,19 @@ function TenantInvoicesPageContent() {
   // FMCG Trade Flow
   const [fmcgTradeTier, setFmcgTradeTier] = useState<"super_stockist" | "distributor_to_retailer" | "retailer_to_consumer">("distributor_to_retailer");
 
+  // Multi-Industry / General / Garments Trade Tier (Wholesale Bulk vs Retail Counter)
+  const [generalTradeTier, setGeneralTradeTier] = useState<"wholesale" | "retail">("wholesale");
+
   // Service Work Order / Job Sheet Reference
   const [serviceJobSheetRef, setServiceJobSheetRef] = useState<string>("");
+
+  // Auto Parts Vehicle & Job Sheet Reference
+  const [vehicleRegNo, setVehicleRegNo] = useState<string>("");
+  const [vehicleModel, setVehicleModel] = useState<string>("");
+  const [mechanicName, setMechanicName] = useState<string>("");
+  const [odometerKm, setOdometerKm] = useState<string>("");
+  const [autoPartsCrossRefs, setAutoPartsCrossRefs] = useState<PartCrossReference[]>([]);
+  const [activeSubPopoverLineIdx, setActiveSubPopoverLineIdx] = useState<number | null>(null);
 
   // Pharma Prescriber & Patient Statutory Record (Schedule H1 / CDSCO)
   const [doctorName, setDoctorName] = useState<string>("");
@@ -215,10 +284,26 @@ function TenantInvoicesPageContent() {
   const [patientName, setPatientName] = useState<string>("");
   const [patientAddressPhone, setPatientAddressPhone] = useState<string>("");
 
+  // Jewellery Specific State & Internal Links
+  const [todayMetalRates, setTodayMetalRates] = useState<DailyMetalRateDto | null>(null);
+  const [customerPanNumber, setCustomerPanNumber] = useState<string>("");
+  const [oldGoldVouchers, setOldGoldVouchers] = useState<OldGoldExchangeVoucherDto[]>([]);
+  const [selectedOldGoldVoucherId, setSelectedOldGoldVoucherId] = useState<string>("");
+  const [oldGoldDeductionAmount, setOldGoldDeductionAmount] = useState<number>(0);
+  const [isOldGoldModalOpen, setIsOldGoldModalOpen] = useState<boolean>(false);
+
+  const [kittySchemes, setKittySchemes] = useState<GoldSavingsSchemeDto[]>([]);
+  const [selectedKittySchemeId, setSelectedKittySchemeId] = useState<string>("");
+  const [kittyDeductionAmount, setKittyDeductionAmount] = useState<number>(0);
+  const [isKittyModalOpen, setIsKittyModalOpen] = useState<boolean>(false);
+
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRangeValue>(() =>
+    computeDateRange("this_month")
+  );
 
   // Create Invoice Drawer & Form States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -229,6 +314,10 @@ function TenantInvoicesPageContent() {
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
+  const customerSearchInputRef = useRef<HTMLInputElement>(null);
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [customerGstin, setCustomerGstin] = useState<string>("");
@@ -244,12 +333,21 @@ function TenantInvoicesPageContent() {
     return d.toISOString().split("T")[0];
   });
   const [primaryPaymentMode, setPrimaryPaymentMode] = useState<number>(1);
-  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [tenderAmount, setTenderAmount] = useState<string>("");
+  const [isTenderTouched, setIsTenderTouched] = useState<boolean>(false);
   const [invoiceLines, setInvoiceLines] = useState<InvoiceLineItemForm[]>([]);
+  const [forceShowDimensions, setForceShowDimensions] = useState(false);
+  const showHardwareDimensions = isHardware && (isPureHardwareStore || forceShowDimensions || invoiceLines.some((l) => Boolean(l.hasDimension)));
   const [customerDealHistoryMap, setCustomerDealHistoryMap] = useState<Record<string, CustomerDealPoint[]>>({});
   const [quickProductSearch, setQuickProductSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingDemoItem, setLoadingDemoItem] = useState(false);
+
+  // Universal Variant Selection Modal State
+  const [variantModalItem, setVariantModalItem] = useState<MasterItem | null>(null);
+  const [variantModalList, setVariantModalList] = useState<ItemVariant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState<boolean>(false);
+  const [variantTargetLineIdx, setVariantTargetLineIdx] = useState<number | null>(null);
 
   // Persistent Billing Mode & B2B Logistics State
   const [billingMode, setBillingMode] = useState<"b2b" | "retail" | "thermal">("b2b");
@@ -266,6 +364,11 @@ function TenantInvoicesPageContent() {
   const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
 
+  // Garments Wholesale Set/Box Modal & Hardware Weighing Scale State
+  const [isGarmentsSetModalOpen, setIsGarmentsSetModalOpen] = useState(false);
+  const [isReadingScale, setIsReadingScale] = useState(false);
+  const [scaleReadingToast, setScaleReadingToast] = useState<string | null>(null);
+
   // Edit Invoice States & Deep-Link Detection
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -276,6 +379,7 @@ function TenantInvoicesPageContent() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [editingInvoiceNumber, setEditingInvoiceNumber] = useState<string>("");
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [isTourManuallyTriggered, setIsTourManuallyTriggered] = useState(false);
 
   // Auto-open drawer when navigated with ?action=new or ?tour=1 or ?new=1
   useEffect(() => {
@@ -284,11 +388,90 @@ function TenantInvoicesPageContent() {
       if (invoiceLines.length === 0) {
         handleAddLine();
       }
-      if (tourFromUrl === "1" && typeof window !== "undefined" && window.innerWidth >= 768) {
+
+      // Condition: Agar pehle se koi bhi invoice bana hua ho, toh tour KABHI na dikhaye
+      const hasExistingInvoices = 
+        invoices.length > 0 || 
+        (typeof window !== "undefined" && (
+          localStorage.getItem("udyogbill_first_invoice_created") === "true" ||
+          localStorage.getItem("udyogbill_invoice_tour_completed") === "true"
+        ));
+
+      if (!hasExistingInvoices && tourFromUrl === "1" && typeof window !== "undefined" && window.innerWidth >= 768) {
         setTimeout(() => setIsTourOpen(true), 600);
+      } else {
+        setIsTourOpen(false);
+      }
+
+      // Clean URL if tour=1 was in searchParams so it never persists
+      if (tourFromUrl === "1" && typeof window !== "undefined") {
+        const cleanUrl = window.location.pathname + (actionFromUrl ? `?action=${actionFromUrl}` : "");
+        window.history.replaceState({}, "", cleanUrl);
       }
     }
-  }, [actionFromUrl, tourFromUrl, newFromUrl]);
+  }, [actionFromUrl, tourFromUrl, newFromUrl, invoices.length]);
+
+  // Auto-populate invoice from Jewellery Calculator quotation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const draftStr = sessionStorage.getItem("udyogbill_jewellery_calc_draft");
+    if (!draftStr) return;
+
+    try {
+      const draft = JSON.parse(draftStr);
+      sessionStorage.removeItem("udyogbill_jewellery_calc_draft");
+
+      if (draft.customerName) setCustomerName(draft.customerName);
+      const gross = Number(draft.grossWeightGrams) || 0;
+      const stone = Number(draft.stoneWeightGrams) || 0;
+      const net = Number(draft.netWeightGrams) || Math.max(0, gross - stone);
+      const rate = Number(draft.metalRatePerGram) || 0;
+      const mcAmt = Number(draft.makingChargeAmount) || 0;
+      const stoneAmt = Number(draft.stoneAmount) || 0;
+      const taxable = Number(draft.taxableAmount) || Math.round((net * rate + mcAmt + stoneAmt) * 100) / 100;
+      const unitP = net > 0 ? Math.round((taxable / net) * 100) / 100 : taxable;
+      const total = Number(draft.totalAmount) || Math.round(taxable * 1.03 * 100) / 100;
+
+      const newLine: InvoiceLineItemForm = {
+        itemId: "",
+        itemSku: "JWL-CALC",
+        itemName: draft.itemName || `${draft.purityKarat || "22K"} Gold Ornament`,
+        batchId: "",
+        batchNumber: "",
+        expiryDate: "",
+        packing: "",
+        hsnCode: "71131910",
+        quantity: net > 0 ? net : 1,
+        freeQuantity: 0,
+        uomId: "",
+        uomCode: "GM",
+        mrp: total,
+        unitPrice: unitP,
+        discountType: "percent",
+        discountValue: 0,
+        discountAmount: 0,
+        taxableAmount: taxable,
+        gstRate: 3,
+        totalAmount: total,
+        availableBatches: [],
+        purityKarat: draft.purityKarat || "22K (916)",
+        grossWeightGrams: gross,
+        stoneWeightGrams: stone,
+        netWeightGrams: net,
+        metalRatePerGram: rate,
+        makingChargeType: draft.makingChargeType || "per_gram",
+        makingChargeRate: Number(draft.makingChargeRate) || 0,
+        makingChargeAmount: mcAmt,
+        stoneAmount: stoneAmt,
+        huid: draft.huid || "",
+      };
+
+      setInvoiceLines([newLine]);
+      setIsDrawerOpen(true);
+    } catch (e) {
+      console.error("Failed to parse jewellery calc draft", e);
+    }
+  }, [searchParams]);
 
   // Load existing invoice when navigated via Edit action
   useEffect(() => {
@@ -312,15 +495,32 @@ function TenantInvoicesPageContent() {
         // Parse DL from attributes
         let dl = "";
         let mode: "b2b" | "retail" | "thermal" = inv.invoiceType === 2 ? "thermal" : "b2b";
+        let autoVeh = "";
+        let autoMod = "";
+        let autoMech = "";
+        let autoOdo = "";
         if (inv.attributesJson) {
           try {
             const parsed = JSON.parse(inv.attributesJson);
             dl = parsed.customerDlNumber || "";
             if (parsed.billingMode) mode = parsed.billingMode;
+            autoVeh = parsed.vehicleRegNo || "";
+            autoMod = parsed.vehicleModel || "";
+            autoMech = parsed.mechanicName || "";
+            autoOdo = parsed.odometerKm || "";
+            if (parsed.customerPanNumber) setCustomerPanNumber(parsed.customerPanNumber);
+            if (parsed.oldGoldVoucherId) setSelectedOldGoldVoucherId(parsed.oldGoldVoucherId);
+            if (parsed.oldGoldDeductionAmount) setOldGoldDeductionAmount(Number(parsed.oldGoldDeductionAmount));
+            if (parsed.kittySchemeId) setSelectedKittySchemeId(parsed.kittySchemeId);
+            if (parsed.kittyDeductionAmount) setKittyDeductionAmount(Number(parsed.kittyDeductionAmount));
           } catch {}
         }
         setCustomerDlNumber(dl);
         setBillingMode(mode);
+        setVehicleRegNo(autoVeh || inv.vehicleNumber || "");
+        setVehicleModel(autoMod);
+        setMechanicName(autoMech);
+        setOdometerKm(autoOdo);
 
         const billAddr = inv.billingAddress || "";
         const shipAddr = inv.shippingAddress || inv.billingAddress || "";
@@ -349,7 +549,8 @@ function TenantInvoicesPageContent() {
         }
 
         setPrimaryPaymentMode(inv.primaryPaymentMode || 1);
-        setPaidAmount(inv.paidAmount || 0);
+        setTenderAmount(String(inv.paidAmount ?? 0));
+        setIsTenderTouched(true);
 
         // Map line items into editable lines
         if (inv.items && inv.items.length > 0) {
@@ -383,6 +584,7 @@ function TenantInvoicesPageContent() {
               uomId: it.uomId,
               uomCode: it.uomCode || "UNIT",
               unitPrice: it.unitPrice,
+              isTaxInclusive: Boolean(it.isTaxInclusive),
               mrp: it.mrp || 0,
               ptr: ptrVal,
               pts: ptsVal,
@@ -427,6 +629,22 @@ function TenantInvoicesPageContent() {
               servicePeriodTo: extraAttrs.servicePeriodTo || undefined,
               jobSheetRef: extraAttrs.jobSheetRef || undefined,
               billingBasis: extraAttrs.billingBasis || undefined,
+              // Auto Parts
+              oemPartNumber: extraAttrs.oemPartNumber || extraAttrs.oesPartNumber || undefined,
+              applicableVehicles: extraAttrs.applicableVehicles || extraAttrs.vehicleFitment || undefined,
+              positionSide: extraAttrs.positionSide || undefined,
+              rackLocation: extraAttrs.rackLocation || undefined,
+              // Jewellery
+              purityKarat: extraAttrs.purityKarat || undefined,
+              grossWeightGrams: extraAttrs.grossWeightGrams ? Number(extraAttrs.grossWeightGrams) : undefined,
+              stoneWeightGrams: extraAttrs.stoneWeightGrams ? Number(extraAttrs.stoneWeightGrams) : undefined,
+              netWeightGrams: extraAttrs.netWeightGrams ? Number(extraAttrs.netWeightGrams) : undefined,
+              metalRatePerGram: extraAttrs.metalRatePerGram ? Number(extraAttrs.metalRatePerGram) : undefined,
+              makingChargeType: extraAttrs.makingChargeType || undefined,
+              makingChargeRate: extraAttrs.makingChargeRate ? Number(extraAttrs.makingChargeRate) : undefined,
+              makingChargeAmount: extraAttrs.makingChargeAmount ? Number(extraAttrs.makingChargeAmount) : undefined,
+              stoneAmount: extraAttrs.stoneAmount ? Number(extraAttrs.stoneAmount) : undefined,
+              huid: extraAttrs.huid || undefined,
             };
           });
           setInvoiceLines(lines);
@@ -455,10 +673,310 @@ function TenantInvoicesPageContent() {
     }
   }, []);
 
+
+
+  // Close customer searchable dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+    if (isCustomerDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isCustomerDropdownOpen]);
+
+  // Real-time filtered customer list for quick search
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearchQuery.trim()) return customers;
+    const q = customerSearchQuery.toLowerCase().trim();
+    return customers.filter((c) => {
+      return (
+        c.legalName?.toLowerCase().includes(q) ||
+        c.tradeName?.toLowerCase().includes(q) ||
+        c.code?.toLowerCase().includes(q) ||
+        c.gstin?.toLowerCase().includes(q) ||
+        (c.mobile && c.mobile.includes(q)) ||
+        (c.primaryPhone && c.primaryPhone.includes(q)) ||
+        ((c as any).drugLicenseNumber1 && String((c as any).drugLicenseNumber1).toLowerCase().includes(q)) ||
+        ((c as any).dlNumber && String((c as any).dlNumber).toLowerCase().includes(q))
+      );
+    });
+  }, [customers, customerSearchQuery]);
+
+  const selectedCustomer = useMemo(() => {
+    return customers.find((c) => c.id === selectedCustomerId) || null;
+  }, [customers, selectedCustomerId]);
+
+  // Universal Multi-Industry Rate Engine (Wholesale vs Retail Pricing Resolution)
+  const resolveItemRate = (
+    item: MasterItem,
+    variant?: ItemVariant | null,
+    batch?: ItemBatch | null,
+    overrideTier?: {
+      pharmaTier?: "company_to_stockist" | "stockist_to_chemist" | "chemist_to_patient";
+      hardwareTier?: "builder_contractor" | "wholesale" | "retail_counter";
+      electronicsTier?: "distributor_to_dealer" | "dealer_to_retail" | "retail_consumer";
+      fmcgTier?: "super_stockist" | "distributor_to_retailer" | "retailer_to_consumer";
+      generalTier?: "wholesale" | "retail";
+    }
+  ) => {
+    const curPharmaTier = overrideTier?.pharmaTier ?? pharmaTradeTier;
+    const curHardwareTier = overrideTier?.hardwareTier ?? hardwareTradeTier;
+    const curElectronicsTier = overrideTier?.electronicsTier ?? electronicsTradeTier;
+    const curFmcgTier = overrideTier?.fmcgTier ?? fmcgTradeTier;
+    const curGeneralTier = overrideTier?.generalTier ?? generalTradeTier;
+
+    // 1. Pharma Marg DPCO 3-Tier Rate Engine
+    if (hasPharmaAddon) {
+      const newMrp = (batch as any)?.mrp || item.mrp || item.sellingPrice || 0;
+      const baseGst = item.taxRate || 12;
+      const { ptr: calcPtr, pts: calcPts } = calculateMargPharmaRates(newMrp, baseGst);
+      const finalPtr = (batch as any)?.ptr || calcPtr;
+      const finalPts = (batch as any)?.pts || calcPts;
+
+      let effectiveRate = (batch as any)?.saleRate || item.sellingPrice || 0;
+      if (curPharmaTier === "company_to_stockist" && finalPts > 0) effectiveRate = finalPts;
+      else if (curPharmaTier === "stockist_to_chemist" && finalPtr > 0) effectiveRate = finalPtr;
+      else if (curPharmaTier === "chemist_to_patient" && newMrp > 0) effectiveRate = newMrp;
+
+      return {
+        rate: effectiveRate > 0 ? effectiveRate : (newMrp > 0 ? newMrp : 0),
+        mrp: newMrp,
+        ptr: finalPtr,
+        pts: finalPts,
+        isWholesale: curPharmaTier !== "chemist_to_patient",
+      };
+    }
+
+    // 2. Multi-Industry Wholesale Determination
+    let isWholesale = false;
+    if (isHardware) {
+      isWholesale = curHardwareTier === "wholesale" || curHardwareTier === "builder_contractor";
+    } else if (isElectronics) {
+      isWholesale = curElectronicsTier === "distributor_to_dealer" || curElectronicsTier === "dealer_to_retail";
+    } else if (isFmcg) {
+      isWholesale = curFmcgTier === "super_stockist" || curFmcgTier === "distributor_to_retailer";
+    } else {
+      isWholesale = curGeneralTier === "wholesale";
+    }
+
+    const defaultSaleRate = (batch as any)?.saleRate || item.sellingPrice || 0;
+    const defaultMrp = (batch as any)?.mrp || item.mrp || defaultSaleRate;
+    const priceAdj = variant?.priceAdjustment || 0;
+
+    const variantSellingPrice = variant?.sellingPrice && Number(variant.sellingPrice) > 0 ? Number(variant.sellingPrice) : 0;
+    const variantMrp = variant?.mrp && Number(variant.mrp) > 0 ? Number(variant.mrp) : defaultMrp;
+
+    if (isWholesale) {
+      // Priority A: Variant-level wholesale price
+      if (variant?.wholesalePrice && Number(variant.wholesalePrice) > 0) {
+        return {
+          rate: Number(variant.wholesalePrice),
+          mrp: variantMrp,
+          ptr: 0,
+          pts: 0,
+          isWholesale: true,
+        };
+      }
+      // Priority B: Item-level minimumSellingPrice (Wholesale rate in product master)
+      if (item.minimumSellingPrice && Number(item.minimumSellingPrice) > 0) {
+        return {
+          rate: Number(item.minimumSellingPrice) + priceAdj,
+          mrp: variantMrp,
+          ptr: 0,
+          pts: 0,
+          isWholesale: true,
+        };
+      }
+    }
+
+    // Retail Rate (Variant sellingPrice, defaultSaleRate + adj, or MRP fallback)
+    let finalRetail = 0;
+    if (variantSellingPrice > 0) {
+      finalRetail = variantSellingPrice;
+    } else if (defaultSaleRate > 0) {
+      finalRetail = defaultSaleRate + priceAdj;
+    } else if (variantMrp > 0) {
+      finalRetail = variantMrp;
+    }
+
+    return {
+      rate: finalRetail > 0 ? finalRetail : 0,
+      mrp: variantMrp,
+      ptr: 0,
+      pts: 0,
+      isWholesale: false,
+    };
+  };
+
+  const recalculateLinesForTier = (overrides: {
+    pharmaTier?: "company_to_stockist" | "stockist_to_chemist" | "chemist_to_patient";
+    hardwareTier?: "builder_contractor" | "wholesale" | "retail_counter";
+    electronicsTier?: "distributor_to_dealer" | "dealer_to_retail" | "retail_consumer";
+    fmcgTier?: "super_stockist" | "distributor_to_retailer" | "retailer_to_consumer";
+    generalTier?: "wholesale" | "retail";
+  }) => {
+    setInvoiceLines((prev) =>
+      prev.map((line) => {
+        if (!line.itemId) return line;
+        const foundItem = items.find((it) => it.id === line.itemId);
+        if (!foundItem) return line;
+
+        const variant = line.variantId ? line.availableVariants?.find((v) => v.id === line.variantId) : null;
+        const batch = line.batchId ? line.availableBatches?.find((b) => b.id === line.batchId) : null;
+
+        const resolved = resolveItemRate(foundItem, variant, batch, overrides);
+        const newRate = resolved.rate;
+
+        const effectiveGst = isGarments
+          ? ((newRate > 0 ? newRate : (line.mrp || 0)) <= 1000 ? 5 : 12)
+          : (line.gstRate || foundItem.taxRate || 12);
+
+        const calculated = calculateLineAmounts(
+          Number(line.quantity) || 1,
+          Number(newRate) || 0,
+          line.discountType,
+          Number(line.discountValue) || 0,
+          effectiveGst,
+          Boolean(line.isTaxInclusive)
+        );
+
+        return {
+          ...line,
+          unitPrice: newRate,
+          mrp: resolved.mrp || line.mrp,
+          ptr: resolved.ptr,
+          pts: resolved.pts,
+          gstRate: effectiveGst,
+          discountAmount: calculated.discountAmount,
+          taxableAmount: calculated.taxableAmount,
+          totalAmount: calculated.totalAmount,
+        };
+      })
+    );
+  };
+
+  const handleSwitchPharmaTradeTier = (newTier: "company_to_stockist" | "stockist_to_chemist" | "chemist_to_patient") => {
+    setPharmaTradeTier(newTier);
+    recalculateLinesForTier({ pharmaTier: newTier });
+  };
+
+  const handleSwitchHardwareTradeTier = (newTier: "builder_contractor" | "wholesale" | "retail_counter") => {
+    setHardwareTradeTier(newTier);
+    recalculateLinesForTier({ hardwareTier: newTier });
+  };
+
+  const handleSwitchElectronicsTradeTier = (newTier: "distributor_to_dealer" | "dealer_to_retail" | "retail_consumer") => {
+    setElectronicsTradeTier(newTier);
+    recalculateLinesForTier({ electronicsTier: newTier });
+  };
+
+  const handleSwitchFmcgTradeTier = (newTier: "super_stockist" | "distributor_to_retailer" | "retailer_to_consumer") => {
+    setFmcgTradeTier(newTier);
+    recalculateLinesForTier({ fmcgTier: newTier });
+  };
+
+  const handleSwitchGeneralTradeTier = (newTier: "wholesale" | "retail") => {
+    setGeneralTradeTier(newTier);
+    recalculateLinesForTier({ generalTier: newTier });
+  };
+
   const handleSetBillingMode = (mode: "b2b" | "retail" | "thermal") => {
     setBillingMode(mode);
     if (typeof window !== "undefined") {
       localStorage.setItem("udyogbill_last_billing_mode", mode);
+    }
+    if (mode === "retail" || mode === "thermal") {
+      if (hasPharmaAddon) handleSwitchPharmaTradeTier("chemist_to_patient");
+      else if (isHardware) handleSwitchHardwareTradeTier("retail_counter");
+      else if (isElectronics) handleSwitchElectronicsTradeTier("retail_consumer");
+      else if (isFmcg) handleSwitchFmcgTradeTier("retailer_to_consumer");
+      else handleSwitchGeneralTradeTier("retail");
+    } else if (mode === "b2b") {
+      if (hasPharmaAddon) handleSwitchPharmaTradeTier("stockist_to_chemist");
+      else if (isHardware) handleSwitchHardwareTradeTier("wholesale");
+      else if (isElectronics) handleSwitchElectronicsTradeTier("dealer_to_retail");
+      else if (isFmcg) handleSwitchFmcgTradeTier("distributor_to_retailer");
+      else handleSwitchGeneralTradeTier("wholesale");
+    }
+  };
+
+  const handleSelectCustomer = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    const found = customers.find((c) => c.id === customerId);
+    if (found) {
+      setCustomerName(found.legalName);
+      setCustomerPhone(found.mobile || found.primaryPhone || "");
+      setCustomerGstin(found.gstin || "");
+      const dl = (found as any).drugLicenseNumber1 || (found as any).dlNumber || "";
+      setCustomerDlNumber(dl);
+      const addr = found.tradeName || (found as any).billingAddress?.addressLine1 || "";
+      setBillingAddress(addr);
+      if (isSameAsBilling) {
+        setShippingAddress(addr);
+      }
+      const derivedCode = (found.gstin && found.gstin.length >= 2 && /^\d{2}/.test(found.gstin))
+        ? found.gstin.slice(0, 2)
+        : (found.stateCode || "");
+      setBillingStateCode(derivedCode);
+
+      const cType = Number((found as any).customerType);
+      if (cType === 4) {
+        if (hasPharmaAddon) handleSwitchPharmaTradeTier("company_to_stockist");
+        else if (isHardware) handleSwitchHardwareTradeTier("wholesale");
+        else if (isElectronics) handleSwitchElectronicsTradeTier("dealer_to_retail");
+        else if (isFmcg) handleSwitchFmcgTradeTier("distributor_to_retailer");
+        else handleSwitchGeneralTradeTier("wholesale");
+        setBillingMode("b2b");
+      } else if (cType === 1 || found.gstin) {
+        if (hasPharmaAddon) handleSwitchPharmaTradeTier("stockist_to_chemist");
+        else if (isHardware) handleSwitchHardwareTradeTier("wholesale");
+        else if (isElectronics) handleSwitchElectronicsTradeTier("dealer_to_retail");
+        else if (isFmcg) handleSwitchFmcgTradeTier("distributor_to_retailer");
+        else handleSwitchGeneralTradeTier("wholesale");
+        setBillingMode("b2b");
+      } else if (cType === 2 || cType === 3 || cType === 8) {
+        if (hasPharmaAddon) handleSwitchPharmaTradeTier("chemist_to_patient");
+        else if (isHardware) handleSwitchHardwareTradeTier("retail_counter");
+        else if (isElectronics) handleSwitchElectronicsTradeTier("retail_consumer");
+        else if (isFmcg) handleSwitchFmcgTradeTier("retailer_to_consumer");
+        else handleSwitchGeneralTradeTier("retail");
+      } else if (hasPharmaAddon) {
+        const nameLower = found.legalName.toLowerCase();
+        if (nameLower.includes("distributor") || nameLower.includes("stockist")) {
+          handleSwitchPharmaTradeTier("company_to_stockist");
+          setBillingMode("b2b");
+        } else if (dl || nameLower.includes("chemist") || nameLower.includes("pharmacy") || nameLower.includes("medical")) {
+          handleSwitchPharmaTradeTier("stockist_to_chemist");
+          setBillingMode("b2b");
+        } else {
+          handleSwitchPharmaTradeTier("chemist_to_patient");
+        }
+      }
+    } else {
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerGstin("");
+      setCustomerDlNumber("");
+      setBillingAddress("");
+      setShippingAddress("");
+      setBillingStateCode("");
+      if (hasPharmaAddon) {
+        handleSwitchPharmaTradeTier("chemist_to_patient");
+      } else if (isHardware) {
+        handleSwitchHardwareTradeTier("retail_counter");
+      } else if (isElectronics) {
+        handleSwitchElectronicsTradeTier("retail_consumer");
+      } else if (isFmcg) {
+        handleSwitchFmcgTradeTier("retailer_to_consumer");
+      } else {
+        handleSwitchGeneralTradeTier("retail");
+      }
     }
   };
 
@@ -535,6 +1053,8 @@ function TenantInvoicesPageContent() {
           searchTerm: searchTerm || undefined,
           status: selectedStatus ? parseInt(selectedStatus) : undefined,
           invoiceType: selectedType ? parseInt(selectedType) : undefined,
+          fromDate: selectedDateRange.fromDate,
+          toDate: selectedDateRange.toDate,
         }),
         inventoryService.getItems({ pageSize: 500 }),
         partyService.getCustomers({ pageSize: 250 }),
@@ -544,11 +1064,44 @@ function TenantInvoicesPageContent() {
       ]);
 
       setInvoices(invRes.items);
+      if (invRes.items && invRes.items.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("udyogbill_first_invoice_created", "true");
+          localStorage.setItem("udyogbill_invoice_tour_completed", "true");
+        }
+        if (!isTourManuallyTriggered) {
+          setIsTourOpen(false);
+        }
+      }
       setItems(itemsRes.items);
       setCustomers(custRes.items);
       setBranches(brRes);
       setWarehouses(whRes);
       setBrokers(brkRes.items || []);
+
+      if (isAutoParts) {
+        try {
+          const crossRefs = await autopartsService.getAllCrossReferences();
+          setAutoPartsCrossRefs(crossRefs || []);
+        } catch (e) {
+          console.error("Failed to load autoparts cross references", e);
+        }
+      }
+
+      if (isJewellery) {
+        try {
+          const [rates, oldGoldList, kittyList] = await Promise.all([
+            jewelleryService.getTodayRate().catch(() => null),
+            jewelleryService.getOldGoldVouchers().catch(() => []),
+            jewelleryService.getKittySchemes("1").catch(() => []),
+          ]);
+          if (rates) setTodayMetalRates(rates);
+          if (Array.isArray(oldGoldList)) setOldGoldVouchers(oldGoldList);
+          if (Array.isArray(kittyList)) setKittySchemes(kittyList);
+        } catch (e) {
+          console.error("Failed to load jewellery metadata", e);
+        }
+      }
 
       if (brRes.length > 0 && !selectedBranchId) {
         const ho = brRes.find((b) => b.isHeadOffice) || brRes[0];
@@ -583,6 +1136,8 @@ function TenantInvoicesPageContent() {
           searchTerm: searchTerm || undefined,
           status: selectedStatus ? parseInt(selectedStatus) : undefined,
           invoiceType: selectedType ? parseInt(selectedType) : undefined,
+          fromDate: selectedDateRange.fromDate,
+          toDate: selectedDateRange.toDate,
         });
         setInvoices(invRes.items);
       } catch (err) {
@@ -593,7 +1148,36 @@ function TenantInvoicesPageContent() {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, selectedStatus, selectedType]);
+  }, [searchTerm, selectedStatus, selectedType, selectedDateRange]);
+
+  // Real-time live sync listener: updates list instantly when mobile app or cashier records a transaction
+  useEffect(() => {
+    const handleSyncEvent = (e: any) => {
+      const detail = e.detail;
+      if (
+        detail?.eventType === "invoice.created" ||
+        detail?.eventType === "invoice.updated" ||
+        detail?.eventType === "invoice.cancelled" ||
+        detail?.eventType === "payment.created"
+      ) {
+        salesService
+          .getInvoices({
+            searchTerm: searchTerm || undefined,
+            status: selectedStatus ? parseInt(selectedStatus) : undefined,
+            invoiceType: selectedType ? parseInt(selectedType) : undefined,
+            fromDate: selectedDateRange.fromDate,
+            toDate: selectedDateRange.toDate,
+          })
+          .then((res) => {
+            if (res?.items) setInvoices(res.items);
+          })
+          .catch(() => {});
+      }
+    };
+
+    window.addEventListener("udyogbill:sync-event", handleSyncEvent);
+    return () => window.removeEventListener("udyogbill:sync-event", handleSyncEvent);
+  }, [searchTerm, selectedStatus, selectedType, selectedDateRange]);
 
   // Load customer previous deal history for instant hints on each product (ONLY for selected registered customers, NEVER on walk-in keystroke)
   useEffect(() => {
@@ -664,6 +1248,24 @@ function TenantInvoicesPageContent() {
         if (active) setCustomerDealHistoryMap({});
       });
 
+    // Refresh last deal hints for existing lines with the newly selected customer
+    setInvoiceLines((currentLines) => {
+      currentLines.forEach((l, idx) => {
+        if (l.itemId) {
+          salesService.getLastSaleDeal(l.itemId, selectedCustomerId || undefined)
+            .then((hint) => {
+              if (hint && active) {
+                setInvoiceLines((lines) =>
+                  lines.map((item, i) => (i === idx ? { ...item, lastDealHint: hint } : item))
+                );
+              }
+            })
+            .catch(() => {});
+        }
+      });
+      return currentLines;
+    });
+
     return () => {
       active = false;
     };
@@ -684,22 +1286,85 @@ function TenantInvoicesPageContent() {
     }
   };
 
+function parseItemDimensions(attributesJson?: string) {
+  let hasDimension = false;
+  let productDimension = "";
+  let dimLength: number | undefined = undefined;
+  let dimWidth: number | undefined = undefined;
+  let sqft: number | undefined = undefined;
+  let rateBasis: "per_unit" | "per_sqft" | "per_kg" | "per_running_ft" | undefined = undefined;
+
+  if (!attributesJson) return { hasDimension, productDimension, dimLength, dimWidth, sqft, rateBasis };
+
+  try {
+    const attrs = typeof attributesJson === "string" ? JSON.parse(attributesJson) : attributesJson;
+    productDimension = (attrs.dimension || attrs.dimensions || "").trim();
+    if (attrs.length) dimLength = Number(attrs.length);
+    if (attrs.width) dimWidth = Number(attrs.width);
+    if (attrs.dimLength) dimLength = Number(attrs.dimLength);
+    if (attrs.dimWidth) dimWidth = Number(attrs.dimWidth);
+    if (attrs.sqft) sqft = Number(attrs.sqft);
+    if (attrs.rateBasis) rateBasis = attrs.rateBasis;
+
+    if (productDimension && (!dimLength || !dimWidth)) {
+      const match = productDimension.match(/^(\d+(?:\.\d+)?)\s*[xX*×]\s*(\d+(?:\.\d+)?)/);
+      if (match) {
+        dimLength = parseFloat(match[1]);
+        dimWidth = parseFloat(match[2]);
+        sqft = Math.round(dimLength * dimWidth * 100) / 100;
+        rateBasis = "per_sqft";
+      }
+    }
+
+    if (productDimension || (dimLength !== undefined && dimLength > 0) || (dimWidth !== undefined && dimWidth > 0)) {
+      hasDimension = true;
+    }
+  } catch {}
+
+  return { hasDimension, productDimension, dimLength, dimWidth, sqft, rateBasis };
+}
+
   const calculateLineAmounts = (
     qty: number,
     rate: number,
     discType: "percent" | "fixed",
     discVal: number,
-    gst: number
+    gst: number,
+    isTaxInclusive: boolean = false
   ) => {
-    const gross = qty * rate;
-    const discAmt = discType === "percent" ? gross * (discVal / 100) : discVal;
-    const taxable = Math.max(0, gross - discAmt);
-    const taxAmt = taxable * (gst / 100);
-    const total = taxable + taxAmt;
+    const quantity = Math.max(0, Number(qty) || 0);
+    const unitRate = Math.max(0, Number(rate) || 0);
+    const gross = Math.round(quantity * unitRate * 100) / 100;
+
+    const discountValue = Math.max(0, Number(discVal) || 0);
+    const discAmt =
+      discType === "percent"
+        ? Math.round(gross * (discountValue / 100) * 100) / 100
+        : Math.min(gross, discountValue);
+
+    const netLine = Math.max(0, gross - discAmt);
+    const gstRate = Math.max(0, Number(gst) || 0);
+
+    let taxable = netLine;
+    let taxAmt = 0;
+    let total = 0;
+
+    if (isTaxInclusive && gstRate > 0) {
+      taxable = Math.round((netLine / (1 + gstRate / 100)) * 100) / 100;
+      taxAmt = Math.round((netLine - taxable) * 100) / 100;
+      total = Math.round(netLine * 100) / 100;
+    } else {
+      taxable = Math.round(netLine * 100) / 100;
+      taxAmt = Math.round((taxable * (gstRate / 100)) * 100) / 100;
+      total = Math.round((taxable + taxAmt) * 100) / 100;
+    }
+
     return {
-      discountAmount: Math.round(discAmt * 100) / 100,
-      taxableAmount: Math.round(taxable * 100) / 100,
-      totalAmount: Math.round(total * 100) / 100,
+      grossAmount: gross,
+      discountAmount: discAmt,
+      taxableAmount: taxable,
+      taxAmount: taxAmt,
+      totalAmount: total,
     };
   };
 
@@ -815,7 +1480,7 @@ function TenantInvoicesPageContent() {
     const sampleRate = targetItem.sellingPrice || (isElectronics ? 14999 : 100);
     const sampleGst = targetItem.taxRate !== undefined ? targetItem.taxRate : (isPharma ? 12 : isElectronics ? 18 : 18);
 
-    const calculated = calculateLineAmounts(1, sampleRate, "percent", 0, sampleGst);
+    const calculated = calculateLineAmounts(1, sampleRate, "percent", 0, sampleGst, Boolean(targetItem.isTaxInclusive));
 
     const demoLine: InvoiceLineItemForm = {
       itemId: targetItem.id,
@@ -864,12 +1529,22 @@ function TenantInvoicesPageContent() {
       totalWeightKg: isHardware ? 45 : undefined,
       rateBasis: isHardware ? "per_sqft" : undefined,
       contractorName: isHardware ? "Sharma Builders" : undefined,
+      shadeCode: isHardware ? "0912" : undefined,
+      shadeName: isHardware ? "Morning Glory" : undefined,
+      packSize: isHardware ? "4 Litre" : undefined,
+      tintingCharge: isHardware ? 0 : undefined,
 
       // FMCG Vertical
       caseQty: isFmcg ? 1 : undefined,
       pcsQty: isFmcg ? 0 : undefined,
       unitsPerCase: isFmcg ? 12 : undefined,
       schemeDesc: isFmcg ? "10+1 Free Scheme" : undefined,
+
+      // Auto Parts Vertical
+      oemPartNumber: isAutoParts ? "04465-0K280" : undefined,
+      applicableVehicles: isAutoParts ? "Toyota Innova / Fortuner" : undefined,
+      positionSide: isAutoParts ? "Front Brake Set" : undefined,
+      rackLocation: isAutoParts ? "RACK-A3-04" : undefined,
     };
 
     setInvoiceLines((prev) => {
@@ -878,6 +1553,13 @@ function TenantInvoicesPageContent() {
       }
       return prev.length === 0 ? [demoLine] : [...prev, demoLine];
     });
+
+    if (isAutoParts) {
+      if (!vehicleRegNo) setVehicleRegNo("MH 02 AB 1234");
+      if (!vehicleModel) setVehicleModel("Toyota Innova Crysta 2.4 VX");
+      if (!mechanicName) setMechanicName("Rajesh Mistri");
+      if (!odometerKm) setOdometerKm("45,200");
+    }
 
     if (!customerName) {
       setCustomerName(
@@ -889,10 +1571,11 @@ function TenantInvoicesPageContent() {
           ? "Anil Gupta (Contractor)"
           : isGarments
           ? "Vikas Verma (Walk-in Customer)"
+          : isAutoParts
+          ? "Ramesh Auto Care (Mechanic / Garage)"
           : "Rajesh Kumar (Sample Customer)"
       );
     }
-    if (!customerPhone) setCustomerPhone("9876543210");
   };
 
   const handleAddLine = async () => {
@@ -914,6 +1597,7 @@ function TenantInvoicesPageContent() {
         ptr: 0,
         pts: 0,
         unitPrice: 0,
+        isTaxInclusive: false,
         discountType: "percent",
         discountValue: 0,
         discountAmount: 0,
@@ -928,13 +1612,27 @@ function TenantInvoicesPageContent() {
     }
     const firstItem = items[0];
     let packing = "";
+    let itemAttrs: any = {};
     try {
-      const attrs = JSON.parse(firstItem.attributesJson || "{}");
-      packing = attrs.packing || attrs.netWeight || attrs.size || "";
+      itemAttrs = JSON.parse(firstItem.attributesJson || "{}");
+      packing = itemAttrs.packing || itemAttrs.netWeight || itemAttrs.size || "";
     } catch {}
 
+    const dimInfo = parseItemDimensions(firstItem.attributesJson);
     const batches = await fetchItemBatches(firstItem.id);
     const selectedBatch = batches.length > 0 ? batches[0] : null;
+
+    let variants: ItemVariant[] = [];
+    if ((firstItem.trackVariants || isGarments) && firstItem.id) {
+      try {
+        variants = await inventoryService.getItemVariants(firstItem.id);
+      } catch (err) {
+        console.error("Failed to load item variants", err);
+      }
+    }
+    const defaultVariant = variants.length > 0
+      ? (variants.find((v) => (v.currentStock ?? 0) > 0) || variants[0])
+      : null;
 
     let exp = "";
     if (selectedBatch?.expiryDate) {
@@ -942,35 +1640,37 @@ function TenantInvoicesPageContent() {
       exp = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
     }
 
-    const newRate =
-      selectedBatch?.saleRate && selectedBatch.saleRate > 0
-        ? selectedBatch.saleRate
-        : firstItem.sellingPrice || firstItem.mrp || 0;
-    const newMrp =
-      selectedBatch?.mrp && selectedBatch.mrp > 0
-        ? selectedBatch.mrp
-        : firstItem.mrp || 0;
+    const resolved = resolveItemRate(firstItem, defaultVariant, selectedBatch);
+    const newRate = resolved.rate;
+    const newMrp = resolved.mrp;
 
     const calculated = calculateLineAmounts(
       1,
       newRate,
       "percent",
       0,
-      firstItem.taxRate || 18
+      firstItem.taxRate || 18,
+      Boolean(firstItem.isTaxInclusive)
     );
 
     const newLine: InvoiceLineItemForm = {
       itemId: firstItem.id,
+      variantId: defaultVariant ? defaultVariant.id : undefined,
       itemSku: firstItem.sku,
       itemName: firstItem.name,
       batchId: selectedBatch ? selectedBatch.id : "",
       batchNumber: selectedBatch
         ? selectedBatch.batchNumber
-        : firstItem.sku
+        : hasBatchTracking && firstItem.sku
         ? `BAT-${firstItem.sku.slice(0, 6)}`
         : "",
       expiryDate: exp,
       packing: packing,
+      size: defaultVariant ? defaultVariant.size || "" : (isGarments ? "40 / L" : undefined),
+      color: defaultVariant ? defaultVariant.color || "" : (isGarments ? "Sky Blue" : undefined),
+      styleCode: defaultVariant ? defaultVariant.variantSku || "" : (isGarments ? "SLIM-FIT-2026" : undefined),
+      availableVariants: variants,
+      variantStock: defaultVariant ? (defaultVariant.currentStock ?? 0) : undefined,
       hsnCode: firstItem.hsnCode || "",
       quantity: 1,
       freeQuantity: 0,
@@ -978,6 +1678,7 @@ function TenantInvoicesPageContent() {
       uomCode: firstItem.primaryUomCode,
       mrp: newMrp,
       unitPrice: newRate,
+      isTaxInclusive: Boolean(firstItem.isTaxInclusive),
       discountType: "percent",
       discountValue: 0,
       discountAmount: calculated.discountAmount,
@@ -986,9 +1687,88 @@ function TenantInvoicesPageContent() {
       totalAmount: calculated.totalAmount,
       availableBatches: batches,
       loadingBatches: false,
+      // Auto Parts
+      oemPartNumber: itemAttrs.oemPartNumber || itemAttrs.oesPartNumber || undefined,
+      applicableVehicles: itemAttrs.applicableVehicles || itemAttrs.vehicleFitment || undefined,
+      positionSide: itemAttrs.positionSide || undefined,
+      rackLocation: itemAttrs.rackLocation || undefined,
+      brand: itemAttrs.brand || itemAttrs.oesBrand || undefined,
     };
 
     setInvoiceLines((prev) => [...prev, newLine]);
+  };
+
+  // Garments Wholesale Set / Box Line Population
+  const handleAddGarmentsSetLines = (lines: GarmentsSetLineOutput[]) => {
+    setInvoiceLines((prev) => {
+      const existing = prev.filter((l) => Boolean(l.itemId));
+      const newItems: InvoiceLineItemForm[] = lines.map((l) => {
+        const calculated = calculateLineAmounts(
+          l.quantity,
+          l.unitPrice,
+          "percent",
+          0,
+          l.taxRate,
+          false
+        );
+        return {
+          itemId: l.itemId,
+          itemSku: l.itemSku,
+          itemName: l.itemName,
+          lineDescription: l.lineDescription,
+          batchId: "",
+          batchNumber: "",
+          expiryDate: "",
+          packing: "",
+          hsnCode: l.hsnCode || "6203",
+          quantity: l.quantity,
+          freeQuantity: 0,
+          uomId: "",
+          uomCode: "PCS",
+          mrp: l.unitPrice,
+          ptr: 0,
+          pts: 0,
+          size: l.size,
+          color: l.color,
+          styleCode: l.styleCode,
+          unitPrice: l.unitPrice,
+          isTaxInclusive: false,
+          discountType: "percent",
+          discountValue: 0,
+          discountAmount: calculated.discountAmount,
+          taxableAmount: calculated.taxableAmount,
+          gstRate: l.taxRate,
+          totalAmount: calculated.totalAmount,
+          availableBatches: [],
+          loadingBatches: false,
+        };
+      });
+      return [...existing, ...newItems];
+    });
+  };
+
+  // Hardware Weighing Scale Web Serial Reader
+  const handleReadWeighingScale = async (targetLineIndex?: number) => {
+    setIsReadingScale(true);
+    try {
+      const result = await readWeightFromSerial();
+      const weight = result.weight;
+      setScaleReadingToast(`⚖️ Scale Captured: ${weight.toFixed(3)} kg`);
+      setTimeout(() => setScaleReadingToast(null), 4000);
+
+      const targetIdx =
+        targetLineIndex !== undefined && targetLineIndex >= 0
+          ? targetLineIndex
+          : invoiceLines.length - 1;
+
+      if (targetIdx >= 0 && targetIdx < invoiceLines.length) {
+        updateLineField(targetIdx, "quantity", weight);
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to read electronic scale");
+    } finally {
+      setIsReadingScale(false);
+    }
   };
 
   const invoiceTourSteps: TourStep[] = React.useMemo(
@@ -1027,15 +1807,35 @@ function TenantInvoicesPageContent() {
     [items, customerName, customerPhone]
   );
 
-  const handleAddLineWithItem = async (item: MasterItem) => {
+  const handleAddLineWithItem = async (
+    item: MasterItem,
+    pickedVariant?: ItemVariant | null,
+    allVariants?: ItemVariant[]
+  ) => {
     let packing = "";
+    let itemAttrs: any = {};
     try {
-      const attrs = JSON.parse(item.attributesJson || "{}");
-      packing = attrs.packing || attrs.netWeight || attrs.size || "";
+      itemAttrs = JSON.parse(item.attributesJson || "{}");
+      packing = itemAttrs.packing || itemAttrs.netWeight || itemAttrs.size || "";
     } catch {}
 
+    const dimInfo = parseItemDimensions(item.attributesJson);
     const batches = await fetchItemBatches(item.id);
     const selectedBatch = batches.length > 0 ? batches[0] : null;
+
+    let variants: ItemVariant[] = allVariants || [];
+    if (variants.length === 0 && (item.trackVariants || isGarments) && item.id) {
+      try {
+        variants = await inventoryService.getItemVariants(item.id);
+      } catch (err) {
+        console.error("Failed to load item variants", err);
+      }
+    }
+    const defaultVariant = pickedVariant !== undefined
+      ? pickedVariant
+      : (variants.length > 0
+          ? (variants.find((v) => (v.currentStock ?? 0) > 0) || variants[0])
+          : null);
 
     let exp = "";
     if (selectedBatch?.expiryDate) {
@@ -1043,19 +1843,12 @@ function TenantInvoicesPageContent() {
       exp = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
     }
 
-    const newMrp = (selectedBatch as any)?.mrp || item.mrp || item.sellingPrice || 0;
-    const newRate = (selectedBatch as any)?.saleRate || item.sellingPrice || 0;
     const baseGst = item.taxRate || 12;
-    const { ptr: calcPtr, pts: calcPts } = calculateMargPharmaRates(newMrp, baseGst);
-    const finalPtr = (selectedBatch as any)?.ptr || calcPtr;
-    const finalPts = (selectedBatch as any)?.pts || calcPts;
-
-    let effectiveRate = newRate;
-    if (hasPharmaAddon) {
-      if (pharmaTradeTier === "company_to_stockist" && finalPts > 0) effectiveRate = finalPts;
-      else if (pharmaTradeTier === "stockist_to_chemist" && finalPtr > 0) effectiveRate = finalPtr;
-      else if (pharmaTradeTier === "chemist_to_patient" && newMrp > 0) effectiveRate = newMrp;
-    }
+    const resolved = resolveItemRate(item, defaultVariant, selectedBatch);
+    const newMrp = resolved.mrp;
+    const finalPtr = resolved.ptr;
+    const finalPts = resolved.pts;
+    const effectiveRate = resolved.rate;
 
     const effectiveGst = isGarments
       ? ((effectiveRate > 0 ? effectiveRate : newMrp) <= 1000 ? 5 : 12)
@@ -1066,23 +1859,30 @@ function TenantInvoicesPageContent() {
       effectiveRate,
       "percent",
       0,
-      effectiveGst
+      effectiveGst,
+      Boolean(item.isTaxInclusive)
     );
 
     const newLine: InvoiceLineItemForm = {
       itemId: item.id,
-      itemSku: item.sku,
+      variantId: defaultVariant ? defaultVariant.id : undefined,
+      itemSku: defaultVariant?.variantSku || item.sku,
       itemName: item.name,
       batchId: selectedBatch ? selectedBatch.id : "",
       batchNumber: selectedBatch
         ? selectedBatch.batchNumber
-        : item.sku
+        : hasBatchTracking && item.sku
         ? `BAT-${item.sku.slice(0, 6)}`
         : "",
       expiryDate: exp,
       packing: packing,
+      size: (defaultVariant?.size) || (itemAttrs.autoPartsMatrix?.[0]?.specNumber) || (isGarments ? "40 / L" : undefined),
+      color: (defaultVariant?.color) || (itemAttrs.autoPartsMatrix?.[0]?.brand) || (isGarments ? "Sky Blue" : undefined),
+      styleCode: defaultVariant ? defaultVariant.variantSku || "" : (isGarments ? "SLIM-FIT-2026" : undefined),
+      availableVariants: variants,
+      variantStock: defaultVariant ? (defaultVariant.currentStock ?? 0) : undefined,
       hsnCode: item.hsnCode || "",
-      quantity: 1,
+      quantity: isJewellery && Number(itemAttrs.netWeight) > 0 ? Number(itemAttrs.netWeight) : 1,
       freeQuantity: 0,
       uomId: item.primaryUomId,
       uomCode: item.primaryUomCode,
@@ -1090,6 +1890,7 @@ function TenantInvoicesPageContent() {
       ptr: finalPtr,
       pts: finalPts,
       unitPrice: effectiveRate,
+      isTaxInclusive: Boolean(item.isTaxInclusive),
       discountType: "percent",
       discountValue: 0,
       discountAmount: calculated.discountAmount,
@@ -1098,6 +1899,21 @@ function TenantInvoicesPageContent() {
       totalAmount: calculated.totalAmount,
       availableBatches: batches,
       loadingBatches: false,
+      // Auto Parts
+      oemPartNumber: itemAttrs.oemPartNumber || itemAttrs.oesPartNumber || undefined,
+      applicableVehicles: itemAttrs.applicableVehicles || itemAttrs.vehicleFitment || undefined,
+      positionSide: itemAttrs.positionSide || undefined,
+      rackLocation: itemAttrs.rackLocation || undefined,
+      brand: (itemAttrs.autoPartsMatrix?.[0]?.brand) || itemAttrs.brand || itemAttrs.oesBrand || undefined,
+      specNumber: (itemAttrs.autoPartsMatrix?.[0]?.specNumber) || undefined,
+      // Jewellery
+      purityKarat: itemAttrs.purityKarat || (isJewellery ? "22K (916)" : undefined),
+      grossWeightGrams: itemAttrs.grossWeight !== undefined ? Number(itemAttrs.grossWeight) : undefined,
+      stoneWeightGrams: itemAttrs.stoneWeight !== undefined ? Number(itemAttrs.stoneWeight) : undefined,
+      netWeightGrams: itemAttrs.netWeight !== undefined ? Number(itemAttrs.netWeight) : undefined,
+      makingChargeRate: itemAttrs.makingChargeRate !== undefined ? Number(itemAttrs.makingChargeRate) : undefined,
+      makingChargeType: itemAttrs.makingChargeType || "per_gram",
+      huid: itemAttrs.huid || ((selectedBatch as any)?.serialNumbers ? (selectedBatch as any).serialNumbers : undefined),
     };
 
     setInvoiceLines((prev) => {
@@ -1106,24 +1922,86 @@ function TenantInvoicesPageContent() {
       }
       return [...prev, newLine];
     });
+
+    // Query last sale deal hint for customer + product
+    salesService.getLastSaleDeal(item.id, selectedCustomerId || undefined)
+      .then((hint) => {
+        if (hint) {
+          setInvoiceLines((prev) =>
+            prev.map((l) => (l.itemId === item.id && !l.lastDealHint ? { ...l, lastDealHint: hint } : l))
+          );
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleItemPickedFromSearch = async (item: MasterItem) => {
+    setQuickProductSearch("");
+    if (item.trackVariants) {
+      setVariantModalItem(item);
+      setVariantTargetLineIdx(null);
+      setLoadingVariants(true);
+      try {
+        const vars = await inventoryService.getItemVariants(item.id);
+        setVariantModalList(vars);
+        if (vars.length === 0) {
+          await handleAddLineWithItem(item, null, []);
+          setVariantModalItem(null);
+        }
+      } catch (err) {
+        console.error("Failed to load variants", err);
+        await handleAddLineWithItem(item, null, []);
+        setVariantModalItem(null);
+      } finally {
+        setLoadingVariants(false);
+      }
+    } else {
+      await handleAddLineWithItem(item, null, []);
+      const currentLen = invoiceLines.length;
+      setTimeout(() => {
+        const nextQty = document.getElementById(`line-qty-${currentLen}`);
+        if (nextQty) {
+          (nextQty as HTMLInputElement).focus();
+          (nextQty as HTMLInputElement).select();
+        }
+      }, 120);
+    }
   };
 
   const handleRemoveLine = (idx: number) => {
     setInvoiceLines((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleLineItemChange = async (idx: number, itemId: string) => {
-    const found = items.find((i) => i.id === itemId);
-    if (!found) return;
-
+  const applyItemToLine = async (
+    idx: number,
+    found: MasterItem,
+    pickedVariant?: ItemVariant | null,
+    allVariants?: ItemVariant[]
+  ) => {
     let packing = "";
+    let itemAttrs: any = {};
     try {
-      const attrs = JSON.parse(found.attributesJson || "{}");
-      packing = attrs.packing || attrs.netWeight || attrs.size || "";
+      itemAttrs = JSON.parse(found.attributesJson || "{}");
+      packing = itemAttrs.packing || itemAttrs.netWeight || itemAttrs.size || "";
     } catch {}
 
+    const dimInfo = parseItemDimensions(found.attributesJson);
     const batches = await fetchItemBatches(found.id);
     const selectedBatch = batches.length > 0 ? batches[0] : null;
+
+    let variants: ItemVariant[] = allVariants || [];
+    if (variants.length === 0 && (found.trackVariants || isGarments) && found.id) {
+      try {
+        variants = await inventoryService.getItemVariants(found.id);
+      } catch (err) {
+        console.error("Failed to load item variants", err);
+      }
+    }
+    const defaultVariant = pickedVariant !== undefined
+      ? pickedVariant
+      : (variants.length > 0
+          ? (variants.find((v) => (v.currentStock ?? 0) > 0) || variants[0])
+          : null);
 
     let exp = "";
     if (selectedBatch?.expiryDate) {
@@ -1131,26 +2009,12 @@ function TenantInvoicesPageContent() {
       exp = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
     }
 
-    const newRate =
-      selectedBatch?.saleRate && selectedBatch.saleRate > 0
-        ? selectedBatch.saleRate
-        : found.sellingPrice || found.mrp || 0;
-    const newMrp =
-      selectedBatch?.mrp && selectedBatch.mrp > 0
-        ? selectedBatch.mrp
-        : found.mrp || 0;
-
     const baseGst = found.taxRate || 12;
-    const { ptr: calcPtr, pts: calcPts } = calculateMargPharmaRates(newMrp, baseGst);
-    const finalPtr = (selectedBatch as any)?.ptr || calcPtr;
-    const finalPts = (selectedBatch as any)?.pts || calcPts;
-
-    let effectiveRate = newRate;
-    if (hasPharmaAddon) {
-      if (pharmaTradeTier === "company_to_stockist" && finalPts > 0) effectiveRate = finalPts;
-      else if (pharmaTradeTier === "stockist_to_chemist" && finalPtr > 0) effectiveRate = finalPtr;
-      else if (pharmaTradeTier === "chemist_to_patient" && newMrp > 0) effectiveRate = newMrp;
-    }
+    const resolved = resolveItemRate(found, defaultVariant, selectedBatch);
+    const newMrp = resolved.mrp;
+    const finalPtr = resolved.ptr;
+    const finalPts = resolved.pts;
+    const effectiveRate = resolved.rate;
 
     const effectiveGst = isGarments
       ? ((effectiveRate > 0 ? effectiveRate : newMrp) <= 1000 ? 5 : 12)
@@ -1161,7 +2025,8 @@ function TenantInvoicesPageContent() {
       effectiveRate,
       "percent",
       0,
-      effectiveGst
+      effectiveGst,
+      Boolean(found.isTaxInclusive)
     );
 
     setInvoiceLines((prev) =>
@@ -1170,18 +2035,24 @@ function TenantInvoicesPageContent() {
           ? {
               ...line,
               itemId: found.id,
-              itemSku: found.sku,
+              variantId: defaultVariant ? defaultVariant.id : undefined,
+              itemSku: defaultVariant?.variantSku || found.sku,
               itemName: found.name,
               batchId: selectedBatch ? selectedBatch.id : "",
               batchNumber: selectedBatch
                 ? selectedBatch.batchNumber
-                : found.sku
+                : hasBatchTracking && found.sku
                 ? `BAT-${found.sku.slice(0, 6)}`
                 : "",
               expiryDate: exp,
               packing: packing,
+              size: (defaultVariant?.size) || (itemAttrs.autoPartsMatrix?.[0]?.specNumber) || line.size || "",
+              color: (defaultVariant?.color) || (itemAttrs.autoPartsMatrix?.[0]?.brand) || line.color || "",
+              styleCode: defaultVariant ? defaultVariant.variantSku || "" : line.styleCode || "",
+              availableVariants: variants,
+              variantStock: defaultVariant ? (defaultVariant.currentStock ?? 0) : undefined,
               hsnCode: found.hsnCode || "",
-              quantity: 1,
+              quantity: isJewellery && Number(itemAttrs.netWeight) > 0 ? Number(itemAttrs.netWeight) : (line.quantity > 0 ? line.quantity : 1),
               freeQuantity: 0,
               uomId: found.primaryUomId,
               uomCode: found.primaryUomCode,
@@ -1189,6 +2060,7 @@ function TenantInvoicesPageContent() {
               ptr: finalPtr,
               pts: finalPts,
               unitPrice: effectiveRate,
+              isTaxInclusive: Boolean(found.isTaxInclusive),
               gstRate: effectiveGst,
               discountValue: 0,
               discountAmount: calculated.discountAmount,
@@ -1196,10 +2068,130 @@ function TenantInvoicesPageContent() {
               totalAmount: calculated.totalAmount,
               availableBatches: batches,
               loadingBatches: false,
+              // Auto Parts
+              oemPartNumber: itemAttrs.oemPartNumber || itemAttrs.oesPartNumber || undefined,
+              applicableVehicles: itemAttrs.applicableVehicles || itemAttrs.vehicleFitment || undefined,
+              positionSide: itemAttrs.positionSide || undefined,
+              rackLocation: itemAttrs.rackLocation || undefined,
+              brand: itemAttrs.brand || itemAttrs.oesBrand || undefined,
+              // Jewellery
+              purityKarat: itemAttrs.purityKarat || line.purityKarat || (isJewellery ? "22K (916)" : undefined),
+              grossWeightGrams: itemAttrs.grossWeight !== undefined ? Number(itemAttrs.grossWeight) : line.grossWeightGrams,
+              stoneWeightGrams: itemAttrs.stoneWeight !== undefined ? Number(itemAttrs.stoneWeight) : line.stoneWeightGrams,
+              netWeightGrams: itemAttrs.netWeight !== undefined ? Number(itemAttrs.netWeight) : line.netWeightGrams,
+              makingChargeRate: itemAttrs.makingChargeRate !== undefined ? Number(itemAttrs.makingChargeRate) : line.makingChargeRate,
+              makingChargeType: itemAttrs.makingChargeType || line.makingChargeType || "per_gram",
+              huid: itemAttrs.huid || ((selectedBatch as any)?.serialNumbers ? (selectedBatch as any).serialNumbers : line.huid),
             }
           : line
       )
     );
+
+    // Query last sale deal hint for customer + product
+    salesService.getLastSaleDeal(found.id, selectedCustomerId || undefined)
+      .then((hint) => {
+        if (hint) {
+          setInvoiceLines((prev) =>
+            prev.map((line, i) => (i === idx ? { ...line, lastDealHint: hint } : line))
+          );
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleLineItemChange = async (
+    idx: number,
+    itemId: string,
+    pickedVariant?: ItemVariant | null,
+    allVariants?: ItemVariant[]
+  ) => {
+    const found = items.find((i) => i.id === itemId);
+    if (!found) return;
+
+    if (found.trackVariants && pickedVariant === undefined) {
+      setVariantModalItem(found);
+      setVariantTargetLineIdx(idx);
+      setLoadingVariants(true);
+      try {
+        const vars = await inventoryService.getItemVariants(found.id);
+        setVariantModalList(vars);
+        if (vars.length === 0) {
+          await applyItemToLine(idx, found, null, []);
+          setVariantModalItem(null);
+          setVariantTargetLineIdx(null);
+        }
+      } catch (err) {
+        console.error("Failed to load variants", err);
+        await applyItemToLine(idx, found, null, []);
+        setVariantModalItem(null);
+        setVariantTargetLineIdx(null);
+      } finally {
+        setLoadingVariants(false);
+      }
+      return;
+    }
+
+    await applyItemToLine(idx, found, pickedVariant, allVariants);
+  };
+
+  // Auto Parts OEM Alternate / Substitute Finder
+  const getSubstitutesForLine = (line: InvoiceLineItemForm) => {
+    if (!isAutoParts || !line.itemId) return [];
+    const oem = (line.oemPartNumber || "").trim().toLowerCase();
+    const results: { id: string; name: string; sku: string; brand?: string; oem?: string; rate: number; stock?: number }[] = [];
+    const seenIds = new Set<string>([line.itemId]);
+
+    // 1. From Cross-Reference DB
+    if (autoPartsCrossRefs.length > 0) {
+      const matchingOems = new Set<string>();
+      if (oem) matchingOems.add(oem);
+      autoPartsCrossRefs.forEach((ref) => {
+        if (ref.itemId === line.itemId && ref.oemPartNumber) {
+          matchingOems.add(ref.oemPartNumber.trim().toLowerCase());
+        }
+      });
+
+      autoPartsCrossRefs.forEach((ref) => {
+        const refOem = (ref.oemPartNumber || "").trim().toLowerCase();
+        if (ref.itemId && !seenIds.has(ref.itemId) && matchingOems.has(refOem)) {
+          seenIds.add(ref.itemId);
+          results.push({
+            id: ref.itemId,
+            name: ref.itemName,
+            sku: ref.itemSku,
+            brand: ref.oesBrand,
+            oem: ref.oemPartNumber,
+            rate: ref.salePrice || 0,
+            stock: ref.currentStock,
+          });
+        }
+      });
+    }
+
+    // 2. From Catalog Items (matching OEM part number)
+    if (oem && oem.length >= 2) {
+      items.forEach((it) => {
+        if (seenIds.has(it.id)) return;
+        try {
+          const attrs = JSON.parse(it.attributesJson || "{}");
+          const itOem = (attrs.oemPartNumber || attrs.oesPartNumber || "").trim().toLowerCase();
+          if (itOem && itOem === oem) {
+            seenIds.add(it.id);
+            results.push({
+              id: it.id,
+              name: it.name,
+              sku: it.sku,
+              brand: attrs.brand || attrs.oesBrand,
+              oem: attrs.oemPartNumber || attrs.oesPartNumber,
+              rate: it.sellingPrice || it.mrp || 0,
+              stock: (it as any).currentStock,
+            });
+          }
+        } catch {}
+      });
+    }
+
+    return results;
   };
 
   const handleOpenAddProductModal = (initialName?: string, lineIdx?: number) => {
@@ -1249,7 +2241,8 @@ function TenantInvoicesPageContent() {
           newRate,
           line.discountType,
           line.discountValue,
-          line.gstRate
+          line.gstRate,
+          Boolean(line.isTaxInclusive)
         );
 
         return {
@@ -1259,6 +2252,151 @@ function TenantInvoicesPageContent() {
           expiryDate: exp,
           mrp: newMrp,
           unitPrice: newRate,
+          discountAmount: calculated.discountAmount,
+          taxableAmount: calculated.taxableAmount,
+          totalAmount: calculated.totalAmount,
+        };
+      })
+    );
+  };
+
+  const handleVariantSizeChange = (idx: number, newSize: string) => {
+    setInvoiceLines((prev) =>
+      prev.map((line, i) => {
+        if (i !== idx) return line;
+        const variants = line.availableVariants || [];
+        if (variants.length === 0) {
+          return { ...line, size: newSize };
+        }
+
+        let matched = variants.find(
+          (v) =>
+            v.size?.trim().toLowerCase() === newSize.trim().toLowerCase() &&
+            v.color?.trim().toLowerCase() === (line.color || "").trim().toLowerCase()
+        );
+
+        if (!matched) {
+          const withSize = variants.filter(
+            (v) => v.size?.trim().toLowerCase() === newSize.trim().toLowerCase()
+          );
+          matched = withSize.find((v) => (v.currentStock ?? 0) > 0) || withSize[0];
+        }
+
+        if (matched) {
+          const foundItem = items.find((it) => it.id === line.itemId);
+          const resolved = foundItem ? resolveItemRate(foundItem, matched, null) : null;
+          const baseRate = resolved ? resolved.rate : ((foundItem?.sellingPrice || foundItem?.mrp || line.unitPrice) + (matched.priceAdjustment || 0));
+          const calculated = calculateLineAmounts(
+            line.quantity,
+            baseRate > 0 ? baseRate : line.unitPrice,
+            line.discountType,
+            line.discountValue,
+            line.gstRate,
+            Boolean(line.isTaxInclusive)
+          );
+          return {
+            ...line,
+            variantId: matched.id,
+            size: matched.size || newSize,
+            color: matched.color || line.color,
+            styleCode: matched.variantSku || line.styleCode,
+            variantStock: matched.currentStock ?? 0,
+            unitPrice: baseRate > 0 ? baseRate : line.unitPrice,
+            discountAmount: calculated.discountAmount,
+            taxableAmount: calculated.taxableAmount,
+            totalAmount: calculated.totalAmount,
+          };
+        }
+
+        return { ...line, size: newSize };
+      })
+    );
+  };
+
+  const handleVariantColorChange = (idx: number, newColor: string) => {
+    setInvoiceLines((prev) =>
+      prev.map((line, i) => {
+        if (i !== idx) return line;
+        const variants = line.availableVariants || [];
+        if (variants.length === 0) {
+          return { ...line, color: newColor };
+        }
+
+        let matched = variants.find(
+          (v) =>
+            v.color?.trim().toLowerCase() === newColor.trim().toLowerCase() &&
+            v.size?.trim().toLowerCase() === (line.size || "").trim().toLowerCase()
+        );
+
+        if (!matched) {
+          const withColor = variants.filter(
+            (v) => v.color?.trim().toLowerCase() === newColor.trim().toLowerCase()
+          );
+          matched = withColor.find((v) => (v.currentStock ?? 0) > 0) || withColor[0];
+        }
+
+        if (matched) {
+          const foundItem = items.find((it) => it.id === line.itemId);
+          const resolved = foundItem ? resolveItemRate(foundItem, matched, null) : null;
+          const baseRate = resolved ? resolved.rate : ((foundItem?.sellingPrice || foundItem?.mrp || line.unitPrice) + (matched.priceAdjustment || 0));
+          const calculated = calculateLineAmounts(
+            line.quantity,
+            baseRate > 0 ? baseRate : line.unitPrice,
+            line.discountType,
+            line.discountValue,
+            line.gstRate,
+            Boolean(line.isTaxInclusive)
+          );
+          return {
+            ...line,
+            variantId: matched.id,
+            size: matched.size || line.size,
+            color: matched.color || newColor,
+            styleCode: matched.variantSku || line.styleCode,
+            variantStock: matched.currentStock ?? 0,
+            unitPrice: baseRate > 0 ? baseRate : line.unitPrice,
+            discountAmount: calculated.discountAmount,
+            taxableAmount: calculated.taxableAmount,
+            totalAmount: calculated.totalAmount,
+          };
+        }
+
+        return { ...line, color: newColor };
+      })
+    );
+  };
+
+  const handleVariantIdChange = (idx: number, newVariantId: string) => {
+    setInvoiceLines((prev) =>
+      prev.map((line, i) => {
+        if (i !== idx) return line;
+        const variants = line.availableVariants || [];
+        const matched = variants.find((v) => v.id === newVariantId);
+        if (!matched) return line;
+
+        const foundItem = items.find((it) => it.id === line.itemId);
+        const resolved = foundItem ? resolveItemRate(foundItem, matched, null) : null;
+        const baseRate = resolved && resolved.rate > 0 
+          ? resolved.rate 
+          : ((foundItem?.sellingPrice || foundItem?.mrp || line.unitPrice) + (matched.priceAdjustment || 0));
+        const calculated = calculateLineAmounts(
+          line.quantity,
+          baseRate > 0 ? baseRate : line.unitPrice,
+          line.discountType,
+          line.discountValue,
+          line.gstRate,
+          Boolean(line.isTaxInclusive)
+        );
+
+        return {
+          ...line,
+          variantId: matched.id,
+          size: matched.size || line.size,
+          color: matched.color || line.color,
+          styleCode: matched.variantSku || line.styleCode,
+          variantStock: matched.currentStock ?? 0,
+          unitPrice: baseRate > 0 ? baseRate : line.unitPrice,
+          mrp: resolved?.mrp || matched.mrp || line.mrp,
           discountAmount: calculated.discountAmount,
           taxableAmount: calculated.taxableAmount,
           totalAmount: calculated.totalAmount,
@@ -1308,7 +2446,11 @@ function TenantInvoicesPageContent() {
         }
 
         // 2. Hardware Dimension Engine (Length x Width -> Sq.Ft)
+        if (field === "hasDimension") {
+          updated.hasDimension = Boolean(value);
+        }
         if (field === "dimLength" || field === "dimWidth" || field === "dimUnit") {
+          updated.hasDimension = true;
           const l = field === "dimLength" ? Number(value) : (updated.dimLength || 0);
           const w = field === "dimWidth" ? Number(value) : (updated.dimWidth || 0);
           const u = field === "dimUnit" ? value : (updated.dimUnit || "FEET");
@@ -1336,6 +2478,18 @@ function TenantInvoicesPageContent() {
               updated.quantity = updated.totalWeightKg;
             }
           }
+        }
+
+        // 3.5. Hardware Paint Tinting Engine (Add colorant charge to unitPrice)
+        if (field === "tintingCharge") {
+          const tint = Number(value) || 0;
+          if (updated.baseUnitPrice === undefined) {
+            updated.baseUnitPrice = updated.unitPrice;
+          }
+          const base = updated.baseUnitPrice || 0;
+          updated.unitPrice = Math.round((base + tint) * 100) / 100;
+        } else if (field === "unitPrice") {
+          updated.baseUnitPrice = Number(value) || 0;
         }
 
         // 4. FMCG Packaging Engine (Master Cases + Loose Pcs -> Total Units)
@@ -1368,12 +2522,67 @@ function TenantInvoicesPageContent() {
           updated.discountValue = td;
         }
 
+        // 7. Jewellery Calculation Engine (Weights, Karat Rates, Making Charges, 3% GST)
+        if (isJewellery) {
+          const gross = field === "grossWeightGrams" ? (Number(value) || 0) : (Number(updated.grossWeightGrams) || 0);
+          const stone = field === "stoneWeightGrams" ? (Number(value) || 0) : (Number(updated.stoneWeightGrams) || 0);
+          const net = Math.max(0, Math.round((gross - stone) * 1000) / 1000);
+          updated.grossWeightGrams = gross;
+          updated.stoneWeightGrams = stone;
+          updated.netWeightGrams = net;
+          if (net > 0) {
+            updated.quantity = net;
+            updated.uomCode = "GM";
+          }
+
+          // Karat selection rate auto-fill from board rates
+          if (field === "purityKarat" && todayMetalRates) {
+            const karatStr = String(value);
+            if (karatStr.includes("24")) updated.metalRatePerGram = Math.round(todayMetalRates.gold24K_Per10g / 10);
+            else if (karatStr.includes("22")) updated.metalRatePerGram = Math.round(todayMetalRates.gold22K_Per10g / 10);
+            else if (karatStr.includes("18")) updated.metalRatePerGram = Math.round(todayMetalRates.gold18K_Per10g / 10);
+            else if (karatStr.includes("14")) updated.metalRatePerGram = Math.round(todayMetalRates.gold14K_Per10g / 10);
+            else if (karatStr.includes("Silver") || karatStr.includes("999")) updated.metalRatePerGram = Math.round(todayMetalRates.silver999_PerKg / 1000);
+          }
+
+          const currentNet = Number(updated.netWeightGrams) || Number(updated.quantity) || 0;
+          const metalRate = Number(updated.metalRatePerGram) || 0;
+          const metalValue = currentNet * metalRate;
+
+          const mcType = updated.makingChargeType || "per_gram";
+          const mcRate = Number(updated.makingChargeRate) || 0;
+          let mcAmt = 0;
+          if (mcType === "per_gram") mcAmt = currentNet * mcRate;
+          else if (mcType === "percentage") mcAmt = (metalValue * mcRate) / 100;
+          else if (mcType === "flat") mcAmt = mcRate;
+
+          if (field === "makingChargeAmount") {
+            mcAmt = Number(value) || 0;
+            updated.makingChargeAmount = mcAmt;
+          } else {
+            updated.makingChargeAmount = Math.round(mcAmt * 100) / 100;
+          }
+
+          const stoneAmt = Number(updated.stoneAmount) || 0;
+          const taxableVal = Math.round((metalValue + (updated.makingChargeAmount || mcAmt) + stoneAmt) * 100) / 100;
+
+          if (taxableVal > 0) {
+            if (currentNet > 0) {
+              updated.unitPrice = Math.round((taxableVal / currentNet) * 100) / 100;
+            } else {
+              updated.unitPrice = taxableVal;
+            }
+          }
+          updated.gstRate = 3;
+        }
+
         const calculated = calculateLineAmounts(
           Number(updated.quantity) || 1,
           Number(updated.unitPrice) || 0,
           updated.discountType,
           Number(updated.discountValue) || 0,
-          Number(updated.gstRate) || 0
+          Number(updated.gstRate) || 0,
+          Boolean(updated.isTaxInclusive)
         );
         return {
           ...updated,
@@ -1385,38 +2594,7 @@ function TenantInvoicesPageContent() {
     );
   };
 
-  // Instant Pharma Trade Tier Switcher (Company -> Stockist -> Chemist -> Patient)
-  const handleSwitchPharmaTradeTier = (newTier: "company_to_stockist" | "stockist_to_chemist" | "chemist_to_patient") => {
-    setPharmaTradeTier(newTier);
-    setInvoiceLines((prev) =>
-      prev.map((line) => {
-        let newRate = line.unitPrice;
-        if (newTier === "company_to_stockist" && (line.pts || 0) > 0) {
-          newRate = line.pts!;
-        } else if (newTier === "stockist_to_chemist" && (line.ptr || 0) > 0) {
-          newRate = line.ptr!;
-        } else if (newTier === "chemist_to_patient" && (line.mrp || 0) > 0) {
-          newRate = line.mrp;
-        }
 
-        const calculated = calculateLineAmounts(
-          Number(line.quantity) || 1,
-          Number(newRate) || 0,
-          line.discountType,
-          Number(line.discountValue) || 0,
-          Number(line.gstRate) || 0
-        );
-
-        return {
-          ...line,
-          unitPrice: newRate,
-          discountAmount: calculated.discountAmount,
-          taxableAmount: calculated.taxableAmount,
-          totalAmount: calculated.totalAmount,
-        };
-      })
-    );
-  };
 
   const showPtsColumn = hasPharmaAddon && pharmaTradeTier === "company_to_stockist";
   const showPtrColumn = hasPharmaAddon && (pharmaTradeTier === "company_to_stockist" || pharmaTradeTier === "stockist_to_chemist");
@@ -1428,8 +2606,49 @@ function TenantInvoicesPageContent() {
   const totalTaxable = invoiceLines.reduce((acc, l) => acc + l.taxableAmount, 0);
   const totalTax = invoiceLines.reduce((acc, l) => acc + (l.taxableAmount * (l.gstRate / 100)), 0);
   const grandTotal = Math.round((totalTaxable + totalTax) * 100) / 100;
+  const jewelleryAdjustments = isJewellery ? (Number(oldGoldDeductionAmount) || 0) + (Number(kittyDeductionAmount) || 0) : 0;
   const roundOff = Math.round(grandTotal) - grandTotal;
-  const netPayable = Math.round(grandTotal);
+  const netPayable = Math.max(0, Math.round(grandTotal - jewelleryAdjustments));
+  const effectivePaid = primaryPaymentMode === 6
+    ? 0
+    : (isTenderTouched
+        ? (() => {
+            const p = parseFloat(tenderAmount);
+            const val = isNaN(p) ? 0 : Math.max(0, p);
+            return val > 0 && Math.abs(val - netPayable) <= 1 ? netPayable : val;
+          })()
+        : netPayable);
+  const effectiveDue = Math.max(0, netPayable - effectivePaid);
+
+  // Summary totals for displayed invoices list (all industries)
+  const invoiceTotals = useMemo(() => {
+    let totalTaxable = 0;
+    let totalAmount = 0;
+    let totalPaid = 0;
+    let totalDue = 0;
+    let cancelledCount = 0;
+
+    for (const inv of invoices) {
+      if (inv.isCancelled) {
+        cancelledCount++;
+      } else {
+        totalTaxable += Number(inv.taxableAmount) || 0;
+        totalAmount += Number(inv.totalAmount) || 0;
+        totalPaid += Number(inv.paidAmount) || 0;
+        totalDue += Number(inv.balanceAmount) || 0;
+      }
+    }
+
+    return {
+      count: invoices.length,
+      activeCount: invoices.length - cancelledCount,
+      cancelledCount,
+      totalTaxable,
+      totalAmount,
+      totalPaid,
+      totalDue,
+    };
+  }, [invoices]);
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1445,6 +2664,8 @@ function TenantInvoicesPageContent() {
 
       const itemsPayload: CreateInvoiceItemInput[] = invoiceLines.map((line) => ({
         itemId: line.itemId,
+        itemName: line.itemName ? line.itemName.trim() : undefined,
+        lineDescription: line.lineDescription ? line.lineDescription.trim() : undefined,
         variantId: line.variantId || undefined,
         batchId: line.batchId || undefined,
         batchNumber: line.batchNumber || undefined,
@@ -1459,12 +2680,15 @@ function TenantInvoicesPageContent() {
         hsnCode: line.hsnCode || undefined,
         uomId: line.uomId,
         unitPrice: Number(line.unitPrice) || 0,
+        isTaxInclusive: Boolean(line.isTaxInclusive),
         mrp: Number(line.mrp) || 0,
         ptr: Number(line.ptr) || 0,
         pts: Number(line.pts) || 0,
         discountPercent: line.discountType === "percent" ? Number(line.discountValue) : 0,
         discountAmount: line.discountAmount || 0,
         attributesJson: JSON.stringify({
+          printName: line.itemName,
+          lineDescription: line.lineDescription,
           packing: line.packing,
           freeQuantity: line.freeQuantity,
           expiryFormatted: line.expiryDate,
@@ -1474,7 +2698,7 @@ function TenantInvoicesPageContent() {
           // Electronics
           imeiSerial: line.imeiSerial,
           imei2: line.imei2,
-          brand: line.brand,
+          brand: line.brand || line.color,
           modelVariant: line.modelVariant,
           warrantyMonths: line.warrantyMonths,
           // Hardware
@@ -1487,6 +2711,10 @@ function TenantInvoicesPageContent() {
           totalWeightKg: line.totalWeightKg,
           rateBasis: line.rateBasis,
           contractorName: line.contractorName,
+          shadeCode: line.shadeCode,
+          shadeName: line.shadeName,
+          packSize: line.packSize,
+          tintingCharge: line.tintingCharge,
           // Garments
           size: line.size,
           color: line.color,
@@ -1505,8 +2733,32 @@ function TenantInvoicesPageContent() {
           servicePeriodTo: line.servicePeriodTo,
           jobSheetRef: line.jobSheetRef,
           billingBasis: line.billingBasis,
+          // Auto Parts
+          oemPartNumber: line.oemPartNumber,
+          applicableVehicles: line.applicableVehicles,
+          positionSide: line.positionSide,
+          rackLocation: line.rackLocation,
+          specNumber: line.specNumber || line.size,
+          // Jewellery
+          purityKarat: line.purityKarat,
+          grossWeightGrams: line.grossWeightGrams,
+          stoneWeightGrams: line.stoneWeightGrams,
+          netWeightGrams: line.netWeightGrams,
+          metalRatePerGram: line.metalRatePerGram,
+          makingChargeType: line.makingChargeType,
+          makingChargeRate: line.makingChargeRate,
+          makingChargeAmount: line.makingChargeAmount,
+          stoneAmount: line.stoneAmount,
+          huid: line.huid,
         }),
       }));
+
+      if (isJewellery && grandTotal >= 200000 && (!customerPanNumber || customerPanNumber.trim().length !== 10)) {
+        if (!confirm("⚠️ Income Tax Rule 114B Alert:\nJewellery purchases of ₹2,00,000 or above require a valid 10-digit Customer PAN.\n\nDo you wish to proceed without Customer PAN?")) {
+          setSubmitting(false);
+          return;
+        }
+      }
 
       let targetInvoiceId: string;
       const invoicePayload = {
@@ -1536,9 +2788,9 @@ function TenantInvoicesPageContent() {
         invoiceDate: new Date(invoiceDate).toISOString(),
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         primaryPaymentMode: primaryPaymentMode,
-        paidAmount: paidAmount > 0 ? paidAmount : netPayable,
+        paidAmount: effectivePaid,
         transporterName: billingMode === "b2b" ? (transporterName || undefined) : undefined,
-        vehicleNumber: billingMode === "b2b" ? (vehicleNumber || undefined) : undefined,
+        vehicleNumber: (isAutoParts && vehicleRegNo) ? vehicleRegNo : (billingMode === "b2b" ? (vehicleNumber || undefined) : undefined),
         lrNumber: billingMode === "b2b" ? (lrNumber || undefined) : undefined,
         lrDate: billingMode === "b2b" && lrDate ? new Date(lrDate).toISOString() : undefined,
         poNumber: billingMode === "b2b" ? (poNumber || undefined) : undefined,
@@ -1554,13 +2806,23 @@ function TenantInvoicesPageContent() {
           hardwareTradeTier: isHardware ? hardwareTradeTier : undefined,
           electronicsTradeTier: isElectronics ? electronicsTradeTier : undefined,
           fmcgTradeTier: isFmcg ? fmcgTradeTier : undefined,
+          generalTradeTier: (!isPharma && !isHardware && !isElectronics && !isFmcg) ? generalTradeTier : undefined,
           contractorName: isHardware ? contractorName : undefined,
           siteAddress: isHardware ? siteAddress : undefined,
           serviceJobSheetRef: isService ? serviceJobSheetRef : undefined,
+          vehicleRegNo: isAutoParts ? (vehicleRegNo || undefined) : undefined,
+          vehicleModel: isAutoParts ? (vehicleModel || undefined) : undefined,
+          mechanicName: isAutoParts ? (mechanicName || undefined) : undefined,
+          odometerKm: isAutoParts ? (odometerKm || undefined) : undefined,
           doctorName: isPharma ? (doctorName || undefined) : undefined,
           doctorRegNumber: isPharma ? (doctorRegNumber || undefined) : undefined,
           patientName: isPharma ? (patientName || undefined) : undefined,
           patientAddressPhone: isPharma ? (patientAddressPhone || undefined) : undefined,
+          customerPanNumber: isJewellery ? customerPanNumber : undefined,
+          oldGoldVoucherId: isJewellery ? selectedOldGoldVoucherId : undefined,
+          oldGoldDeductionAmount: isJewellery ? Number(oldGoldDeductionAmount) || 0 : undefined,
+          kittySchemeId: isJewellery ? selectedKittySchemeId : undefined,
+          kittyDeductionAmount: isJewellery ? Number(kittyDeductionAmount) || 0 : undefined,
         }),
         items: itemsPayload,
       };
@@ -1576,12 +2838,25 @@ function TenantInvoicesPageContent() {
         try {
           const preview = await printTemplateService.renderPreview({ invoiceId: targetInvoiceId, documentType: 1 });
           if (preview?.renderedHtml) {
-            printRawHtml(preview.renderedHtml, `Tax_Invoice_${targetInvoiceId.slice(0, 8)}`);
+            const isA5 = preview.pageSize === 10 || preview.pageSize === 3 || preview.pageSize === 9;
+            printRawHtml(
+              preview.renderedHtml,
+              `Tax_Invoice_${targetInvoiceId.slice(0, 8)}`,
+              isA5 ? "A5 landscape" : "A4 portrait"
+            );
           }
         } catch (printErr) {
           console.error("Auto-print preview generation error:", printErr);
         }
       }
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("udyogbill_first_invoice_created", "true");
+        localStorage.setItem("udyogbill_invoice_tour_completed", "true");
+        localStorage.setItem("udyogbill_dashboard_tour_completed", "true");
+      }
+      setIsTourOpen(false);
+      setIsTourManuallyTriggered(false);
 
       setIsDrawerOpen(false);
       setEditingInvoiceId(null);
@@ -1590,10 +2865,21 @@ function TenantInvoicesPageContent() {
         router.replace("/app/sales/invoices");
       }
       setInvoiceLines([]);
-      setPaidAmount(0);
+      setForceShowDimensions(false);
+      setTenderAmount("");
+      setIsTenderTouched(false);
       setCustomerName("");
       setCustomerPhone("");
       setSelectedCustomerId("");
+      setVehicleRegNo("");
+      setVehicleModel("");
+      setMechanicName("");
+      setOdometerKm("");
+      setSelectedOldGoldVoucherId("");
+      setOldGoldDeductionAmount(0);
+      setSelectedKittySchemeId("");
+      setKittyDeductionAmount(0);
+      setCustomerPanNumber("");
       loadData();
     } catch (err: any) {
       const errorMsg = 
@@ -1608,12 +2894,16 @@ function TenantInvoicesPageContent() {
     }
   };
 
-  const getPaymentBadge = (status: number) => {
+  const getPaymentBadge = (status: number, balanceAmount?: number) => {
+    if (balanceAmount !== undefined && balanceAmount <= 0) {
+      return <Badge variant="success" dot size="sm">Paid</Badge>;
+    }
     switch (status) {
-      case 2:
+      case 3:
         return <Badge variant="success" dot size="sm">Paid</Badge>;
-      case 1:
+      case 2:
         return <Badge variant="warning" dot size="sm">Partial</Badge>;
+      case 1:
       default:
         return <Badge variant="danger" dot size="sm">Unpaid</Badge>;
     }
@@ -1637,6 +2927,7 @@ function TenantInvoicesPageContent() {
           <LaunchTourButton
             onClick={() => {
               setIsDrawerOpen(true);
+              setIsTourManuallyTriggered(true);
               setTimeout(() => setIsTourOpen(true), 300);
             }}
           />
@@ -1668,6 +2959,14 @@ function TenantInvoicesPageContent() {
               className="w-full pl-9 pr-4 py-1.5 bg-surface-elevated/40 border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </div>
+        </div>
+
+        {/* Date Range Dropdown Filter */}
+        <div className="shrink-0">
+          <DateRangeFilterDropdown
+            initialPreset="this_month"
+            onChange={(range) => setSelectedDateRange(range)}
+          />
         </div>
       </div>
 
@@ -1716,7 +3015,7 @@ function TenantInvoicesPageContent() {
                       {inv.isCancelled ? (
                         <Badge variant="danger" dot size="sm">Cancelled</Badge>
                       ) : (
-                        getPaymentBadge(inv.paymentStatus)
+                        getPaymentBadge(inv.paymentStatus, inv.balanceAmount)
                       )}
                     </div>
                   </div>
@@ -1788,6 +3087,40 @@ function TenantInvoicesPageContent() {
                   </div>
                 </div>
               ))}
+
+              {/* Mobile Grand Totals Summary Card */}
+              {invoices.length > 0 && (
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/90 border-t-2 border-border space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                    <span className="uppercase tracking-wider flex items-center gap-1.5">
+                      <span>Total</span>
+                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[11px] font-mono font-bold">
+                        {invoiceTotals.count} {invoiceTotals.count === 1 ? "Invoice" : "Invoices"}
+                      </span>
+                    </span>
+                    <span className="text-xs font-mono font-bold text-foreground">
+                      Taxable: ₹{invoiceTotals.totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface border border-border">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block leading-none mb-0.5">Total Amount</span>
+                      <span className="text-base font-black text-emerald-500 font-mono">
+                        ₹{invoiceTotals.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                        Paid: ₹{invoiceTotals.totalPaid.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-rose-500 font-bold block leading-none mb-0.5">Balance Due</span>
+                      <span className="text-sm font-black text-rose-500 font-mono">
+                        ₹{invoiceTotals.totalDue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Desktop 9-Column ERP Table */}
@@ -1867,7 +3200,7 @@ function TenantInvoicesPageContent() {
                           {inv.isCancelled ? (
                             <Badge variant="danger" dot size="sm">Cancelled</Badge>
                           ) : (
-                            getPaymentBadge(inv.paymentStatus)
+                            getPaymentBadge(inv.paymentStatus, inv.balanceAmount)
                           )}
                           {inv.hasCreditNote && (
                             <span
@@ -1895,6 +3228,50 @@ function TenantInvoicesPageContent() {
                     </tr>
                   ))}
                 </tbody>
+                {invoices.length > 0 && (
+                  <tfoot className="bg-slate-100/90 dark:bg-slate-900/95 font-bold border-t-2 border-slate-300 dark:border-slate-700 text-xs text-foreground sticky bottom-0 z-10 backdrop-blur-xs">
+                    <tr>
+                      <td className="py-3.5 px-4" colSpan={4}>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-xs uppercase tracking-wider text-foreground">
+                            TOTAL
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-xs font-mono font-bold">
+                            {invoiceTotals.count} {invoiceTotals.count === 1 ? "Invoice" : "Invoices"}
+                          </span>
+                          {invoiceTotals.cancelledCount > 0 && (
+                            <span className="text-[10px] text-rose-500 font-semibold">
+                              ({invoiceTotals.cancelledCount} Cancelled excluded)
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-foreground">
+                        ₹{invoiceTotals.totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono">
+                        <div className="font-black text-success text-sm">
+                          ₹{invoiceTotals.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                          Paid: ₹{invoiceTotals.totalPaid.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className={`text-[11px] font-bold ${invoiceTotals.totalDue > 0 ? "text-danger" : "text-muted-foreground"}`}>
+                          Due: ₹{invoiceTotals.totalDue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-black text-danger text-sm">
+                        ₹{invoiceTotals.totalDue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold">
+                          {invoiceTotals.totalDue === 0 && invoiceTotals.totalAmount > 0 ? "Settled" : "—"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4"></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </>
@@ -2008,75 +3385,139 @@ function TenantInvoicesPageContent() {
                 {/* Row 1: Party / Customer Selection + Date & Branch */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[300px]">
-                    <div className="flex items-center space-x-1.5 flex-1 min-w-[220px] max-w-[380px]">
-                      <select
-                        value={selectedCustomerId}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSelectedCustomerId(val);
-                          const found = customers.find((c) => c.id === val);
-                          if (found) {
-                            setCustomerName(found.legalName);
-                            setCustomerPhone(found.mobile || found.primaryPhone || "");
-                            setCustomerGstin(found.gstin || "");
-                            const dl = (found as any).drugLicenseNumber1 || (found as any).dlNumber || "";
-                            setCustomerDlNumber(dl);
-                            const addr = found.tradeName || (found as any).billingAddress?.addressLine1 || "";
-                            setBillingAddress(addr);
-                            if (isSameAsBilling) {
-                              setShippingAddress(addr);
-                            }
-                            const derivedCode = (found.gstin && found.gstin.length >= 2 && /^\d{2}/.test(found.gstin))
-                              ? found.gstin.slice(0, 2)
-                              : (found.stateCode || "");
-                            setBillingStateCode(derivedCode);
-
-                            const cType = Number((found as any).customerType);
-                            if (cType === 4) {
-                              if (hasPharmaAddon) setPharmaTradeTier("company_to_stockist");
-                              setBillingMode("b2b");
-                            } else if (cType === 1 || found.gstin) {
-                              if (hasPharmaAddon) setPharmaTradeTier("stockist_to_chemist");
-                              setBillingMode("b2b");
-                            } else if (cType === 2 || cType === 3 || cType === 8) {
-                              if (hasPharmaAddon) setPharmaTradeTier("chemist_to_patient");
-                            } else if (hasPharmaAddon) {
-                              const nameLower = found.legalName.toLowerCase();
-                              if (nameLower.includes("distributor") || nameLower.includes("stockist")) {
-                                setPharmaTradeTier("company_to_stockist");
-                                setBillingMode("b2b");
-                              } else if (dl || nameLower.includes("chemist") || nameLower.includes("pharmacy") || nameLower.includes("medical")) {
-                                setPharmaTradeTier("stockist_to_chemist");
-                                setBillingMode("b2b");
-                              } else {
-                                setPharmaTradeTier("chemist_to_patient");
-                              }
-                            }
-                          } else {
-                            setCustomerName("");
-                            setCustomerPhone("");
-                            setCustomerGstin("");
-                            setCustomerDlNumber("");
-                            setBillingAddress("");
-                            setShippingAddress("");
-                            setBillingStateCode("");
-                            if (hasPharmaAddon) {
-                              setPharmaTradeTier("chemist_to_patient");
-                            }
-                          }
+                    <div ref={customerDropdownRef} className="relative flex items-center space-x-1.5 flex-1 min-w-[220px] max-w-[380px]">
+                      {/* Searchable Dropdown Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomerDropdownOpen((prev) => !prev);
+                          setTimeout(() => customerSearchInputRef.current?.focus(), 50);
                         }}
-                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 font-medium shadow-2xs"
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 font-medium shadow-2xs text-left cursor-pointer"
+                        title="Click to select or search customer"
                       >
-                        <option value="">-- One-time Walk-in Customer --</option>
-                        {customers.map((c) => {
-                          const typeTag = c.customerType === 1 ? "[B2B]" : c.customerType === 2 ? "[B2C]" : c.customerType === 8 ? "[D2C]" : c.customerType === 4 ? "[Wholesale]" : c.customerType === 3 ? "[Retail]" : "";
-                          return (
-                            <option key={c.id} value={c.id}>
-                              {typeTag ? `${typeTag} ` : ""}{c.code} - {c.legalName} ({c.primaryPhone || c.mobile || "No Phone"}) {c.gstin ? `[${c.gstin}]` : ""}
-                            </option>
-                          );
-                        })}
-                      </select>
+                        <span className="truncate pr-1">
+                          {selectedCustomer ? (
+                            <span className="font-semibold text-slate-900 dark:text-white">
+                              {selectedCustomer.code ? `${selectedCustomer.code} - ` : ""}{selectedCustomer.legalName}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 dark:text-slate-400">-- One-time Walk-in Customer --</span>
+                          )}
+                        </span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isCustomerDropdownOpen ? "rotate-180" : ""}`} />
+                      </button>
+
+                      {/* Searchable Dropdown Popover */}
+                      {isCustomerDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-1 z-50 w-full sm:min-w-[360px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col">
+                          {/* Search Input Bar at top */}
+                          <div className="p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center gap-2">
+                            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <input
+                              ref={customerSearchInputRef}
+                              type="text"
+                              placeholder="Search customer name, phone, code..."
+                              value={customerSearchQuery}
+                              onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                              className="w-full bg-transparent text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none font-medium"
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                  setIsCustomerDropdownOpen(false);
+                                } else if (e.key === "Enter" && filteredCustomers.length > 0) {
+                                  e.preventDefault();
+                                  handleSelectCustomer(filteredCustomers[0].id);
+                                  setIsCustomerDropdownOpen(false);
+                                  setCustomerSearchQuery("");
+                                }
+                              }}
+                            />
+                            {customerSearchQuery && (
+                              <button
+                                type="button"
+                                onClick={() => setCustomerSearchQuery("")}
+                                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1 cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Scrollable Customer List */}
+                          <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                            {/* Walk-in option */}
+                            <div
+                              onClick={() => {
+                                handleSelectCustomer("");
+                                setIsCustomerDropdownOpen(false);
+                                setCustomerSearchQuery("");
+                              }}
+                              className={`p-2.5 cursor-pointer transition-colors hover:bg-orange-50 dark:hover:bg-orange-950/40 flex items-center justify-between ${
+                                !selectedCustomerId ? "bg-orange-50 dark:bg-orange-950/50 text-orange-600 font-bold" : "text-slate-600 dark:text-slate-400"
+                              }`}
+                            >
+                              <span>-- One-time Walk-in Customer --</span>
+                              {!selectedCustomerId && <CheckCircle2 className="w-3.5 h-3.5 text-orange-600 shrink-0" />}
+                            </div>
+
+                            {filteredCustomers.map((c) => {
+                              const typeTag = c.customerType === 1 ? "B2B" : c.customerType === 2 ? "B2C" : c.customerType === 8 ? "D2C" : c.customerType === 4 ? "Wholesale" : c.customerType === 3 ? "Retail" : "";
+                              const isSelected = selectedCustomerId === c.id;
+                              const phone = c.primaryPhone || c.mobile;
+                              return (
+                                <div
+                                  key={c.id}
+                                  onClick={() => {
+                                    handleSelectCustomer(c.id);
+                                    setIsCustomerDropdownOpen(false);
+                                    setCustomerSearchQuery("");
+                                  }}
+                                  className={`p-2.5 cursor-pointer transition-colors hover:bg-orange-50 dark:hover:bg-orange-950/40 flex flex-col gap-0.5 ${
+                                    isSelected ? "bg-orange-50/80 dark:bg-orange-950/60 text-orange-900 dark:text-orange-200" : "text-slate-800 dark:text-slate-200"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <span className="font-semibold text-slate-900 dark:text-white truncate">
+                                      {c.code ? <span className="font-mono text-slate-500 mr-1.5 text-[11px]">{c.code}</span> : null}
+                                      {c.legalName}
+                                    </span>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {typeTag && (
+                                        <span className="text-[10px] px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded font-medium">
+                                          {typeTag}
+                                        </span>
+                                      )}
+                                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-orange-600 shrink-0" />}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-x-2 text-[10.5px] text-slate-500 dark:text-slate-400 font-mono">
+                                    {phone && <span>Ph: {phone}</span>}
+                                    {c.gstin && <span className="text-orange-600 dark:text-orange-400 font-semibold">GST: {c.gstin}</span>}
+                                    {(c as any).dlNumber && <span>DL: {(c as any).dlNumber}</span>}
+                                    {c.stateCode && <span>State: {c.stateCode}</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {filteredCustomers.length === 0 && (
+                              <div className="p-4 text-center text-xs text-slate-500">
+                                <p>No customer found matching &ldquo;{customerSearchQuery}&rdquo;</p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsCustomerDropdownOpen(false);
+                                    setIsAddCustomerModalOpen(true);
+                                  }}
+                                  className="mt-2 text-xs font-bold text-orange-600 hover:text-orange-700 underline cursor-pointer"
+                                >
+                                  + Add New Customer &ldquo;{customerSearchQuery}&rdquo;
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       <button
                         type="button"
@@ -2258,36 +3699,103 @@ function TenantInvoicesPageContent() {
                       </button>
                     )}
 
-                    {/* Hardware Tier */}
-                    {isHardware && (
-                      <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-amber-500/40 text-[11px] shadow-2xs">
+                    {/* Garments & Footwear Specialization Indicator & Rate Tier */}
+                    {isGarments && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-[11px] font-bold text-rose-800 dark:text-rose-300 shadow-2xs">
+                          <span>{isFootwearStore ? "👞 Footwear Mode" : isClothingStore ? "👗 Garments Mode" : "🛍️ Apparel & Footwear"}</span>
+                        </div>
+                        <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-rose-500/40 text-[11px] shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchGeneralTradeTier("wholesale")}
+                            className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                              generalTradeTier === "wholesale" ? "bg-rose-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
+                            }`}
+                            title="Wholesale Rate (minimumSellingPrice / variant wholesalePrice)"
+                          >
+                            📦 Wholesale
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchGeneralTradeTier("retail")}
+                            className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                              generalTradeTier === "retail" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
+                            }`}
+                            title="Retail Rate (sellingPrice)"
+                          >
+                            🏪 Retail
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Universal Multi-Industry Trade Tier (General Trading, Auto Parts, Sweets, Jewellery, Services, Other) */}
+                    {!isPharma && !isHardware && !isElectronics && !isFmcg && !isGarments && (
+                      <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-orange-500/40 text-[11px] shadow-2xs">
                         <button
                           type="button"
-                          onClick={() => setHardwareTradeTier("builder_contractor")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            hardwareTradeTier === "builder_contractor" ? "bg-amber-600 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchGeneralTradeTier("wholesale")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            generalTradeTier === "wholesale" ? "bg-orange-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
-                        >
-                          🏗️ Builder
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setHardwareTradeTier("wholesale")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            hardwareTradeTier === "wholesale" ? "bg-orange-600 text-white" : "text-slate-600 dark:text-slate-400"
-                          }`}
+                          title="Wholesale Rate (minimumSellingPrice)"
                         >
                           📦 Wholesale
                         </button>
                         <button
                           type="button"
-                          onClick={() => setHardwareTradeTier("retail_counter")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            hardwareTradeTier === "retail_counter" ? "bg-emerald-600 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchGeneralTradeTier("retail")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            generalTradeTier === "retail" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
+                          title="Retail Rate (sellingPrice)"
                         >
                           🏪 Retail
                         </button>
+                      </div>
+                    )}
+
+                    {/* Hardware Tier & Painter Tag */}
+                    {isHardware && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-amber-500/40 text-[11px] shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchHardwareTradeTier("builder_contractor")}
+                            className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                              hardwareTradeTier === "builder_contractor" ? "bg-amber-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
+                            }`}
+                          >
+                            🏗️ Builder
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchHardwareTradeTier("wholesale")}
+                            className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                              hardwareTradeTier === "wholesale" ? "bg-orange-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
+                            }`}
+                          >
+                            📦 Wholesale
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchHardwareTradeTier("retail_counter")}
+                            className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                              hardwareTradeTier === "retail_counter" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
+                            }`}
+                          >
+                            🏪 Retail
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder={isPureHardwareStore ? "🔨 Plumber / Carpenter / Contractor" : isPurePaintStore ? "🎨 Painter / Contractor" : "🛠️ Contractor / Painter"}
+                          value={contractorName}
+                          onChange={(e) => setContractorName(e.target.value)}
+                          className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded-lg text-xs text-amber-900 dark:text-amber-200 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 h-6 w-48"
+                          title="Contractor / Karigar name for referral commission & site delivery"
+                        />
                       </div>
                     )}
 
@@ -2296,27 +3804,27 @@ function TenantInvoicesPageContent() {
                       <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-orange-500/40 text-[11px] shadow-2xs">
                         <button
                           type="button"
-                          onClick={() => setElectronicsTradeTier("distributor_to_dealer")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            electronicsTradeTier === "distributor_to_dealer" ? "bg-orange-500 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchElectronicsTradeTier("distributor_to_dealer")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            electronicsTradeTier === "distributor_to_dealer" ? "bg-orange-500 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           🚚 Dist ➔ Dealer
                         </button>
                         <button
                           type="button"
-                          onClick={() => setElectronicsTradeTier("dealer_to_retail")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            electronicsTradeTier === "dealer_to_retail" ? "bg-teal-600 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchElectronicsTradeTier("dealer_to_retail")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            electronicsTradeTier === "dealer_to_retail" ? "bg-teal-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           🏬 Dealer ➔ Retail
                         </button>
                         <button
                           type="button"
-                          onClick={() => setElectronicsTradeTier("retail_consumer")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            electronicsTradeTier === "retail_consumer" ? "bg-emerald-600 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchElectronicsTradeTier("retail_consumer")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            electronicsTradeTier === "retail_consumer" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           👤 Retail
@@ -2329,27 +3837,27 @@ function TenantInvoicesPageContent() {
                       <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-0.5 border border-yellow-500/40 text-[11px] shadow-2xs">
                         <button
                           type="button"
-                          onClick={() => setFmcgTradeTier("super_stockist")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            fmcgTradeTier === "super_stockist" ? "bg-amber-600 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchFmcgTradeTier("super_stockist")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            fmcgTradeTier === "super_stockist" ? "bg-amber-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           🏭 Super Stockist
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFmcgTradeTier("distributor_to_retailer")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            fmcgTradeTier === "distributor_to_retailer" ? "bg-yellow-600 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchFmcgTradeTier("distributor_to_retailer")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            fmcgTradeTier === "distributor_to_retailer" ? "bg-yellow-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           🚚 Distributor
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFmcgTradeTier("retailer_to_consumer")}
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            fmcgTradeTier === "retailer_to_consumer" ? "bg-emerald-600 text-white" : "text-slate-600 dark:text-slate-400"
+                          onClick={() => handleSwitchFmcgTradeTier("retailer_to_consumer")}
+                          className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                            fmcgTradeTier === "retailer_to_consumer" ? "bg-emerald-600 text-white shadow-2xs" : "text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           🛒 Retailer
@@ -2574,25 +4082,10 @@ function TenantInvoicesPageContent() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && quickProductSearch.trim()) {
                           e.preventDefault();
-                          const q = quickProductSearch.trim().toLowerCase();
-                          const matches = items.filter(
-                            (item) =>
-                              (item.name || "").toLowerCase().includes(q) ||
-                              (item.sku || "").toLowerCase().includes(q) ||
-                              (item.barcode || "").toLowerCase().includes(q)
-                          );
+                          const matches = filterItemsWithSmartSearch(items, quickProductSearch.trim(), 10);
                           if (matches.length > 0) {
                             const selectedItem = matches[0];
-                            const currentLen = invoiceLines.length;
-                            handleAddLineWithItem(selectedItem);
-                            setQuickProductSearch("");
-                            setTimeout(() => {
-                              const nextQty = document.getElementById(`line-qty-${currentLen}`);
-                              if (nextQty) {
-                                (nextQty as HTMLInputElement).focus();
-                                (nextQty as HTMLInputElement).select();
-                              }
-                            }, 120);
+                            handleItemPickedFromSearch(selectedItem);
                           }
                         }
                       }}
@@ -2608,97 +4101,81 @@ function TenantInvoicesPageContent() {
                       </button>
                     )}
 
-                    {/* Dropdown popup with matching products and their batch count */}
-                    {quickProductSearch.trim().length > 0 && (
-                      <div className="quick-search-dropdown absolute z-50 top-full mt-1.5 left-0 right-0 max-h-80 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xl divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in">
-                        {items
-                          .filter(
-                            (item) =>
-                              (item.name || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
-                              (item.sku || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
-                              (item.barcode || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase())
-                          )
-                          .slice(0, 15)
-                          .map((item) => (
+                    {/* Dropdown popup with smart fuzzy/synonym matching products */}
+                    {quickProductSearch.trim().length > 0 && (() => {
+                      const matchedItems = filterItemsWithSmartSearch(items, quickProductSearch.trim(), 20);
+                      return (
+                        <div className="quick-search-dropdown absolute z-50 top-full mt-1.5 left-0 right-0 max-h-80 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xl divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in">
+                          {matchedItems.map((item) => (
                             <div
                               key={item.id}
                               onClick={() => {
-                                handleAddLineWithItem(item);
-                                setQuickProductSearch("");
+                                handleItemPickedFromSearch(item);
                               }}
-                              className="dropdown-item-row p-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 cursor-pointer transition-colors group flex items-center justify-between gap-3"
+                              className="dropdown-item-row py-2 px-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 cursor-pointer transition-colors group flex items-center justify-between gap-3"
                             >
                               <div className="flex-1 min-w-0">
-                                <div className="product-name font-bold text-slate-900 dark:text-white text-sm group-hover:text-orange-600 dark:group-hover:text-orange-400 flex items-center space-x-2">
-                                  <span className="font-extrabold text-slate-900 dark:text-white">{item.name}</span>
+                                <div className="product-name font-semibold text-slate-900 dark:text-white text-xs group-hover:text-orange-600 dark:group-hover:text-orange-400 flex items-center space-x-2">
+                                  <span className="font-bold text-slate-900 dark:text-white">{item.name}</span>
                                   {item.sku && (
-                                    <span className="product-sku text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-semibold border border-slate-200 dark:border-slate-700">
+                                    <span className="product-sku text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-semibold border border-slate-200 dark:border-slate-700">
                                       {item.sku}
                                     </span>
                                   )}
                                 </div>
-                                <div className="product-meta text-xs text-slate-600 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <div className="product-meta text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                                   <span>
                                     MRP: <strong className="text-slate-800 dark:text-slate-200 font-mono font-semibold">₹{item.mrp || 0}</strong>
                                   </span>
                                   <span>
                                     Rate: <strong className="rate-value text-emerald-700 dark:text-emerald-400 font-mono font-bold">₹{item.sellingPrice || item.mrp || 0}</strong>
                                   </span>
-                                  {item.hsnCode && <span className="bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded text-[11px] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">HSN: {item.hsnCode}</span>}
-                                  {item.taxRate !== undefined && <span className="bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded text-[11px] font-bold">GST {item.taxRate}%</span>}
+                                  {item.hsnCode && <span className="bg-slate-100 dark:bg-slate-800/80 px-1 py-0.2 rounded text-[10px] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">HSN: {item.hsnCode}</span>}
+                                  {item.taxRate !== undefined && <span className="bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 px-1 py-0.2 rounded text-[10px] font-bold">GST {item.taxRate}%</span>}
                                 </div>
                               </div>
                               <button
                                 type="button"
-                                className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all shrink-0 cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold shadow-xs hover:shadow-md transition-all shrink-0 cursor-pointer"
                               >
-                                {hasBatchTracking ? "+ Add & Autofill Batch" : "+ Add Item"}
+                                {hasBatchTracking ? "+ Add & Autofill" : "+ Add Item"}
                               </button>
                             </div>
                           ))}
 
-                        {items.filter(
-                          (item) =>
-                            (item.name || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
-                            (item.sku || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
-                            (item.barcode || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase())
-                        ).length > 0 && (
-                          <div
-                            onClick={() => handleOpenAddProductModal(quickProductSearch)}
-                            className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 cursor-pointer transition-colors border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-emerald-700 dark:text-emerald-300 text-xs font-bold"
-                          >
-                            <span className="flex items-center space-x-1.5">
-                              <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                              <span>Naya Product Banayein: &quot;{quickProductSearch}&quot;</span>
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-semibold">
-                              + Create New Item
-                            </span>
-                          </div>
-                        )}
-
-                        {items.filter(
-                          (item) =>
-                            (item.name || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
-                            (item.sku || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase()) ||
-                            (item.barcode || "").toLowerCase().includes(quickProductSearch.trim().toLowerCase())
-                        ).length === 0 && (
-                          <div className="p-4 text-center space-y-2.5 bg-white dark:bg-slate-950">
-                            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                              Product list me &quot;<strong className="text-slate-900 dark:text-white">{quickProductSearch}</strong>&quot; nahi mila.
-                            </p>
-                            <button
-                              type="button"
+                          {matchedItems.length > 0 && (
+                            <div
                               onClick={() => handleOpenAddProductModal(quickProductSearch)}
-                              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all active:scale-95 cursor-pointer"
+                              className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 cursor-pointer transition-colors border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-emerald-700 dark:text-emerald-300 text-xs font-bold"
                             >
-                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                              <span>+ Naya Product Add Karein (&quot;{quickProductSearch}&quot;)</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                              <span className="flex items-center space-x-1.5">
+                                <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <span>Naya Product Banayein: &quot;{quickProductSearch}&quot;</span>
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-semibold">
+                                + Create New Item
+                              </span>
+                            </div>
+                          )}
+
+                          {matchedItems.length === 0 && (
+                            <div className="p-4 text-center space-y-2.5 bg-white dark:bg-slate-950">
+                              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                Product list me &quot;<strong className="text-slate-900 dark:text-white">{quickProductSearch}</strong>&quot; nahi mila.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAddProductModal(quickProductSearch)}
+                                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all active:scale-95 cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>+ Naya Product Add Karein (&quot;{quickProductSearch}&quot;)</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-start">
@@ -2744,8 +4221,98 @@ function TenantInvoicesPageContent() {
                       <Plus className="w-4 h-4" />
                       <span>+ Add Row</span>
                     </button>
+
+                    {isHardware && !showHardwareDimensions && (
+                      <button
+                        type="button"
+                        onClick={() => setForceShowDimensions(true)}
+                        className="flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap transition-all cursor-pointer shadow-xs"
+                        title="Click to show Dimensions (L x W) and Rate Basis columns"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Dimensions</span>
+                      </button>
+                    )}
+
+                    {isGarments && (
+                      <button
+                        type="button"
+                        onClick={() => setIsGarmentsSetModalOpen(true)}
+                        className="flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 rounded-lg border border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-xs font-bold flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap transition-all cursor-pointer shadow-xs"
+                        title="Add Box Set Ratio (e.g. S:1, M:2, L:2, XL:1) for Wholesale"
+                      >
+                        <Boxes className="w-3.5 h-3.5" />
+                        <span>📦 Set / Ratio Box</span>
+                      </button>
+                    )}
+
+                    {(isSweetsBakery || isFmcg || isOther) && (
+                      <button
+                        type="button"
+                        onClick={() => handleReadWeighingScale()}
+                        disabled={isReadingScale}
+                        className="flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                        title="Read live weight from USB/Serial Weighing Scale (Essae, Phoenix, CAS)"
+                      >
+                        <Scale className={`w-3.5 h-3.5 ${isReadingScale ? "animate-spin" : ""}`} />
+                        <span>{isReadingScale ? "Reading..." : "⚖️ Read Scale"}</span>
+                      </button>
+                    )}
+
+                    {scaleReadingToast && (
+                      <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-lg animate-in fade-in">
+                        {scaleReadingToast}
+                      </span>
+                    )}
                   </div>
                 </div>
+
+                {/* Jewellery Live Metal Rates Strip & Quick Actions */}
+                {isJewellery && (
+                  <div className="p-2 sm:px-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 border border-amber-500/30 shrink-0 animate-in fade-in flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        ✨ Today&apos;s Metal Board:
+                      </span>
+                      {todayMetalRates ? (
+                        <>
+                          <span className="text-slate-700 dark:text-slate-300">
+                            Gold 24K: <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold">₹{Math.round(todayMetalRates.gold24K_Per10g / 10)}/g</strong>
+                          </span>
+                          <span className="text-slate-700 dark:text-slate-300">
+                            Gold 22K (916): <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold">₹{Math.round(todayMetalRates.gold22K_Per10g / 10)}/g</strong>
+                          </span>
+                          <span className="text-slate-700 dark:text-slate-300">
+                            Gold 18K: <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold">₹{Math.round(todayMetalRates.gold18K_Per10g / 10)}/g</strong>
+                          </span>
+                          <span className="text-slate-700 dark:text-slate-300">
+                            Silver 999: <strong className="text-slate-800 dark:text-slate-200 font-mono font-bold">₹{Math.round(todayMetalRates.silver999_PerKg / 1000)}/g</strong>
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-amber-600 dark:text-amber-300/80 italic text-[11px]">
+                          Rates not set for today. Line items will use default rates.
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href="/app/jewellery/rates"
+                        target="_blank"
+                        className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-500 underline"
+                      >
+                        Update Daily Rates ↗
+                      </Link>
+                      <Link
+                        href="/app/jewellery/calculator"
+                        target="_blank"
+                        className="text-[11px] font-semibold text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 underline"
+                      >
+                        Jewellery Calc ↗
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
                 {/* Pharma Prescribing Doctor & Patient Record (Schedule H1 / CDSCO - Collapsible) */}
                 {isPharma && (isDoctorRxOpen || doctorName || doctorRegNumber || patientName) && (
@@ -2815,6 +4382,63 @@ function TenantInvoicesPageContent() {
                   </div>
                 )}
 
+                {/* Auto Parts Vehicle & Mechanic Job Card Section */}
+                {isAutoParts && (
+                  <div className="p-2.5 rounded-xl bg-slate-900/90 border border-sky-500/30 space-y-2 shrink-0 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">
+                          🚗 Vehicle Record &amp; Mistri Reference:
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-sky-950 text-sky-300 rounded border border-sky-800/40">Auto Parts Special</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5 font-medium">Vehicle Reg. No (e.g. MH02AB1234)</label>
+                        <input
+                          type="text"
+                          placeholder="MH 02 AB 1234"
+                          value={vehicleRegNo}
+                          onChange={(e) => setVehicleRegNo(e.target.value.toUpperCase())}
+                          className="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-sky-300 uppercase font-mono placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5 font-medium">Vehicle Model / Make</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Swift Dzire / Innova"
+                          value={vehicleModel}
+                          onChange={(e) => setVehicleModel(e.target.value)}
+                          className="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5 font-medium">Odometer (KM Reading)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 48,500"
+                          value={odometerKm}
+                          onChange={(e) => setOdometerKm(e.target.value)}
+                          className="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-0.5 font-medium">Mechanic / Mistri Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Rajesh Mistri"
+                          value={mechanicName}
+                          onChange={(e) => setMechanicName(e.target.value)}
+                          className="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* 3b. Mobile Line Items View (Catchy, Large Touch Targets, Self-Explanatory) */}
                 <div className="block lg:hidden space-y-2.5 pb-2">
                   {invoiceLines.length === 0 ? (
@@ -2867,6 +4491,43 @@ function TenantInvoicesPageContent() {
                                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                                 </button>
                               </div>
+                              {line.itemId && (
+                                <div className="mt-1.5 flex items-center bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                                  <span className="px-2 py-1 bg-slate-800 border-r border-slate-700 text-[10px] font-bold text-slate-300 shrink-0 flex items-center gap-1 select-none">
+                                    <Printer className="w-3 h-3 text-slate-400" />
+                                    <span>Print Name:</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    placeholder="Bill par print hone wala naam / narration..."
+                                    value={line.itemName || ""}
+                                    onChange={(e) => updateLineField(idx, "itemName", e.target.value)}
+                                    className="w-full px-2 py-1 bg-transparent text-xs text-white font-medium focus:outline-none"
+                                    title="Invoice print name / narration (Master stock me real product hi track hoga)"
+                                  />
+                                </div>
+                              )}
+                              {line.itemId && line.availableVariants && line.availableVariants.length > 0 && (
+                                <div className="mt-1.5 flex items-center bg-purple-950/40 border border-purple-500/40 rounded-lg p-1 gap-1.5">
+                                  <span className="text-[10px] font-bold text-purple-300 uppercase shrink-0">
+                                    Variant:
+                                  </span>
+                                  <select
+                                    value={line.variantId || ""}
+                                    onChange={(e) => handleVariantIdChange(idx, e.target.value)}
+                                    className="flex-1 bg-slate-900 border border-purple-500/30 rounded px-1.5 py-0.5 text-xs text-purple-200 font-semibold focus:outline-none cursor-pointer"
+                                  >
+                                    {line.availableVariants.map((v) => {
+                                      const vLabel = [v.size, v.color].filter(Boolean).join(" - ") || v.variantName || v.variantSku;
+                                      return (
+                                        <option key={v.id} value={v.id}>
+                                          {vLabel} (Rate: ₹{v.sellingPrice || line.unitPrice} | Stk: {v.currentStock ?? 0})
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </div>
+                              )}
                             </div>
                           </div>
                           <button
@@ -2879,9 +4540,33 @@ function TenantInvoicesPageContent() {
                           </button>
                         </div>
 
-                        {/* Pharma/Batch / Expiry / IMEI details if applicable */}
-                        {(hasBatchTracking || isElectronics) && (
+                        {/* Pharma/Batch / Expiry / IMEI / Garments / Hardware / Jewellery details if applicable */}
+                        {(hasBatchTracking || isElectronics || isGarments || isHardware || isAutoParts || isJewellery) && (
                           <div className="grid grid-cols-2 gap-2 bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                            {isAutoParts && (
+                              <div className="col-span-2 grid grid-cols-2 gap-2 bg-sky-950/40 p-1.5 rounded border border-sky-800/40">
+                                <div>
+                                  <label className="text-[10px] text-sky-400 block font-bold mb-0.5">Part / OEM No</label>
+                                  <input
+                                    type="text"
+                                    placeholder="OEM No"
+                                    value={line.oemPartNumber || ""}
+                                    onChange={(e) => updateLineField(idx, "oemPartNumber", e.target.value)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-sky-500/30 rounded text-xs text-sky-200 font-mono"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-sky-400 block font-bold mb-0.5">Vehicle Fitment</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Model Fitment"
+                                    value={line.applicableVehicles || ""}
+                                    onChange={(e) => updateLineField(idx, "applicableVehicles", e.target.value)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-sky-500/30 rounded text-xs text-slate-200"
+                                  />
+                                </div>
+                              </div>
+                            )}
                             {hasBatchTracking && (
                               <div>
                                 <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Batch / Lot #</label>
@@ -2967,6 +4652,244 @@ function TenantInvoicesPageContent() {
                                 </div>
                               </div>
                             )}
+
+                            {isGarments && (() => {
+                              const lineVars = line.availableVariants || [];
+                              const hasVars = lineVars.length > 0;
+                              const sizes = Array.from(new Set(lineVars.map((v) => v.size?.trim()).filter((s): s is string => Boolean(s))));
+                              const colors = Array.from(
+                                new Set(
+                                  lineVars
+                                    .filter((v) => !line.size || v.size?.trim().toLowerCase() === line.size.trim().toLowerCase())
+                                    .map((v) => v.color?.trim())
+                                    .filter((c): c is string => Boolean(c))
+                                )
+                              );
+                              const dispColors = colors.length > 0
+                                ? colors
+                                : (Array.from(new Set(lineVars.map((v) => v.color?.trim()).filter((c): c is string => Boolean(c)))) as string[]);
+
+                              return (
+                                <div className="col-span-2 grid grid-cols-3 gap-2">
+                                  <div>
+                                    <label className="text-[10px] text-rose-400 block font-bold mb-0.5">
+                                      {isFootwearStore ? "Shoe Size" : "Size"}
+                                    </label>
+                                    {hasVars && sizes.length > 0 ? (
+                                      <select
+                                        value={line.size || ""}
+                                        onChange={(e) => handleVariantSizeChange(idx, e.target.value)}
+                                        className="w-full px-1.5 py-1 bg-slate-900 border border-rose-500/40 rounded text-xs text-rose-200 font-mono"
+                                      >
+                                        <option value="">Size...</option>
+                                        {sizes.map((s) => (
+                                          <option key={s} value={s}>{s}</option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        placeholder="M / 32"
+                                        value={line.size || ""}
+                                        onChange={(e) => updateLineField(idx, "size", e.target.value)}
+                                        className="w-full px-2 py-1 bg-slate-900 border border-rose-500/30 rounded text-xs text-rose-200 font-mono"
+                                      />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-rose-400 block font-bold mb-0.5">Color</label>
+                                    {hasVars && dispColors.length > 0 ? (
+                                      <select
+                                        value={line.color || ""}
+                                        onChange={(e) => handleVariantColorChange(idx, e.target.value)}
+                                        className="w-full px-1.5 py-1 bg-slate-900 border border-rose-500/40 rounded text-xs text-rose-200"
+                                      >
+                                        <option value="">Color...</option>
+                                        {dispColors.map((c) => {
+                                          const match = lineVars.find(
+                                            (v) =>
+                                              v.color?.trim().toLowerCase() === c.trim().toLowerCase() &&
+                                              (!line.size || v.size?.trim().toLowerCase() === line.size.trim().toLowerCase())
+                                          );
+                                          const stk = match?.currentStock !== undefined ? ` (${match.currentStock})` : "";
+                                          return (
+                                            <option key={c} value={c}>
+                                              {c}{stk}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        placeholder="Color"
+                                        value={line.color || ""}
+                                        onChange={(e) => updateLineField(idx, "color", e.target.value)}
+                                        className="w-full px-2 py-1 bg-slate-900 border border-rose-500/30 rounded text-xs text-rose-200"
+                                      />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-slate-400 block font-bold mb-0.5">
+                                      {isFootwearStore ? "Article No." : "Style"}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder={isFootwearStore ? "Article" : "Style"}
+                                      value={line.styleCode || ""}
+                                      onChange={(e) => updateLineField(idx, "styleCode", e.target.value)}
+                                      className="w-full px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200 font-mono"
+                                    />
+                                  </div>
+                                  {line.variantStock !== undefined && (
+                                    <div className="col-span-3 text-[10px] font-bold">
+                                      <span className={line.variantStock > 0 ? "text-emerald-400" : "text-rose-400"}>
+                                        📦 Stock Available: {line.variantStock} Pcs
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
+                            {isHardware && showPaintFields && (
+                              <div className="col-span-2 grid grid-cols-3 gap-2">
+                                <div>
+                                  <label className="text-[10px] text-purple-400 block font-bold mb-0.5">Shade / Color</label>
+                                  <input
+                                    type="text"
+                                    placeholder="0912 White"
+                                    value={line.shadeCode || ""}
+                                    onChange={(e) => updateLineField(idx, "shadeCode", e.target.value)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-purple-500/30 rounded text-xs text-purple-200 font-mono"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-blue-400 block font-bold mb-0.5">Pack Size</label>
+                                  <input
+                                    type="text"
+                                    placeholder="1L, 4L, 20L"
+                                    value={line.packSize || ""}
+                                    onChange={(e) => updateLineField(idx, "packSize", e.target.value)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-blue-500/30 rounded text-xs text-blue-200 font-mono"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Tinting Surcharge (₹)</label>
+                                  <input
+                                    type="number"
+                                    step="1"
+                                    placeholder="+₹0"
+                                    value={line.tintingCharge || ""}
+                                    onChange={(e) => updateLineField(idx, "tintingCharge", parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-amber-500/30 rounded text-xs text-amber-200 font-mono"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Jewellery Mobile Fields */}
+                            {isJewellery && (
+                              <div className="col-span-2 grid grid-cols-2 gap-2 bg-amber-950/30 p-2 rounded-lg border border-amber-500/30">
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Purity</label>
+                                  <select
+                                    value={line.purityKarat || "22K"}
+                                    onChange={(e) => updateLineField(idx, "purityKarat", e.target.value)}
+                                    className="w-full px-1.5 py-1 bg-slate-900 border border-amber-500/40 rounded text-xs text-amber-200 font-bold"
+                                  >
+                                    <option value="24K">24K (999)</option>
+                                    <option value="22K">22K (916)</option>
+                                    <option value="18K">18K (750)</option>
+                                    <option value="14K">14K (585)</option>
+                                    <option value="Silver">Silver</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Gross Wt (g)</label>
+                                  <input
+                                    type="number"
+                                    step="0.001"
+                                    placeholder="0.000"
+                                    value={line.grossWeightGrams ?? ""}
+                                    onChange={(e) => updateLineField(idx, "grossWeightGrams", parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-amber-500/30 rounded text-xs text-amber-200 font-mono text-center font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Stone Wt (g)</label>
+                                  <input
+                                    type="number"
+                                    step="0.001"
+                                    placeholder="0.000"
+                                    value={line.stoneWeightGrams ?? ""}
+                                    onChange={(e) => updateLineField(idx, "stoneWeightGrams", parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200 font-mono text-center"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Net Wt (g)</label>
+                                  <div className="w-full px-2 py-1 bg-amber-950/60 border border-amber-500/50 rounded text-xs text-amber-300 font-mono text-center font-black">
+                                    {Number(line.netWeightGrams || line.quantity || 0).toFixed(3)}g
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Metal Rate/g (₹)</label>
+                                  <input
+                                    type="number"
+                                    step="1"
+                                    placeholder="Rate/g"
+                                    value={line.metalRatePerGram ?? ""}
+                                    onChange={(e) => updateLineField(idx, "metalRatePerGram", parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-amber-500/30 rounded text-xs text-amber-200 font-mono text-right font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Making (घड़ाई)</label>
+                                  <div className="flex items-center space-x-1">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="Rate"
+                                      value={line.makingChargeRate ?? ""}
+                                      onChange={(e) => updateLineField(idx, "makingChargeRate", parseFloat(e.target.value) || 0)}
+                                      className="w-3/5 px-1 py-1 bg-slate-900 border border-amber-500/30 rounded text-xs text-amber-200 font-mono text-right font-bold"
+                                    />
+                                    <select
+                                      value={line.makingChargeType || "per_gram"}
+                                      onChange={(e) => updateLineField(idx, "makingChargeType", e.target.value)}
+                                      className="w-2/5 px-0.5 py-1 bg-slate-900 border border-amber-500/30 rounded text-[10px] text-amber-300 font-bold"
+                                    >
+                                      <option value="per_gram">/g</option>
+                                      <option value="percent">%</option>
+                                      <option value="flat">₹</option>
+                                    </select>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">Stone Amt (₹)</label>
+                                  <input
+                                    type="number"
+                                    step="1"
+                                    placeholder="0"
+                                    value={line.stoneAmount ?? ""}
+                                    onChange={(e) => updateLineField(idx, "stoneAmount", parseFloat(e.target.value) || 0)}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200 font-mono text-right"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-amber-400 block font-bold mb-0.5">BIS HUID</label>
+                                  <input
+                                    type="text"
+                                    maxLength={6}
+                                    placeholder="6-char HUID"
+                                    value={line.huid || ""}
+                                    onChange={(e) => updateLineField(idx, "huid", e.target.value.toUpperCase())}
+                                    className="w-full px-2 py-1 bg-slate-900 border border-amber-500/30 rounded text-xs text-amber-300 font-mono text-center font-bold uppercase tracking-wider"
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -3011,6 +4934,15 @@ function TenantInvoicesPageContent() {
                               onChange={(e) => updateLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
                               className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono font-bold focus:outline-none focus:border-orange-500"
                             />
+                            {line.lastDealHint?.unitPrice !== undefined && line.lastDealHint.unitPrice > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => updateLineField(idx, "unitPrice", line.lastDealHint!.unitPrice)}
+                                className="mt-0.5 text-[9px] font-bold text-emerald-400 hover:underline cursor-pointer block truncate"
+                              >
+                                Last: ₹{line.lastDealHint.unitPrice}
+                              </button>
+                            )}
                           </div>
 
                           {/* Disc % */}
@@ -3024,6 +4956,18 @@ function TenantInvoicesPageContent() {
                               onChange={(e) => updateLineField(idx, "discountValue", parseFloat(e.target.value) || 0)}
                               className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-amber-300 font-mono text-center focus:outline-none focus:border-orange-500"
                             />
+                            {line.lastDealHint?.discountPercent !== undefined && line.lastDealHint.discountPercent > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateLineField(idx, "discountType", "percent");
+                                  updateLineField(idx, "discountValue", line.lastDealHint!.discountPercent);
+                                }}
+                                className="mt-0.5 text-[9px] font-bold text-amber-400 hover:underline cursor-pointer block truncate"
+                              >
+                                Last: {line.lastDealHint.discountPercent}%
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -3084,13 +5028,22 @@ function TenantInvoicesPageContent() {
                         {isElectronics && <th className="px-1.5 py-1.5 w-16 text-orange-800 dark:text-orange-300 text-center bg-slate-100 dark:bg-slate-900/95">Warranty (M)</th>}
 
                         {/* Hardware Columns */}
-                        {isHardware && <th className="px-1.5 py-1.5 min-w-[130px] text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Dimensions</th>}
-                        {isHardware && <th className="px-1.5 py-1.5 w-20 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Rate Basis</th>}
+                        {isHardware && showHardwareDimensions && <th className="px-1.5 py-1.5 min-w-[130px] text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Dimensions</th>}
+                        {isHardware && showHardwareDimensions && <th className="px-1.5 py-1.5 w-20 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Rate Basis</th>}
+                        {isHardware && showPaintFields && <th className="px-1.5 py-1.5 min-w-[150px] text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Paint Shade &amp; Pack</th>}
 
-                        {/* Garments Columns */}
-                        {isGarments && <th className="px-1 py-1.5 w-14 text-rose-800 dark:text-rose-300 text-center bg-slate-100 dark:bg-slate-900/95">Size</th>}
-                        {isGarments && <th className="px-1 py-1.5 w-16 text-rose-800 dark:text-rose-300 text-center bg-slate-100 dark:bg-slate-900/95">Color</th>}
-                        {isGarments && <th className="px-1.5 py-1.5 min-w-[80px] text-rose-800 dark:text-rose-300 bg-slate-100 dark:bg-slate-900/95">Style</th>}
+                        {/* Garments & Footwear Columns */}
+                        {isGarments && (
+                          <th className="px-1 py-1.5 min-w-[75px] w-20 text-rose-800 dark:text-rose-300 text-center bg-slate-100 dark:bg-slate-900/95">
+                            {isFootwearStore ? "Shoe Size" : "Size"}
+                          </th>
+                        )}
+                        {isGarments && <th className="px-1 py-1.5 min-w-[105px] w-28 text-rose-800 dark:text-rose-300 text-center bg-slate-100 dark:bg-slate-900/95">Color</th>}
+                        {isGarments && (
+                          <th className="px-1.5 py-1.5 min-w-[85px] w-24 text-rose-800 dark:text-rose-300 bg-slate-100 dark:bg-slate-900/95">
+                            {isFootwearStore ? "Article No." : "Style"}
+                          </th>
+                        )}
 
                         {/* FMCG Columns */}
                         {isFmcg && <th className="px-1 py-1.5 w-16 text-emerald-800 dark:text-emerald-300 text-center bg-slate-100 dark:bg-slate-900/95">Cases</th>}
@@ -3099,6 +5052,26 @@ function TenantInvoicesPageContent() {
 
                         {/* Service Columns */}
                         {isService && <th className="px-1.5 py-1.5 min-w-[120px] text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Service Period</th>}
+
+                        {/* Auto Parts Columns */}
+                        {isAutoParts && <th className="px-1.5 py-1.5 min-w-[120px] text-sky-800 dark:text-sky-300 bg-slate-100 dark:bg-slate-900/95">Part / OEM No</th>}
+                        {isAutoParts && <th className="px-1.5 py-1.5 min-w-[140px] text-sky-800 dark:text-sky-300 bg-slate-100 dark:bg-slate-900/95">Vehicle Fitment</th>}
+                        {isAutoParts && <th className="px-1.5 py-1.5 min-w-[95px] text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Spec / Ratio</th>}
+                        {isAutoParts && <th className="px-1.5 py-1.5 min-w-[105px] text-sky-800 dark:text-sky-300 bg-slate-100 dark:bg-slate-900/95">Brand / Make</th>}
+
+                        {/* Jewellery Columns */}
+                        {isJewellery && (
+                          <>
+                            <th className="px-1 py-1.5 min-w-[70px] w-18 text-amber-800 dark:text-amber-300 text-center bg-slate-100 dark:bg-slate-900/95">Purity</th>
+                            <th className="px-1 py-1.5 min-w-[75px] w-20 text-amber-800 dark:text-amber-300 text-center bg-slate-100 dark:bg-slate-900/95">Gross Wt(g)</th>
+                            <th className="px-1 py-1.5 min-w-[70px] w-18 text-amber-800 dark:text-amber-300 text-center bg-slate-100 dark:bg-slate-900/95">Stone(g)</th>
+                            <th className="px-1 py-1.5 min-w-[75px] w-20 text-amber-800 dark:text-amber-300 text-center bg-slate-100 dark:bg-slate-900/95">Net Wt(g)</th>
+                            <th className="px-1.5 py-1.5 min-w-[85px] w-22 text-amber-800 dark:text-amber-300 text-right bg-slate-100 dark:bg-slate-900/95">Metal Rate/g</th>
+                            <th className="px-1.5 py-1.5 min-w-[95px] w-24 text-amber-800 dark:text-amber-300 text-right bg-slate-100 dark:bg-slate-900/95">Making (घड़ाई)</th>
+                            <th className="px-1.5 py-1.5 min-w-[75px] w-20 text-amber-800 dark:text-amber-300 text-right bg-slate-100 dark:bg-slate-900/95">Stone Amt</th>
+                            <th className="px-1 py-1.5 min-w-[85px] w-22 text-amber-800 dark:text-amber-300 text-center bg-slate-100 dark:bg-slate-900/95">BIS HUID</th>
+                          </>
+                        )}
 
                         <th className="px-1.5 py-1.5 min-w-[70px] w-20 text-center text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/95">HSN/SAC</th>
                         <th className="px-1.5 py-1.5 min-w-[65px] w-16 text-center text-orange-800 dark:text-orange-300 bg-slate-100 dark:bg-slate-900/95">Qty *</th>
@@ -3117,14 +5090,14 @@ function TenantInvoicesPageContent() {
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-slate-950">
                       {invoiceLines.map((line, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors h-8">
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                           {/* Row Index */}
                           <td className="p-0.5 text-center font-mono text-[10px] text-slate-500 dark:text-slate-400 font-bold align-middle">
                             {idx + 1}
                           </td>
 
                           {/* 1. Item Selection */}
-                          <td className="p-0.5 px-1 align-middle min-w-[190px]">
+                          <td className="p-0.5 px-1 align-middle min-w-[210px]">
                             <div className="flex items-center space-x-1">
                               <select
                                 value={line.itemId}
@@ -3156,6 +5129,109 @@ function TenantInvoicesPageContent() {
                                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                               </button>
                             </div>
+
+                            {/* Inline Print Name / Narration Override & Auto Parts Substitutes */}
+                            {line.itemId && (
+                              <div className="mt-1 flex flex-col gap-1">
+                                <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md shadow-2xs focus-within:border-orange-500 focus-within:ring-1 focus-within:ring-orange-500/30 overflow-hidden">
+                                  <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300 shrink-0 select-none flex items-center gap-1" title="Customer ke invoice par yahi naam print hoga (Physical stock real product se hi deduct hoga)">
+                                    <Printer className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
+                                    <span>Print Name:</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    placeholder="Bill par print hone wala naam / narration..."
+                                    value={line.itemName || ""}
+                                    onChange={(e) => updateLineField(idx, "itemName", e.target.value)}
+                                    className="w-full px-1.5 py-0.5 bg-transparent text-xs text-slate-900 dark:text-white font-medium focus:outline-none h-6"
+                                    title="Invoice par yahi naam print hoga (Master stock me real product hi track aur deduct hoga)"
+                                  />
+                                </div>
+
+                                {/* Auto Parts Substitutes Popover */}
+                                {isAutoParts && (() => {
+                                  const subs = getSubstitutesForLine(line);
+                                  if (subs.length === 0) return null;
+                                  return (
+                                    <div className="relative inline-block">
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveSubPopoverLineIdx(activeSubPopoverLineIdx === idx ? null : idx)}
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 hover:bg-sky-200 dark:bg-sky-950/80 dark:hover:bg-sky-900 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-700/60 transition-colors shadow-2xs cursor-pointer"
+                                        title="View compatible substitute brands / alternate parts"
+                                      >
+                                        <span>🔄 {subs.length} Substitute{subs.length > 1 ? "s" : ""}</span>
+                                      </button>
+
+                                      {activeSubPopoverLineIdx === idx && (
+                                        <div className="absolute z-50 left-0 top-full mt-1 w-72 bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-lg shadow-xl p-2 divide-y divide-slate-100 dark:divide-slate-800 text-left">
+                                          <div className="flex items-center justify-between pb-1.5 mb-1">
+                                            <span className="text-[11px] font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1">
+                                              <span>🔄 Compatible Substitutes</span>
+                                              <span className="text-[10px] font-normal text-slate-500 font-mono">({subs.length})</span>
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setActiveSubPopoverLineIdx(null)}
+                                              className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                          <div className="max-h-48 overflow-y-auto space-y-1.5 pt-1">
+                                            {subs.map((sub) => (
+                                              <div key={sub.id} className="p-1.5 rounded hover:bg-sky-50 dark:hover:bg-slate-800 border border-transparent hover:border-sky-200 dark:hover:border-sky-700 flex items-center justify-between gap-2">
+                                                <div className="min-w-0 flex-1">
+                                                  <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{sub.name}</div>
+                                                  <div className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                                    {sub.brand && <span className="bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 px-1 rounded font-semibold">{sub.brand}</span>}
+                                                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{sub.rate}</span>
+                                                    {sub.stock !== undefined && <span className="font-mono text-slate-600 dark:text-slate-400">Stk: {sub.stock}</span>}
+                                                  </div>
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    handleLineItemChange(idx, sub.id);
+                                                    setActiveSubPopoverLineIdx(null);
+                                                  }}
+                                                  className="px-2 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[10px] font-bold shrink-0 transition-transform active:scale-95 shadow-xs cursor-pointer"
+                                                  title="Replace line item with this substitute"
+                                                >
+                                                  Switch
+                                                </button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                                {line.availableVariants && line.availableVariants.length > 0 && (
+                                  <div className="flex items-center bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-500/30 rounded-md p-0.5 px-1 gap-1 mt-0.5">
+                                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase shrink-0">
+                                      Variant:
+                                    </span>
+                                    <select
+                                      value={line.variantId || ""}
+                                      onChange={(e) => handleVariantIdChange(idx, e.target.value)}
+                                      className="w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-500/40 rounded px-1.5 py-0.5 text-xs text-purple-900 dark:text-purple-200 font-semibold focus:outline-none h-6 cursor-pointer"
+                                    >
+                                      {line.availableVariants.map((v) => {
+                                        const vLabel = [v.size, v.color].filter(Boolean).join(" - ") || v.variantName || v.variantSku;
+                                        return (
+                                          <option key={v.id} value={v.id}>
+                                            {vLabel} (₹{v.sellingPrice || line.unitPrice} | Stk: {v.currentStock ?? 0})
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {(line.availableBatches?.length > 1 || line.batchNumber || customerDealHistoryMap[line.itemId]?.[0]) && (
                               <div className="flex items-center gap-1 mt-0.5 text-[9px] truncate max-w-[210px] leading-tight">
                                 {line.availableBatches && line.availableBatches.length > 1 ? (
@@ -3238,7 +5314,7 @@ function TenantInvoicesPageContent() {
                             <td className="p-0.5 px-1 align-middle w-16">
                               <input
                                 type="text"
-                                placeholder="10x10"
+                                placeholder={isPharma ? "10x10" : isFmcg ? "12x1L" : "Pack"}
                                 value={line.packing || ""}
                                 onChange={(e) => updateLineField(idx, "packing", e.target.value)}
                                 className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 text-center focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
@@ -3273,85 +5349,236 @@ function TenantInvoicesPageContent() {
                           )}
 
                           {/* Hardware: Dimensions (L x W) & Rate Basis */}
-                          {isHardware && (
+                          {isHardware && showHardwareDimensions && (
                             <td className="p-0.5 px-1 align-middle min-w-[130px]">
-                              <div className="flex items-center space-x-1">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="L"
-                                  value={line.dimLength || ""}
-                                  onChange={(e) => updateLineField(idx, "dimLength", parseFloat(e.target.value) || 0)}
-                                  className="w-1/2 px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-800 dark:text-amber-300 font-mono text-center focus:outline-none focus:border-amber-500 h-7 shadow-2xs font-medium"
-                                  title="Length in Feet"
-                                />
-                                <span className="text-slate-400">&times;</span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="W"
-                                  value={line.dimWidth || ""}
-                                  onChange={(e) => updateLineField(idx, "dimWidth", parseFloat(e.target.value) || 0)}
-                                  className="w-1/2 px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-800 dark:text-amber-300 font-mono text-center focus:outline-none focus:border-amber-500 h-7 shadow-2xs font-medium"
-                                  title="Width in Feet"
-                                />
-                              </div>
-                              {line.sqft ? (
-                                <div className="text-[9px] text-amber-600 dark:text-amber-400 font-mono text-center font-bold">
-                                  = {line.sqft} Sq.Ft
-                                </div>
-                              ) : null}
+                              {line.hasDimension ? (
+                                <>
+                                  <div className="flex items-center space-x-1">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="L"
+                                      value={line.dimLength || ""}
+                                      onChange={(e) => updateLineField(idx, "dimLength", parseFloat(e.target.value) || 0)}
+                                      className="w-1/2 px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-800 dark:text-amber-300 font-mono text-center focus:outline-none focus:border-amber-500 h-7 shadow-2xs font-medium"
+                                      title="Length in Feet"
+                                    />
+                                    <span className="text-slate-400">&times;</span>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="W"
+                                      value={line.dimWidth || ""}
+                                      onChange={(e) => updateLineField(idx, "dimWidth", parseFloat(e.target.value) || 0)}
+                                      className="w-1/2 px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-800 dark:text-amber-300 font-mono text-center focus:outline-none focus:border-amber-500 h-7 shadow-2xs font-medium"
+                                      title="Width in Feet"
+                                    />
+                                  </div>
+                                  {line.sqft ? (
+                                    <div className="text-[9px] text-amber-600 dark:text-amber-400 font-mono text-center font-bold">
+                                      = {line.sqft} Sq.Ft
+                                    </div>
+                                  ) : line.productDimension ? (
+                                    <div className="text-[9px] text-amber-700 dark:text-amber-400 font-mono text-center font-semibold truncate" title={line.productDimension}>
+                                      {line.productDimension}
+                                    </div>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => updateLineField(idx, "hasDimension", true)}
+                                  title="Click to add Dimensions for this item"
+                                  className="w-full text-slate-300 dark:text-slate-700 hover:text-amber-600 dark:hover:text-amber-400 text-xs font-mono block text-center py-1 cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-950/30 rounded transition-colors"
+                                >
+                                  —
+                                </button>
+                              )}
                             </td>
                           )}
-                          {isHardware && (
+                          {isHardware && showHardwareDimensions && (
                             <td className="p-0.5 px-1 align-middle w-20">
-                              <select
-                                value={line.rateBasis || "per_unit"}
-                                onChange={(e) => updateLineField(idx, "rateBasis", e.target.value)}
-                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/30 rounded text-xs text-amber-800 dark:text-amber-300 font-semibold h-7 shadow-2xs"
-                              >
-                                <option value="per_unit">Per Pcs</option>
-                                <option value="per_sqft">Per Sq.Ft</option>
-                                <option value="per_kg">Per Kg</option>
-                                <option value="per_running_ft">Per R.Ft</option>
-                              </select>
+                              {line.hasDimension ? (
+                                <select
+                                  value={line.rateBasis || "per_unit"}
+                                  onChange={(e) => updateLineField(idx, "rateBasis", e.target.value)}
+                                  className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/30 rounded text-xs text-amber-800 dark:text-amber-300 font-semibold h-7 shadow-2xs"
+                                >
+                                  <option value="per_unit">Per Pcs</option>
+                                  <option value="per_sqft">Per Sq.Ft</option>
+                                  <option value="per_kg">Per Kg</option>
+                                  <option value="per_running_ft">Per R.Ft</option>
+                                </select>
+                              ) : (
+                                <span className="text-slate-300 dark:text-slate-700 font-mono text-xs block text-center select-none">—</span>
+                              )}
+                            </td>
+                          )}
+                          {isHardware && showPaintFields && (
+                            <td className="p-0.5 px-1 align-middle min-w-[150px]">
+                              <div className="flex flex-col space-y-1">
+                                <div className="flex items-center space-x-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Shade (0912)"
+                                    value={line.shadeCode || ""}
+                                    onChange={(e) => updateLineField(idx, "shadeCode", e.target.value)}
+                                    className="w-1/2 px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-800 dark:text-amber-300 font-mono focus:outline-none focus:border-amber-500 h-6 shadow-2xs font-medium"
+                                    title="Shade Code or Color Name"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Pack (1L/4L)"
+                                    value={line.packSize || ""}
+                                    onChange={(e) => updateLineField(idx, "packSize", e.target.value)}
+                                    className="w-1/2 px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-800 dark:text-amber-300 font-mono text-center focus:outline-none focus:border-amber-500 h-6 shadow-2xs font-medium"
+                                    title="Pack Size (e.g. 1L, 4L, 10L, 20L, 50kg)"
+                                  />
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold shrink-0">Tint:</span>
+                                  <input
+                                    type="number"
+                                    step="1"
+                                    placeholder="+₹ Surcharge"
+                                    value={line.tintingCharge || ""}
+                                    onChange={(e) => updateLineField(idx, "tintingCharge", parseFloat(e.target.value) || 0)}
+                                    className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300/70 dark:border-amber-500/30 rounded text-[11px] text-amber-700 dark:text-amber-400 font-mono focus:outline-none focus:border-amber-500 h-5"
+                                    title="Machine Tinting / Colorant Surcharge (+₹)"
+                                  />
+                                </div>
+                              </div>
                             </td>
                           )}
 
                           {/* Garments: Size, Color, Style Code */}
-                          {isGarments && (
-                            <td className="p-0.5 px-1 align-middle">
-                              <input
-                                type="text"
-                                placeholder="M / 32"
-                                value={line.size || ""}
-                                onChange={(e) => updateLineField(idx, "size", e.target.value)}
-                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500/40 rounded text-xs text-rose-800 dark:text-rose-300 font-mono text-center focus:outline-none focus:border-rose-500 font-bold h-7 shadow-2xs"
-                              />
-                            </td>
-                          )}
-                          {isGarments && (
-                            <td className="p-0.5 px-1 align-middle">
-                              <input
-                                type="text"
-                                placeholder="Color"
-                                value={line.color || ""}
-                                onChange={(e) => updateLineField(idx, "color", e.target.value)}
-                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500/40 rounded text-xs text-rose-800 dark:text-rose-300 text-center focus:outline-none focus:border-rose-500 h-7 shadow-2xs font-medium"
-                              />
-                            </td>
-                          )}
-                          {isGarments && (
-                            <td className="p-0.5 px-1 align-middle">
-                              <input
-                                type="text"
-                                placeholder="Style Code"
-                                value={line.styleCode || ""}
-                                onChange={(e) => updateLineField(idx, "styleCode", e.target.value)}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono focus:outline-none focus:border-rose-500 h-7 shadow-2xs font-medium"
-                              />
-                            </td>
-                          )}
+                          {isGarments && (() => {
+                            const lineVariants = line.availableVariants || [];
+                            const hasVariants = lineVariants.length > 0;
+                            const availableSizes = Array.from(
+                              new Set(lineVariants.map((v) => v.size?.trim()).filter((s): s is string => Boolean(s)))
+                            );
+                            const availableColors = Array.from(
+                              new Set(
+                                lineVariants
+                                  .filter((v) => !line.size || v.size?.trim().toLowerCase() === line.size.trim().toLowerCase())
+                                  .map((v) => v.color?.trim())
+                                  .filter((c): c is string => Boolean(c))
+                              )
+                            );
+                            const displayColors = availableColors.length > 0
+                              ? availableColors
+                              : (Array.from(new Set(lineVariants.map((v) => v.color?.trim()).filter((c): c is string => Boolean(c)))) as string[]);
+
+                            return (
+                              <React.Fragment>
+                                {/* Size Cell */}
+                                <td className="p-0.5 px-1 align-middle min-w-[75px]">
+                                  {hasVariants && availableSizes.length > 0 ? (
+                                    <div className="flex flex-col">
+                                      <select
+                                        value={line.size || ""}
+                                        onChange={(e) => handleVariantSizeChange(idx, e.target.value)}
+                                        className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500/40 rounded text-xs text-rose-900 dark:text-rose-200 font-mono text-center font-bold focus:outline-none focus:border-rose-500 h-7 shadow-2xs cursor-pointer"
+                                      >
+                                        <option value="">Size...</option>
+                                        {availableSizes.map((sz) => (
+                                          <option key={sz} value={sz}>
+                                            {sz}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      placeholder={isFootwearStore ? "7 / 8 / 9" : isClothingStore ? "M / L / 32" : "Size"}
+                                      value={line.size || ""}
+                                      onChange={(e) => updateLineField(idx, "size", e.target.value)}
+                                      className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500/40 rounded text-xs text-rose-800 dark:text-rose-300 font-mono text-center focus:outline-none focus:border-rose-500 font-bold h-7 shadow-2xs"
+                                    />
+                                  )}
+                                </td>
+
+                                {/* Color Cell with Live Stock Badge underneath */}
+                                <td className="p-0.5 px-1 align-middle min-w-[105px]">
+                                  {hasVariants && displayColors.length > 0 ? (
+                                    <div className="flex flex-col">
+                                      <select
+                                        value={line.color || ""}
+                                        onChange={(e) => handleVariantColorChange(idx, e.target.value)}
+                                        className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500/40 rounded text-xs text-rose-900 dark:text-rose-200 text-center font-medium focus:outline-none focus:border-rose-500 h-7 shadow-2xs cursor-pointer"
+                                      >
+                                        <option value="">Color...</option>
+                                        {displayColors.map((col) => {
+                                          const match = lineVariants.find(
+                                            (v) =>
+                                              v.color?.trim().toLowerCase() === col.trim().toLowerCase() &&
+                                              (!line.size || v.size?.trim().toLowerCase() === line.size.trim().toLowerCase())
+                                          );
+                                          const stk = match?.currentStock !== undefined ? ` (${match.currentStock})` : "";
+                                          return (
+                                            <option key={col} value={col}>
+                                              {col}{stk}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                      {line.variantStock !== undefined && (
+                                        <div className="flex items-center justify-center mt-0.5">
+                                          <span
+                                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full leading-tight border flex items-center gap-0.5 whitespace-nowrap shadow-2xs ${
+                                              line.variantStock > 0
+                                                ? "bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                                                : "bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700"
+                                            }`}
+                                          >
+                                            <Package className="w-2.5 h-2.5 shrink-0" />
+                                            <span>{line.variantStock > 0 ? `Stock: ${line.variantStock} Pcs` : "0 Pcs (Out)"}</span>
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col">
+                                      <input
+                                        type="text"
+                                        placeholder="Color"
+                                        value={line.color || ""}
+                                        onChange={(e) => updateLineField(idx, "color", e.target.value)}
+                                        className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500/40 rounded text-xs text-rose-800 dark:text-rose-300 text-center focus:outline-none focus:border-rose-500 h-7 shadow-2xs font-medium"
+                                      />
+                                      {line.variantStock !== undefined && (
+                                        <div className="flex items-center justify-center mt-0.5">
+                                          <span
+                                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full leading-tight border flex items-center gap-0.5 whitespace-nowrap shadow-2xs ${
+                                              line.variantStock > 0
+                                                ? "bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                                                : "bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700"
+                                            }`}
+                                          >
+                                            <Package className="w-2.5 h-2.5 shrink-0" />
+                                            <span>{line.variantStock > 0 ? `Stock: ${line.variantStock} Pcs` : "0 Pcs (Out)"}</span>
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Style Code Cell */}
+                                <td className="p-0.5 px-1 align-middle min-w-[85px]">
+                                  <input
+                                    type="text"
+                                    placeholder={isFootwearStore ? "Article No." : "Style Code"}
+                                    value={line.styleCode || ""}
+                                    onChange={(e) => updateLineField(idx, "styleCode", e.target.value)}
+                                    className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono focus:outline-none focus:border-rose-500 h-7 shadow-2xs font-medium"
+                                  />
+                                </td>
+                              </React.Fragment>
+                            );
+                          })()}
 
                           {/* FMCG: Case Qty, Loose Pcs, Trade Scheme */}
                           {isFmcg && (
@@ -3406,6 +5633,174 @@ function TenantInvoicesPageContent() {
                             </td>
                           )}
 
+                          {/* Auto Parts: Part / OEM No & Fitment */}
+                          {isAutoParts && (
+                            <td className="p-0.5 px-1 align-middle min-w-[120px]">
+                              <input
+                                type="text"
+                                placeholder="OEM / Part No"
+                                value={line.oemPartNumber || ""}
+                                onChange={(e) => updateLineField(idx, "oemPartNumber", e.target.value)}
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded text-xs text-sky-700 dark:text-sky-300 font-mono focus:outline-none focus:border-sky-500 h-7 shadow-2xs font-semibold"
+                              />
+                            </td>
+                          )}
+                          {isAutoParts && (
+                            <td className="p-0.5 px-1 align-middle min-w-[140px]">
+                              <input
+                                type="text"
+                                placeholder="Vehicle / Model Fitment"
+                                value={line.applicableVehicles || ""}
+                                onChange={(e) => updateLineField(idx, "applicableVehicles", e.target.value)}
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500 h-7 shadow-2xs font-medium"
+                              />
+                            </td>
+                          )}
+                          {isAutoParts && (
+                            <td className="p-0.5 px-1 align-middle min-w-[95px]">
+                              <input
+                                type="text"
+                                placeholder="e.g. 39/8"
+                                value={line.specNumber || line.size || ""}
+                                onChange={(e) => {
+                                  updateLineField(idx, "specNumber", e.target.value);
+                                  updateLineField(idx, "size", e.target.value);
+                                }}
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-800 rounded text-xs text-orange-800 dark:text-orange-300 font-mono font-bold focus:outline-none focus:border-orange-500 h-7 shadow-2xs"
+                              />
+                            </td>
+                          )}
+                          {isAutoParts && (
+                            <td className="p-0.5 px-1 align-middle min-w-[105px]">
+                              <input
+                                type="text"
+                                placeholder="e.g. Bosch"
+                                value={line.brand || line.color || ""}
+                                onChange={(e) => {
+                                  updateLineField(idx, "brand", e.target.value);
+                                  updateLineField(idx, "color", e.target.value);
+                                }}
+                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded text-xs text-sky-800 dark:text-sky-300 font-semibold focus:outline-none focus:border-sky-500 h-7 shadow-2xs"
+                              />
+                            </td>
+                          )}
+
+                          {/* Jewellery Columns */}
+                          {isJewellery && (
+                            <>
+                              {/* Purity Karat */}
+                              <td className="p-0.5 px-1 align-middle min-w-[70px]">
+                                <select
+                                  value={line.purityKarat || "22K"}
+                                  onChange={(e) => updateLineField(idx, "purityKarat", e.target.value)}
+                                  className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-900 dark:text-amber-300 font-bold focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                >
+                                  <option value="24K">24K (999)</option>
+                                  <option value="22K">22K (916)</option>
+                                  <option value="18K">18K (750)</option>
+                                  <option value="14K">14K (585)</option>
+                                  <option value="Silver">Silver</option>
+                                </select>
+                              </td>
+
+                              {/* Gross Wt (g) */}
+                              <td className="p-0.5 px-1 align-middle min-w-[75px]">
+                                <input
+                                  type="number"
+                                  step="0.001"
+                                  placeholder="0.000"
+                                  value={line.grossWeightGrams ?? ""}
+                                  onChange={(e) => updateLineField(idx, "grossWeightGrams", parseFloat(e.target.value) || 0)}
+                                  className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-900 dark:text-amber-300 font-mono text-center font-bold focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                  title="Gross Weight in Grams"
+                                />
+                              </td>
+
+                              {/* Stone Wt (g) */}
+                              <td className="p-0.5 px-1 align-middle min-w-[70px]">
+                                <input
+                                  type="number"
+                                  step="0.001"
+                                  placeholder="0.000"
+                                  value={line.stoneWeightGrams ?? ""}
+                                  onChange={(e) => updateLineField(idx, "stoneWeightGrams", parseFloat(e.target.value) || 0)}
+                                  className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                  title="Stone / Nag Weight in Grams"
+                                />
+                              </td>
+
+                              {/* Net Wt (g) - Auto Calculated */}
+                              <td className="p-0.5 px-1 align-middle min-w-[75px]">
+                                <div className="w-full px-1 py-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-600/40 rounded text-xs text-amber-800 dark:text-amber-300 font-mono text-center font-black h-7 shadow-2xs flex items-center justify-center">
+                                  {Number(line.netWeightGrams || line.quantity || 0).toFixed(3)}g
+                                </div>
+                              </td>
+
+                              {/* Metal Rate / g */}
+                              <td className="p-0.5 px-1 align-middle min-w-[85px]">
+                                <input
+                                  type="number"
+                                  step="1"
+                                  placeholder="Rate/g"
+                                  value={line.metalRatePerGram ?? ""}
+                                  onChange={(e) => updateLineField(idx, "metalRatePerGram", parseFloat(e.target.value) || 0)}
+                                  className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-900 dark:text-amber-300 font-mono text-right font-bold focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                  title="Metal Rate per Gram"
+                                />
+                              </td>
+
+                              {/* Making Charges (Rate + Type) */}
+                              <td className="p-0.5 px-1 align-middle min-w-[100px]">
+                                <div className="flex items-center space-x-1">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Making"
+                                    value={line.makingChargeRate ?? ""}
+                                    onChange={(e) => updateLineField(idx, "makingChargeRate", parseFloat(e.target.value) || 0)}
+                                    className="w-3/5 px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-900 dark:text-amber-300 font-mono text-right font-bold focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                    title="Making Charge Value"
+                                  />
+                                  <select
+                                    value={line.makingChargeType || "per_gram"}
+                                    onChange={(e) => updateLineField(idx, "makingChargeType", e.target.value)}
+                                    className="w-2/5 px-0.5 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-[10px] text-amber-900 dark:text-amber-300 font-semibold focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                  >
+                                    <option value="per_gram">/g</option>
+                                    <option value="percent">%</option>
+                                    <option value="flat">₹</option>
+                                  </select>
+                                </div>
+                              </td>
+
+                              {/* Stone Amount */}
+                              <td className="p-0.5 px-1 align-middle min-w-[75px]">
+                                <input
+                                  type="number"
+                                  step="1"
+                                  placeholder="0"
+                                  value={line.stoneAmount ?? ""}
+                                  onChange={(e) => updateLineField(idx, "stoneAmount", parseFloat(e.target.value) || 0)}
+                                  className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-right focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                  title="Stone Price (₹)"
+                                />
+                              </td>
+
+                              {/* BIS HUID */}
+                              <td className="p-0.5 px-1 align-middle min-w-[85px]">
+                                <input
+                                  type="text"
+                                  maxLength={6}
+                                  placeholder="HUID..."
+                                  value={line.huid || ""}
+                                  onChange={(e) => updateLineField(idx, "huid", e.target.value.toUpperCase())}
+                                  className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/40 rounded text-xs text-amber-900 dark:text-amber-300 font-mono text-center font-bold tracking-wider uppercase focus:outline-none focus:border-amber-500 h-7 shadow-2xs"
+                                  title="6-digit BIS Hallmarking Unique ID"
+                                />
+                              </td>
+                            </>
+                          )}
+
                           {/* 5. HSN/SAC */}
                           <td className="p-0.5 px-1 align-middle">
                             <input
@@ -3422,8 +5817,8 @@ function TenantInvoicesPageContent() {
                             <input
                               id={`line-qty-${idx}`}
                               type="number"
-                              min="1"
-                              step="1"
+                              min={isJewellery ? "0.001" : "1"}
+                              step={isJewellery ? "0.001" : "1"}
                               value={line.quantity}
                               onChange={(e) => updateLineField(idx, "quantity", parseFloat(e.target.value) || 0)}
                               onKeyDown={(e) => {
@@ -3452,6 +5847,23 @@ function TenantInvoicesPageContent() {
                                 onChange={(e) => updateLineField(idx, "freeQuantity", parseFloat(e.target.value) || 0)}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-emerald-700 dark:text-emerald-400 font-mono text-center focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
+                              {line.lastDealHint?.freeSchemeText && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (line.lastDealHint?.freeQuantity) {
+                                      updateLineField(idx, "freeQuantity", line.lastDealHint.freeQuantity);
+                                      if (line.lastDealHint.quantity && (!line.quantity || line.quantity === 1)) {
+                                        updateLineField(idx, "quantity", line.lastDealHint.quantity);
+                                      }
+                                    }
+                                  }}
+                                  title={`Click to apply last free scheme: ${line.lastDealHint.freeSchemeText}`}
+                                  className="mt-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer block truncate text-center w-full"
+                                >
+                                  Last: {line.lastDealHint.freeSchemeText}
+                                </button>
+                              )}
                             </td>
                           )}
 
@@ -3466,6 +5878,16 @@ function TenantInvoicesPageContent() {
                                 onChange={(e) => updateLineField(idx, "mrp", parseFloat(e.target.value) || 0)}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-200 font-mono text-right focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
+                              {line.lastDealHint?.mrp !== undefined && line.lastDealHint.mrp > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateLineField(idx, "mrp", line.lastDealHint!.mrp)}
+                                  title={`Click to apply last MRP: ₹${line.lastDealHint.mrp}`}
+                                  className="mt-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 hover:underline cursor-pointer block truncate text-center w-full font-mono"
+                                >
+                                  Last: ₹{line.lastDealHint.mrp}
+                                </button>
+                              )}
                             </td>
                           )}
 
@@ -3524,6 +5946,28 @@ function TenantInvoicesPageContent() {
                               }}
                               className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-500/30 rounded text-xs text-emerald-800 dark:text-emerald-300 font-mono font-bold text-right focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
                             />
+                            {line.lastDealHint?.unitPrice !== undefined && line.lastDealHint.unitPrice > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => updateLineField(idx, "unitPrice", line.lastDealHint!.unitPrice)}
+                                title={`Click to apply last sale rate: ₹${line.lastDealHint.unitPrice}`}
+                                className="mt-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer block truncate text-center w-full font-mono"
+                              >
+                                Last: ₹{line.lastDealHint.unitPrice}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => updateLineField(idx, "isTaxInclusive", !line.isTaxInclusive)}
+                              title={line.isTaxInclusive ? "Rate includes GST (Click to toggle to Exclusive)" : "Rate excludes GST (Click to toggle to Inclusive)"}
+                              className={`mt-0.5 w-full text-[9px] font-bold px-1 py-0.5 rounded border transition-colors cursor-pointer block text-center ${
+                                line.isTaxInclusive
+                                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                                  : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800"
+                              }`}
+                            >
+                              {line.isTaxInclusive ? "With GST" : "Without GST"}
+                            </button>
                           </td>
 
                           {/* 11. Discount */}
@@ -3567,6 +6011,19 @@ function TenantInvoicesPageContent() {
                                 {line.discountType === "percent" ? "%" : "₹"}
                               </button>
                             </div>
+                            {line.lastDealHint?.discountPercent !== undefined && line.lastDealHint.discountPercent > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateLineField(idx, "discountType", "percent");
+                                  updateLineField(idx, "discountValue", line.lastDealHint!.discountPercent);
+                                }}
+                                title={`Click to apply last discount: ${line.lastDealHint.discountPercent}%`}
+                                className="mt-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer block truncate text-center w-full"
+                              >
+                                Last: {line.lastDealHint.discountPercent}%
+                              </button>
+                            )}
                           </td>
 
                           {/* 12. Taxable */}
@@ -3615,6 +6072,133 @@ function TenantInvoicesPageContent() {
 
               {/* 5. Sleek Docked Footer: Tender & Mode + Summary Metrics + Net Payable + F10 Save */}
               <div className="shrink-0 p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t-2 border-orange-500 dark:border-orange-500/50 border-x border-b border-[#fed7aa] dark:border-slate-800 rounded-b-xl sm:rounded-xl shadow-xl space-y-1.5 z-20">
+                {/* Jewellery Special Adjustments Dock: Old Gold Exchange & Chit Kitty Redemption & PAN 114B */}
+                {isJewellery && (
+                  <div className="p-2 sm:px-3 rounded-lg bg-amber-50/70 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center space-x-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
+                        <span>✨ Jewellery Deductions &amp; Settlements:</span>
+                      </div>
+                      {grandTotal >= 200000 && (
+                        <div className="flex items-center space-x-1.5 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded border border-amber-400 dark:border-amber-600 text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                          <span>⚠️ IT Rule 114B (Bill &ge; ₹2 Lakh): PAN Required</span>
+                          <input
+                            type="text"
+                            maxLength={10}
+                            placeholder="ABCDE1234F"
+                            value={customerPanNumber}
+                            onChange={(e) => setCustomerPanNumber(e.target.value.toUpperCase())}
+                            className="w-28 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-amber-400 rounded text-xs font-mono uppercase tracking-wider text-amber-950 dark:text-white"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {/* 1. Old Gold Exchange Deduction */}
+                      <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300">
+                              🪙 Old Gold Exchange (पुराना सोना):
+                            </span>
+                            <Link
+                              href="/app/jewellery/old-gold"
+                              target="_blank"
+                              className="text-[9px] text-amber-600 dark:text-amber-400 hover:underline"
+                            >
+                              + New Voucher ↗
+                            </Link>
+                          </div>
+                          <select
+                            value={selectedOldGoldVoucherId}
+                            onChange={(e) => {
+                              const vId = e.target.value;
+                              setSelectedOldGoldVoucherId(vId);
+                              const v = oldGoldVouchers.find((item) => item.id === vId);
+                              if (v) {
+                                setOldGoldDeductionAmount(v.totalExchangeValuation || 0);
+                              } else if (!vId) {
+                                setOldGoldDeductionAmount(0);
+                              }
+                            }}
+                            className="w-full mt-0.5 px-1 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-[11px] text-slate-800 dark:text-slate-200"
+                          >
+                            <option value="">-- No Old Gold Voucher --</option>
+                            {oldGoldVouchers.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.voucherNumber} ({v.customerName || "Customer"}) - ₹{v.totalExchangeValuation || 0}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="w-24 shrink-0">
+                          <label className="text-[9px] text-slate-500 dark:text-slate-400 block font-semibold">Deduction (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={oldGoldDeductionAmount || ""}
+                            onChange={(e) => setOldGoldDeductionAmount(parseFloat(e.target.value) || 0)}
+                            className="w-full px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-600 rounded text-xs font-mono font-bold text-amber-900 dark:text-amber-200 text-right"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 2. Kitty Chit 11+1 Scheme Redemption */}
+                      <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300">
+                              📜 11+1 Chit / Kitty Redemption:
+                            </span>
+                            <Link
+                              href="/app/jewellery/schemes"
+                              target="_blank"
+                              className="text-[9px] text-amber-600 dark:text-amber-400 hover:underline"
+                            >
+                              View Schemes ↗
+                            </Link>
+                          </div>
+                          <select
+                            value={selectedKittySchemeId}
+                            onChange={(e) => {
+                              const sId = e.target.value;
+                              setSelectedKittySchemeId(sId);
+                              const s = kittySchemes.find((item) => item.id === sId);
+                              if (s) {
+                                const maturityAmt = (s.totalDeposited || 0) + (s.jewellerBonusContribution || 0);
+                                setKittyDeductionAmount(maturityAmt);
+                              } else if (!sId) {
+                                setKittyDeductionAmount(0);
+                              }
+                            }}
+                            className="w-full mt-0.5 px-1 py-0.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded text-[11px] text-slate-800 dark:text-slate-200"
+                          >
+                            <option value="">-- No Chit Scheme --</option>
+                            {kittySchemes.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.schemeCode} ({s.customerName || "Customer"}) - ₹{s.totalDeposited || 0}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="w-24 shrink-0">
+                          <label className="text-[9px] text-slate-500 dark:text-slate-400 block font-semibold">Redeem (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={kittyDeductionAmount || ""}
+                            onChange={(e) => setKittyDeductionAmount(parseFloat(e.target.value) || 0)}
+                            className="w-full px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-600 rounded text-xs font-mono font-bold text-amber-900 dark:text-amber-200 text-right"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Top Row: Tender, Mode & Metrics */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center space-x-2">
@@ -3623,18 +6207,59 @@ function TenantInvoicesPageContent() {
                       <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-semibold whitespace-nowrap">Tender:</span>
                       <input
                         type="number"
+                        step="any"
+                        min="0"
                         placeholder="0.00"
-                        value={paidAmount || ""}
-                        onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                        value={isTenderTouched ? tenderAmount : (primaryPaymentMode === 6 ? "0" : (netPayable > 0 ? String(netPayable) : ""))}
+                        onChange={(e) => {
+                          setIsTenderTouched(true);
+                          setTenderAmount(e.target.value);
+                        }}
+                        onFocus={(e) => {
+                          if (!isTenderTouched) {
+                            setIsTenderTouched(true);
+                            setTenderAmount(primaryPaymentMode === 6 ? "0" : (netPayable > 0 ? String(netPayable) : "0"));
+                          }
+                          e.target.select();
+                        }}
                         className="w-16 sm:w-20 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-orange-500"
                       />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsTenderTouched(true);
+                          setTenderAmount("0");
+                        }}
+                        title="Maal Udhar / Full Due Amount"
+                        className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900 cursor-pointer transition-colors"
+                      >
+                        Udhar (0)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsTenderTouched(true);
+                          setTenderAmount(String(netPayable));
+                        }}
+                        title="Full Payment"
+                        className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900 cursor-pointer transition-colors"
+                      >
+                        Full
+                      </button>
                     </div>
 
                     <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-950 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-300 dark:border-orange-500/40 shadow-inner">
                       <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-semibold whitespace-nowrap">Mode:</span>
                       <select
                         value={primaryPaymentMode}
-                        onChange={(e) => setPrimaryPaymentMode(parseInt(e.target.value))}
+                        onChange={(e) => {
+                          const mode = parseInt(e.target.value);
+                          setPrimaryPaymentMode(mode);
+                          if (mode === 6) {
+                            setIsTenderTouched(true);
+                            setTenderAmount("0");
+                          }
+                        }}
                         className="bg-transparent border-0 text-xs text-orange-700 dark:text-orange-300 font-bold focus:outline-none cursor-pointer pr-1"
                       >
                         <option value="1" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Cash</option>
@@ -3674,6 +6299,11 @@ function TenantInvoicesPageContent() {
                     <div className="px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-300 hidden sm:block font-bold">
                       GST: +₹{totalTax.toFixed(2)}
                     </div>
+                    {isJewellery && (Number(oldGoldDeductionAmount) > 0 || Number(kittyDeductionAmount) > 0) && (
+                      <div className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-600 text-amber-900 dark:text-amber-300 font-bold hidden md:block">
+                        Old Gold/Chit: -₹{(Number(oldGoldDeductionAmount) + Number(kittyDeductionAmount)).toFixed(2)}
+                      </div>
+                    )}
                     {Math.abs(roundOff) > 0 && (
                       <div className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-transparent hidden lg:block text-[11px]">
                         R.Off: {roundOff >= 0 ? `+${roundOff.toFixed(2)}` : roundOff.toFixed(2)}
@@ -3693,11 +6323,11 @@ function TenantInvoicesPageContent() {
                     </div>
                     <div className="flex items-center space-x-2 text-[11px] font-mono">
                       <span className="text-emerald-700 dark:text-emerald-300 font-bold">
-                        Paid: ₹{(paidAmount || 0).toFixed(2)}
+                        Paid: ₹{effectivePaid.toFixed(2)}
                       </span>
                       <span className="text-slate-300 dark:text-slate-600">|</span>
-                      <span className={`font-black ${Math.max(0, netPayable - (paidAmount || 0)) > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-600 dark:text-slate-400"}`}>
-                        Due: ₹{Math.max(0, netPayable - (paidAmount || 0)).toFixed(2)}
+                      <span className={`font-black ${effectiveDue > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-600 dark:text-slate-400"}`}>
+                        Due: ₹{effectiveDue.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -3709,6 +6339,8 @@ function TenantInvoicesPageContent() {
                         setIsDrawerOpen(false);
                         setEditingInvoiceId(null);
                         setEditingInvoiceNumber("");
+                        setTenderAmount("");
+                        setIsTenderTouched(false);
                         if (editIdFromUrl) router.replace("/app/sales/invoices");
                       }}
                       className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 dark:bg-slate-950 dark:text-slate-400 dark:hover:text-white dark:border-slate-800 transition-colors"
@@ -3766,6 +6398,16 @@ function TenantInvoicesPageContent() {
         onProductCreated={handleProductCreated}
       />
 
+      {/* Garments 1-Click Set / Box Ratio Modal */}
+      {isGarments && (
+        <GarmentsSetBoxModal
+          isOpen={isGarmentsSetModalOpen}
+          onClose={() => setIsGarmentsSetModalOpen(false)}
+          items={items}
+          onAddLines={handleAddGarmentsSetLines}
+        />
+      )}
+
       {/* Keyboard Shortcuts Cheatsheet Modal (F1) */}
       {isShortcutsHelpOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[200000]">
@@ -3819,10 +6461,159 @@ function TenantInvoicesPageContent() {
       {/* Interactive Onboarding Spotlight Tour for Invoicing */}
       <OnboardingTour
         steps={invoiceTourSteps}
-        isOpen={isTourOpen && !isAddCustomerModalOpen && !isAddProductModalOpen}
-        onClose={() => setIsTourOpen(false)}
+        isOpen={
+          isTourOpen && 
+          !isAddCustomerModalOpen && 
+          !isAddProductModalOpen &&
+          (isTourManuallyTriggered || (invoices.length === 0 && (typeof window !== "undefined" && localStorage.getItem("udyogbill_first_invoice_created") !== "true")))
+        }
+        onClose={() => {
+          setIsTourOpen(false);
+          setIsTourManuallyTriggered(false);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("udyogbill_invoice_tour_completed", "true");
+          }
+        }}
         tourKey="udyogbill_invoice_tour"
       />
+
+      {/* Universal Variant Selection Modal */}
+      {variantModalItem && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl text-slate-900 dark:text-white">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <span className="text-[10px] font-mono text-slate-500 uppercase">
+                  #{variantModalItem.sku}
+                </span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {variantModalItem.name}
+                </h3>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold mt-0.5">
+                  {isHardware ? "Select Size / Pack Size & Variety" : "Select Variant / Pack Size & Variety"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setVariantModalItem(null);
+                  setVariantTargetLineIdx(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingVariants ? (
+              <div className="py-12 text-center text-slate-400">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mb-2"></div>
+                <div className="text-xs">Loading variants...</div>
+              </div>
+            ) : variantModalList.length > 0 ? (
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {variantModalList.map((v) => {
+                    const resolved = resolveItemRate(variantModalItem, v, null);
+                    const price = resolved.rate;
+                    const mrp = resolved.mrp > 0 ? resolved.mrp : price;
+                    const isWholesale = resolved.isWholesale;
+
+                    const inLineCount = invoiceLines
+                      .filter((c) => c.itemId === variantModalItem.id && c.variantId === v.id)
+                      .reduce((sum, c) => sum + (c.quantity || 1), 0);
+
+                    const isRegularOrStandard =
+                      !v.color ||
+                      v.color.toLowerCase() === "regular" ||
+                      v.color.toLowerCase() === "standard" ||
+                      v.color.toLowerCase() === "regular / standard";
+
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => {
+                          if (variantTargetLineIdx !== null) {
+                            handleLineItemChange(variantTargetLineIdx, variantModalItem.id, v, variantModalList);
+                          } else {
+                            handleAddLineWithItem(variantModalItem, v, variantModalList);
+                          }
+                          setVariantModalItem(null);
+                          setVariantTargetLineIdx(null);
+                        }}
+                        className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all hover:border-orange-500 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 cursor-pointer relative shadow-2xs group ${
+                          inLineCount > 0
+                            ? "border-orange-500 bg-orange-50 dark:bg-orange-950/30"
+                            : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40"
+                        }`}
+                      >
+                        {inLineCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-md bg-orange-500 text-white text-[10px] font-bold">
+                            {inLineCount}
+                          </span>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {v.size && (
+                              <span className="px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 font-bold text-xs border border-orange-200 dark:border-orange-800">
+                                {v.size}
+                              </span>
+                            )}
+                            {v.color && !isRegularOrStandard && (
+                              <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs">
+                                {v.color}
+                              </span>
+                            )}
+                          </div>
+                          {v.variantSku && (
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-1">
+                              {v.variantSku}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-baseline justify-between">
+                          <div>
+                            <div className="text-xs font-bold text-slate-900 dark:text-white">
+                              ₹{price.toFixed(2)}
+                            </div>
+                            {isWholesale ? (
+                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">
+                                Wholesale
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-slate-500 dark:text-slate-400">
+                                MRP: ₹{mrp.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500">
+                            Stk:{" "}
+                            <span
+                              className={
+                                (v.currentStock ?? 0) > 0
+                                  ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                                  : "text-rose-500 font-semibold"
+                              }
+                            >
+                              {v.currentStock ?? 0}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-slate-400 text-sm">
+                No variants found for this item.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating WhatsApp Live Help Widget */}
       <FloatingWhatsAppWidget />
