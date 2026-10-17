@@ -1666,9 +1666,9 @@ function parseItemDimensions(attributesJson?: string) {
         : "",
       expiryDate: exp,
       packing: packing,
-      size: defaultVariant ? defaultVariant.size || "" : (isGarments ? "40 / L" : undefined),
-      color: defaultVariant ? defaultVariant.color || "" : (isGarments ? "Sky Blue" : undefined),
-      styleCode: defaultVariant ? defaultVariant.variantSku || "" : (isGarments ? "SLIM-FIT-2026" : undefined),
+      size: defaultVariant ? defaultVariant.size || "" : undefined,
+      color: defaultVariant ? defaultVariant.color || "" : undefined,
+      styleCode: defaultVariant ? defaultVariant.variantSku || "" : undefined,
       availableVariants: variants,
       variantStock: defaultVariant ? (defaultVariant.currentStock ?? 0) : undefined,
       hsnCode: firstItem.hsnCode || "",
@@ -1824,7 +1824,7 @@ function parseItemDimensions(attributesJson?: string) {
     const selectedBatch = batches.length > 0 ? batches[0] : null;
 
     let variants: ItemVariant[] = allVariants || [];
-    if (variants.length === 0 && (item.trackVariants || isGarments) && item.id) {
+    if (variants.length === 0 && (item.trackVariants || isGarments || isHardware || isElectronics || isFmcg) && item.id) {
       try {
         variants = await inventoryService.getItemVariants(item.id);
       } catch (err) {
@@ -1876,9 +1876,9 @@ function parseItemDimensions(attributesJson?: string) {
         : "",
       expiryDate: exp,
       packing: packing,
-      size: (defaultVariant?.size) || (itemAttrs.autoPartsMatrix?.[0]?.specNumber) || (isGarments ? "40 / L" : undefined),
-      color: (defaultVariant?.color) || (itemAttrs.autoPartsMatrix?.[0]?.brand) || (isGarments ? "Sky Blue" : undefined),
-      styleCode: defaultVariant ? defaultVariant.variantSku || "" : (isGarments ? "SLIM-FIT-2026" : undefined),
+      size: (defaultVariant?.size) || (itemAttrs.autoPartsMatrix?.[0]?.specNumber) || undefined,
+      color: (defaultVariant?.color) || (itemAttrs.autoPartsMatrix?.[0]?.brand) || undefined,
+      styleCode: defaultVariant ? defaultVariant.variantSku || "" : undefined,
       availableVariants: variants,
       variantStock: defaultVariant ? (defaultVariant.currentStock ?? 0) : undefined,
       hsnCode: item.hsnCode || "",
@@ -1990,7 +1990,7 @@ function parseItemDimensions(attributesJson?: string) {
     const selectedBatch = batches.length > 0 ? batches[0] : null;
 
     let variants: ItemVariant[] = allVariants || [];
-    if (variants.length === 0 && (found.trackVariants || isGarments) && found.id) {
+    if (variants.length === 0 && (found.trackVariants || isGarments || isHardware || isElectronics || isFmcg) && found.id) {
       try {
         variants = await inventoryService.getItemVariants(found.id);
       } catch (err) {
@@ -2108,27 +2108,24 @@ function parseItemDimensions(attributesJson?: string) {
     const found = items.find((i) => i.id === itemId);
     if (!found) return;
 
-    if (found.trackVariants && pickedVariant === undefined) {
+    if ((found.trackVariants || isGarments) && pickedVariant === undefined) {
       setVariantModalItem(found);
       setVariantTargetLineIdx(idx);
       setLoadingVariants(true);
       try {
         const vars = await inventoryService.getItemVariants(found.id);
-        setVariantModalList(vars);
-        if (vars.length === 0) {
-          await applyItemToLine(idx, found, null, []);
-          setVariantModalItem(null);
-          setVariantTargetLineIdx(null);
+        if (vars.length > 0) {
+          setVariantModalList(vars);
+          setLoadingVariants(false);
+          return;
         }
       } catch (err) {
         console.error("Failed to load variants", err);
-        await applyItemToLine(idx, found, null, []);
-        setVariantModalItem(null);
-        setVariantTargetLineIdx(null);
       } finally {
         setLoadingVariants(false);
       }
-      return;
+      setVariantModalItem(null);
+      setVariantTargetLineIdx(null);
     }
 
     await applyItemToLine(idx, found, pickedVariant, allVariants);

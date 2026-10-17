@@ -1168,7 +1168,9 @@ public class InventoryService : IInventoryService
         item.ReorderQuantity = request.ReorderQuantity;
         item.TrackBatches = request.TrackBatches;
         item.TrackSerialNumbers = request.TrackSerialNumbers;
-        item.TrackVariants = request.TrackVariants;
+        var hasActiveVariants = await _context.ItemVariants
+            .AnyAsync(v => v.TenantId == tenantId && v.ItemId == itemId && !v.IsDeleted, cancellationToken);
+        item.TrackVariants = request.TrackVariants || hasActiveVariants;
         item.TrackInventory = request.ItemType != ItemType.Service && request.TrackInventory;
         item.AttributesJson = request.AttributesJson ?? "{}";
         item.IsActive = request.IsActive;

@@ -1997,20 +1997,21 @@ export default function TenantItemsCatalogPage() {
       setLoadingEditDetails(false);
     }
 
-    if (item.trackVariants) {
-      try {
-        setLoadingVariants(true);
-        const vars = await inventoryService.getItemVariants(item.id);
+    try {
+      setLoadingVariants(true);
+      const vars = await inventoryService.getItemVariants(item.id);
+      if (vars && vars.length > 0) {
         setEditVariants(vars);
-        if (vars.length > 0) {
-          const firstSz = vars[0].size || "";
-          setEditQuickPackSelect(firstSz);
-        }
-      } catch (err) {
-        console.error("Failed to load variants:", err);
-      } finally {
-        setLoadingVariants(false);
+        setEditForm((prev) => ({ ...prev, trackVariants: true }));
+        const firstSz = vars[0].size || "";
+        setEditQuickPackSelect(firstSz);
+      } else if (item.trackVariants) {
+        setEditVariants([]);
       }
+    } catch (err) {
+      console.error("Failed to load variants:", err);
+    } finally {
+      setLoadingVariants(false);
     }
   };
 
