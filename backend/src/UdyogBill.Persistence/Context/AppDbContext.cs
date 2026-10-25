@@ -16,6 +16,9 @@ using UdyogBill.Domain.Entities.CMS;
 using UdyogBill.Domain.Entities.Common;
 using UdyogBill.Domain.Entities.Pharma;
 using UdyogBill.Domain.Entities.HRM;
+using UdyogBill.Domain.Entities.AutoParts;
+using UdyogBill.Domain.Entities.Jewellery;
+using UdyogBill.Domain.Entities.SalesForce;
 using CatalogModule = UdyogBill.Domain.Entities.Catalog.Module;
 
 namespace UdyogBill.Persistence.Context;
@@ -35,6 +38,7 @@ public class AppDbContext : DbContext, IAppDbContext
 
     // Tenants
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<TenantUserMapping> TenantUserMappings => Set<TenantUserMapping>();
     public DbSet<TenantIndustryConfig> TenantIndustryConfigs => Set<TenantIndustryConfig>();
     public DbSet<TenantBranch> TenantBranches => Set<TenantBranch>();
     public DbSet<TenantWarehouse> TenantWarehouses => Set<TenantWarehouse>();
@@ -56,6 +60,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<IndustryFeature> IndustryFeatures => Set<IndustryFeature>();
     public DbSet<SubFeature> SubFeatures => Set<SubFeature>();
     public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<GlobalProductCatalog> GlobalProductCatalogs => Set<GlobalProductCatalog>();
 
     // Subscriptions
     public DbSet<Plan> Plans => Set<Plan>();
@@ -103,6 +108,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<SalesInvoicePayment> SalesInvoicePayments => Set<SalesInvoicePayment>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
     public DbSet<SalesReturnItem> SalesReturnItems => Set<SalesReturnItem>();
+    public DbSet<AdvancePayment> AdvancePayments => Set<AdvancePayment>();
+    public DbSet<AdvancePaymentAllocation> AdvancePaymentAllocations => Set<AdvancePaymentAllocation>();
     public DbSet<PosHeldBill> PosHeldBills => Set<PosHeldBill>();
 
     // Purchases & Procurement
@@ -211,9 +218,11 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Domain.Entities.Accounting.LedgerAccount> LedgerAccounts => Set<Domain.Entities.Accounting.LedgerAccount>();
     public DbSet<Domain.Entities.Accounting.JournalVoucher> JournalVouchers => Set<Domain.Entities.Accounting.JournalVoucher>();
     public DbSet<Domain.Entities.Accounting.JournalVoucherLeg> JournalVoucherLegs => Set<Domain.Entities.Accounting.JournalVoucherLeg>();
+    public DbSet<Domain.Entities.Accounting.VoucherAuditLog> VoucherAuditLogs => Set<Domain.Entities.Accounting.VoucherAuditLog>();
 
     // CMS - Marketing Website
     public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
     public DbSet<AnalyticsConfig> AnalyticsConfigs => Set<AnalyticsConfig>();
     public DbSet<MobileAppConfig> MobileAppConfigs => Set<MobileAppConfig>();
     public DbSet<MobilePushBroadcast> MobilePushBroadcasts => Set<MobilePushBroadcast>();
@@ -227,10 +236,39 @@ public class AppDbContext : DbContext, IAppDbContext
     // Idempotency Tracking
     public DbSet<IdempotentRequest> IdempotentRequests => Set<IdempotentRequest>();
 
+    // Automobile Spare Parts & Accessories Suite
+    public DbSet<VehicleMaster> VehicleMasters => Set<VehicleMaster>();
+    public DbSet<ProductFitment> ProductFitments => Set<ProductFitment>();
+    public DbSet<PartCrossReference> PartCrossReferences => Set<PartCrossReference>();
+    public DbSet<MechanicMaster> MechanicMasters => Set<MechanicMaster>();
+    public DbSet<MechanicCommissionLog> MechanicCommissionLogs => Set<MechanicCommissionLog>();
+    public DbSet<BatteryScrapBuyback> BatteryScrapBuybacks => Set<BatteryScrapBuyback>();
+
+    // Jewellery & Gems ERP Suite
+    public DbSet<DailyMetalRate> DailyMetalRates => Set<DailyMetalRate>();
+    public DbSet<JewelleryItemAttribute> JewelleryItemAttributes => Set<JewelleryItemAttribute>();
+    public DbSet<DiamondGemstoneDetail> DiamondGemstoneDetails => Set<DiamondGemstoneDetail>();
+    public DbSet<OldGoldExchangeVoucher> OldGoldExchangeVouchers => Set<OldGoldExchangeVoucher>();
+    public DbSet<KarigarAccount> KarigarAccounts => Set<KarigarAccount>();
+    public DbSet<KarigarTransaction> KarigarTransactions => Set<KarigarTransaction>();
+    public DbSet<GoldSavingsScheme> GoldSavingsSchemes => Set<GoldSavingsScheme>();
+    public DbSet<GoldSavingsInstallment> GoldSavingsInstallments => Set<GoldSavingsInstallment>();
+    public DbSet<GirviLoan> GirviLoans => Set<GirviLoan>();
+
+    // Internal Enterprise Sales Force Automation (SFA) & Hardware Device Security
+    public DbSet<InternalSalesRep> InternalSalesReps => Set<InternalSalesRep>();
+    public DbSet<HardwareDeviceRegistry> HardwareDeviceRegistries => Set<HardwareDeviceRegistry>();
+    public DbSet<CompanyProductCatalog> CompanyProductCatalogs => Set<CompanyProductCatalog>();
+    public DbSet<SalesQuotaAllocation> SalesQuotaAllocations => Set<SalesQuotaAllocation>();
+    public DbSet<FieldShopVisit> FieldShopVisits => Set<FieldShopVisit>();
+    public DbSet<FieldShopVisitProduct> FieldShopVisitProducts => Set<FieldShopVisitProduct>();
+    public DbSet<SubscriptionAttributionAuditLog> SubscriptionAttributionAuditLogs => Set<SubscriptionAttributionAuditLog>();
+
     void IAppDbContext.Add<TEntity>(TEntity entity) => base.Add(entity);
 
     // IAppDbContext explicit interface properties
     IQueryable<Tenant> IAppDbContext.Tenants => Tenants;
+    IQueryable<TenantUserMapping> IAppDbContext.TenantUserMappings => TenantUserMappings;
     IQueryable<TenantIndustryConfig> IAppDbContext.TenantIndustryConfigs => TenantIndustryConfigs;
     IQueryable<TenantBranch> IAppDbContext.TenantBranches => TenantBranches;
     IQueryable<TenantWarehouse> IAppDbContext.TenantWarehouses => TenantWarehouses;
@@ -248,6 +286,7 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<IndustryFeature> IAppDbContext.IndustryFeatures => IndustryFeatures;
     IQueryable<SubFeature> IAppDbContext.SubFeatures => SubFeatures;
     IQueryable<Permission> IAppDbContext.Permissions => Permissions;
+    IQueryable<GlobalProductCatalog> IAppDbContext.GlobalProductCatalogs => GlobalProductCatalogs;
     IQueryable<Plan> IAppDbContext.Plans => Plans;
     IQueryable<PlanEntitlement> IAppDbContext.PlanEntitlements => PlanEntitlements;
     IQueryable<TenantSubscription> IAppDbContext.TenantSubscriptions => TenantSubscriptions;
@@ -289,6 +328,8 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<SalesInvoicePayment> IAppDbContext.SalesInvoicePayments => SalesInvoicePayments;
     IQueryable<SalesReturn> IAppDbContext.SalesReturns => SalesReturns;
     IQueryable<SalesReturnItem> IAppDbContext.SalesReturnItems => SalesReturnItems;
+    IQueryable<AdvancePayment> IAppDbContext.AdvancePayments => AdvancePayments;
+    IQueryable<AdvancePaymentAllocation> IAppDbContext.AdvancePaymentAllocations => AdvancePaymentAllocations;
 
     // Purchases explicit properties
     IQueryable<PurchaseOrder> IAppDbContext.PurchaseOrders => PurchaseOrders;
@@ -357,6 +398,15 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<Domain.Entities.Referrals.TenantReferralProfile> IAppDbContext.TenantReferralProfiles => TenantReferralProfiles;
     IQueryable<Domain.Entities.Referrals.TenantReferralConversion> IAppDbContext.TenantReferralConversions => TenantReferralConversions;
 
+    // Internal Sales Force explicit properties
+    IQueryable<InternalSalesRep> IAppDbContext.InternalSalesReps => InternalSalesReps;
+    IQueryable<HardwareDeviceRegistry> IAppDbContext.HardwareDeviceRegistries => HardwareDeviceRegistries;
+    IQueryable<CompanyProductCatalog> IAppDbContext.CompanyProductCatalogs => CompanyProductCatalogs;
+    IQueryable<SalesQuotaAllocation> IAppDbContext.SalesQuotaAllocations => SalesQuotaAllocations;
+    IQueryable<FieldShopVisit> IAppDbContext.FieldShopVisits => FieldShopVisits;
+    IQueryable<FieldShopVisitProduct> IAppDbContext.FieldShopVisitProducts => FieldShopVisitProducts;
+    IQueryable<SubscriptionAttributionAuditLog> IAppDbContext.SubscriptionAttributionAuditLogs => SubscriptionAttributionAuditLogs;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -365,6 +415,9 @@ public class AppDbContext : DbContext, IAppDbContext
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         // Reporting Engine Composite Indexes for High Performance
+        modelBuilder.Entity<SalesInvoice>()
+            .HasIndex(i => new { i.TenantId, i.InvoiceNumber })
+            .IsUnique();
         modelBuilder.Entity<SalesInvoice>()
             .HasIndex(i => new { i.TenantId, i.InvoiceDate, i.Status, i.BranchId });
         modelBuilder.Entity<SalesInvoice>()
@@ -441,6 +494,109 @@ public class AppDbContext : DbContext, IAppDbContext
             b.HasOne(x => x.AbmUser).WithMany().HasForeignKey(x => x.AbmUserId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.RsmUser).WithMany().HasForeignKey(x => x.RsmUserId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.ZsmUser).WithMany().HasForeignKey(x => x.ZsmUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TenantUserMapping>(b =>
+        {
+            b.ToTable("TenantUserMappings");
+            b.HasKey(m => m.Id);
+            b.HasIndex(m => new { m.UserId, m.TenantId }).IsUnique();
+            b.HasOne(m => m.User)
+                .WithMany(u => u.TenantMappings)
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(m => m.Tenant)
+                .WithMany(t => t.UserMappings)
+                .HasForeignKey(m => m.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Tenant>(b =>
+        {
+            b.HasOne(t => t.ParentTenant)
+                .WithMany(t => t.ChildCompanies)
+                .HasForeignKey(t => t.ParentTenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GlobalProductCatalog>(b =>
+        {
+            b.ToTable("GlobalProductCatalogs");
+            b.HasIndex(g => g.Barcode).IsUnique();
+        });
+
+
+        // Internal Enterprise Sales Force Automation (SFA) Configurations
+        modelBuilder.Entity<InternalSalesRep>(b =>
+        {
+            b.ToTable("internal_sales_reps");
+            b.HasIndex(r => r.RepCode).IsUnique();
+            b.HasIndex(r => r.Mobile).IsUnique();
+            b.Property(r => r.MonthlyTarget).HasPrecision(18, 2);
+            b.HasOne(r => r.ReportingTo)
+                .WithMany(r => r.Subordinates)
+                .HasForeignKey(r => r.ReportingToId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<HardwareDeviceRegistry>(b =>
+        {
+            b.ToTable("hardware_device_registry");
+            b.HasIndex(d => d.DeviceFingerprint).IsUnique();
+            b.HasOne(d => d.Rep)
+                .WithMany(r => r.Devices)
+                .HasForeignKey(d => d.RepId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CompanyProductCatalog>(b =>
+        {
+            b.ToTable("company_product_catalog");
+            b.HasIndex(p => p.ProductCode).IsUnique();
+        });
+
+        modelBuilder.Entity<SalesQuotaAllocation>(b =>
+        {
+            b.ToTable("sales_quota_allocations");
+            b.HasIndex(q => new { q.RepId, q.Month, q.Year }).IsUnique();
+            b.HasOne(q => q.Rep)
+                .WithMany(r => r.QuotaAllocations)
+                .HasForeignKey(q => q.RepId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FieldShopVisit>(b =>
+        {
+            b.ToTable("field_shop_visits");
+            b.HasIndex(v => new { v.RepId, v.CreatedAtUtc });
+            b.HasIndex(v => v.OwnerMobile);
+            b.HasOne(v => v.Rep)
+                .WithMany(r => r.Visits)
+                .HasForeignKey(v => v.RepId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FieldShopVisitProduct>(b =>
+        {
+            b.ToTable("field_shop_visit_products");
+            b.HasOne(p => p.Visit)
+                .WithMany(v => v.ProductsPitched)
+                .HasForeignKey(p => p.VisitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(p => p.Product)
+                .WithMany(c => c.PitchedItems)
+                .HasForeignKey(p => p.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SubscriptionAttributionAuditLog>(b =>
+        {
+            b.ToTable("subscription_attribution_audit_log");
+            b.HasIndex(a => a.SubscriptionId);
+            b.HasOne(a => a.AssignedRep)
+                .WithMany()
+                .HasForeignKey(a => a.AssignedRepId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Configure Global Query Filters for Soft Delete and Multi-Tenancy

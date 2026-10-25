@@ -27,6 +27,7 @@ export interface CreatePlanInput {
   price: number;
   setupFee: number;
   trialDays: number;
+  maxCompanies?: number;
   maxUsers: number;
   maxBranches: number;
   maxWarehouses: number;
@@ -44,6 +45,7 @@ export interface UpdatePlanInput {
   price: number;
   setupFee: number;
   trialDays: number;
+  maxCompanies?: number;
   maxUsers: number;
   maxBranches: number;
   maxWarehouses: number;
@@ -246,7 +248,12 @@ export const superAdminService = {
       { id: "22222222-2222-2222-2222-222222222222", code: "ADDON_GARMENTS", name: "Apparel & Garments Matrix", description: "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", price: 399, annualPrice: 3990, billingCycle: "Monthly", isActive: true, isHidden: false },
       { id: "33333333-3333-3333-3333-333333333333", code: "ADDON_MANUFACTURING", name: "Manufacturing & Bakery (BOM)", description: "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", price: 599, annualPrice: 5990, billingCycle: "Monthly", isActive: true, isHidden: false },
       { id: "44444444-4444-4444-4444-444444444444", code: "ADDON_FMCG", name: "FMCG, Grocery & Distribution", description: "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", price: 399, annualPrice: 3990, billingCycle: "Monthly", isActive: true, isHidden: false },
-      { id: "55555555-5555-5555-5555-555555555555", code: "ADDON_ACCOUNTING", name: "Dual-Entry Financial Accounting", description: "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", price: 499, annualPrice: 4990, billingCycle: "Monthly", isActive: true, isHidden: false }
+      { id: "55555555-5555-5555-5555-555555555555", code: "ADDON_ACCOUNTING", name: "Dual-Entry Financial Accounting", description: "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", price: 499, annualPrice: 4990, billingCycle: "Monthly", isActive: true, isHidden: false },
+      { id: "d275a8ac-6566-4087-8b32-997bc4bc5aff", code: "ADDON_AI_PRO", name: "AI Pro Purchase Bill Scanner", description: "AI-powered purchase bill OCR, smart item extraction, batch detection (500 scans/month).", price: 149, annualPrice: 1490, billingCycle: "Monthly", isActive: true, isHidden: false },
+      { id: "f29c2451-72cc-424d-82b3-1474dee10892", code: "ADDON_EXTRA_1_USER", name: "Additional Team Member (1 User)", description: "Add 1 additional operator / user seat to your organization.", price: 799, annualPrice: 799, billingCycle: "Annual", isActive: true, isHidden: false },
+      { id: "d1cd1f8b-d8d4-4c53-a6b6-228e482cfca1", code: "ADDON_EXTRA_5_USERS", name: "5 Additional Users Pack", description: "Add 5 additional operator / user seats to your organization.", price: 2999, annualPrice: 2999, billingCycle: "Annual", isActive: true, isHidden: false },
+      { id: "994bf0b3-1564-4f4d-b7b4-a15b55c71e90", code: "ADDON_WHATSAPP", name: "WhatsApp Cloud Automation", description: "Automated PDF invoices, payment reminders, and customer notifications via WhatsApp.", price: 499, annualPrice: 4990, billingCycle: "Monthly", isActive: true, isHidden: false },
+      { id: "1564fdaf-23d0-4a30-9dd7-f6560cbcaeca", code: "ADDON_EWAYBILL", name: "E-Way Bill & E-Invoice", description: "Direct government NIC portal sync, JSON generation and automated QR code stamping.", price: 99, annualPrice: 990, billingCycle: "Monthly", isActive: true, isHidden: false }
     ];
   },
 
@@ -319,6 +326,8 @@ export const superAdminService = {
     pageSize?: number;
     industry?: string;
     conversionStage?: string;
+    status?: string;
+    source?: string;
     search?: string;
   }): Promise<any> {
     const res = await apiClient.get<any>("/superadmin/leads", { params });
@@ -406,6 +415,115 @@ export const superAdminService = {
 
   async updateLeadPopupConfig(data: Partial<PlatformLeadPopupConfig>): Promise<PlatformLeadPopupConfig> {
     const res = await apiClient.put<PlatformLeadPopupConfig>("/superadmin/lead-popup-config", data);
+    return res.data;
+  },
+
+  // ==========================================
+  // Internal Sales Force Automation & Device Lock Suite
+  // ==========================================
+  async getSalesReps(tier?: number, city?: string): Promise<any> {
+    const params: any = {};
+    if (tier) params.tier = tier;
+    if (city) params.city = city;
+    const res = await apiClient.get<any>("/superadmin/sales-force/reps", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  async createSalesRep(data: any): Promise<any> {
+    const res = await apiClient.post<any>("/superadmin/sales-force/reps", data);
+    return res.data?.data ?? res.data;
+  },
+
+  async updateRepMonthlyTarget(repId: string, monthlyTarget: number): Promise<any> {
+    const res = await apiClient.put<any>(`/superadmin/sales-force/reps/${repId}/target`, {
+      monthlyTarget,
+    });
+    return res.data?.data ?? res.data;
+  },
+
+  async getHardwareDevices(status?: number): Promise<any> {
+    const params: any = {};
+    if (status !== undefined) params.status = status;
+    const res = await apiClient.get<any>("/superadmin/sales-force/devices", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  async approveHardwareDevice(deviceId: string, repId: string): Promise<any> {
+    const res = await apiClient.post<any>(`/superadmin/sales-force/devices/${deviceId}/approve`, {
+      assignToRepId: repId,
+    });
+    return res.data?.data ?? res.data;
+  },
+
+  async revokeHardwareDevice(deviceId: string, reason: string): Promise<any> {
+    const res = await apiClient.post<any>(`/superadmin/sales-force/devices/${deviceId}/revoke`, {
+      rejectionReason: reason,
+    });
+    return res.data?.data ?? res.data;
+  },
+
+  async getSalesProductCatalog(): Promise<any> {
+    const res = await apiClient.get<any>("/superadmin/sales-force/products");
+    return res.data?.data ?? res.data;
+  },
+
+  async createSalesProduct(data: any): Promise<any> {
+    const res = await apiClient.post<any>("/superadmin/sales-force/products", data);
+    return res.data?.data ?? res.data;
+  },
+
+  async deleteSalesProduct(id: string): Promise<any> {
+    const res = await apiClient.delete<any>(`/superadmin/sales-force/products/${id}`);
+    return res.data?.data ?? res.data;
+  },
+
+  async getSalesQuotas(month?: number, year?: number, city?: string): Promise<any> {
+    const params: any = {};
+    if (month) params.month = month;
+    if (year) params.year = year;
+    if (city) params.city = city;
+    const res = await apiClient.get<any>("/superadmin/sales-force/quotas", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  async allocateSalesQuota(data: any): Promise<any> {
+    const res = await apiClient.post<any>("/superadmin/sales-force/quotas", data);
+    return res.data?.data ?? res.data;
+  },
+
+  async getFieldShopVisits(params?: any): Promise<any> {
+    const res = await apiClient.get<any>("/superadmin/sales-force/visits", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  async assignSubscriptionToRep(data: {
+    subscriptionId: string;
+    tenantId: string;
+    assignedRepId: string;
+    revenueAmount: number;
+    isRenewal: boolean;
+    reasonNotes: string;
+  }): Promise<any> {
+    const res = await apiClient.post<any>("/superadmin/sales-force/assign-subscription", data);
+    return res.data?.data ?? res.data;
+  },
+
+  async getAttributionAuditLogs(pageNumber = 1, pageSize = 50): Promise<any> {
+    const res = await apiClient.get<any>("/superadmin/sales-force/attribution-logs", {
+      params: { pageNumber, pageSize },
+    });
+    return res.data?.data ?? res.data;
+  },
+
+  async downloadSalesReviewCsv(city?: string, month?: number, year?: number): Promise<Blob> {
+    const params: any = {};
+    if (city) params.city = city;
+    if (month) params.month = month;
+    if (year) params.year = year;
+    const res = await apiClient.get("/superadmin/sales-force/review-excel", {
+      params,
+      responseType: "blob",
+    });
     return res.data;
   },
 };
