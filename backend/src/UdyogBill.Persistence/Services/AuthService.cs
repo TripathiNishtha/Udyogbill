@@ -74,6 +74,24 @@ public class AuthService : IAuthService
 
                 ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedAtUtc"" timestamp with time zone NULL;
                 ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid NULL;
+
+                -- Multi-Company / Multi-Firm Schema
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""ParentTenantId"" uuid NULL;
+                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""OwnerUserId"" uuid NULL;
+                ALTER TABLE IF EXISTS ""plans"" ADD COLUMN IF NOT EXISTS ""MaxCompanies"" integer NOT NULL DEFAULT 1;
+
+                CREATE TABLE IF NOT EXISTS ""TenantUserMappings"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""TenantId"" uuid NOT NULL,
+                    ""UserId"" uuid NOT NULL,
+                    ""IsOwner"" boolean NOT NULL DEFAULT FALSE,
+                    ""Role"" text NOT NULL DEFAULT 'TenantAdmin',
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW()
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_TenantUserMappings_UserId_TenantId"" ON ""TenantUserMappings"" (""UserId"", ""TenantId"");
+                CREATE INDEX IF NOT EXISTS ""IX_tenants_ParentTenantId"" ON ""tenants"" (""ParentTenantId"");
+                CREATE INDEX IF NOT EXISTS ""IX_tenants_OwnerUserId"" ON ""tenants"" (""OwnerUserId"");
             ", cancellationToken);
         }
         catch { }
@@ -210,6 +228,21 @@ public class AuthService : IAuthService
             roles.Add(Roles.TenantAdmin);
         }
 
+        if (!user.IsSuperAdmin && user.TenantId == null)
+        {
+            var isSalesRep = await _context.InternalSalesReps
+                .AsNoTracking()
+                .AnyAsync(r => r.UserId == user.Id, cancellationToken);
+            if (isSalesRep)
+            {
+                if (!roles.Contains("SalesRep")) roles.Add("SalesRep");
+                if (!string.IsNullOrWhiteSpace(user.Designation) && !roles.Contains(user.Designation))
+                {
+                    roles.Add(user.Designation);
+                }
+            }
+        }
+
         var permissions = new List<string>();
         if (!user.IsSuperAdmin)
         {
@@ -246,6 +279,35 @@ public class AuthService : IAuthService
         _context.RefreshTokens.Add(refreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
 
+        bool isReadOnly = false;
+        if (user.TenantId.HasValue && user.TenantId.Value != Guid.Empty && !user.IsSuperAdmin)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var sub = await _context.TenantSubscriptions
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(s => s.TenantId == user.TenantId.Value && !s.IsDeleted, cancellationToken);
+            if (sub != null)
+            {
+                if (sub.Status == SubscriptionStatus.Active)
+                {
+                    isReadOnly = sub.EndsAtUtc < now;
+                }
+                else if (sub.Status == SubscriptionStatus.Trial)
+                {
+                    var expiry = sub.TrialEndsAtUtc ?? sub.EndsAtUtc;
+                    isReadOnly = expiry < now;
+                }
+                else
+                {
+                    isReadOnly = true;
+                }
+            }
+            else if (user.Tenant != null)
+            {
+                isReadOnly = user.Tenant.CreatedAtUtc.AddDays(14) < now;
+            }
+        }
+
         var userDto = new AuthUserDto(
             user.Id,
             user.Email,
@@ -258,7 +320,8 @@ public class AuthService : IAuthService
             user.Tenant?.Industry?.Code,
             roles,
             permissions,
-            user.Tenant?.LogoUrl
+            user.Tenant?.LogoUrl,
+            isReadOnly
         );
 
         return Result<LoginResponse>.Success(new LoginResponse(accessToken, refreshToken, DateTimeOffset.UtcNow.AddHours(1), userDto));
@@ -305,6 +368,20 @@ public class AuthService : IAuthService
         var normalizedIndustry = IndustryTypeCodes.Normalize(industry.Code);
         var industryDescriptor = IndustryModuleRegistry.GetDescriptor(normalizedIndustry);
 
+        string? apparelSubType = null;
+        if (normalizedIndustry == IndustryTypeCodes.Garments)
+        {
+            var raw = request.ApparelSubType?.Trim().ToUpperInvariant();
+            apparelSubType = (raw == "SHOES" || raw == "BOTH" || raw == "GARMENTS") ? raw : "GARMENTS";
+        }
+
+        string? hardwareSubType = null;
+        if (normalizedIndustry == IndustryTypeCodes.Hardware)
+        {
+            var rawHw = request.HardwareSubType?.Trim().ToUpperInvariant();
+            hardwareSubType = (rawHw == "PAINTS" || rawHw == "HARDWARE" || rawHw == "BOTH") ? rawHw : "BOTH";
+        }
+
         var tenant = new Tenant
         {
             Code = tenantCode,
@@ -313,6 +390,8 @@ public class AuthService : IAuthService
             IndustryId = industry.Id,
             IndustryTypeCode = normalizedIndustry,
             ActiveIndustryModule = normalizedIndustry,
+            ApparelSubType = apparelSubType,
+            HardwareSubType = hardwareSubType,
             IndustryModuleStatus = IndustryModuleStatus.Active,
             IndustryActivatedAtUtc = DateTimeOffset.UtcNow,
             MaxAllowedUsers = 2,
