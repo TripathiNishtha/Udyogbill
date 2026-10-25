@@ -13,6 +13,7 @@ import '../../../../core/sync/sync_service.dart';
 import '../../../../core/utils/indian_states.dart';
 import '../../../../core/utils/pharma_pricing_calculator.dart';
 import '../../../../core/widgets/continuous_barcode_scanner_sheet.dart';
+import '../../../../core/widgets/universal_variant_picker_sheet.dart';
 import '../../parties/screens/add_party_dialog.dart';
 import '../../items/screens/add_item_dialog.dart';
 import 'invoice_detail_preview_screen.dart';
@@ -43,6 +44,10 @@ class _InvoiceEntryItem {
   String? autoSpecNumber;
   String? autoPartNumber;
   String? rackLocation;
+  String? variantId;
+  String? size;
+  String? color;
+  String? variantSku;
 
   _InvoiceEntryItem({
     required this.item,
@@ -61,7 +66,17 @@ class _InvoiceEntryItem {
     this.autoSpecNumber,
     this.autoPartNumber,
     this.rackLocation,
+    this.variantId,
+    this.size,
+    this.color,
+    this.variantSku,
   });
+
+  bool get isRegularOrStandard {
+    if (color == null || color!.trim().isEmpty) return true;
+    final c = color!.trim().toLowerCase();
+    return c == 'regular' || c == 'standard' || c == 'regular / standard' || c == 'regular/standard';
+  }
 
   double get gross => quantity * unitPrice;
   double get itemDiscountAmount => gross * (discountPercent / 100);
@@ -88,7 +103,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   int _invoiceType = 1;
 
   // Place of Supply & Tax Resolution
-  final String _sellerStateCode = '09'; // Default Store State (UP), switchable
+  String _sellerStateCode = '09'; // Default Store State (UP), dynamic from store settings
   IndianState _placeOfSupply = IndianStatesMaster.states.firstWhere((s) => s.code == '09');
   bool get _isInterState => PharmaPricingCalculator.isInterState(
         sellerStateCode: _sellerStateCode,
@@ -100,6 +115,11 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     final ind = _tenantIndustry.toUpperCase();
     return ind.contains('PHARMA') || ind.contains('CHEMIST') || ind.contains('MEDIC') || ind.contains('HEALTH');
   }
+  bool get _isFmcgIndustry {
+    final ind = _tenantIndustry.toUpperCase();
+    return ind.contains('FMCG') || ind.contains('FOOD') || ind.contains('GROCERY') || ind.contains('KIRANA');
+  }
+  bool get _isPharmaOrFmcg => _isPharmaIndustry || _isFmcgIndustry;
   bool get _isAutoPartsIndustry {
     final ind = _tenantIndustry.toUpperCase();
     return ind.contains('AUTO') || ind.contains('SPARE') || ind.contains('MOTOR') || ind.contains('GARAGE') || ind.contains('TYRE') || ind.contains('BATTERY') || ind.contains('TRACTOR');
@@ -166,6 +186,24 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     final nextNo = await _invoiceDao.getNextInvoiceNumber();
     final customers = await _partyDao.getAllParties(partyType: 1);
 
+    // Resolve store's home state dynamically
+    try {
+      final storeGstin = await _storage.read(key: AppConstants.keyStoreGstin);
+      final storeState = await _storage.read(key: AppConstants.keyStoreState);
+      IndianState? resolvedStoreState;
+      if (storeGstin != null && storeGstin.trim().length >= 2) {
+        resolvedStoreState = IndianStatesMaster.getStateByGstin(storeGstin);
+      }
+      if (resolvedStoreState == null && storeState != null && storeState.trim().isNotEmpty) {
+        resolvedStoreState = IndianStatesMaster.getStateByName(storeState) ??
+            IndianStatesMaster.getStateByCode(storeState);
+      }
+      if (resolvedStoreState != null) {
+        _sellerStateCode = resolvedStoreState.code;
+        _placeOfSupply = resolvedStoreState;
+      }
+    } catch (_) {}
+
     if (mounted) {
       setState(() {
         _invoiceNumber = nextNo;
@@ -176,13 +214,22 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         } else if (customers.isNotEmpty) {
           _selectedParty = customers.first;
           _syncPlaceOfSupplyFromParty(customers.first);
+        } else {
+          _syncPlaceOfSupplyFromParty(null);
         }
       });
     }
   }
 
   void _syncPlaceOfSupplyFromParty(PartyModel? party) {
-    if (party == null) return;
+    if (party == null) {
+      final homeState = IndianStatesMaster.getStateByCode(_sellerStateCode) ??
+          IndianStatesMaster.states.firstWhere((s) => s.code == _sellerStateCode, orElse: () => IndianStatesMaster.states.first);
+      setState(() => _placeOfSupply = homeState);
+      return;
+    }
+
+    // 1. If buyer has a valid GSTIN, state is strictly determined by GSTIN prefix
     if (party.gstin != null && party.gstin!.trim().length >= 2) {
       final state = IndianStatesMaster.getStateByGstin(party.gstin);
       if (state != null) {
@@ -190,12 +237,24 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         return;
       }
     }
-    if (party.stateCode != null && party.stateCode!.trim().isNotEmpty) {
+
+    // 2. If buyer has NO GSTIN:
+    // In Pharma & FMCG (and retail sales), unregistered buyers default to Intra-State (seller's home state),
+    // unless party has an explicit valid stateCode that is NOT the old buggy default '27'
+    if (party.stateCode != null &&
+        party.stateCode!.trim().isNotEmpty &&
+        (!_isPharmaOrFmcg || party.stateCode != '27' || _sellerStateCode == '27')) {
       final state = IndianStatesMaster.getStateByCode(party.stateCode);
       if (state != null) {
         setState(() => _placeOfSupply = state);
+        return;
       }
     }
+
+    // Default fallback: Seller's Home State (CGST + SGST Intra-state, prevents accidental IGST)
+    final homeState = IndianStatesMaster.getStateByCode(_sellerStateCode) ??
+        IndianStatesMaster.states.firstWhere((s) => s.code == _sellerStateCode, orElse: () => IndianStatesMaster.states.first);
+    setState(() => _placeOfSupply = homeState);
   }
 
   // Financial Calculations
@@ -216,8 +275,8 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     }
   }
 
-  _InvoiceEntryItem _buildNewEntryItem(ItemModel item) {
-    final mrp = item.salePrice > 0 ? item.salePrice : (item.purchasePrice * 1.3);
+  _InvoiceEntryItem _buildNewEntryItem(ItemModel item, {ItemVariantModel? variant}) {
+    final mrp = item.mrp > 0 ? item.mrp : (item.salePrice > 0 ? item.salePrice : (item.purchasePrice * 1.3));
     final pharmaRates = PharmaPricingCalculator.calculateMargRates(
       mrp: mrp,
       gstRate: item.gstRate,
@@ -253,12 +312,19 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       } catch (_) {}
     }
 
+    final rate = (variant != null && variant.salePrice > 0)
+        ? variant.salePrice
+        : ((apRate != null && apRate > 0) ? apRate : (item.ptr > 0 ? item.ptr : (pharmaRates.ptr > 0 ? pharmaRates.ptr : item.salePrice)));
+    final variantMrp = (variant != null && variant.mrp > 0)
+        ? variant.mrp
+        : ((apMrp != null && apMrp > 0) ? apMrp : mrp);
+
     return _InvoiceEntryItem(
       item: item,
-      unitPrice: (apRate != null && apRate > 0) ? apRate : (item.ptr > 0 ? item.ptr : (pharmaRates.ptr > 0 ? pharmaRates.ptr : item.salePrice)),
+      unitPrice: rate,
       quantity: 1.0,
       freeQuantity: 0.0,
-      mrp: (apMrp != null && apMrp > 0) ? apMrp : mrp,
+      mrp: variantMrp,
       ptr: item.ptr > 0 ? item.ptr : pharmaRates.ptr,
       pts: item.pts > 0 ? item.pts : pharmaRates.pts,
       batchNumber: defaultBatch,
@@ -268,11 +334,21 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       autoSpecNumber: apSpecNumber,
       autoPartNumber: apPartNumber,
       rackLocation: apRack,
+      variantId: variant?.id,
+      size: variant?.size,
+      color: variant?.color,
+      variantSku: variant?.variantSku,
     );
   }
 
-  void _addItemToBill(ItemModel item) {
-    final newItem = _buildNewEntryItem(item);
+  Future<void> _addItemToBill(ItemModel item) async {
+    final variant = await UniversalVariantPickerSheet.show(
+      context: context,
+      item: item,
+      isPurchase: false,
+    );
+
+    final newItem = _buildNewEntryItem(item, variant: variant);
 
     setState(() {
       _billItems.add(newItem);
@@ -285,7 +361,12 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
           children: [
             const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 8),
-            Expanded(child: Text('Added "${item.name}" to bill', style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(
+              child: Text(
+                'Added "${item.name}${variant?.size != null ? " (${variant!.size})" : ""}" to bill',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         backgroundColor: const Color(0xFF16A34A),
@@ -298,40 +379,22 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     _openItemEditSheet(newItem, _billItems.length - 1);
   }
 
-  void _addMultipleItemsToBill(List<ItemModel> items) {
+  Future<void> _addMultipleItemsToBill(List<ItemModel> items) async {
     if (items.isEmpty) return;
 
-    setState(() {
-      for (final item in items) {
-        final existingIdx = _billItems.indexWhere((it) => it.item.id == item.id);
-        if (existingIdx >= 0) {
+    for (final item in items) {
+      final existingIdx = _billItems.indexWhere((it) => it.item.id == item.id && it.variantId == null);
+      if (existingIdx >= 0) {
+        setState(() {
           _billItems[existingIdx].quantity += 1.0;
-        } else {
-          _billItems.add(_buildNewEntryItem(item));
-        }
+        });
+      } else {
+        await _addItemToBill(item);
       }
+    }
+    setState(() {
       _updateReceivedDefault();
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Added ${items.length} product(s) to bill',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color(0xFF16A34A),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   void _openItemPicker() {
@@ -532,7 +595,12 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
             if (bi.autoSpecNumber != null && bi.autoSpecNumber!.isNotEmpty) 'No: ${bi.autoSpecNumber}',
             if (bi.autoBrand != null && bi.autoBrand!.isNotEmpty) bi.autoBrand!,
           ].join(' | ');
-          final finalItemName = autoBadge.isNotEmpty ? '${bi.item.name} ($autoBadge)' : bi.item.name;
+          final variantBadge = [
+            if (bi.size != null && bi.size!.isNotEmpty) bi.size!,
+            if (bi.color != null && bi.color!.isNotEmpty && !bi.isRegularOrStandard) bi.color!,
+          ].join(' / ');
+          final baseName = variantBadge.isNotEmpty ? '${bi.item.name} - $variantBadge' : bi.item.name;
+          final finalItemName = autoBadge.isNotEmpty ? '$baseName ($autoBadge)' : baseName;
 
           return InvoiceItemModel(
             id: const Uuid().v4(),
@@ -564,6 +632,16 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
       // Online-First approach: Submit directly to backend API
       bool onlineSuccess = false;
       final apiPayload = invoiceModel.toApiPayload();
+
+      // Inject variantId into items for backend inventory reconciliation
+      if (apiPayload['items'] is List) {
+        final list = apiPayload['items'] as List;
+        for (int i = 0; i < list.length && i < _billItems.length; i++) {
+          if (list[i] is Map && _billItems[i].variantId != null) {
+            list[i]['variantId'] = _billItems[i].variantId;
+          }
+        }
+      }
 
       try {
         final res = await _apiClient.post('/tenant/invoices', data: apiPayload);
@@ -893,7 +971,10 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                             children: [
                               Expanded(
                                 child: InkWell(
-                                  onTap: () => setState(() => _isQuickCustomer = false),
+                                  onTap: () => setState(() {
+                                    _isQuickCustomer = false;
+                                    _syncPlaceOfSupplyFromParty(_selectedParty);
+                                  }),
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -932,7 +1013,17 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                               ),
                               Expanded(
                                 child: InkWell(
-                                  onTap: () => setState(() => _isQuickCustomer = true),
+                                  onTap: () => setState(() {
+                                    _isQuickCustomer = true;
+                                    if (_quickGstinController.text.trim().length >= 2) {
+                                      final st = IndianStatesMaster.getStateByGstin(_quickGstinController.text.trim());
+                                      if (st != null) _placeOfSupply = st;
+                                    } else {
+                                      final homeState = IndianStatesMaster.getStateByCode(_sellerStateCode) ??
+                                          IndianStatesMaster.states.firstWhere((s) => s.code == _sellerStateCode, orElse: () => IndianStatesMaster.states.first);
+                                      _placeOfSupply = homeState;
+                                    }
+                                  }),
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1015,6 +1106,10 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                     if (val.trim().length >= 2) {
                                       final st = IndianStatesMaster.getStateByGstin(val.trim());
                                       if (st != null) setState(() => _placeOfSupply = st);
+                                    } else {
+                                      final homeState = IndianStatesMaster.getStateByCode(_sellerStateCode) ??
+                                          IndianStatesMaster.states.firstWhere((s) => s.code == _sellerStateCode, orElse: () => IndianStatesMaster.states.first);
+                                      setState(() => _placeOfSupply = homeState);
                                     }
                                   },
                                   decoration: const InputDecoration(
@@ -1392,9 +1487,41 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
-                                      child: Text(
-                                        it.item.name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                                      child: Wrap(
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          Text(
+                                            it.item.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                                          ),
+                                          if (it.size != null && it.size!.isNotEmpty)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF97316),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                it.size!,
+                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10),
+                                              ),
+                                            ),
+                                          if (it.color != null && it.color!.isNotEmpty && !it.isRegularOrStandard)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF1F5F9),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                                              ),
+                                              child: Text(
+                                                it.color!,
+                                                style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.bold, fontSize: 10),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
                                     IconButton(
@@ -1778,11 +1905,16 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.85,
-      child: Column(
-        children: [
-          // Top Header Bar
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.85,
+        child: Column(
+          children: [
+            // Top Header Bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 12, 6),
             child: Row(
@@ -2082,6 +2214,7 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
           ),
         ],
       ),
+    ),
     );
   }
 }

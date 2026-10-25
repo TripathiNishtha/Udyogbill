@@ -5,6 +5,7 @@ import '../../../app/constants/app_constants.dart';
 import '../../../core/database/daos/item_dao.dart';
 import '../../../core/database/daos/invoice_dao.dart';
 import '../../../core/database/daos/party_dao.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/utils/gst_calculator.dart';
 import '../../../core/sync/sync_service.dart';
 
@@ -13,12 +14,20 @@ class CartItem {
   double quantity;
   double unitPrice;
   double discountPercent;
+  String? autoBrand;
+  String? autoSpecNumber;
+  String? autoPartNumber;
+  String? rackLocation;
 
   CartItem({
     required this.item,
     this.quantity = 1.0,
     required this.unitPrice,
     this.discountPercent = 0.0,
+    this.autoBrand,
+    this.autoSpecNumber,
+    this.autoPartNumber,
+    this.rackLocation,
   });
 
   GstCalculationResult get calculation => GstCalculator.calculateLineItem(
@@ -69,12 +78,25 @@ class BillingState {
 
 class BillingNotifier extends StateNotifier<BillingState> {
   final SyncService _syncService = SyncService();
+  final ApiClient _apiClient = ApiClient();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final ItemDao _itemDao = ItemDao();
 
   BillingNotifier() : super(BillingState());
 
-  /// Instant add to cart (either tap or barcode scan)
-  void addItem(ItemModel item) {
-    final existingIndex = state.cart.indexWhere((c) => c.item.id == item.id);
+  /// Instant add to cart (either tap, modal pick, or barcode scan)
+  void addItem(
+    ItemModel item, {
+    double? unitPrice,
+    String? autoBrand,
+    String? autoSpecNumber,
+    String? autoPartNumber,
+    String? rackLocation,
+  }) {
+    final existingIndex = state.cart.indexWhere((c) =>
+        c.item.id == item.id &&
+        c.autoBrand == autoBrand &&
+        c.autoSpecNumber == autoSpecNumber);
 
     if (existingIndex >= 0) {
       final updatedCart = List<CartItem>.from(state.cart);
@@ -86,7 +108,11 @@ class BillingNotifier extends StateNotifier<BillingState> {
           ...state.cart,
           CartItem(
             item: item,
-            unitPrice: item.salePrice,
+            unitPrice: unitPrice ?? (item.ptr > 0 ? item.ptr : item.salePrice),
+            autoBrand: autoBrand,
+            autoSpecNumber: autoSpecNumber,
+            autoPartNumber: autoPartNumber,
+            rackLocation: rackLocation,
           ),
         ],
       );
@@ -94,16 +120,27 @@ class BillingNotifier extends StateNotifier<BillingState> {
   }
 
   void updateQuantity(int index, double newQty) {
+    if (index < 0 || index >= state.cart.length) return;
     if (newQty <= 0) {
       removeItem(index);
       return;
     }
-    final updatedCart = List<CartItem>.from(state.cart);
+    final updatedCart = state.cart.map((c) => CartItem(
+      item: c.item,
+      quantity: c.quantity,
+      unitPrice: c.unitPrice,
+      discountPercent: c.discountPercent,
+      autoBrand: c.autoBrand,
+      autoSpecNumber: c.autoSpecNumber,
+      autoPartNumber: c.autoPartNumber,
+      rackLocation: c.rackLocation,
+    )).toList();
     updatedCart[index].quantity = newQty;
     state = state.copyWith(cart: updatedCart);
   }
 
   void removeItem(int index) {
+    if (index < 0 || index >= state.cart.length) return;
     final updatedCart = List<CartItem>.from(state.cart)..removeAt(index);
     state = state.copyWith(cart: updatedCart);
   }
@@ -117,22 +154,25 @@ class BillingNotifier extends StateNotifier<BillingState> {
   }
 
   void clearCart() {
-    state = BillingState();
+    state = state.copyWith(cart: [], customerName: "Walk-in Customer", customerPhone: "", paymentMode: 1);
   }
 
-  /// Creates invoice offline immediately in SQLite, and queues for cloud synchronization
+  /// Online-First invoice creation: immediately sends to cloud API, saves to SQLite, and updates inventory
   Future<InvoiceModel> completeInvoice() async {
-    if (state.cart.isEmpty) throw Exception("Cart is empty");
+    if (state.cart.isEmpty) {
+      throw Exception('Cannot bill empty cart');
+    }
 
     state = state.copyWith(isSubmitting: true);
 
     try {
-      const storage = FlutterSecureStorage();
-      final activeTenantId = await storage.read(key: AppConstants.keyTenantId) ?? '';
+      final activeTenantId = await _storage.read(key: AppConstants.keyTenantId) ?? '';
 
       final invoiceId = const Uuid().v4();
-      final invoiceNumber = "INV-POS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}";
-      final nowStr = DateTime.now().toIso8601String();
+      final now = DateTime.now();
+      final nowStr = now.toIso8601String();
+      final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      final invoiceNumber = 'POS-${now.millisecondsSinceEpoch.toString().substring(7)}';
 
       String? partyId;
       if (state.customerPhone.isNotEmpty) {
@@ -150,11 +190,16 @@ class BillingNotifier extends StateNotifier<BillingState> {
         ));
       }
 
-      final invoiceModel = InvoiceModel(
+      final isCredit = state.paymentMode == 4;
+      final paidAmount = isCredit ? 0.0 : state.grandTotal;
+      final balanceAmount = isCredit ? state.grandTotal : 0.0;
+      final paymentStatus = isCredit ? 1 : 3; // 1 = Unpaid (Credit), 3 = Paid
+
+      InvoiceModel invoiceModel = InvoiceModel(
         id: invoiceId,
         tenantId: activeTenantId,
         invoiceNumber: invoiceNumber,
-        invoiceDate: nowStr.substring(0, 10),
+        invoiceDate: dateStr,
         partyId: partyId,
         partyName: state.customerName.isEmpty ? 'Walk-in Customer' : state.customerName,
         partyPhone: state.customerPhone.isEmpty ? null : state.customerPhone,
@@ -163,19 +208,26 @@ class BillingNotifier extends StateNotifier<BillingState> {
         sgstAmount: state.totalGst / 2,
         igstAmount: 0.0,
         totalAmount: state.grandTotal,
-        paidAmount: state.grandTotal,
-        balanceAmount: 0.0,
+        paidAmount: paidAmount,
+        balanceAmount: balanceAmount,
         paymentMode: state.paymentMode,
-        paymentStatus: 3, // Paid
+        paymentStatus: paymentStatus,
+        invoiceType: 2, // POS Bill
         isCancelled: false,
         isSynced: false,
         createdAt: nowStr,
         items: state.cart.map((c) {
+          final autoBadge = [
+            if (c.autoSpecNumber != null && c.autoSpecNumber!.isNotEmpty) 'No: ${c.autoSpecNumber}',
+            if (c.autoBrand != null && c.autoBrand!.isNotEmpty) c.autoBrand!,
+          ].join(' | ');
+          final finalItemName = autoBadge.isNotEmpty ? '${c.item.name} ($autoBadge)' : c.item.name;
+
           return InvoiceItemModel(
             id: const Uuid().v4(),
             invoiceId: invoiceId,
             itemId: c.item.id,
-            itemName: c.item.name,
+            itemName: finalItemName,
             itemSku: c.item.sku,
             quantity: c.quantity,
             unitPrice: c.unitPrice,
@@ -185,22 +237,46 @@ class BillingNotifier extends StateNotifier<BillingState> {
             cgstAmount: c.calculation.cgstAmount,
             sgstAmount: c.calculation.sgstAmount,
             totalAmount: c.calculation.totalAmount,
+            hsnCode: c.item.hsnCode,
+            batchNumber: c.item.batchNumber,
+            expiryDate: c.item.expiryDate,
           );
         }).toList(),
       );
 
-      // Save locally to SQLite immediately
+      // Online-First approach: Submit directly to backend API
+      bool onlineSuccess = false;
+      final apiPayload = invoiceModel.toApiPayload();
+
+      try {
+        final res = await _apiClient.post('/tenant/invoices', data: apiPayload);
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          onlineSuccess = true;
+          invoiceModel = invoiceModel.copyWith(isSynced: true);
+        }
+      } catch (_) {
+        // Fallback gracefully to offline SQLite + sync_queue
+      }
+
+      // Save locally to SQLite (deducts stock and records ledger)
       final invoiceDao = InvoiceDao();
       await invoiceDao.insertInvoice(invoiceModel);
 
-      // Queue offline & sync
-      await _syncService.queueOfflineInvoice(
-        invoiceId: invoiceId,
-        invoicePayload: invoiceModel.toMap(),
-      );
+      // Deduct item stock locally for instant stock reflection
+      for (final cartItem in state.cart) {
+        await _itemDao.deductStock(cartItem.item.id, cartItem.quantity);
+      }
 
-      // Attempt immediate background flush
-      _syncService.flushSyncQueue().ignore();
+      if (!onlineSuccess) {
+        // Queue offline in sync_queue for automatic retry
+        await _syncService.queueOfflineInvoice(
+          invoiceId: invoiceId,
+          invoicePayload: apiPayload,
+        );
+      } else {
+        // When online creation succeeds, trigger background pull to sync latest state
+        _syncService.syncInvoicesFromWeb().catchError((_) => 0);
+      }
 
       clearCart();
       return invoiceModel;
