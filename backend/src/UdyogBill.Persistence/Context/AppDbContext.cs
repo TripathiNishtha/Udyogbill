@@ -219,6 +219,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Domain.Entities.Accounting.JournalVoucher> JournalVouchers => Set<Domain.Entities.Accounting.JournalVoucher>();
     public DbSet<Domain.Entities.Accounting.JournalVoucherLeg> JournalVoucherLegs => Set<Domain.Entities.Accounting.JournalVoucherLeg>();
     public DbSet<Domain.Entities.Accounting.VoucherAuditLog> VoucherAuditLogs => Set<Domain.Entities.Accounting.VoucherAuditLog>();
+    public DbSet<Domain.Entities.Accounting.AccountingPeriodLock> AccountingPeriodLocks => Set<Domain.Entities.Accounting.AccountingPeriodLock>();
+    public DbSet<Domain.Entities.Accounting.CostCentre> CostCentres => Set<Domain.Entities.Accounting.CostCentre>();
 
     // CMS - Marketing Website
     public DbSet<Lead> Leads => Set<Lead>();

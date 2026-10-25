@@ -1,13 +1,32 @@
 import { apiClient } from "@/lib/api-client";
 
+// #region Domain Interfaces
+
 export interface AccountGroup {
   id: string;
   code: string;
   name: string;
   category: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense";
   nature: "Debit" | "Credit";
-  parentGroupId?: string;
+  parentGroupId?: string | null;
   description?: string;
+}
+
+export interface AccountGroupTreeNode {
+  id: string;
+  code: string;
+  name: string;
+  category: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense";
+  nature: "Debit" | "Credit";
+  parentGroupId?: string | null;
+  description?: string;
+  ledgerCount: number;
+  totalDebit: number;
+  totalCredit: number;
+  netBalance: number;
+  balanceType: "Debit" | "Credit";
+  subGroups: AccountGroupTreeNode[];
+  ledgers: LedgerAccount[];
 }
 
 export interface LedgerAccount {
@@ -22,6 +41,17 @@ export interface LedgerAccount {
   currentBalance: number;
   isSystemAccount: boolean;
   isActive: boolean;
+  description?: string;
+  isBillWiseApplicable?: boolean;
+  isCostCentresApplicable?: boolean;
+  defaultTaxRate?: number;
+  gstin?: string;
+  state?: string;
+  panNumber?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranch?: string;
 }
 
 export interface JournalVoucherLeg {
@@ -31,23 +61,139 @@ export interface JournalVoucherLeg {
   debitAmount: number;
   creditAmount: number;
   narration?: string;
+  billRefType?: string;
+  billRefNumber?: string;
+  costCentreId?: string;
 }
 
 export interface JournalVoucher {
   id: string;
   voucherNumber: string;
   voucherDate: string;
-  voucherType: "Journal" | "Contra" | "Payment" | "Receipt" | "DebitNote" | "CreditNote";
+  voucherType: "Journal" | "Contra" | "Payment" | "Receipt" | "Sales" | "Purchase" | "DebitNote" | "CreditNote" | string;
   referenceNumber?: string;
+  referenceDate?: string;
   totalDebit: number;
   totalCredit: number;
   narration: string;
   legs: JournalVoucherLeg[];
   createdByName?: string;
   createdAt: string;
+  sourceDocumentType?: string;
+  sourceDocumentId?: string;
+  isCancelled?: boolean;
+  cancelledAtUtc?: string;
+  cancelledByName?: string;
+  cancelledReason?: string;
+}
+
+export interface LedgerStatementLine {
+  voucherId: string;
+  voucherNumber: string;
+  voucherDate: string;
+  voucherType: string;
+  referenceNumber?: string;
+  narration?: string;
+  debitAmount: number;
+  creditAmount: number;
+  runningBalance: number;
+  runningBalanceType: string;
+  isCancelled?: boolean;
+  sourceDocumentType?: string;
+  sourceDocumentId?: string;
+}
+
+export interface LedgerStatementReport {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  groupName: string;
+  category: string;
+  openingBalance: number;
+  balanceType: string;
+  totalDebit: number;
+  totalCredit: number;
+  closingBalance: number;
+  closingBalanceType: string;
+  lines: LedgerStatementLine[];
+}
+
+export interface MonthlySummaryRow {
+  monthIndex: number;
+  monthName: string;
+  year: number;
+  debitAmount: number;
+  creditAmount: number;
+  netMovement: number;
+  closingBalance: number;
+  closingBalanceType: string;
+  voucherCount: number;
+}
+
+export interface LedgerMonthlySummary {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  groupName: string;
+  category: string;
+  openingBalance: number;
+  balanceType: string;
+  totalDebit: number;
+  totalCredit: number;
+  closingBalance: number;
+  closingBalanceType: string;
+  months: MonthlySummaryRow[];
+}
+
+export interface GroupSummaryItem {
+  id: string;
+  code: string;
+  name: string;
+  itemType: "Group" | "Ledger";
+  childCount: number;
+  openingDebit: number;
+  openingCredit: number;
+  debitMovement: number;
+  creditMovement: number;
+  closingDebit: number;
+  closingCredit: number;
+}
+
+export interface GroupSummaryReport {
+  groupId: string;
+  groupCode: string;
+  groupName: string;
+  category: string;
+  nature: string;
+  totalDebitMovement: number;
+  totalCreditMovement: number;
+  netClosingBalance: number;
+  closingBalanceType: string;
+  items: GroupSummaryItem[];
+}
+
+export interface VoucherAuditLog {
+  id: string;
+  journalVoucherId: string;
+  voucherNumber: string;
+  actionType: string;
+  previousSnapshotJson?: string;
+  newSnapshotJson?: string;
+  performedByName?: string;
+  clientIpAddress?: string;
+  createdAtUtc: string;
+}
+
+export interface PeriodLock {
+  lockDate: string;
+  isLocked: boolean;
+  reason: string;
+  lockedByName?: string;
+  updatedAtUtc?: string;
 }
 
 export interface TrialBalanceRow {
+  accountId: string;
   accountCode: string;
   accountName: string;
   groupName: string;
@@ -72,32 +218,148 @@ export interface TrialBalanceReport {
   isBalanced: boolean;
 }
 
+export interface BalanceSheetLedgerLine {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
+  balanceType: string;
+}
+
+export interface BalanceSheetSection {
+  groupId: string;
+  groupCode: string;
+  groupName: string;
+  totalAmount: number;
+  subGroups: BalanceSheetSection[];
+  ledgers: BalanceSheetLedgerLine[];
+}
+
 export interface BalanceSheetReport {
   asOfDate: string;
-  assets: { groupName: string; accounts: { accountName: string; balance: number }[]; subtotal: number }[];
-  totalAssets: number;
-  liabilities: { groupName: string; accounts: { accountName: string; balance: number }[]; subtotal: number }[];
+  accountingBasis: string;
+  liabilities: BalanceSheetSection[];
+  assets: BalanceSheetSection[];
   totalLiabilities: number;
-  equity: { groupName: string; accounts: { accountName: string; balance: number }[]; subtotal: number }[];
-  totalEquity: number;
-  currentPeriodProfit: number;
-  totalLiabilitiesAndEquity: number;
+  totalAssets: number;
+  netProfitOrLoss: number;
+  differenceInOpeningBalances: number;
   isBalanced: boolean;
 }
 
-export interface ProfitAndLossReport {
-  fromPeriod: string;
-  toPeriod: string;
-  revenues: { groupName: string; accounts: { accountName: string; balance: number }[]; subtotal: number }[];
-  totalRevenue: number;
-  costOfGoodsSold: number;
-  grossProfit: number;
-  grossMarginPercent: number;
-  expenses: { groupName: string; accounts: { accountName: string; balance: number }[]; subtotal: number }[];
-  totalExpenses: number;
-  netProfitOrLoss: number;
-  netMarginPercent: number;
+export interface ProfitAndLossItem {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
 }
+
+export interface ProfitAndLossGroup {
+  groupName: string;
+  totalAmount: number;
+  items: ProfitAndLossItem[];
+}
+
+export interface ProfitAndLossReport {
+  fromDate: string;
+  toDate: string;
+  accountingBasis: string;
+  salesRevenue: number;
+  openingStock: number;
+  directPurchases: number;
+  directExpenses: number;
+  closingStock: number;
+  grossProfit: number;
+  grossLoss: number;
+  indirectIncomes: number;
+  indirectExpenses: number;
+  netProfit: number;
+  netLoss: number;
+  directExpenseGroups: ProfitAndLossGroup[];
+  indirectIncomeGroups: ProfitAndLossGroup[];
+  indirectExpenseGroups: ProfitAndLossGroup[];
+}
+
+export interface DayBookItem {
+  voucherId: string;
+  voucherNumber: string;
+  voucherDate: string;
+  voucherType: string;
+  referenceNumber?: string;
+  narration: string;
+  particulars: string;
+  debitAmount: number;
+  creditAmount: number;
+  createdByName?: string;
+  isCancelled: boolean;
+}
+
+export interface DayBookReport {
+  fromDate: string;
+  toDate: string;
+  totalVouchers: number;
+  totalDebit: number;
+  totalCredit: number;
+  vouchers: DayBookItem[];
+}
+
+export interface CashBankBookItem {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: "Cash" | "Bank";
+  openingBalance: number;
+  openingBalanceType: string;
+  totalReceipts: number;
+  totalPayments: number;
+  closingBalance: number;
+  closingBalanceType: string;
+}
+
+export interface CashBankBookReport {
+  fromDate: string;
+  toDate: string;
+  totalCashBalance: number;
+  totalBankBalance: number;
+  grandTotal: number;
+  accounts: CashBankBookItem[];
+}
+
+export interface CostCentre {
+  id: string;
+  code: string;
+  name: string;
+  category?: string;
+  parentCostCentreId?: string;
+  isActive: boolean;
+}
+
+export interface MigratedBillsSyncPreview {
+  unpostedSalesCount: number;
+  unpostedSalesAmount: number;
+  unpostedPurchasesCount: number;
+  unpostedPurchasesAmount: number;
+  alreadySyncedCount: number;
+}
+
+export interface SyncMigratedBillsResult {
+  syncedSalesCount: number;
+  syncedSalesAmount: number;
+  syncedPurchasesCount: number;
+  syncedPurchasesAmount: number;
+  syncedPaymentsCount: number;
+  syncedPaymentsAmount: number;
+  message: string;
+}
+
+export interface SyncMigratedBillsRequest {
+  syncSales?: boolean;
+  syncPurchases?: boolean;
+  fromDate?: string | null;
+  toDate?: string | null;
+}
+
+// #endregion
 
 class AccountingService {
   public async isAddonEnabled(): Promise<boolean> {
@@ -121,48 +383,179 @@ class AccountingService {
     // Managed via subscriptions/addons
   }
 
+  // #region Groups & Master COA
+
   public async getAccountGroups(): Promise<AccountGroup[]> {
     const res = await apiClient.get<any>("/accounting/groups");
     const data = res.data?.data ?? res.data;
     return Array.isArray(data) ? data : [];
   }
 
-  public async getLedgerAccounts(): Promise<LedgerAccount[]> {
-    const res = await apiClient.get<any>("/accounting/accounts");
+  public async getAccountGroupsTree(): Promise<AccountGroupTreeNode[]> {
+    const res = await apiClient.get<any>("/accounting/groups/tree");
     const data = res.data?.data ?? res.data;
     return Array.isArray(data) ? data : [];
   }
 
-  public async createLedgerAccount(account: Omit<LedgerAccount, "id" | "currentBalance">): Promise<LedgerAccount> {
-    const res = await apiClient.post<any>("/accounting/accounts", {
-      accountCode: account.accountCode,
-      accountName: account.accountName,
-      groupId: account.groupId,
-      category: account.category,
-      openingBalance: account.openingBalance,
-      balanceType: account.balanceType
+  public async getGroupSummary(groupId: string, fromDate?: string, toDate?: string): Promise<GroupSummaryReport | null> {
+    try {
+      const res = await apiClient.get<any>(`/accounting/groups/${groupId}/summary`, {
+        params: { fromDate, toDate }
+      });
+      return res.data?.data ?? res.data;
+    } catch {
+      return null;
+    }
+  }
+
+  // // #endregion
+
+  // #region Ledger Master
+
+  public async getLedgerAccounts(category?: string, groupId?: string): Promise<LedgerAccount[]> {
+    const res = await apiClient.get<any>("/accounting/accounts", {
+      params: { category, groupId }
     });
+    const data = res.data?.data ?? res.data;
+    return Array.isArray(data) ? data : [];
+  }
+
+  public async createLedgerAccount(account: {
+    accountCode: string;
+    accountName: string;
+    groupId: string;
+    category?: string;
+    openingBalance: number;
+    balanceType: string;
+    description?: string;
+    isBillWiseApplicable?: boolean;
+    isCostCentresApplicable?: boolean;
+    defaultTaxRate?: number;
+    gstin?: string;
+    state?: string;
+    panNumber?: string;
+    bankName?: string;
+    bankAccountNumber?: string;
+    bankIfscCode?: string;
+    bankBranch?: string;
+  }): Promise<LedgerAccount> {
+    const res = await apiClient.post<any>("/accounting/accounts", account);
     return res.data?.data ?? res.data;
   }
 
-  public async getJournalVouchers(fromDate?: string, toDate?: string): Promise<JournalVoucher[]> {
+  public async updateLedgerAccount(id: string, account: Partial<LedgerAccount>): Promise<LedgerAccount> {
+    const res = await apiClient.put<any>(`/accounting/accounts/${id}`, account);
+    return res.data?.data ?? res.data;
+  }
+
+  public async getLedgerStatement(accountId: string, fromDate?: string, toDate?: string): Promise<LedgerStatementReport | null> {
+    try {
+      const res = await apiClient.get<any>(`/accounting/ledgers/${accountId}/statement`, {
+        params: { fromDate, toDate }
+      });
+      return res.data?.data ?? res.data;
+    } catch {
+      return null;
+    }
+  }
+
+  public async getLedgerMonthlySummary(accountId: string, financialYear?: number): Promise<LedgerMonthlySummary | null> {
+    try {
+      const res = await apiClient.get<any>(`/accounting/ledgers/${accountId}/monthly-summary`, {
+        params: { financialYear }
+      });
+      return res.data?.data ?? res.data;
+    } catch {
+      return null;
+    }
+  }
+
+  // // #endregion
+
+  // #region Vouchers
+
+  public async getJournalVouchers(params?: {
+    fromDate?: string;
+    toDate?: string;
+    voucherType?: string;
+    search?: string;
+  }): Promise<JournalVoucher[]> {
     const res = await apiClient.get<any>("/accounting/vouchers", {
-      params: { fromDate, toDate }
+      params
     });
     const data = res.data?.data ?? res.data;
     return Array.isArray(data) ? data : [];
   }
 
-  public async createJournalVoucher(voucher: Omit<JournalVoucher, "id" | "voucherNumber" | "createdAt">): Promise<JournalVoucher> {
-    const res = await apiClient.post<any>("/accounting/vouchers", {
-      voucherType: voucher.voucherType,
-      voucherDate: voucher.voucherDate,
-      referenceNumber: voucher.referenceNumber,
-      narration: voucher.narration,
-      legs: voucher.legs
-    });
+  public async getVoucherById(id: string): Promise<JournalVoucher | null> {
+    try {
+      const res = await apiClient.get<any>(`/accounting/vouchers/${id}`);
+      return res.data?.data ?? res.data;
+    } catch {
+      return null;
+    }
+  }
+
+  public async getVoucherByReference(refNumber: string): Promise<JournalVoucher | null> {
+    try {
+      const res = await apiClient.get<any>(`/accounting/vouchers/by-reference/${encodeURIComponent(refNumber)}`);
+      return res.data?.data ?? res.data;
+    } catch {
+      return null;
+    }
+  }
+
+  public async createJournalVoucher(voucher: {
+    voucherType: string;
+    voucherDate?: string;
+    referenceNumber?: string;
+    referenceDate?: string;
+    narration: string;
+    legs: JournalVoucherLeg[];
+    sourceDocumentType?: string;
+    sourceDocumentId?: string;
+  }): Promise<JournalVoucher> {
+    const res = await apiClient.post<any>("/accounting/vouchers", voucher);
     return res.data?.data ?? res.data;
   }
+
+  public async cancelVoucher(id: string, reason: string): Promise<void> {
+    await apiClient.post<any>(`/accounting/vouchers/${id}/cancel`, { reason });
+  }
+
+  public async getVoucherAuditLogs(voucherId?: string): Promise<VoucherAuditLog[]> {
+    try {
+      const res = await apiClient.get<any>("/accounting/audit-logs", {
+        params: { voucherId }
+      });
+      const data = res.data?.data ?? res.data;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  // // #endregion
+
+  // #region Period Lock
+
+  public async getPeriodLock(): Promise<PeriodLock | null> {
+    try {
+      const res = await apiClient.get<any>("/accounting/period-lock");
+      return res.data?.data ?? res.data;
+    } catch {
+      return null;
+    }
+  }
+
+  public async setPeriodLock(lockDate: string, isLocked: boolean, reason: string): Promise<PeriodLock> {
+    const res = await apiClient.post<any>("/accounting/period-lock", { lockDate, isLocked, reason });
+    return res.data?.data ?? res.data;
+  }
+
+  // // #endregion
+
+  // #region Certified Reports
 
   public async getTrialBalance(): Promise<TrialBalanceReport> {
     const res = await apiClient.get<any>("/accounting/trial-balance");
@@ -189,97 +582,67 @@ class AccountingService {
     };
   }
 
-  public async getBalanceSheet(): Promise<BalanceSheetReport> {
-    const accounts = await this.getLedgerAccounts();
-    const assets = accounts.filter((a) => a.category === "Asset");
-    const liabilities = accounts.filter((a) => a.category === "Liability");
-    const equity = accounts.filter((a) => a.category === "Equity");
-    const revenue = accounts.filter((a) => a.category === "Revenue");
-    const expense = accounts.filter((a) => a.category === "Expense");
-
-    const totalRev = revenue.reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-    const totalExp = expense.reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-    const netProfit = totalRev - totalExp;
-
-    const totalAssets = assets.reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-    const totalLiab = liabilities.reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-    const totalEq = equity.reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-
-    return {
-      asOfDate: new Date().toISOString().split("T")[0],
-      assets: [
-        {
-          groupName: "Current & Fixed Assets",
-          accounts: assets.map((a) => ({ accountName: a.accountName, balance: Number(a.currentBalance) || 0 })),
-          subtotal: totalAssets
-        }
-      ],
-      totalAssets,
-      liabilities: [
-        {
-          groupName: "Current & Long-Term Liabilities",
-          accounts: liabilities.map((a) => ({ accountName: a.accountName, balance: Number(a.currentBalance) || 0 })),
-          subtotal: totalLiab
-        }
-      ],
-      totalLiabilities: totalLiab,
-      equity: [
-        {
-          groupName: "Capital & Retained Earnings",
-          accounts: equity.map((a) => ({ accountName: a.accountName, balance: Number(a.currentBalance) || 0 })),
-          subtotal: totalEq
-        }
-      ],
-      totalEquity: totalEq,
-      currentPeriodProfit: netProfit,
-      totalLiabilitiesAndEquity: totalLiab + totalEq + netProfit,
-      isBalanced: Math.abs(totalAssets - (totalLiab + totalEq + netProfit)) < 1.0
-    };
+  public async getBalanceSheet(asOfDate?: string, basis: string = "accrual"): Promise<BalanceSheetReport> {
+    const res = await apiClient.get<any>("/accounting/reports/balance-sheet", {
+      params: { asOfDate, basis }
+    });
+    return res.data?.data ?? res.data;
   }
 
-  public async getProfitAndLoss(): Promise<ProfitAndLossReport> {
-    const accounts = await this.getLedgerAccounts();
-    const revenue = accounts.filter((a) => a.category === "Revenue");
-    const expense = accounts.filter((a) => a.category === "Expense");
-
-    const cogsAccount = expense.find((a) => a.accountCode === "ACC-PURCHASE-EXP" || a.accountCode === "5001") || { currentBalance: 0 };
-    const indirectExpenses = expense.filter((a) => a !== cogsAccount);
-
-    const totalRev = revenue.reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-    const cogs = Number(cogsAccount.currentBalance) || 0;
-    const grossProfit = totalRev - cogs;
-    const grossMargin = totalRev > 0 ? (grossProfit / totalRev) * 100 : 0;
-
-    const totalIndExp = indirectExpenses.reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-    const netProfit = grossProfit - totalIndExp;
-    const netMargin = totalRev > 0 ? (netProfit / totalRev) * 100 : 0;
-
-    return {
-      fromPeriod: `${new Date().getFullYear()}-04-01`,
-      toPeriod: new Date().toISOString().split("T")[0],
-      revenues: [
-        {
-          groupName: "Operating Sales Revenue",
-          accounts: revenue.map((a) => ({ accountName: a.accountName, balance: Number(a.currentBalance) || 0 })),
-          subtotal: totalRev
-        }
-      ],
-      totalRevenue: totalRev,
-      costOfGoodsSold: cogs,
-      grossProfit,
-      grossMarginPercent: grossMargin,
-      expenses: [
-        {
-          groupName: "Administrative & Operating Expenses",
-          accounts: indirectExpenses.map((a) => ({ accountName: a.accountName, balance: Number(a.currentBalance) || 0 })),
-          subtotal: totalIndExp
-        }
-      ],
-      totalExpenses: totalIndExp,
-      netProfitOrLoss: netProfit,
-      netMarginPercent: netMargin
-    };
+  public async getProfitAndLoss(fromDate?: string, toDate?: string, basis: string = "accrual"): Promise<ProfitAndLossReport> {
+    const res = await apiClient.get<any>("/accounting/reports/profit-and-loss", {
+      params: { fromDate, toDate, basis }
+    });
+    return res.data?.data ?? res.data;
   }
+
+  public async getDayBook(params?: {
+    date?: string;
+    fromDate?: string;
+    toDate?: string;
+    voucherType?: string;
+  }): Promise<DayBookReport> {
+    const res = await apiClient.get<any>("/accounting/reports/daybook", { params });
+    return res.data?.data ?? res.data;
+  }
+
+  public async getCashBankBook(fromDate?: string, toDate?: string): Promise<CashBankBookReport> {
+    const res = await apiClient.get<any>("/accounting/reports/cash-bank-book", {
+      params: { fromDate, toDate }
+    });
+    return res.data?.data ?? res.data;
+  }
+
+  // // #endregion
+
+  // #region Cost Centres & Migrated Sync
+
+  public async getCostCentres(): Promise<CostCentre[]> {
+    try {
+      const res = await apiClient.get<any>("/accounting/cost-centres");
+      const data = res.data?.data ?? res.data;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async createCostCentre(centre: { code: string; name: string; category?: string; parentCostCentreId?: string }): Promise<CostCentre> {
+    const res = await apiClient.post<any>("/accounting/cost-centres", centre);
+    return res.data?.data ?? res.data;
+  }
+
+  public async getMigratedBillsSyncPreview(): Promise<MigratedBillsSyncPreview> {
+    const res = await apiClient.get<any>("/accounting/sync-migrated-bills/preview");
+    return res.data?.data ?? res.data;
+  }
+
+  public async syncMigratedBills(req?: SyncMigratedBillsRequest): Promise<SyncMigratedBillsResult> {
+    const res = await apiClient.post<any>("/accounting/sync-migrated-bills", req ?? { syncSales: true, syncPurchases: true });
+    return res.data?.data ?? res.data;
+  }
+
+  // // #endregion
 }
 
 export const accountingService = new AccountingService();
