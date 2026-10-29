@@ -297,6 +297,10 @@ function TenantInvoicesPageContent() {
   const [autoPartsCrossRefs, setAutoPartsCrossRefs] = useState<PartCrossReference[]>([]);
   const [activeSubPopoverLineIdx, setActiveSubPopoverLineIdx] = useState<number | null>(null);
 
+  // Active row and focused deal hint tracking (Dense Zero-height ERP layout)
+  const [activeRowIdx, setActiveRowIdx] = useState<number>(0);
+  const [focusedHintField, setFocusedHintField] = useState<{ idx: number; field: "rate" | "free" | "mrp" | null }>({ idx: -1, field: null });
+
   // Pharma Prescriber & Patient Statutory Record (Schedule H1 / CDSCO)
   const [doctorName, setDoctorName] = useState<string>("");
   const [doctorRegNumber, setDoctorRegNumber] = useState<string>("");
@@ -769,16 +773,45 @@ function TenantInvoicesPageContent() {
 
     // 1. Pharma Marg DPCO 3-Tier Rate Engine
     if (hasPharmaAddon) {
-      const newMrp = (batch as any)?.mrp || item.mrp || item.sellingPrice || 0;
+      const newMrp = (batch as any)?.mrp || item.mrp || 0;
       const baseGst = item.taxRate || 12;
       const { ptr: calcPtr, pts: calcPts } = calculateMargPharmaRates(newMrp, baseGst);
-      const finalPtr = (batch as any)?.ptr || calcPtr;
-      const finalPts = (batch as any)?.pts || calcPts;
 
-      let effectiveRate = (batch as any)?.saleRate || item.sellingPrice || 0;
-      if (curPharmaTier === "company_to_stockist" && finalPts > 0) effectiveRate = finalPts;
-      else if (curPharmaTier === "stockist_to_chemist" && finalPtr > 0) effectiveRate = finalPtr;
-      else if (curPharmaTier === "chemist_to_patient" && newMrp > 0) effectiveRate = newMrp;
+      const itemWholesale = (item.minimumSellingPrice && Number(item.minimumSellingPrice) > 0) ? Number(item.minimumSellingPrice) : 0;
+      const purchaseCost = item.purchasePrice || 0;
+      const batchSale = (batch as any)?.saleRate || 0;
+
+      // Smart PTR resolution (Wholesale Selling Rate for Stockist -> Chemist):
+      // Priority 1: Batch explicit PTR (if set > 0)
+      // Priority 2: Master Wholesale Price (item.minimumSellingPrice, if > purchaseCost)
+      // Priority 3: Calculated Marg DPCO PTR (if > 0)
+      // Priority 4: Batch SaleRate (if > purchaseCost)
+      // Priority 5: Fallback to item sellingPrice / batch saleRate
+      let finalPtr = 0;
+      if ((batch as any)?.ptr && Number((batch as any).ptr) > 0) {
+        finalPtr = Number((batch as any).ptr);
+      } else if (itemWholesale > purchaseCost) {
+        finalPtr = itemWholesale;
+      } else if (calcPtr > 0) {
+        finalPtr = calcPtr;
+      } else if (batchSale > purchaseCost) {
+        finalPtr = batchSale;
+      } else if (item.sellingPrice && Number(item.sellingPrice) > purchaseCost) {
+        finalPtr = Number(item.sellingPrice);
+      } else {
+        finalPtr = itemWholesale > 0 ? itemWholesale : (calcPtr > 0 ? calcPtr : (batchSale > 0 ? batchSale : (item.sellingPrice || 0)));
+      }
+
+      const finalPts = (batch as any)?.pts && Number((batch as any).pts) > 0 ? Number((batch as any).pts) : calcPts;
+
+      let effectiveRate = finalPtr;
+      if (curPharmaTier === "company_to_stockist" && finalPts > 0) {
+        effectiveRate = finalPts;
+      } else if (curPharmaTier === "stockist_to_chemist") {
+        effectiveRate = finalPtr > 0 ? finalPtr : (newMrp > 0 ? newMrp : 0);
+      } else if (curPharmaTier === "chemist_to_patient") {
+        effectiveRate = newMrp > 0 ? newMrp : (finalPtr > 0 ? finalPtr : 0);
+      }
 
       return {
         rate: effectiveRate > 0 ? effectiveRate : (newMrp > 0 ? newMrp : 0),
@@ -1055,6 +1088,41 @@ function TenantInvoicesPageContent() {
           handleSwitchPharmaTradeTier("chemist_to_patient");
         }
       }
+
+      // Refresh last deal hints and deal rates for any items already added
+      invoiceLines.forEach((l, idx) => {
+        if (l.itemId) {
+          salesService.getLastSaleDeal(l.itemId, customerId)
+            .then((hint) => {
+              if (hint) {
+                setInvoiceLines((prev) =>
+                  prev.map((line, i) => {
+                    if (i !== idx) return line;
+                    const shouldApplyHintRate = hasPharmaAddon && pharmaTradeTier === "stockist_to_chemist" && hint.unitPrice > 0;
+                    const rateToUse = shouldApplyHintRate ? hint.unitPrice : line.unitPrice;
+                    const calc = calculateLineAmounts(
+                      line.quantity,
+                      rateToUse,
+                      line.discountType,
+                      line.discountValue,
+                      line.gstRate,
+                      Boolean(line.isTaxInclusive)
+                    );
+                    return {
+                      ...line,
+                      lastDealHint: hint,
+                      unitPrice: rateToUse,
+                      taxableAmount: calc.taxableAmount,
+                      discountAmount: calc.discountAmount,
+                      totalAmount: calc.totalAmount,
+                    };
+                  })
+                );
+              }
+            })
+            .catch(() => {});
+        }
+      });
     } else {
       setCustomerName("");
       setCustomerPhone("");
@@ -1106,6 +1174,21 @@ function TenantInvoicesPageContent() {
         e.preventDefault();
         handleOpenAddProductModal();
       }
+      // Alt+D: Apply Last Deal to active line
+      else if (e.altKey && (e.key === "d" || e.key === "D")) {
+        e.preventDefault();
+        const activeLine = invoiceLines[activeRowIdx];
+        if (activeLine?.lastDealHint) {
+          const hint = activeLine.lastDealHint;
+          if (hint.unitPrice > 0) updateLineField(activeRowIdx, "unitPrice", hint.unitPrice);
+          if (hint.freeQuantity !== undefined) updateLineField(activeRowIdx, "freeQuantity", hint.freeQuantity);
+          if (hint.discountPercent !== undefined && hint.discountPercent > 0) {
+            updateLineField(activeRowIdx, "discountType", "percent");
+            updateLineField(activeRowIdx, "discountValue", hint.discountPercent);
+          }
+          if (hint.mrp && hint.mrp > 0) updateLineField(activeRowIdx, "mrp", hint.mrp);
+        }
+      }
       // F7: Cycle Payment Mode
       else if (e.key === "F7") {
         e.preventDefault();
@@ -1140,7 +1223,7 @@ function TenantInvoicesPageContent() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen, invoiceLines, submitting, isShortcutsHelpOpen, isAddCustomerModalOpen, isAddProductModalOpen]);
+  }, [isDrawerOpen, invoiceLines, submitting, isShortcutsHelpOpen, isAddCustomerModalOpen, isAddProductModalOpen, activeRowIdx]);
 
   const loadData = async (targetPage: number = pageNumber, targetPageSize: number = pageSize) => {
     try {
@@ -1958,9 +2041,9 @@ function parseItemDimensions(attributesJson?: string) {
     const baseGst = item.taxRate || 12;
     const resolved = resolveItemRate(item, defaultVariant, selectedBatch);
     const newMrp = (selectedBatch?.mrp && selectedBatch.mrp > 0) ? selectedBatch.mrp : resolved.mrp;
-    const finalPtr = (selectedBatch?.saleRate && selectedBatch.saleRate > 0) ? selectedBatch.saleRate : resolved.ptr;
+    const finalPtr = resolved.ptr;
     const finalPts = resolved.pts;
-    const effectiveRate = (selectedBatch?.saleRate && selectedBatch.saleRate > 0) ? selectedBatch.saleRate : resolved.rate;
+    const effectiveRate = resolved.rate;
 
     const effectiveGst = isGarments
       ? ((effectiveRate > 0 ? effectiveRate : newMrp) <= 1000 ? 5 : 12)
@@ -2029,10 +2112,11 @@ function parseItemDimensions(attributesJson?: string) {
     };
 
     setInvoiceLines((prev) => {
-      if (prev.length === 1 && (!prev[0].itemId || prev[0].itemId === "")) {
-        return [newLine];
-      }
-      return [...prev, newLine];
+      const updated = prev.length === 1 && (!prev[0].itemId || prev[0].itemId === "")
+        ? [newLine]
+        : [...prev, newLine];
+      setActiveRowIdx(updated.length - 1);
+      return updated;
     });
 
     // Query last sale deal hint for customer + product
@@ -2040,7 +2124,27 @@ function parseItemDimensions(attributesJson?: string) {
       .then((hint) => {
         if (hint) {
           setInvoiceLines((prev) =>
-            prev.map((l) => (l.itemId === item.id && !l.lastDealHint ? { ...l, lastDealHint: hint } : l))
+            prev.map((l) => {
+              if (l.itemId !== item.id) return l;
+              const shouldApplyHintRate = hasPharmaAddon && pharmaTradeTier === "stockist_to_chemist" && hint.unitPrice > 0;
+              const rateToUse = shouldApplyHintRate ? hint.unitPrice : l.unitPrice;
+              const calc = calculateLineAmounts(
+                l.quantity,
+                rateToUse,
+                l.discountType,
+                l.discountValue,
+                l.gstRate,
+                Boolean(l.isTaxInclusive)
+              );
+              return {
+                ...l,
+                lastDealHint: hint,
+                unitPrice: rateToUse,
+                taxableAmount: calc.taxableAmount,
+                discountAmount: calc.discountAmount,
+                totalAmount: calc.totalAmount,
+              };
+            })
           );
         }
       })
@@ -2199,12 +2303,34 @@ function parseItemDimensions(attributesJson?: string) {
       )
     );
 
+    setActiveRowIdx(idx);
+
     // Query last sale deal hint for customer + product
     salesService.getLastSaleDeal(found.id, selectedCustomerId || undefined)
       .then((hint) => {
         if (hint) {
           setInvoiceLines((prev) =>
-            prev.map((line, i) => (i === idx ? { ...line, lastDealHint: hint } : line))
+            prev.map((line, i) => {
+              if (i !== idx) return line;
+              const shouldApplyHintRate = hasPharmaAddon && pharmaTradeTier === "stockist_to_chemist" && hint.unitPrice > 0;
+              const rateToUse = shouldApplyHintRate ? hint.unitPrice : line.unitPrice;
+              const calc = calculateLineAmounts(
+                line.quantity,
+                rateToUse,
+                line.discountType,
+                line.discountValue,
+                line.gstRate,
+                Boolean(line.isTaxInclusive)
+              );
+              return {
+                ...line,
+                lastDealHint: hint,
+                unitPrice: rateToUse,
+                taxableAmount: calc.taxableAmount,
+                discountAmount: calc.discountAmount,
+                totalAmount: calc.totalAmount,
+              };
+            })
           );
         }
       })
@@ -2349,8 +2475,25 @@ function parseItemDimensions(attributesJson?: string) {
             }
           }
         }
-        const newRate = (foundBatch.saleRate && foundBatch.saleRate > 0) ? foundBatch.saleRate : line.unitPrice;
-        const newMrp = (foundBatch.mrp && foundBatch.mrp > 0) ? foundBatch.mrp : line.mrp;
+        const itemObj = items.find((it) => it.id === line.itemId);
+        let newRate = line.unitPrice;
+        let newMrp = (foundBatch.mrp && foundBatch.mrp > 0) ? foundBatch.mrp : line.mrp;
+        let newPtr = line.ptr;
+        let newPts = line.pts;
+        if (itemObj) {
+          const resolved = resolveItemRate(itemObj, null, foundBatch);
+          newMrp = resolved.mrp > 0 ? resolved.mrp : newMrp;
+          newPtr = resolved.ptr > 0 ? resolved.ptr : newPtr;
+          newPts = resolved.pts > 0 ? resolved.pts : newPts;
+          if (line.lastDealHint?.unitPrice && hasPharmaAddon && pharmaTradeTier === "stockist_to_chemist") {
+            newRate = line.lastDealHint.unitPrice;
+          } else {
+            newRate = resolved.rate > 0 ? resolved.rate : newRate;
+          }
+        } else {
+          newRate = (foundBatch.saleRate && foundBatch.saleRate > 0) ? foundBatch.saleRate : line.unitPrice;
+        }
+
         const calculated = calculateLineAmounts(
           line.quantity,
           newRate,
@@ -2370,6 +2513,8 @@ function parseItemDimensions(attributesJson?: string) {
           batchNumber: foundBatch.batchNumber,
           expiryDate: exp,
           mrp: newMrp,
+          ptr: newPtr,
+          pts: newPts,
           unitPrice: newRate,
           discountAmount: calculated.discountAmount,
           taxableAmount: calculated.taxableAmount,
@@ -5578,7 +5723,15 @@ function parseItemDimensions(attributesJson?: string) {
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-slate-950">
                       {invoiceLines.map((line, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                        <tr
+                          key={idx}
+                          onClick={() => setActiveRowIdx(idx)}
+                          className={`transition-colors ${
+                            activeRowIdx === idx
+                              ? "bg-amber-50/50 dark:bg-amber-950/20"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                          }`}
+                        >
                           {/* Row Index */}
                           <td className="p-0.5 text-center font-mono text-[10px] text-slate-500 dark:text-slate-400 font-bold align-middle">
                             {idx + 1}
@@ -6360,32 +6513,78 @@ function parseItemDimensions(attributesJson?: string) {
 
                           {/* 7. Free Qty */}
                           {hasPackingFreeQty && (
-                            <td className="p-0.5 px-1 align-middle min-w-[50px] w-14">
+                            <td className="relative p-0.5 px-1 align-middle min-w-[50px] w-14">
                               <input
+                                id={`line-free-${idx}`}
                                 type="number"
                                 min="0"
                                 step="1"
                                 placeholder="0"
                                 value={line.freeQuantity || ""}
+                                onFocus={() => {
+                                  setActiveRowIdx(idx);
+                                  setFocusedHintField({ idx, field: "free" });
+                                }}
+                                onBlur={() => {
+                                  setTimeout(() => {
+                                    setFocusedHintField((prev) => (prev.idx === idx && prev.field === "free" ? { idx: -1, field: null } : prev));
+                                  }, 250);
+                                }}
                                 onChange={(e) => updateLineField(idx, "freeQuantity", parseFloat(e.target.value) || 0)}
                                 title={line.lastDealHint?.freeSchemeText ? `Last Free Scheme: ${line.lastDealHint.freeSchemeText}` : undefined}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-emerald-700 dark:text-emerald-400 font-mono text-center focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
+                              {Boolean(line.lastDealHint?.freeSchemeText || (line.lastDealHint?.freeQuantity && line.lastDealHint.freeQuantity > 0)) &&
+                                focusedHintField.idx === idx && focusedHintField.field === "free" && (
+                                  <div
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      updateLineField(idx, "freeQuantity", line.lastDealHint?.freeQuantity || 0);
+                                    }}
+                                    className="absolute bottom-full left-0 mb-1 z-30 px-2 py-0.5 rounded shadow-lg bg-emerald-900 text-emerald-100 border border-emerald-500/50 text-[10px] whitespace-nowrap cursor-pointer flex items-center gap-1 font-sans animate-in fade-in zoom-in-95 duration-100"
+                                  >
+                                    <span>🎁 Last Scheme: <strong>{line.lastDealHint?.freeSchemeText || `+${line.lastDealHint?.freeQuantity}`}</strong></span>
+                                    <span className="text-[9px] bg-emerald-700 px-1 rounded text-white font-bold">Apply</span>
+                                  </div>
+                              )}
                             </td>
                           )}
 
                           {/* 8. MRP (Pharma Only) */}
                           {showMrpColumn && (
-                            <td className="p-0.5 px-1 align-middle min-w-[75px] w-18">
+                            <td className="relative p-0.5 px-1 align-middle min-w-[75px] w-18">
                               <input
+                                id={`line-mrp-${idx}`}
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
                                 value={line.mrp || ""}
+                                onFocus={() => {
+                                  setActiveRowIdx(idx);
+                                  setFocusedHintField({ idx, field: "mrp" });
+                                }}
+                                onBlur={() => {
+                                  setTimeout(() => {
+                                    setFocusedHintField((prev) => (prev.idx === idx && prev.field === "mrp" ? { idx: -1, field: null } : prev));
+                                  }, 250);
+                                }}
                                 onChange={(e) => updateLineField(idx, "mrp", parseFloat(e.target.value) || 0)}
                                 title={line.lastDealHint?.mrp ? `Last MRP: ₹${line.lastDealHint.mrp}` : undefined}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-200 font-mono text-right focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
+                              {Boolean(line.lastDealHint?.mrp && line.lastDealHint.mrp > 0) &&
+                                focusedHintField.idx === idx && focusedHintField.field === "mrp" && (
+                                  <div
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      updateLineField(idx, "mrp", line.lastDealHint?.mrp || 0);
+                                    }}
+                                    className="absolute bottom-full left-0 mb-1 z-30 px-2 py-0.5 rounded shadow-lg bg-slate-900 text-amber-300 border border-amber-500/50 text-[10px] whitespace-nowrap cursor-pointer flex items-center gap-1 font-sans animate-in fade-in zoom-in-95 duration-100"
+                                  >
+                                    <span>🏷️ Last MRP: <strong>₹{line.lastDealHint?.mrp}</strong></span>
+                                    <span className="text-[9px] bg-amber-600 px-1 rounded text-white font-bold">Apply</span>
+                                  </div>
+                              )}
                             </td>
                           )}
 
@@ -6425,13 +6624,22 @@ function parseItemDimensions(attributesJson?: string) {
                           </td>
 
                           {/* 10. Selling Rate */}
-                          <td className="p-0.5 px-1 align-middle min-w-[95px] w-24">
+                          <td className="relative p-0.5 px-1 align-middle min-w-[95px] w-24">
                             <div className="flex items-center space-x-0.5 h-7">
                               <input
                                 id={`line-rate-${idx}`}
                                 type="number"
                                 step="0.01"
                                 value={line.unitPrice}
+                                onFocus={() => {
+                                  setActiveRowIdx(idx);
+                                  setFocusedHintField({ idx, field: "rate" });
+                                }}
+                                onBlur={() => {
+                                  setTimeout(() => {
+                                    setFocusedHintField((prev) => (prev.idx === idx && prev.field === "rate" ? { idx: -1, field: null } : prev));
+                                  }, 250);
+                                }}
                                 onChange={(e) => updateLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
                                 title={line.lastDealHint?.unitPrice ? `Last Sale Rate: ₹${line.lastDealHint.unitPrice}` : undefined}
                                 onKeyDown={(e) => {
@@ -6459,17 +6667,33 @@ function parseItemDimensions(attributesJson?: string) {
                                 {line.isTaxInclusive ? "+GST" : "-GST"}
                               </button>
                             </div>
+                            {Boolean(line.lastDealHint?.unitPrice && line.lastDealHint.unitPrice > 0) &&
+                              focusedHintField.idx === idx && focusedHintField.field === "rate" && (
+                                <div
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateLineField(idx, "unitPrice", line.lastDealHint?.unitPrice || 0);
+                                  }}
+                                  className="absolute bottom-full left-0 mb-1 z-30 px-2 py-0.5 rounded shadow-lg bg-emerald-950 text-emerald-200 border border-emerald-500/50 text-[10px] whitespace-nowrap cursor-pointer flex items-center gap-1 font-sans animate-in fade-in zoom-in-95 duration-100"
+                                >
+                                  <span>⚡ Last Deal: <strong>₹{line.lastDealHint?.unitPrice}</strong></span>
+                                  <span className="text-[9px] bg-emerald-600 px-1 rounded text-white font-bold">Apply</span>
+                                </div>
+                            )}
                           </td>
 
                           {/* 11. Discount */}
-                          <td className="p-0.5 px-1 align-middle min-w-[85px] w-20">
-                            <div className="flex items-center space-x-0.5">
+                          <td className="relative p-0.5 px-1 align-middle min-w-[85px] w-20">
+                            <div className="flex items-center space-x-0.5 h-7">
                               <input
                                 id={`line-disc-${idx}`}
                                 type="number"
                                 step="0.01"
                                 placeholder="0"
                                 value={line.discountValue || ""}
+                                onFocus={() => {
+                                  setActiveRowIdx(idx);
+                                }}
                                 onChange={(e) => updateLineField(idx, "discountValue", parseFloat(e.target.value) || 0)}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
@@ -6502,19 +6726,6 @@ function parseItemDimensions(attributesJson?: string) {
                                 {line.discountType === "percent" ? "%" : "₹"}
                               </button>
                             </div>
-                            {line.lastDealHint?.discountPercent !== undefined && line.lastDealHint.discountPercent > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updateLineField(idx, "discountType", "percent");
-                                  updateLineField(idx, "discountValue", line.lastDealHint!.discountPercent);
-                                }}
-                                title={`Click to apply last discount: ${line.lastDealHint.discountPercent}%`}
-                                className="mt-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer block truncate text-center w-full"
-                              >
-                                Last: {line.lastDealHint.discountPercent}%
-                              </button>
-                            )}
                           </td>
 
                           {/* 12. Taxable */}
@@ -6558,6 +6769,66 @@ function parseItemDimensions(attributesJson?: string) {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Active Row Last Deal Inspector Strip (Dense Zero-Height ERP Architecture) */}
+                {invoiceLines[activeRowIdx] && invoiceLines[activeRowIdx].itemId && (
+                  <div className="px-3 py-1 bg-amber-50/90 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-900/60 flex flex-wrap items-center justify-between text-xs text-amber-950 dark:text-amber-200">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        Row #{activeRowIdx + 1} ({invoiceLines[activeRowIdx].itemName}):
+                      </span>
+                      {invoiceLines[activeRowIdx].lastDealHint ? (
+                        <>
+                          <span className="bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-700 font-mono">
+                            Last Rate: <strong>₹{invoiceLines[activeRowIdx].lastDealHint?.unitPrice}</strong>
+                          </span>
+                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.freeSchemeText || (invoiceLines[activeRowIdx].lastDealHint?.freeQuantity && invoiceLines[activeRowIdx].lastDealHint!.freeQuantity > 0)) && (
+                            <span className="bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-mono">
+                              Scheme: <strong>{invoiceLines[activeRowIdx].lastDealHint?.freeSchemeText || `+${invoiceLines[activeRowIdx].lastDealHint?.freeQuantity}`}</strong>
+                            </span>
+                          )}
+                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.discountPercent && invoiceLines[activeRowIdx].lastDealHint!.discountPercent > 0) && (
+                            <span className="bg-orange-100 dark:bg-orange-900/60 px-1.5 py-0.5 rounded border border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300 font-mono">
+                              Disc: <strong>{invoiceLines[activeRowIdx].lastDealHint?.discountPercent}%</strong>
+                            </span>
+                          )}
+                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.mrp && invoiceLines[activeRowIdx].lastDealHint!.mrp > 0) && (
+                            <span className="text-slate-600 dark:text-slate-400 font-mono">
+                              MRP: ₹{invoiceLines[activeRowIdx].lastDealHint?.mrp}
+                            </span>
+                          )}
+                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.documentNumber) && (
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                              (Inv #{invoiceLines[activeRowIdx].lastDealHint?.documentNumber} {invoiceLines[activeRowIdx].lastDealHint?.date ? `on ${invoiceLines[activeRowIdx].lastDealHint?.date}` : ""})
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-slate-500 italic">No previous deal history found with this party.</span>
+                      )}
+                    </div>
+                    {invoiceLines[activeRowIdx].lastDealHint && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const hint = invoiceLines[activeRowIdx].lastDealHint;
+                          if (!hint) return;
+                          if (hint.unitPrice > 0) updateLineField(activeRowIdx, "unitPrice", hint.unitPrice);
+                          if (hint.freeQuantity !== undefined) updateLineField(activeRowIdx, "freeQuantity", hint.freeQuantity);
+                          if (hint.discountPercent !== undefined && hint.discountPercent > 0) {
+                            updateLineField(activeRowIdx, "discountType", "percent");
+                            updateLineField(activeRowIdx, "discountValue", hint.discountPercent);
+                          }
+                          if (hint.mrp && hint.mrp > 0) updateLineField(activeRowIdx, "mrp", hint.mrp);
+                        }}
+                        className="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold text-[11px] shadow-sm flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Click to apply all deal rates and schemes from last sale"
+                      >
+                        ⚡ 1-Click Apply Last Deal
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               </div> {/* End Scrollable Form Body */}
 
