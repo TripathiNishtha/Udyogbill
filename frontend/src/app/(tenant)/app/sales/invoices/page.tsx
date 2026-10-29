@@ -5498,9 +5498,15 @@ function parseItemDimensions(attributesJson?: string) {
                     <thead className="bg-[#ffedd5] dark:bg-slate-900/95 text-slate-800 dark:text-slate-300 border-b border-[#fed7aa] dark:border-slate-700 text-[11px] sticky top-0 z-10 font-bold shadow-2xs backdrop-blur-sm">
                       <tr>
                         <th className="px-1 py-1.5 w-8 text-center text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/95">#</th>
-                        <th className={isPharma ? "px-1.5 py-1.5 min-w-[280px] text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95" : "px-1.5 py-1.5 min-w-[180px] text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95"}>Product / Item *</th>
-                        {hasBatchTracking && !isPharma && <th className="px-1.5 py-1.5 min-w-[110px] w-28 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Lot / Batch No</th>}
-                        {hasBatchTracking && !isPharma && <th className="px-1 py-1.5 w-16 text-center text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Expiry</th>}
+                        <th className="px-1.5 py-1.5 min-w-[180px] text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95">Product / Item *</th>
+                        {isPharma ? (
+                          <th className="px-1.5 py-1.5 min-w-[200px] w-52 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Lot / Batch &amp; Expiry *</th>
+                        ) : (
+                          <>
+                            {hasBatchTracking && <th className="px-1.5 py-1.5 min-w-[110px] w-28 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Lot / Batch No</th>}
+                            {hasBatchTracking && <th className="px-1 py-1.5 w-16 text-center text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Expiry</th>}
+                          </>
+                        )}
                         {hasPackingFreeQty && <th className="px-1 py-1.5 w-16 text-center text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/95">Packing</th>}
 
                         {/* Electronics Columns */}
@@ -5577,374 +5583,251 @@ function parseItemDimensions(attributesJson?: string) {
                           </td>
 
                           {/* 1. Item Selection */}
-                          <td className={`p-1 align-middle ${isPharma ? "min-w-[280px]" : "min-w-[210px]"}`}>
+                          <td className="p-0.5 px-1 align-middle min-w-[180px]">
                             {isPharma && line.itemId ? (
-                              <div className="flex flex-col gap-1.5 p-1.5 bg-white/80 dark:bg-slate-900/80 rounded-lg border border-orange-200/80 dark:border-slate-800 shadow-2xs">
-                                {/* Header: Package Icon + Product Name + SKU + Change */}
-                                <div className="flex items-start justify-between gap-1.5">
-                                  <div className="flex items-start gap-2 min-w-0 flex-1">
-                                    <div className="w-7 h-7 rounded-md bg-orange-100 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800 flex items-center justify-center shrink-0 mt-0.5 text-orange-600 dark:text-orange-400">
-                                      <Package className="w-4 h-4" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="font-bold text-slate-900 dark:text-white text-xs leading-tight">
-                                          {line.itemName || items.find((i) => i.id === line.itemId)?.name || "Item"}
-                                        </span>
-                                        {line.itemSku && (
-                                          <span className="text-[10px] px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700">
-                                            {line.itemSku}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {/* Stock Pill matching Screenshot 3: 🟢 1,292.00 Strip in stock */}
-                                      {(() => {
-                                        const matched = items.find((i) => i.id === line.itemId);
-                                        const totalStock = matched?.currentStock ?? matched?.totalStock ?? (
-                                          line.availableBatches?.reduce((sum, b) => sum + (b.currentQuantity ?? (b as any).currentStock ?? 0), 0)
-                                        ) ?? 0;
-                                        const uom = line.uomCode || matched?.primaryUomCode || "Strip";
-                                        return (
-                                          <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                            <span>
-                                              {totalStock.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {uom} in stock
-                                            </span>
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      updateLineField(idx, "itemId", "");
-                                      updateLineField(idx, "itemName", "");
-                                      updateLineField(idx, "batchId", "");
-                                      updateLineField(idx, "batchNumber", "");
-                                      updateLineField(idx, "expiryDate", "");
-                                    }}
-                                    className="text-[10px] text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 underline cursor-pointer shrink-0"
-                                    title="Change selected product"
-                                  >
-                                    Change
-                                  </button>
+                              <div className="flex items-center justify-between gap-1 h-7">
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                  <Package className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                                  <span className="font-bold text-slate-900 dark:text-white text-xs truncate" title={line.itemName}>
+                                    {line.itemName || items.find((i) => i.id === line.itemId)?.name || "Item"}
+                                  </span>
+                                  {line.itemSku && (
+                                    <span className="text-[9px] px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-mono font-semibold shrink-0">
+                                      {line.itemSku}
+                                    </span>
+                                  )}
+                                  {(() => {
+                                    const matched = items.find((i) => i.id === line.itemId);
+                                    const totalStock = matched?.currentStock ?? matched?.totalStock ?? (
+                                      line.availableBatches?.reduce((sum, b) => sum + (b.currentQuantity ?? (b as any).currentStock ?? 0), 0)
+                                    ) ?? 0;
+                                    return (
+                                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold font-mono shrink-0" title={`Available stock: ${totalStock}`}>
+                                        (Stk: {totalStock.toLocaleString("en-IN")})
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
-
-                                {/* Dotted Divider Line matching Screenshot 3 */}
-                                <div className="border-t border-dashed border-slate-200 dark:border-slate-800 my-0.5" />
-
-                                {/* Lot & Expiry Inline Dropdown OR Custom Entry */}
-                                {line.isCustomBatchEntry ? (
-                                  <div className="p-1.5 bg-orange-50/90 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-500/50 rounded-md flex flex-col gap-1 text-xs">
-                                    <div className="flex items-center justify-between text-[10px] font-bold text-orange-900 dark:text-orange-200">
-                                      <span>➕ Historical Batch (Challan / Past Delivery)</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => updateLineField(idx, "isCustomBatchEntry", false)}
-                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <input
-                                        type="text"
-                                        placeholder="Batch No (e.g. GT30427E)"
-                                        defaultValue={line.batchNumber || ""}
-                                        id={`custom-batch-no-${idx}`}
-                                        className="flex-1 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-orange-500"
-                                      />
-                                      <input
-                                        type="text"
-                                        placeholder="Exp (MM/YY)"
-                                        defaultValue={line.expiryDate || ""}
-                                        id={`custom-batch-exp-${idx}`}
-                                        className="w-16 px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono text-center focus:outline-none focus:border-orange-500"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const bNo = (document.getElementById(`custom-batch-no-${idx}`) as HTMLInputElement)?.value.trim();
-                                          const bExp = (document.getElementById(`custom-batch-exp-${idx}`) as HTMLInputElement)?.value.trim();
-                                          if (bNo) {
-                                            const customBatch = {
-                                              id: `custom_${bNo}_${Date.now()}`,
-                                              batchNumber: bNo,
-                                              expiryDate: bExp || "",
-                                              currentQuantity: 9999,
-                                            };
-                                            handleBatchSelect(idx, customBatch.id, customBatch);
-                                          }
-                                          updateLineField(idx, "isCustomBatchEntry", false);
-                                        }}
-                                        className="px-2 py-0.5 bg-orange-600 hover:bg-orange-700 text-white rounded text-[11px] font-bold shadow-xs cursor-pointer shrink-0"
-                                      >
-                                        Apply
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="relative">
-                                    <select
-                                      value={line.batchId || (line.batchNumber ? `batch_${line.batchNumber}` : "")}
-                                      onChange={(e) => {
-                                        if (e.target.value === "__custom__") {
-                                          updateLineField(idx, "isCustomBatchEntry", true);
-                                        } else if (e.target.value === "") {
-                                          updateLineField(idx, "batchId", "");
-                                          updateLineField(idx, "batchNumber", "");
-                                          updateLineField(idx, "expiryDate", "");
-                                        } else {
-                                          handleBatchSelect(idx, e.target.value);
-                                        }
-                                      }}
-                                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/50 hover:border-orange-500 focus:border-orange-600 rounded-md text-[11px] font-medium text-slate-800 dark:text-slate-200 focus:outline-none shadow-2xs cursor-pointer"
-                                    >
-                                      <option value="">Lot &amp; Expiry</option>
-                                      {line.availableBatches?.map((b) => {
-                                        const d = b.expiryDate ? new Date(b.expiryDate) : null;
-                                        const expFormatted = d && !isNaN(d.getTime())
-                                          ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`
-                                          : (b.expiryDate || "--/--");
-                                        const stockVal = (b as any).currentStock ?? b.currentQuantity ?? 0;
-                                        const uom = line.uomCode || "Strip";
-                                        return (
-                                          <option key={b.id} value={b.id}>
-                                            {b.batchNumber} - EXP Date: {expFormatted} ({stockVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {uom})
-                                          </option>
-                                        );
-                                      })}
-                                      {line.batchNumber && !line.availableBatches?.some(b => b.id === line.batchId || b.batchNumber === line.batchNumber) && (
-                                        <option value={line.batchId || `batch_${line.batchNumber}`}>
-                                          {line.batchNumber} {line.expiryDate ? `- EXP: ${line.expiryDate}` : ""} (Custom Batch)
-                                        </option>
-                                      )}
-                                      <option value="__custom__" className="text-orange-600 dark:text-orange-400 font-bold">
-                                        ➕ + Enter Custom / Historical Batch (Challan)
-                                      </option>
-                                    </select>
-                                  </div>
-                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    updateLineField(idx, "itemId", "");
+                                    updateLineField(idx, "itemName", "");
+                                    updateLineField(idx, "batchId", "");
+                                    updateLineField(idx, "batchNumber", "");
+                                    updateLineField(idx, "expiryDate", "");
+                                  }}
+                                  className="text-[11px] text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 font-bold cursor-pointer shrink-0 ml-1 px-1"
+                                  title="Change / Remove product"
+                                >
+                                  ✕
+                                </button>
                               </div>
                             ) : (
                               /* Standard Non-Pharma or Empty Row */
-                              <div>
-                                <div className="flex items-center space-x-1">
-                                  <select
-                                    value={line.itemId}
-                                    onChange={(e) => {
-                                      if (e.target.value === "__new__") {
-                                        handleOpenAddProductModal("", idx);
-                                      } else {
-                                        handleLineItemChange(idx, e.target.value);
-                                      }
-                                    }}
-                                    className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 font-medium h-7 shadow-2xs"
-                                  >
-                                    <option value="">-- Select Product --</option>
-                                    <option value="__new__" className="text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/60">
-                                      ➕ + Add New Product...
+                              <div className="flex items-center space-x-1 h-7">
+                                <select
+                                  value={line.itemId}
+                                  onChange={(e) => {
+                                    if (e.target.value === "__new__") {
+                                      handleOpenAddProductModal("", idx);
+                                    } else {
+                                      handleLineItemChange(idx, e.target.value);
+                                    }
+                                  }}
+                                  className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 font-medium h-7 shadow-2xs"
+                                >
+                                  <option value="">-- Select Product --</option>
+                                  <option value="__new__" className="text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/60">
+                                    ➕ + Add New Product...
+                                  </option>
+                                  {items.map((i) => (
+                                    <option key={i.id} value={i.id}>
+                                      {i.name} ({i.sku})
                                     </option>
-                                    {items.map((i) => (
-                                      <option key={i.id} value={i.id}>
-                                        {i.name} ({i.sku})
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAddProductModal("", idx)}
+                                  className="h-7 px-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40 rounded flex items-center justify-center shrink-0 transition-colors shadow-2xs cursor-pointer"
+                                  title="Naya Product Add Karein"
+                                >
+                                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Non-Pharma variants if active */}
+                            {!isPharma && line.itemId && line.availableVariants && line.availableVariants.length > 0 && (
+                              <div className="mt-0.5 flex items-center bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-500/30 rounded p-0.5 px-1 gap-1">
+                                <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 uppercase shrink-0">
+                                  Var:
+                                </span>
+                                <select
+                                  value={line.variantId || ""}
+                                  onChange={(e) => handleVariantIdChange(idx, e.target.value)}
+                                  className="w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-500/40 rounded px-1 text-xs text-purple-900 dark:text-purple-200 font-semibold focus:outline-none h-6 cursor-pointer"
+                                >
+                                  {line.availableVariants.map((v) => {
+                                    const vLabel = [v.size, v.color].filter(Boolean).join(" - ") || v.variantName || v.variantSku;
+                                    return (
+                                      <option key={v.id} value={v.id}>
+                                        {vLabel} (₹{v.sellingPrice || line.unitPrice})
                                       </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenAddProductModal("", idx)}
-                                    className="h-7 px-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40 rounded flex items-center justify-center shrink-0 transition-colors shadow-2xs cursor-pointer"
-                                    title="Naya Product Add Karein"
-                                  >
-                                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  </button>
-                                </div>
-
-                                {/* Inline Print Name / Narration Override & Auto Parts Substitutes */}
-                                {line.itemId && (!isPharma || (isAutoParts && getSubstitutesForLine(line).length > 0) || (line.availableVariants && line.availableVariants.length > 0)) && (
-                                  <div className="mt-1 flex flex-col gap-1">
-                                    {!isPharma && (
-                                      <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md shadow-2xs focus-within:border-orange-500 focus-within:ring-1 focus-within:ring-orange-500/30 overflow-hidden">
-                                        <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300 shrink-0 select-none flex items-center gap-1" title="Customer ke invoice par yahi naam print hoga (Physical stock real product se hi deduct hoga)">
-                                          <Printer className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
-                                          <span>Print Name:</span>
-                                        </span>
-                                        <input
-                                          type="text"
-                                          placeholder="Bill par print hone wala naam / narration..."
-                                          value={line.itemName || ""}
-                                          onChange={(e) => updateLineField(idx, "itemName", e.target.value)}
-                                          className="w-full px-1.5 py-0.5 bg-transparent text-xs text-slate-900 dark:text-white font-medium focus:outline-none h-6"
-                                          title="Invoice par yahi naam print hoga (Master stock me real product hi track aur deduct hoga)"
-                                        />
-                                      </div>
-                                    )}
-
-                                    {/* Auto Parts Substitutes Popover */}
-                                    {isAutoParts && (() => {
-                                      const subs = getSubstitutesForLine(line);
-                                      if (subs.length === 0) return null;
-                                      return (
-                                        <div className="relative inline-block">
-                                          <button
-                                            type="button"
-                                            onClick={() => setActiveSubPopoverLineIdx(activeSubPopoverLineIdx === idx ? null : idx)}
-                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 hover:bg-sky-200 dark:bg-sky-950/80 dark:hover:bg-sky-900 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-700/60 transition-colors shadow-2xs cursor-pointer"
-                                            title="View compatible substitute brands / alternate parts"
-                                          >
-                                            <span>🔄 {subs.length} Substitute{subs.length > 1 ? "s" : ""}</span>
-                                          </button>
-
-                                          {activeSubPopoverLineIdx === idx && (
-                                            <div className="absolute z-50 left-0 top-full mt-1 w-72 bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-lg shadow-xl p-2 divide-y divide-slate-100 dark:divide-slate-800 text-left">
-                                              <div className="flex items-center justify-between pb-1.5 mb-1">
-                                                <span className="text-[11px] font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1">
-                                                  <span>🔄 Compatible Substitutes</span>
-                                                  <span className="text-[10px] font-normal text-slate-500 font-mono">({subs.length})</span>
-                                                </span>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setActiveSubPopoverLineIdx(null)}
-                                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold"
-                                                >
-                                                  ✕
-                                                </button>
-                                              </div>
-                                              <div className="max-h-48 overflow-y-auto space-y-1.5 pt-1">
-                                                {subs.map((sub) => (
-                                                  <div key={sub.id} className="p-1.5 rounded hover:bg-sky-50 dark:hover:bg-slate-800 border border-transparent hover:border-sky-200 dark:hover:border-sky-700 flex items-center justify-between gap-2">
-                                                    <div className="min-w-0 flex-1">
-                                                      <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{sub.name}</div>
-                                                      <div className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                                                        {sub.brand && <span className="bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 px-1 rounded font-semibold">{sub.brand}</span>}
-                                                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{sub.rate}</span>
-                                                        {sub.stock !== undefined && <span className="font-mono text-slate-600 dark:text-slate-400">Stk: {sub.stock}</span>}
-                                                      </div>
-                                                    </div>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        handleLineItemChange(idx, sub.id);
-                                                        setActiveSubPopoverLineIdx(null);
-                                                      }}
-                                                      className="px-2 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[10px] font-bold shrink-0 transition-transform active:scale-95 shadow-xs cursor-pointer"
-                                                      title="Replace line item with this substitute"
-                                                    >
-                                                      Switch
-                                                    </button>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })()}
-                                    {line.availableVariants && line.availableVariants.length > 0 && (
-                                      <div className="flex items-center bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-500/30 rounded-md p-0.5 px-1 gap-1 mt-0.5">
-                                        <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase shrink-0">
-                                          Variant:
-                                        </span>
-                                        <select
-                                          value={line.variantId || ""}
-                                          onChange={(e) => handleVariantIdChange(idx, e.target.value)}
-                                          className="w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-500/40 rounded px-1.5 py-0.5 text-xs text-purple-900 dark:text-purple-200 font-semibold focus:outline-none h-6 cursor-pointer"
-                                        >
-                                          {line.availableVariants.map((v) => {
-                                            const vLabel = [v.size, v.color].filter(Boolean).join(" - ") || v.variantName || v.variantSku;
-                                            return (
-                                              <option key={v.id} value={v.id}>
-                                                {vLabel} (₹{v.sellingPrice || line.unitPrice} | Stk: {v.currentStock ?? 0})
-                                              </option>
-                                            );
-                                          })}
-                                        </select>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {(line.availableBatches?.length > 1 || line.batchNumber || customerDealHistoryMap[line.itemId]?.[0]) && (
-                                  <div className="flex items-center gap-1 mt-0.5 text-[9px] truncate max-w-[210px] leading-tight">
-                                    {line.availableBatches && line.availableBatches.length > 1 ? (
-                                      <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center space-x-0.5">
-                                        <Sparkles className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
-                                        <span>{line.availableBatches.length} Batches</span>
-                                      </span>
-                                    ) : line.batchNumber ? (
-                                      <span className="text-slate-500 dark:text-slate-400 font-mono">B:{line.batchNumber}</span>
-                                    ) : null}
-
-                                    {customerDealHistoryMap[line.itemId]?.[0] && (
-                                      <span
-                                        className="text-amber-600 dark:text-amber-400 font-mono truncate font-semibold"
-                                        title={`Last: ₹${customerDealHistoryMap[line.itemId][0].rate.toFixed(2)} (${customerDealHistoryMap[line.itemId][0].discount})`}
-                                      >
-                                        Last: ₹{customerDealHistoryMap[line.itemId][0].rate.toFixed(2)}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
+                                    );
+                                  })}
+                                </select>
                               </div>
                             )}
                           </td>
 
-                          {/* 2. Batch / Lot No */}
-                          {hasBatchTracking && !isPharma && (
-                            <td className="p-0.5 px-1 align-middle min-w-[110px]">
-                              <div className="flex items-center gap-1">
-                                {line.availableBatches && line.availableBatches.length > 0 ? (
-                                  <select
-                                    value={line.batchId || ""}
-                                    onChange={(e) => handleBatchSelect(idx, e.target.value)}
-                                    className="flex-1 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 rounded text-xs text-orange-800 dark:text-orange-300 font-mono focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium min-w-0"
-                                  >
-                                    {line.availableBatches.map((b) => {
-                                      const exp = b.expiryDate
-                                        ? new Date(b.expiryDate).toLocaleDateString("en-IN", {
-                                            month: "2-digit",
-                                            year: "2-digit",
-                                          })
-                                        : "--/--";
-                                      const stk = (b as any).currentStock !== undefined
-                                        ? ` | Stk: ${(b as any).currentStock}`
-                                        : b.currentQuantity !== undefined
-                                        ? ` | Stk: ${b.currentQuantity}`
-                                        : "";
-                                      const rate = b.saleRate ? ` | ₹${b.saleRate}` : "";
-                                      return (
-                                        <option key={b.id} value={b.id}>
-                                          {b.batchNumber} (Exp: {exp}{stk}{rate})
-                                        </option>
-                                      );
-                                    })}
-                                  </select>
-                                ) : (
+                          {/* 2. Batch / Lot & Expiry Column */}
+                          {isPharma ? (
+                            <td className="p-0.5 px-1 align-middle min-w-[200px] w-52">
+                              {line.isCustomBatchEntry ? (
+                                <div className="flex items-center gap-1 h-7">
                                   <input
                                     type="text"
                                     placeholder="Batch No"
-                                    value={line.batchNumber || ""}
-                                    onChange={(e) => updateLineField(idx, "batchNumber", e.target.value)}
-                                    className="flex-1 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium min-w-0"
+                                    defaultValue={line.batchNumber || ""}
+                                    id={`custom-batch-no-${idx}`}
+                                    className="flex-1 min-w-0 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-400 rounded text-xs text-slate-900 dark:text-white font-mono focus:outline-none h-7"
                                   />
-                                )}
-                              </div>
+                                  <input
+                                    type="text"
+                                    placeholder="MM/YY"
+                                    defaultValue={line.expiryDate || ""}
+                                    id={`custom-batch-exp-${idx}`}
+                                    className="w-14 px-1 py-0.5 bg-white dark:bg-slate-900 border border-orange-400 rounded text-xs text-slate-900 dark:text-white font-mono text-center focus:outline-none h-7 shrink-0"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const bNo = (document.getElementById(`custom-batch-no-${idx}`) as HTMLInputElement)?.value.trim();
+                                      const bExp = (document.getElementById(`custom-batch-exp-${idx}`) as HTMLInputElement)?.value.trim();
+                                      if (bNo) {
+                                        const customBatch = {
+                                          id: `custom_${bNo}_${Date.now()}`,
+                                          batchNumber: bNo,
+                                          expiryDate: bExp || "",
+                                          currentQuantity: 9999,
+                                        };
+                                        handleBatchSelect(idx, customBatch.id, customBatch);
+                                      }
+                                      updateLineField(idx, "isCustomBatchEntry", false);
+                                    }}
+                                    className="px-1.5 py-0.5 bg-orange-600 hover:bg-orange-700 text-white rounded text-[11px] font-bold shadow-xs cursor-pointer h-7 shrink-0"
+                                    title="Apply custom batch"
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateLineField(idx, "isCustomBatchEntry", false)}
+                                    className="px-1 text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs cursor-pointer h-7 shrink-0"
+                                    title="Cancel"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <select
+                                  value={line.batchId || (line.batchNumber ? `batch_${line.batchNumber}` : "")}
+                                  onChange={(e) => {
+                                    if (e.target.value === "__custom__") {
+                                      updateLineField(idx, "isCustomBatchEntry", true);
+                                    } else if (e.target.value === "") {
+                                      updateLineField(idx, "batchId", "");
+                                      updateLineField(idx, "batchNumber", "");
+                                      updateLineField(idx, "expiryDate", "");
+                                    } else {
+                                      handleBatchSelect(idx, e.target.value);
+                                    }
+                                  }}
+                                  className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 hover:border-orange-500 focus:border-orange-600 rounded text-xs font-mono font-medium text-slate-900 dark:text-slate-200 focus:outline-none h-7 shadow-2xs cursor-pointer"
+                                >
+                                  <option value="">Lot &amp; Expiry</option>
+                                  {line.availableBatches?.map((b) => {
+                                    const d = b.expiryDate ? new Date(b.expiryDate) : null;
+                                    const expFormatted = d && !isNaN(d.getTime())
+                                      ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`
+                                      : (b.expiryDate || "--/--");
+                                    const stockVal = (b as any).currentStock ?? b.currentQuantity ?? 0;
+                                    const uom = line.uomCode || "Strip";
+                                    return (
+                                      <option key={b.id} value={b.id}>
+                                        {b.batchNumber} - Exp: {expFormatted} ({stockVal.toLocaleString("en-IN")} {uom})
+                                      </option>
+                                    );
+                                  })}
+                                  {line.batchNumber && !line.availableBatches?.some(b => b.id === line.batchId || b.batchNumber === line.batchNumber) && (
+                                    <option value={line.batchId || `batch_${line.batchNumber}`}>
+                                      {line.batchNumber} {line.expiryDate ? `- Exp: ${line.expiryDate}` : ""} (Custom Batch)
+                                    </option>
+                                  )}
+                                  <option value="__custom__" className="text-orange-600 dark:text-orange-400 font-bold">
+                                    ➕ + Enter Custom / Historical Batch (Challan)
+                                  </option>
+                                </select>
+                              )}
                             </td>
-                          )}
+                          ) : (
+                            <>
+                              {hasBatchTracking && (
+                                <td className="p-0.5 px-1 align-middle min-w-[110px]">
+                                  <div className="flex items-center gap-1">
+                                    {line.availableBatches && line.availableBatches.length > 0 ? (
+                                      <select
+                                        value={line.batchId || ""}
+                                        onChange={(e) => handleBatchSelect(idx, e.target.value)}
+                                        className="flex-1 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/40 rounded text-xs text-orange-800 dark:text-orange-300 font-mono focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium min-w-0"
+                                      >
+                                        {line.availableBatches.map((b) => {
+                                          const exp = b.expiryDate
+                                            ? new Date(b.expiryDate).toLocaleDateString("en-IN", {
+                                                month: "2-digit",
+                                                year: "2-digit",
+                                              })
+                                            : "--/--";
+                                          const stk = (b as any).currentStock !== undefined
+                                            ? ` | Stk: ${(b as any).currentStock}`
+                                            : b.currentQuantity !== undefined
+                                            ? ` | Stk: ${b.currentQuantity}`
+                                            : "";
+                                          const rate = b.saleRate ? ` | ₹${b.saleRate}` : "";
+                                          return (
+                                            <option key={b.id} value={b.id}>
+                                              {b.batchNumber} (Exp: {exp}{stk}{rate})
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        placeholder="Batch No"
+                                        value={line.batchNumber || ""}
+                                        onChange={(e) => updateLineField(idx, "batchNumber", e.target.value)}
+                                        className="flex-1 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium min-w-0"
+                                      />
+                                    )}
+                                  </div>
+                                </td>
+                              )}
 
-                          {/* 3. Expiry */}
-                          {hasBatchTracking && !isPharma && (
-                            <td className="p-0.5 px-1 align-middle w-16">
-                              <input
-                                type="text"
-                                placeholder="MM/YY"
-                                value={line.expiryDate || ""}
-                                onChange={(e) => updateLineField(idx, "expiryDate", e.target.value)}
-                                className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
-                              />
-                            </td>
+                              {hasBatchTracking && (
+                                <td className="p-0.5 px-1 align-middle w-16">
+                                  <input
+                                    type="text"
+                                    placeholder="MM/YY"
+                                    value={line.expiryDate || ""}
+                                    onChange={(e) => updateLineField(idx, "expiryDate", e.target.value)}
+                                    className="w-full px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-300 font-mono text-center focus:outline-none focus:border-orange-500 h-7 shadow-2xs font-medium"
+                                  />
+                                </td>
+                              )}
+                            </>
                           )}
 
                           {/* 4. Packing */}
@@ -6451,71 +6334,26 @@ function parseItemDimensions(attributesJson?: string) {
                           </td>
 
                           {/* 6. Billed Qty */}
-                          <td className="p-0.5 px-1 align-middle min-w-[70px] w-20">
-                            {isPharma ? (
-                              <div className="flex flex-col items-center">
-                                <div className="flex items-center border border-orange-300 dark:border-orange-500/40 rounded-md bg-white dark:bg-slate-900 shadow-2xs overflow-hidden h-7">
-                                  <button
-                                    type="button"
-                                    onClick={() => updateLineField(idx, "quantity", Math.max(1, (line.quantity || 1) - 1))}
-                                    className="px-2 py-0.5 text-slate-500 hover:text-slate-800 dark:hover:text-white bg-slate-50 dark:bg-slate-800 border-r border-orange-200 dark:border-orange-900/40 text-xs font-bold select-none cursor-pointer h-full flex items-center justify-center"
-                                  >
-                                    -
-                                  </button>
-                                  <input
-                                    id={`line-qty-${idx}`}
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={line.quantity}
-                                    onChange={(e) => updateLineField(idx, "quantity", parseFloat(e.target.value) || 0)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        const rateEl = document.getElementById(`line-rate-${idx}`);
-                                        if (rateEl) {
-                                          (rateEl as HTMLInputElement).focus();
-                                          (rateEl as HTMLInputElement).select();
-                                        }
-                                      }
-                                    }}
-                                    className="w-12 px-1 py-0.5 bg-transparent text-xs text-orange-900 dark:text-orange-200 font-mono text-center font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-full"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => updateLineField(idx, "quantity", (line.quantity || 0) + 1)}
-                                    className="px-2 py-0.5 text-slate-500 hover:text-slate-800 dark:hover:text-white bg-slate-50 dark:bg-slate-800 border-l border-orange-200 dark:border-orange-900/40 text-xs font-bold select-none cursor-pointer h-full flex items-center justify-center"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                {line.uomCode && (
-                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 select-none text-center">
-                                    {line.uomCode}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <input
-                                id={`line-qty-${idx}`}
-                                type="number"
-                                min={isJewellery ? "0.001" : "1"}
-                                step={isJewellery ? "0.001" : "1"}
-                                value={line.quantity}
-                                onChange={(e) => updateLineField(idx, "quantity", parseFloat(e.target.value) || 0)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    const rateEl = document.getElementById(`line-rate-${idx}`);
-                                    if (rateEl) {
-                                      (rateEl as HTMLInputElement).focus();
-                                      (rateEl as HTMLInputElement).select();
-                                    }
+                          <td className="p-0.5 px-1 align-middle min-w-[65px] w-18">
+                            <input
+                              id={`line-qty-${idx}`}
+                              type="number"
+                              min={isJewellery ? "0.001" : "1"}
+                              step={isJewellery ? "0.001" : "1"}
+                              value={line.quantity}
+                              onChange={(e) => updateLineField(idx, "quantity", parseFloat(e.target.value) || 0)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  const rateEl = document.getElementById(`line-rate-${idx}`);
+                                  if (rateEl) {
+                                    (rateEl as HTMLInputElement).focus();
+                                    (rateEl as HTMLInputElement).select();
                                   }
-                                }}
-                                className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/30 rounded text-xs text-orange-900 dark:text-orange-200 font-mono text-center font-bold focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
-                              />
-                            )}
+                                }
+                              }}
+                              className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/30 rounded text-xs text-orange-900 dark:text-orange-200 font-mono text-center font-bold focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
+                            />
                           </td>
 
                           {/* 7. Free Qty */}
@@ -6528,25 +6366,9 @@ function parseItemDimensions(attributesJson?: string) {
                                 placeholder="0"
                                 value={line.freeQuantity || ""}
                                 onChange={(e) => updateLineField(idx, "freeQuantity", parseFloat(e.target.value) || 0)}
+                                title={line.lastDealHint?.freeSchemeText ? `Last Free Scheme: ${line.lastDealHint.freeSchemeText}` : undefined}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-emerald-700 dark:text-emerald-400 font-mono text-center focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
-                              {line.lastDealHint?.freeSchemeText && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (line.lastDealHint?.freeQuantity) {
-                                      updateLineField(idx, "freeQuantity", line.lastDealHint.freeQuantity);
-                                      if (line.lastDealHint.quantity && (!line.quantity || line.quantity === 1)) {
-                                        updateLineField(idx, "quantity", line.lastDealHint.quantity);
-                                      }
-                                    }
-                                  }}
-                                  title={`Click to apply last free scheme: ${line.lastDealHint.freeSchemeText}`}
-                                  className="mt-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer block truncate text-center w-full"
-                                >
-                                  Last: {line.lastDealHint.freeSchemeText}
-                                </button>
-                              )}
                             </td>
                           )}
 
@@ -6559,18 +6381,9 @@ function parseItemDimensions(attributesJson?: string) {
                                 placeholder="0.00"
                                 value={line.mrp || ""}
                                 onChange={(e) => updateLineField(idx, "mrp", parseFloat(e.target.value) || 0)}
+                                title={line.lastDealHint?.mrp ? `Last MRP: ₹${line.lastDealHint.mrp}` : undefined}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-200 font-mono text-right focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
-                              {line.lastDealHint?.mrp !== undefined && line.lastDealHint.mrp > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => updateLineField(idx, "mrp", line.lastDealHint!.mrp)}
-                                  title={`Click to apply last MRP: ₹${line.lastDealHint.mrp}`}
-                                  className="mt-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 hover:underline cursor-pointer block truncate text-center w-full font-mono"
-                                >
-                                  Last: ₹{line.lastDealHint.mrp}
-                                </button>
-                              )}
                             </td>
                           )}
 
@@ -6610,47 +6423,40 @@ function parseItemDimensions(attributesJson?: string) {
                           </td>
 
                           {/* 10. Selling Rate */}
-                          <td className="p-0.5 px-1 align-middle min-w-[85px] w-20">
-                            <input
-                              id={`line-rate-${idx}`}
-                              type="number"
-                              step="0.01"
-                              value={line.unitPrice}
-                              onChange={(e) => updateLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  const discEl = document.getElementById(`line-disc-${idx}`);
-                                  if (discEl) {
-                                    (discEl as HTMLInputElement).focus();
-                                    (discEl as HTMLInputElement).select();
+                          <td className="p-0.5 px-1 align-middle min-w-[95px] w-24">
+                            <div className="flex items-center space-x-0.5 h-7">
+                              <input
+                                id={`line-rate-${idx}`}
+                                type="number"
+                                step="0.01"
+                                value={line.unitPrice}
+                                onChange={(e) => updateLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
+                                title={line.lastDealHint?.unitPrice ? `Last Sale Rate: ₹${line.lastDealHint.unitPrice}` : undefined}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const discEl = document.getElementById(`line-disc-${idx}`);
+                                    if (discEl) {
+                                      (discEl as HTMLInputElement).focus();
+                                      (discEl as HTMLInputElement).select();
+                                    }
                                   }
-                                }
-                              }}
-                              className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-500/30 rounded text-xs text-emerald-800 dark:text-emerald-300 font-mono font-bold text-right focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
-                            />
-                            {line.lastDealHint?.unitPrice !== undefined && line.lastDealHint.unitPrice > 0 && (
+                                }}
+                                className="flex-1 min-w-0 px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-500/30 rounded text-xs text-emerald-800 dark:text-emerald-300 font-mono font-bold text-right focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs"
+                              />
                               <button
                                 type="button"
-                                onClick={() => updateLineField(idx, "unitPrice", line.lastDealHint!.unitPrice)}
-                                title={`Click to apply last sale rate: ₹${line.lastDealHint.unitPrice}`}
-                                className="mt-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer block truncate text-center w-full font-mono"
+                                onClick={() => updateLineField(idx, "isTaxInclusive", !line.isTaxInclusive)}
+                                title={line.isTaxInclusive ? "Rate includes GST (Click to toggle to Exclusive)" : "Rate excludes GST (Click to toggle to Inclusive)"}
+                                className={`px-1 py-0.5 text-[9px] font-bold rounded border shrink-0 h-7 flex items-center justify-center cursor-pointer ${
+                                  line.isTaxInclusive
+                                    ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-400"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700"
+                                }`}
                               >
-                                Last: ₹{line.lastDealHint.unitPrice}
+                                {line.isTaxInclusive ? "+GST" : "-GST"}
                               </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => updateLineField(idx, "isTaxInclusive", !line.isTaxInclusive)}
-                              title={line.isTaxInclusive ? "Rate includes GST (Click to toggle to Exclusive)" : "Rate excludes GST (Click to toggle to Inclusive)"}
-                              className={`mt-0.5 w-full text-[9px] font-bold px-1 py-0.5 rounded border transition-colors cursor-pointer block text-center ${
-                                line.isTaxInclusive
-                                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
-                                  : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800"
-                              }`}
-                            >
-                              {line.isTaxInclusive ? "With GST" : "Without GST"}
-                            </button>
+                            </div>
                           </td>
 
                           {/* 11. Discount */}
