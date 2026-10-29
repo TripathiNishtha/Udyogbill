@@ -5494,11 +5494,13 @@ function parseItemDimensions(attributesJson?: string) {
 
                 {/* 4. Line Items Table (Dense ERP Layout - 10+ Items Fit Viewport) */}
                 <div className="hidden lg:block flex-1 min-h-[360px] border border-[#fed7aa] dark:border-slate-700/80 rounded-xl overflow-y-auto overflow-x-auto shadow-sm bg-[#fff0e0]/30 dark:bg-slate-950/95">
-                  <table className="w-full text-left text-xs min-w-[1020px]">
+                  <table className="w-full text-left text-xs min-w-[1100px]">
                     <thead className="bg-[#ffedd5] dark:bg-slate-900/95 text-slate-800 dark:text-slate-300 border-b border-[#fed7aa] dark:border-slate-700 text-[11px] sticky top-0 z-10 font-bold shadow-2xs backdrop-blur-sm">
                       <tr>
                         <th className="px-1 py-1.5 w-8 text-center text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/95">#</th>
-                        <th className="px-1.5 py-1.5 min-w-[180px] text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95">Product / Item *</th>
+                        <th className="px-1.5 py-1.5 min-w-[280px] text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95 whitespace-nowrap">
+                          {isPharma ? "Product / Brand Name *" : "Product / Item *"}
+                        </th>
                         {isPharma ? (
                           <th className="px-1.5 py-1.5 min-w-[200px] w-52 text-amber-800 dark:text-amber-300 bg-slate-100 dark:bg-slate-900/95">Lot / Batch &amp; Expiry *</th>
                         ) : (
@@ -5583,12 +5585,12 @@ function parseItemDimensions(attributesJson?: string) {
                           </td>
 
                           {/* 1. Item Selection */}
-                          <td className="p-0.5 px-1 align-middle min-w-[180px]">
+                          <td className="p-0.5 px-1 align-middle min-w-[280px] whitespace-nowrap">
                             {isPharma && line.itemId ? (
-                              <div className="flex items-center justify-between gap-1 h-7">
-                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2 h-7 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 whitespace-nowrap">
                                   <Package className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                                  <span className="font-bold text-slate-900 dark:text-white text-xs truncate" title={line.itemName}>
+                                  <span className="font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap shrink-0" title={line.itemName}>
                                     {line.itemName || items.find((i) => i.id === line.itemId)?.name || "Item"}
                                   </span>
                                   {line.itemSku && (
