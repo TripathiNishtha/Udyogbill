@@ -297,9 +297,8 @@ function TenantInvoicesPageContent() {
   const [autoPartsCrossRefs, setAutoPartsCrossRefs] = useState<PartCrossReference[]>([]);
   const [activeSubPopoverLineIdx, setActiveSubPopoverLineIdx] = useState<number | null>(null);
 
-  // Active row and focused deal hint tracking (Dense Zero-height ERP layout)
+  // Active row tracking
   const [activeRowIdx, setActiveRowIdx] = useState<number>(0);
-  const [focusedHintField, setFocusedHintField] = useState<{ idx: number; field: "rate" | "free" | "mrp" | null }>({ idx: -1, field: null });
 
   // Pharma Prescriber & Patient Statutory Record (Schedule H1 / CDSCO)
   const [doctorName, setDoctorName] = useState<string>("");
@@ -5733,12 +5732,12 @@ function parseItemDimensions(attributesJson?: string) {
                           }`}
                         >
                           {/* Row Index */}
-                          <td className="p-0.5 text-center font-mono text-[10px] text-slate-500 dark:text-slate-400 font-bold align-middle">
+                          <td className="p-0.5 text-center font-mono text-[10px] text-slate-500 dark:text-slate-400 font-bold align-top pt-2">
                             {idx + 1}
                           </td>
 
                           {/* 1. Item Selection */}
-                          <td className="p-0.5 px-1 align-middle min-w-[280px] whitespace-nowrap">
+                          <td className="p-0.5 px-1 align-top pt-0.5 min-w-[280px] whitespace-nowrap">
                             {isPharma && line.itemId ? (
                               <div className="flex items-center justify-between gap-2 h-7 whitespace-nowrap">
                                 <div className="flex items-center gap-1.5 whitespace-nowrap">
@@ -6478,7 +6477,7 @@ function parseItemDimensions(attributesJson?: string) {
                           )}
 
                           {/* 5. HSN/SAC */}
-                          <td className="p-0.5 px-1 align-middle">
+                          <td className="p-0.5 px-1 align-top pt-0.5">
                             <input
                               type="text"
                               placeholder="HSN"
@@ -6489,7 +6488,7 @@ function parseItemDimensions(attributesJson?: string) {
                           </td>
 
                           {/* 6. Billed Qty */}
-                          <td className="p-0.5 px-1 align-middle min-w-[65px] w-18">
+                          <td className="p-0.5 px-1 align-top pt-0.5 min-w-[65px] w-18">
                             <input
                               id={`line-qty-${idx}`}
                               type="number"
@@ -6513,7 +6512,7 @@ function parseItemDimensions(attributesJson?: string) {
 
                           {/* 7. Free Qty */}
                           {hasPackingFreeQty && (
-                            <td className="relative p-0.5 px-1 align-middle min-w-[50px] w-14">
+                            <td className="p-0.5 px-1 align-top min-w-[50px] w-14">
                               <input
                                 id={`line-free-${idx}`}
                                 type="number"
@@ -6521,76 +6520,59 @@ function parseItemDimensions(attributesJson?: string) {
                                 step="1"
                                 placeholder="0"
                                 value={line.freeQuantity || ""}
-                                onFocus={() => {
-                                  setActiveRowIdx(idx);
-                                  setFocusedHintField({ idx, field: "free" });
-                                }}
-                                onBlur={() => {
-                                  setTimeout(() => {
-                                    setFocusedHintField((prev) => (prev.idx === idx && prev.field === "free" ? { idx: -1, field: null } : prev));
-                                  }, 250);
-                                }}
                                 onChange={(e) => updateLineField(idx, "freeQuantity", parseFloat(e.target.value) || 0)}
-                                title={line.lastDealHint?.freeSchemeText ? `Last Free Scheme: ${line.lastDealHint.freeSchemeText}` : undefined}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-emerald-700 dark:text-emerald-400 font-mono text-center focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
-                              {Boolean(line.lastDealHint?.freeSchemeText || (line.lastDealHint?.freeQuantity && line.lastDealHint.freeQuantity > 0)) &&
-                                focusedHintField.idx === idx && focusedHintField.field === "free" && (
-                                  <div
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      updateLineField(idx, "freeQuantity", line.lastDealHint?.freeQuantity || 0);
-                                    }}
-                                    className="absolute bottom-full left-0 mb-1 z-30 px-2 py-0.5 rounded shadow-lg bg-emerald-900 text-emerald-100 border border-emerald-500/50 text-[10px] whitespace-nowrap cursor-pointer flex items-center gap-1 font-sans animate-in fade-in zoom-in-95 duration-100"
-                                  >
-                                    <span>🎁 Last Scheme: <strong>{line.lastDealHint?.freeSchemeText || `+${line.lastDealHint?.freeQuantity}`}</strong></span>
-                                    <span className="text-[9px] bg-emerald-700 px-1 rounded text-white font-bold">Apply</span>
-                                  </div>
+                              {line.lastDealHint && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (line.lastDealHint?.freeQuantity) {
+                                      updateLineField(idx, "freeQuantity", line.lastDealHint.freeQuantity);
+                                      if (line.lastDealHint.quantity && (!line.quantity || line.quantity === 1)) {
+                                        updateLineField(idx, "quantity", line.lastDealHint.quantity);
+                                      }
+                                    } else {
+                                      updateLineField(idx, "freeQuantity", 0);
+                                    }
+                                  }}
+                                  title={`Click to apply last deal scheme: ${line.lastDealHint.freeSchemeText || line.lastDealHint.freeQuantity || "0"}`}
+                                  className="mt-0.5 text-[9px] leading-tight font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer block truncate text-center w-full font-mono"
+                                >
+                                  Last: {line.lastDealHint.freeSchemeText || (line.lastDealHint.freeQuantity ? `+${line.lastDealHint.freeQuantity}` : "0")}
+                                </button>
                               )}
                             </td>
                           )}
 
                           {/* 8. MRP (Pharma Only) */}
                           {showMrpColumn && (
-                            <td className="relative p-0.5 px-1 align-middle min-w-[75px] w-18">
+                            <td className="p-0.5 px-1 align-top min-w-[75px] w-18">
                               <input
                                 id={`line-mrp-${idx}`}
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
                                 value={line.mrp || ""}
-                                onFocus={() => {
-                                  setActiveRowIdx(idx);
-                                  setFocusedHintField({ idx, field: "mrp" });
-                                }}
-                                onBlur={() => {
-                                  setTimeout(() => {
-                                    setFocusedHintField((prev) => (prev.idx === idx && prev.field === "mrp" ? { idx: -1, field: null } : prev));
-                                  }, 250);
-                                }}
                                 onChange={(e) => updateLineField(idx, "mrp", parseFloat(e.target.value) || 0)}
-                                title={line.lastDealHint?.mrp ? `Last MRP: ₹${line.lastDealHint.mrp}` : undefined}
                                 className="w-full px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-slate-200 font-mono text-right focus:outline-none focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none h-7 shadow-2xs font-medium"
                               />
-                              {Boolean(line.lastDealHint?.mrp && line.lastDealHint.mrp > 0) &&
-                                focusedHintField.idx === idx && focusedHintField.field === "mrp" && (
-                                  <div
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      updateLineField(idx, "mrp", line.lastDealHint?.mrp || 0);
-                                    }}
-                                    className="absolute bottom-full left-0 mb-1 z-30 px-2 py-0.5 rounded shadow-lg bg-slate-900 text-amber-300 border border-amber-500/50 text-[10px] whitespace-nowrap cursor-pointer flex items-center gap-1 font-sans animate-in fade-in zoom-in-95 duration-100"
-                                  >
-                                    <span>🏷️ Last MRP: <strong>₹{line.lastDealHint?.mrp}</strong></span>
-                                    <span className="text-[9px] bg-amber-600 px-1 rounded text-white font-bold">Apply</span>
-                                  </div>
+                              {line.lastDealHint?.mrp !== undefined && line.lastDealHint.mrp > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateLineField(idx, "mrp", line.lastDealHint!.mrp)}
+                                  title={`Click to apply last MRP: ₹${line.lastDealHint.mrp}`}
+                                  className="mt-0.5 text-[9px] leading-tight font-bold text-slate-500 dark:text-slate-400 hover:underline cursor-pointer block truncate text-right w-full font-mono pr-1"
+                                >
+                                  Last: ₹{line.lastDealHint.mrp}
+                                </button>
                               )}
                             </td>
                           )}
 
                           {/* 8b. PTR (Pharma Only) */}
                           {showPtrColumn && (
-                            <td className="p-0.5 px-1 align-middle min-w-[75px] w-18">
+                            <td className="p-0.5 px-1 align-top min-w-[75px] w-18">
                               <input
                                 id={`line-ptr-${idx}`}
                                 type="number"
@@ -6605,7 +6587,7 @@ function parseItemDimensions(attributesJson?: string) {
 
                           {/* 8c. PTS (Company to Stockist Only) */}
                           {showPtsColumn && (
-                            <td className="p-0.5 px-1 align-middle min-w-[75px] w-18">
+                            <td className="p-0.5 px-1 align-top min-w-[75px] w-18">
                               <input
                                 id={`line-pts-${idx}`}
                                 type="number"
@@ -6619,29 +6601,19 @@ function parseItemDimensions(attributesJson?: string) {
                           )}
 
                           {/* 9. Unit */}
-                          <td className="p-0.5 font-bold text-slate-700 dark:text-slate-400 text-center align-middle min-w-[45px] w-12 text-xs">
+                          <td className="p-0.5 font-bold text-slate-700 dark:text-slate-400 text-center align-top pt-2 min-w-[45px] w-12 text-xs">
                             {line.uomCode || "UNIT"}
                           </td>
 
                           {/* 10. Selling Rate */}
-                          <td className="relative p-0.5 px-1 align-middle min-w-[95px] w-24">
+                          <td className="p-0.5 px-1 align-top min-w-[95px] w-24">
                             <div className="flex items-center space-x-0.5 h-7">
                               <input
                                 id={`line-rate-${idx}`}
                                 type="number"
                                 step="0.01"
                                 value={line.unitPrice}
-                                onFocus={() => {
-                                  setActiveRowIdx(idx);
-                                  setFocusedHintField({ idx, field: "rate" });
-                                }}
-                                onBlur={() => {
-                                  setTimeout(() => {
-                                    setFocusedHintField((prev) => (prev.idx === idx && prev.field === "rate" ? { idx: -1, field: null } : prev));
-                                  }, 250);
-                                }}
                                 onChange={(e) => updateLineField(idx, "unitPrice", parseFloat(e.target.value) || 0)}
-                                title={line.lastDealHint?.unitPrice ? `Last Sale Rate: ₹${line.lastDealHint.unitPrice}` : undefined}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
                                     e.preventDefault();
@@ -6667,23 +6639,20 @@ function parseItemDimensions(attributesJson?: string) {
                                 {line.isTaxInclusive ? "+GST" : "-GST"}
                               </button>
                             </div>
-                            {Boolean(line.lastDealHint?.unitPrice && line.lastDealHint.unitPrice > 0) &&
-                              focusedHintField.idx === idx && focusedHintField.field === "rate" && (
-                                <div
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    updateLineField(idx, "unitPrice", line.lastDealHint?.unitPrice || 0);
-                                  }}
-                                  className="absolute bottom-full left-0 mb-1 z-30 px-2 py-0.5 rounded shadow-lg bg-emerald-950 text-emerald-200 border border-emerald-500/50 text-[10px] whitespace-nowrap cursor-pointer flex items-center gap-1 font-sans animate-in fade-in zoom-in-95 duration-100"
-                                >
-                                  <span>⚡ Last Deal: <strong>₹{line.lastDealHint?.unitPrice}</strong></span>
-                                  <span className="text-[9px] bg-emerald-600 px-1 rounded text-white font-bold">Apply</span>
-                                </div>
+                            {line.lastDealHint?.unitPrice !== undefined && line.lastDealHint.unitPrice > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => updateLineField(idx, "unitPrice", line.lastDealHint!.unitPrice)}
+                                title={`Click to apply last sale rate: ₹${line.lastDealHint.unitPrice}`}
+                                className="mt-0.5 text-[9px] leading-tight font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer block truncate text-right w-full font-mono pr-1"
+                              >
+                                Last: ₹{line.lastDealHint.unitPrice}
+                              </button>
                             )}
                           </td>
 
                           {/* 11. Discount */}
-                          <td className="relative p-0.5 px-1 align-middle min-w-[85px] w-20">
+                          <td className="p-0.5 px-1 align-top min-w-[85px] w-20">
                             <div className="flex items-center space-x-0.5 h-7">
                               <input
                                 id={`line-disc-${idx}`}
@@ -6691,9 +6660,6 @@ function parseItemDimensions(attributesJson?: string) {
                                 step="0.01"
                                 placeholder="0"
                                 value={line.discountValue || ""}
-                                onFocus={() => {
-                                  setActiveRowIdx(idx);
-                                }}
                                 onChange={(e) => updateLineField(idx, "discountValue", parseFloat(e.target.value) || 0)}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
@@ -6726,15 +6692,28 @@ function parseItemDimensions(attributesJson?: string) {
                                 {line.discountType === "percent" ? "%" : "₹"}
                               </button>
                             </div>
+                            {line.lastDealHint?.discountPercent !== undefined && line.lastDealHint.discountPercent > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateLineField(idx, "discountType", "percent");
+                                  updateLineField(idx, "discountValue", line.lastDealHint!.discountPercent);
+                                }}
+                                title={`Click to apply last discount: ${line.lastDealHint.discountPercent}%`}
+                                className="mt-0.5 text-[9px] leading-tight font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer block truncate text-center w-full font-mono"
+                              >
+                                Last: {line.lastDealHint.discountPercent}%
+                              </button>
+                            )}
                           </td>
 
                           {/* 12. Taxable */}
-                          <td className="p-0.5 px-1 text-right font-mono font-bold text-slate-800 dark:text-slate-300 align-middle min-w-[80px] w-20">
+                          <td className="p-0.5 px-1 text-right font-mono font-bold text-slate-800 dark:text-slate-300 align-top pt-2 min-w-[80px] w-20">
                             ₹{line.taxableAmount.toFixed(2)}
                           </td>
 
                           {/* 13. GST % */}
-                          <td className="p-0.5 px-1 text-center font-mono align-middle min-w-[50px] w-14">
+                          <td className="p-0.5 px-1 text-center font-mono align-top pt-0.5 min-w-[50px] w-14">
                             <select
                               value={line.gstRate}
                               onChange={(e) => updateLineField(idx, "gstRate", parseFloat(e.target.value) || 0)}
@@ -6749,12 +6728,12 @@ function parseItemDimensions(attributesJson?: string) {
                           </td>
 
                           {/* 14. Net Amount */}
-                          <td className="p-0.5 px-1 text-right font-mono font-extrabold text-emerald-700 dark:text-emerald-400 align-middle min-w-[85px] w-20 text-sm">
+                          <td className="p-0.5 px-1 text-right font-mono font-extrabold text-emerald-700 dark:text-emerald-400 align-top pt-1.5 min-w-[85px] w-20 text-sm">
                             ₹{line.totalAmount.toFixed(2)}
                           </td>
 
                           {/* 15. Delete */}
-                          <td className="p-0.5 text-center align-middle">
+                          <td className="p-0.5 text-center align-top pt-1.5">
                             <button
                               type="button"
                               onClick={() => handleRemoveLine(idx)}
@@ -6769,66 +6748,6 @@ function parseItemDimensions(attributesJson?: string) {
                     </tbody>
                   </table>
                 </div>
-
-                {/* Active Row Last Deal Inspector Strip (Dense Zero-Height ERP Architecture) */}
-                {invoiceLines[activeRowIdx] && invoiceLines[activeRowIdx].itemId && (
-                  <div className="px-3 py-1 bg-amber-50/90 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-900/60 flex flex-wrap items-center justify-between text-xs text-amber-950 dark:text-amber-200">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        Row #{activeRowIdx + 1} ({invoiceLines[activeRowIdx].itemName}):
-                      </span>
-                      {invoiceLines[activeRowIdx].lastDealHint ? (
-                        <>
-                          <span className="bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-700 font-mono">
-                            Last Rate: <strong>₹{invoiceLines[activeRowIdx].lastDealHint?.unitPrice}</strong>
-                          </span>
-                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.freeSchemeText || (invoiceLines[activeRowIdx].lastDealHint?.freeQuantity && invoiceLines[activeRowIdx].lastDealHint!.freeQuantity > 0)) && (
-                            <span className="bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-mono">
-                              Scheme: <strong>{invoiceLines[activeRowIdx].lastDealHint?.freeSchemeText || `+${invoiceLines[activeRowIdx].lastDealHint?.freeQuantity}`}</strong>
-                            </span>
-                          )}
-                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.discountPercent && invoiceLines[activeRowIdx].lastDealHint!.discountPercent > 0) && (
-                            <span className="bg-orange-100 dark:bg-orange-900/60 px-1.5 py-0.5 rounded border border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300 font-mono">
-                              Disc: <strong>{invoiceLines[activeRowIdx].lastDealHint?.discountPercent}%</strong>
-                            </span>
-                          )}
-                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.mrp && invoiceLines[activeRowIdx].lastDealHint!.mrp > 0) && (
-                            <span className="text-slate-600 dark:text-slate-400 font-mono">
-                              MRP: ₹{invoiceLines[activeRowIdx].lastDealHint?.mrp}
-                            </span>
-                          )}
-                          {Boolean(invoiceLines[activeRowIdx].lastDealHint?.documentNumber) && (
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                              (Inv #{invoiceLines[activeRowIdx].lastDealHint?.documentNumber} {invoiceLines[activeRowIdx].lastDealHint?.date ? `on ${invoiceLines[activeRowIdx].lastDealHint?.date}` : ""})
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-slate-500 italic">No previous deal history found with this party.</span>
-                      )}
-                    </div>
-                    {invoiceLines[activeRowIdx].lastDealHint && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const hint = invoiceLines[activeRowIdx].lastDealHint;
-                          if (!hint) return;
-                          if (hint.unitPrice > 0) updateLineField(activeRowIdx, "unitPrice", hint.unitPrice);
-                          if (hint.freeQuantity !== undefined) updateLineField(activeRowIdx, "freeQuantity", hint.freeQuantity);
-                          if (hint.discountPercent !== undefined && hint.discountPercent > 0) {
-                            updateLineField(activeRowIdx, "discountType", "percent");
-                            updateLineField(activeRowIdx, "discountValue", hint.discountPercent);
-                          }
-                          if (hint.mrp && hint.mrp > 0) updateLineField(activeRowIdx, "mrp", hint.mrp);
-                        }}
-                        className="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold text-[11px] shadow-sm flex items-center gap-1 cursor-pointer transition-colors"
-                        title="Click to apply all deal rates and schemes from last sale"
-                      >
-                        ⚡ 1-Click Apply Last Deal
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
               </div> {/* End Scrollable Form Body */}
 
