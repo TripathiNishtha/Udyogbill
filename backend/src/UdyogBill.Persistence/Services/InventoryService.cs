@@ -1,3 +1,4 @@
+using UdyogBill.Domain.Entities.Accounting;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using UdyogBill.Application.DTOs;
@@ -1192,6 +1193,15 @@ public class InventoryService : IInventoryService
             return Result.Failure("Item not found.", "NOT_FOUND");
         }
 
+        var totalStock = item.WarehouseStocks.Where(ws => !ws.IsDeleted).Sum(ws => ws.CurrentQuantity);
+        if (totalStock > 0)
+        {
+            return Result.Failure(
+                $"Cannot delete item '{item.Name}' because it currently has {totalStock:G29} units in active stock. Please perform a physical stock adjustment or scrap write-off before deleting.",
+                "ACTIVE_STOCK_EXISTS"
+            );
+        }
+
         item.IsDeleted = true;
         item.DeletedAtUtc = DateTimeOffset.UtcNow;
         item.DeletedBy = _currentUserContext.UserId;
@@ -2186,6 +2196,7 @@ public class InventoryService : IInventoryService
         };
 
         _context.StockMovements.Add(movement);
+        await AutoPostStockAdjustmentToGeneralLedgerAsync(movement, item.Name, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
         await _auditService.LogAsync(new AuditLog
@@ -2507,4 +2518,123 @@ public class InventoryService : IInventoryService
     }
 
     #endregion
+
+    private async Task AutoPostStockAdjustmentToGeneralLedgerAsync(StockMovement movement, string itemName, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (movement.TotalCost <= 0) return;
+
+            var tenantId = movement.TenantId;
+            var stockAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-STOCK-IN-HAND", "Stock-in-Hand", "GRP-CA", "Current Assets", "Asset", "Debit", cancellationToken);
+            var adjAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-INVENTORY-ADJ-EXP", "Inventory Adjustment & Wastage Loss", "GRP-EXP", "Indirect Expenses", "Expense", "Debit", cancellationToken);
+
+            var voucher = new JournalVoucher
+            {
+                TenantId = tenantId,
+                VoucherNumber = $"JV-ADJ-{movement.Id.ToString()[..8].ToUpperInvariant()}",
+                VoucherDate = DateTime.UtcNow,
+                VoucherType = "Journal",
+                ReferenceNumber = movement.ReferenceDocumentNumber ?? $"ADJ-{movement.Id.ToString()[..8].ToUpperInvariant()}",
+                TotalDebit = movement.TotalCost,
+                TotalCredit = movement.TotalCost,
+                Narration = $"Auto-posted stock adjustment for item '{itemName}' ({movement.Quantity:G29} units)",
+                CreatedByName = "System Auto-Posting"
+            };
+
+            if (movement.Quantity < 0)
+            {
+                // Stock decreased: Debit Adjustment Loss Expense, Credit Stock-in-Hand Asset
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = adjAccount.Id,
+                    DebitAmount = movement.TotalCost,
+                    CreditAmount = 0,
+                    Narration = $"Inventory reduction adjustment for {itemName}"
+                });
+                adjAccount.CurrentBalance += movement.TotalCost;
+
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = stockAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = movement.TotalCost,
+                    Narration = $"Credit stock-in-hand asset for {itemName}"
+                });
+                stockAccount.CurrentBalance -= movement.TotalCost;
+            }
+            else
+            {
+                // Stock increased: Debit Stock-in-Hand Asset, Credit Adjustment Gain/Offset
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = stockAccount.Id,
+                    DebitAmount = movement.TotalCost,
+                    CreditAmount = 0,
+                    Narration = $"Debit stock-in-hand asset for {itemName}"
+                });
+                stockAccount.CurrentBalance += movement.TotalCost;
+
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = adjAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = movement.TotalCost,
+                    Narration = $"Inventory addition adjustment for {itemName}"
+                });
+                adjAccount.CurrentBalance -= movement.TotalCost;
+            }
+
+            _context.JournalVouchers.Add(voucher);
+        }
+        catch { }
+    }
+
+    private async Task<LedgerAccount> GetOrCreateLedgerAccountAsync(
+        Guid tenantId,
+        string accountCode,
+        string accountName,
+        string groupCode,
+        string groupName,
+        string category,
+        string nature,
+        CancellationToken cancellationToken)
+    {
+        var acc = await _context.LedgerAccounts.FirstOrDefaultAsync(a => a.TenantId == tenantId && a.AccountCode == accountCode, cancellationToken);
+        if (acc != null) return acc;
+
+        var grp = await _context.AccountGroups.FirstOrDefaultAsync(g => g.TenantId == tenantId && g.Code == groupCode, cancellationToken);
+        if (grp == null)
+        {
+            grp = new AccountGroup
+            {
+                TenantId = tenantId,
+                Code = groupCode,
+                Name = groupName,
+                Category = category,
+                Nature = nature
+            };
+            _context.AccountGroups.Add(grp);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        acc = new LedgerAccount
+        {
+            TenantId = tenantId,
+            AccountCode = accountCode,
+            AccountName = accountName,
+            GroupId = grp.Id,
+            Category = category,
+            BalanceType = nature,
+            CurrentBalance = 0m,
+            IsActive = true
+        };
+        _context.LedgerAccounts.Add(acc);
+        await _context.SaveChangesAsync(cancellationToken);
+        return acc;
+    }
 }

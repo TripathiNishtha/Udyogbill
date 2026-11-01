@@ -52,6 +52,14 @@ public class TenantBackupController : BaseApiController
         return File(stream, contentType, fileName);
     }
 
+    [HttpPost("restore/{backupId:guid}")]
+    [ProducesResponseType(typeof(RestoreVerificationResultDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RestoreBackup(Guid backupId, CancellationToken cancellationToken)
+    {
+        var result = await _backupService.RestoreBackupAsync(backupId, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpGet("schedule")]
     [ProducesResponseType(typeof(BackupScheduleConfigDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetScheduleConfig(CancellationToken cancellationToken)
@@ -77,7 +85,7 @@ public class TenantBackupController : BaseApiController
         return HandleResult(result);
     }
 
-    [HttpPost("restore/{backupId:guid}")]
+    [HttpPost("verify/{backupId:guid}")]
     [ProducesResponseType(typeof(RestoreVerificationResultDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> VerifyBackupIntegrity(Guid backupId, CancellationToken cancellationToken)
     {

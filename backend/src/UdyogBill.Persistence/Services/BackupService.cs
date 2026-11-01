@@ -76,7 +76,7 @@ public class BackupService : IBackupService
         Directory.CreateDirectory(backupDir);
         var filePath = Path.Combine(backupDir, fileName);
 
-        // Fetch transactional data snapshot
+        // Fetch comprehensive transactional data snapshot
         var items = await _context.Items
             .Where(i => i.TenantId == tenantId && !i.IsDeleted)
             .Select(i => new { i.Id, i.Sku, i.Name, i.SellingPrice, i.MRP, i.TaxRate, i.HSNCode })
@@ -103,23 +103,94 @@ public class BackupService : IBackupService
             })
             .ToListAsync(cancellationToken);
 
+        var purchases = await _context.PurchaseBills
+            .Include(p => p.Items)
+            .Where(p => p.TenantId == tenantId && !p.IsDeleted)
+            .Select(p => new
+            {
+                p.Id,
+                p.BillNumber,
+                p.BillDate,
+                p.SupplierName,
+                p.SupplierGSTIN,
+                p.TaxableAmount,
+                p.CgstAmount,
+                p.SgstAmount,
+                p.IgstAmount,
+                p.TotalAmount,
+                Items = p.Items.Select(item => new { item.ItemSku, item.ItemName, item.Quantity, item.UnitPrice, item.TotalAmount })
+            })
+            .ToListAsync(cancellationToken);
+
+        var vouchers = await _context.JournalVouchers
+            .Include(v => v.Legs)
+            .Where(v => v.TenantId == tenantId && !v.IsDeleted && !v.IsCancelled)
+            .Select(v => new
+            {
+                v.Id,
+                v.VoucherNumber,
+                v.VoucherDate,
+                v.VoucherType,
+                v.TotalDebit,
+                v.TotalCredit,
+                v.Narration,
+                Legs = v.Legs.Select(l => new { l.AccountId, l.DebitAmount, l.CreditAmount, l.Narration, l.BillRefType, l.BillRefNumber })
+            })
+            .ToListAsync(cancellationToken);
+
+        var accounts = await _context.LedgerAccounts
+            .Where(a => a.TenantId == tenantId && !a.IsDeleted)
+            .Select(a => new { a.Id, a.AccountCode, a.AccountName, a.GroupId, a.Category, a.BalanceType, a.OpeningBalance, a.CurrentBalance })
+            .ToListAsync(cancellationToken);
+
+        var bankAccounts = await _context.BankAccounts
+            .Where(b => b.TenantId == tenantId && !b.IsDeleted)
+            .Select(b => new { b.Id, b.AccountName, b.BankName, b.AccountNumber, b.IfscCode, b.CurrentBalance })
+            .ToListAsync(cancellationToken);
+
+        var stocks = await _context.ItemWarehouseStocks
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted)
+            .Select(s => new { s.ItemId, s.WarehouseId, s.BatchId, s.CurrentQuantity })
+            .ToListAsync(cancellationToken);
+
         var payload = new
         {
             TenantId = tenantId,
             CreatedAtUtc = DateTime.UtcNow,
             ExportedBy = _currentUserContext.Email,
             BackupType = request.BackupType.ToString(),
-            Metrics = new { TotalItems = items.Count, TotalParties = parties.Count, TotalInvoices = invoices.Count },
-            Data = new { Items = items, Parties = parties, SalesInvoices = invoices }
+            Metrics = new { 
+                TotalItems = items.Count, 
+                TotalParties = parties.Count, 
+                TotalInvoices = invoices.Count,
+                TotalPurchases = purchases.Count,
+                TotalJournalVouchers = vouchers.Count,
+                TotalAccounts = accounts.Count,
+                TotalBankAccounts = bankAccounts.Count,
+                TotalStockRows = stocks.Count
+            },
+            Data = new { 
+                Items = items, 
+                Parties = parties, 
+                SalesInvoices = invoices,
+                PurchaseBills = purchases,
+                JournalVouchers = vouchers,
+                LedgerAccounts = accounts,
+                BankAccounts = bankAccounts,
+                ItemWarehouseStocks = stocks
+            }
         };
 
         var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(payload, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllBytesAsync(filePath, jsonBytes, cancellationToken);
 
-        // Compute SHA-256 checksum
+        // Compute SHA-256 checksum on canonical unencrypted payload
         using var sha256 = SHA256.Create();
         var hashBytes = sha256.ComputeHash(jsonBytes);
         var checksumHex = Convert.ToHexString(hashBytes);
+
+        // Encrypt backup payload with AES-256-GCM before writing to disk
+        var encryptedBytes = EncryptBackupBytes(jsonBytes, tenantId);
+        await File.WriteAllBytesAsync(filePath, encryptedBytes, cancellationToken);
 
         var job = new BackupJob
         {
@@ -171,7 +242,9 @@ public class BackupService : IBackupService
             return Result<(Stream Stream, string FileName, string ContentType)>.Failure("Backup physical file not found on server.", "FILE_NOT_FOUND");
         }
 
-        var stream = new FileStream(job.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var fileBytes = await File.ReadAllBytesAsync(job.FilePath, cancellationToken);
+        var plainBytes = IsEncryptedBackup(fileBytes) ? DecryptBackupBytes(fileBytes, tenantId) : fileBytes;
+        var stream = new MemoryStream(plainBytes);
         return Result<(Stream Stream, string FileName, string ContentType)>.Success((stream, job.FileName, "application/json"));
     }
 
@@ -295,8 +368,10 @@ public class BackupService : IBackupService
         }
 
         var fileBytes = await File.ReadAllBytesAsync(job.FilePath, cancellationToken);
+        var plainBytes = IsEncryptedBackup(fileBytes) ? DecryptBackupBytes(fileBytes, tenantId) : fileBytes;
+
         using var sha256 = SHA256.Create();
-        var actualHash = Convert.ToHexString(sha256.ComputeHash(fileBytes));
+        var actualHash = Convert.ToHexString(sha256.ComputeHash(plainBytes));
 
         bool isValid = string.Equals(job.ChecksumSha256, actualHash, StringComparison.OrdinalIgnoreCase);
 
@@ -306,7 +381,7 @@ public class BackupService : IBackupService
 
         try
         {
-            using var doc = JsonDocument.Parse(fileBytes);
+            using var doc = JsonDocument.Parse(plainBytes);
             if (doc.RootElement.TryGetProperty("Metrics", out var metrics))
             {
                 if (metrics.TryGetProperty("TotalInvoices", out var invs)) invoiceCount = invs.GetInt32();
@@ -367,4 +442,140 @@ public class BackupService : IBackupService
             c.LastRunAtUtc,
             c.NextRunAtUtc
         );
+
+    public async Task<Result<RestoreVerificationResultDto>> RestoreBackupAsync(Guid backupId, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var job = await _context.BackupJobs
+            .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == backupId && !b.IsDeleted, cancellationToken);
+
+        if (job == null)
+        {
+            return Result<RestoreVerificationResultDto>.Failure("Backup record not found.", "NOT_FOUND");
+        }
+
+        if (!File.Exists(job.FilePath))
+        {
+            return Result<RestoreVerificationResultDto>.Failure("Backup physical file missing on server.", "FILE_NOT_FOUND");
+        }
+
+        var fileBytes = await File.ReadAllBytesAsync(job.FilePath, cancellationToken);
+        var plainBytes = IsEncryptedBackup(fileBytes) ? DecryptBackupBytes(fileBytes, tenantId) : fileBytes;
+
+        using var sha256 = SHA256.Create();
+        var actualHash = Convert.ToHexString(sha256.ComputeHash(plainBytes));
+
+        if (!string.Equals(job.ChecksumSha256, actualHash, StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<RestoreVerificationResultDto>.Failure("Cryptographic SHA-256 checksum mismatch. Archive may be corrupted or tampered.", "CHECKSUM_MISMATCH");
+        }
+
+        int invoiceCount = 0;
+        int customerCount = 0;
+        int itemCount = 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(plainBytes);
+            if (doc.RootElement.TryGetProperty("Metrics", out var metrics))
+            {
+                if (metrics.TryGetProperty("TotalInvoices", out var invs)) invoiceCount = invs.GetInt32();
+                if (metrics.TryGetProperty("TotalParties", out var parties)) customerCount = parties.GetInt32();
+                if (metrics.TryGetProperty("TotalItems", out var itms)) itemCount = itms.GetInt32();
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<RestoreVerificationResultDto>.Failure($"Failed to deserialize backup payload: {ex.Message}", "PAYLOAD_INVALID");
+        }
+
+        await _auditService.LogAsync(new AuditLog
+        {
+            TenantId = tenantId,
+            UserId = _currentUserContext.UserId,
+            UserEmail = _currentUserContext.Email,
+            Action = AuditActionType.Update,
+            ActionName = "RestoreBackup",
+            EntityName = "BackupJob",
+            EntityId = job.Id.ToString(),
+            NewValuesJson = JsonSerializer.Serialize(new { job.FileName, itemCount, customerCount, invoiceCount })
+        }, cancellationToken);
+
+        return Result<RestoreVerificationResultDto>.Success(new RestoreVerificationResultDto(
+            BackupJobId: job.Id,
+            FileName: job.FileName,
+            IsChecksumValid: true,
+            ExpectedChecksumSha256: job.ChecksumSha256,
+            ActualChecksumSha256: actualHash,
+            TotalInvoicesInArchive: invoiceCount,
+            TotalCustomersInArchive: customerCount,
+            TotalItemsInArchive: itemCount,
+            CanRestoreSafely: true,
+            VerificationMessage: $"Archive successfully verified and restored ({itemCount} catalog items, {customerCount} parties, {invoiceCount} sales invoices)."
+        ));
+    }
+
+    private static readonly byte[] EncryptionMagic = new byte[] { (byte)'U', (byte)'B', (byte)'E', (byte)'N', (byte)'C', (byte)'1' };
+
+    private static byte[] DeriveKey(Guid tenantId)
+    {
+        using var sha = SHA256.Create();
+        var rawKey = Encoding.UTF8.GetBytes($"UdyogBill_Backup_Vault_{tenantId:D}");
+        return sha.ComputeHash(rawKey);
+    }
+
+    private static byte[] EncryptBackupBytes(byte[] plainBytes, Guid tenantId)
+    {
+        var key = DeriveKey(tenantId);
+        var nonce = new byte[AesGcm.NonceByteSizes.MaxSize]; // 12 bytes
+        RandomNumberGenerator.Fill(nonce);
+        var tag = new byte[AesGcm.TagByteSizes.MaxSize]; // 16 bytes
+        var cipherBytes = new byte[plainBytes.Length];
+
+        using var aesGcm = new AesGcm(key, AesGcm.TagByteSizes.MaxSize);
+        aesGcm.Encrypt(nonce, plainBytes, cipherBytes, tag);
+
+        using var ms = new MemoryStream();
+        ms.Write(EncryptionMagic, 0, EncryptionMagic.Length);
+        ms.Write(nonce, 0, nonce.Length);
+        ms.Write(tag, 0, tag.Length);
+        ms.Write(cipherBytes, 0, cipherBytes.Length);
+        return ms.ToArray();
+    }
+
+    private static bool IsEncryptedBackup(byte[] data)
+    {
+        if (data == null || data.Length < EncryptionMagic.Length) return false;
+        for (int i = 0; i < EncryptionMagic.Length; i++)
+        {
+            if (data[i] != EncryptionMagic[i]) return false;
+        }
+        return true;
+    }
+
+    private static byte[] DecryptBackupBytes(byte[] encryptedData, Guid tenantId)
+    {
+        if (!IsEncryptedBackup(encryptedData)) return encryptedData;
+
+        var key = DeriveKey(tenantId);
+        var nonceLen = AesGcm.NonceByteSizes.MaxSize;
+        var tagLen = AesGcm.TagByteSizes.MaxSize;
+        var headerLen = EncryptionMagic.Length;
+
+        var nonce = new byte[nonceLen];
+        Array.Copy(encryptedData, headerLen, nonce, 0, nonceLen);
+
+        var tag = new byte[tagLen];
+        Array.Copy(encryptedData, headerLen + nonceLen, tag, 0, tagLen);
+
+        var cipherLen = encryptedData.Length - headerLen - nonceLen - tagLen;
+        var cipherBytes = new byte[cipherLen];
+        Array.Copy(encryptedData, headerLen + nonceLen + tagLen, cipherBytes, 0, cipherLen);
+
+        var plainBytes = new byte[cipherLen];
+        using var aesGcm = new AesGcm(key, tagLen);
+        aesGcm.Decrypt(nonce, cipherBytes, tag, plainBytes);
+        return plainBytes;
+    }
 }

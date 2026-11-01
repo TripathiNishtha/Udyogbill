@@ -6,6 +6,7 @@ using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Accounting;
 using UdyogBill.Domain.Entities.Auditing;
 using UdyogBill.Domain.Entities.Inventory;
+using UdyogBill.Domain.Entities.Jewellery;
 using UdyogBill.Domain.Entities.Parties;
 using UdyogBill.Domain.Entities.Pharma;
 using UdyogBill.Domain.Entities.Sales;
@@ -125,9 +126,13 @@ public class SalesService : ISalesService
             query = query.Where(i => i.PaymentStatus == paymentStatus.Value);
         }
 
-        if (branchId.HasValue && branchId.Value != Guid.Empty)
+        var effectiveBranchId = (_currentUserContext.BranchId.HasValue && !_currentUserContext.IsSuperAdmin && !_currentUserContext.IsTenantAdmin)
+            ? _currentUserContext.BranchId
+            : branchId;
+
+        if (effectiveBranchId.HasValue && effectiveBranchId.Value != Guid.Empty)
         {
-            query = query.Where(i => i.BranchId == branchId.Value);
+            query = query.Where(i => i.BranchId == effectiveBranchId.Value);
         }
 
         if (partyId.HasValue && partyId.Value != Guid.Empty)
@@ -135,16 +140,16 @@ public class SalesService : ISalesService
             query = query.Where(i => i.PartyId == partyId.Value);
         }
 
-        if (fromDate.HasValue)
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(fromDate, toDate, defaultToCurrentMonthIfBothNull: false);
+
+        if (fromUtc.HasValue)
         {
-            var utcFrom = DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc);
-            query = query.Where(i => i.InvoiceDate >= utcFrom);
+            query = query.Where(i => i.InvoiceDate >= fromUtc.Value);
         }
 
-        if (toDate.HasValue)
+        if (toUtc.HasValue)
         {
-            var utcTo = DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc);
-            query = query.Where(i => i.InvoiceDate <= utcTo);
+            query = query.Where(i => i.InvoiceDate <= toUtc.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -270,6 +275,8 @@ public class SalesService : ISalesService
             .Include(i => i.Branch)
             .Include(i => i.Warehouse)
             .Include(i => i.Broker)
+            .Include(i => i.Party)
+                .ThenInclude(p => p.Addresses)
             .Include(i => i.Items.Where(it => !it.IsDeleted))
                 .ThenInclude(it => it.Uom)
             .Include(i => i.Payments.Where(p => !p.IsDeleted))
@@ -349,6 +356,53 @@ public class SalesService : ISalesService
         DateTimeOffset? creditNoteDate = hasCreditNote ? activeReturns[0].ReturnDate : null;
         Guid? creditNoteId = hasCreditNote ? activeReturns[0].Id : null;
 
+        string? customerDl = null;
+        if (!string.IsNullOrWhiteSpace(invoice.AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
+                if (doc.RootElement.TryGetProperty("customerDlNumber", out var dlProp) && !string.IsNullOrWhiteSpace(dlProp.GetString()))
+                {
+                    customerDl = dlProp.GetString();
+                }
+            }
+            catch {}
+        }
+        if (string.IsNullOrWhiteSpace(customerDl))
+        {
+            customerDl = invoice.Party?.DrugLicenseNumber1;
+            if (string.IsNullOrWhiteSpace(customerDl) && !string.IsNullOrWhiteSpace(invoice.Party?.DrugLicenseNumber2))
+            {
+                customerDl = invoice.Party.DrugLicenseNumber2;
+            }
+        }
+
+        string? resolvedBillingAddress = invoice.BillingAddress;
+        if (string.IsNullOrWhiteSpace(resolvedBillingAddress) || 
+            resolvedBillingAddress.Trim().Equals(invoice.CustomerName?.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            (invoice.Party != null && !string.IsNullOrWhiteSpace(invoice.Party.TradeName) && resolvedBillingAddress.Trim().Equals(invoice.Party.TradeName?.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            var defAddr = invoice.Party?.Addresses?.FirstOrDefault(a => !a.IsDeleted && a.IsDefault) 
+                       ?? invoice.Party?.Addresses?.FirstOrDefault(a => !a.IsDeleted);
+            if (defAddr != null)
+            {
+                var addrParts = new[] {
+                    defAddr.AddressLine1,
+                    defAddr.AddressLine2,
+                    defAddr.City,
+                    !string.IsNullOrWhiteSpace(defAddr.State) 
+                        ? (!string.IsNullOrWhiteSpace(defAddr.Pincode) ? $"{defAddr.State} - {defAddr.Pincode}" : defAddr.State) 
+                        : defAddr.Pincode
+                }.Where(s => !string.IsNullOrWhiteSpace(s));
+                var full = string.Join(", ", addrParts);
+                if (!string.IsNullOrWhiteSpace(full))
+                {
+                    resolvedBillingAddress = full;
+                }
+            }
+        }
+
         var dto = new SalesInvoiceDetailsDto(
             invoice.Id,
             invoice.TenantId,
@@ -364,11 +418,11 @@ public class SalesService : ISalesService
             invoice.Warehouse?.WarehouseName ?? "Main Warehouse",
             invoice.PartyId,
             invoice.CustomerName,
-            invoice.CustomerPhone,
+            !string.IsNullOrWhiteSpace(invoice.CustomerPhone) ? invoice.CustomerPhone : (invoice.Party?.Mobile ?? invoice.Party?.PrimaryPhone),
             invoice.CustomerEmail,
             invoice.CustomerGSTIN,
             invoice.CustomerPAN,
-            invoice.BillingAddress,
+            resolvedBillingAddress,
             invoice.ShippingAddress,
             invoice.BillingStateCode,
             invoice.ShippingStateCode,
@@ -418,7 +472,10 @@ public class SalesService : ISalesService
             creditNoteDate,
             creditNoteId,
             invoice.BrokerId,
-            invoice.Broker?.FullName
+            invoice.Broker?.FullName,
+            customerDl,
+            invoice.DoctorName,
+            invoice.DoctorRegistrationNumber
         );
 
         return Result<SalesInvoiceDetailsDto>.Success(dto);
@@ -445,6 +502,17 @@ public class SalesService : ISalesService
     public async Task<Result<Guid>> CreateInvoiceAsync(CreateSalesInvoiceRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
     {
         var tenantId = RequireTenantId();
+
+        if (request.Id.HasValue && request.Id.Value != Guid.Empty)
+        {
+            var existingInvoice = await _context.SalesInvoices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == request.Id.Value && !i.IsDeleted, cancellationToken);
+            if (existingInvoice != null)
+            {
+                return Result<Guid>.Success(existingInvoice.Id);
+            }
+        }
 
         if (request.Items == null || request.Items.Count == 0)
         {
@@ -504,67 +572,134 @@ public class SalesService : ISalesService
                 .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == request.PartyId.Value && !p.IsDeleted, cancellationToken);
         }
 
-        // Determine GST Supply Type (Intra-State vs Inter-State) with authoritative B2C/B2B fallback
-        var branchStateCode = branch.StateCode?.Trim();
-        if (string.IsNullOrWhiteSpace(branchStateCode))
+        // Auto-match party by customer phone if PartyId wasn't found
+        if (party == null && !string.IsNullOrWhiteSpace(request.CustomerPhone))
         {
-            branchStateCode = GstStateHelper.ExtractStateCodeFromGstin(branch.GSTIN);
-        }
-        if (string.IsNullOrWhiteSpace(branchStateCode))
-        {
-            var tenantObj = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
-            branchStateCode = tenantObj?.StateCode?.Trim() ?? GstStateHelper.ExtractStateCodeFromGstin(tenantObj?.GSTIN) ?? "09";
+            var cleanPhone = request.CustomerPhone.Trim();
+            party = await _context.Parties
+                .FirstOrDefaultAsync(p => p.TenantId == tenantId && (p.PrimaryPhone == cleanPhone || p.Mobile == cleanPhone) && !p.IsDeleted, cancellationToken);
         }
 
-        string supplyStateCode;
+        // Auto-register customer with phone into Parties directory for cross-channel consistency
+        if (party == null && !string.IsNullOrWhiteSpace(request.CustomerPhone) && !string.IsNullOrWhiteSpace(request.CustomerName) && request.CustomerName.Trim() != "Walk-in Customer")
+        {
+            var cleanPhone = request.CustomerPhone.Trim();
+            var phoneTail = cleanPhone.Length >= 4 ? cleanPhone.Substring(cleanPhone.Length - 4) : cleanPhone;
+            var partyCode = $"CUST-{phoneTail}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+            party = new Party
+            {
+                TenantId = tenantId,
+                Code = partyCode,
+                LegalName = request.CustomerName.Trim(),
+                TradeName = request.CustomerName.Trim(),
+                PartyType = PartyType.Customer,
+                CustomerType = CustomerType.B2C,
+                PrimaryPhone = cleanPhone,
+                Mobile = cleanPhone,
+                GSTIN = request.CustomerGSTIN?.Trim().ToUpperInvariant(),
+                PAN = request.CustomerPAN?.Trim().ToUpperInvariant(),
+                StateCode = !string.IsNullOrWhiteSpace(request.BillingStateCode) ? request.BillingStateCode : null,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            if (!string.IsNullOrWhiteSpace(request.BillingAddress))
+            {
+                party.Addresses.Add(new PartyAddress
+                {
+                    TenantId = tenantId,
+                    AddressType = AddressType.Billing,
+                    AddressLine1 = request.BillingAddress.Trim(),
+                    StateCode = request.BillingStateCode ?? string.Empty,
+                    IsDefault = true,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
+            _context.Parties.Add(party);
+        }
+
+        // Determine GST Supply Type (Intra-State vs Inter-State) with authoritative B2C/B2B fallback
+        var tenantObj = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+        var branchStateCode = GstStateHelper.NormalizeStateCode(
+            branch.StateCode ?? tenantObj?.StateCode ?? tenantObj?.State,
+            branch.GSTIN ?? tenantObj?.GSTIN,
+            "09");
+
+        string? rawSupplyStateCode = null;
         if (!string.IsNullOrWhiteSpace(request.CustomerGSTIN) && request.CustomerGSTIN.Trim().Length >= 2 && char.IsDigit(request.CustomerGSTIN.Trim()[0]) && char.IsDigit(request.CustomerGSTIN.Trim()[1]))
         {
-            supplyStateCode = request.CustomerGSTIN.Trim().Substring(0, 2);
+            rawSupplyStateCode = request.CustomerGSTIN.Trim().Substring(0, 2);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.BillingStateCode))
+        {
+            rawSupplyStateCode = request.BillingStateCode.Trim();
         }
         else if (party != null && !string.IsNullOrWhiteSpace(party.GSTIN) && party.GSTIN.Trim().Length >= 2 && char.IsDigit(party.GSTIN.Trim()[0]) && char.IsDigit(party.GSTIN.Trim()[1]))
         {
-            supplyStateCode = party.GSTIN.Trim().Substring(0, 2);
-        }
-        else if (!string.IsNullOrWhiteSpace(request.BillingStateCode) && request.BillingStateCode != "27")
-        {
-            supplyStateCode = request.BillingStateCode.Trim();
+            rawSupplyStateCode = party.GSTIN.Trim().Substring(0, 2);
         }
         else if (party != null && !string.IsNullOrWhiteSpace(party.StateCode))
         {
-            supplyStateCode = party.StateCode.Trim();
+            rawSupplyStateCode = party.StateCode.Trim();
         }
-        else
-        {
-            supplyStateCode = branchStateCode;
-        }
+
+        var effectiveGstinForState = !string.IsNullOrWhiteSpace(request.CustomerGSTIN)
+            ? request.CustomerGSTIN
+            : (string.IsNullOrWhiteSpace(request.BillingStateCode) ? party?.GSTIN : null);
+        var supplyStateCode = GstStateHelper.NormalizeStateCode(rawSupplyStateCode, effectiveGstinForState, branchStateCode);
 
         var isIntraState = string.Equals(branchStateCode, supplyStateCode, StringComparison.OrdinalIgnoreCase);
         var taxSupplyType = isIntraState ? TaxSupplyType.IntraState : TaxSupplyType.InterState;
         var invDate = DateTime.SpecifyKind(request.InvoiceDate, DateTimeKind.Utc);
         var fy = GetFinancialYearCode(invDate);
-        var prefix = request.InvoiceType switch
+
+        bool isNonGst = request.InvoiceType == InvoiceType.SalesEstimate
+            || (!string.IsNullOrWhiteSpace(request.AttributesJson) && (
+                request.AttributesJson.Contains("\"billingMode\":\"NON_GST\"") ||
+                request.AttributesJson.Contains("\"billingMode\":\"non_gst\"") ||
+                request.AttributesJson.Contains("\"taxTreatment\":\"NON_GST\"") ||
+                request.AttributesJson.Contains("\"isNonGst\":true") ||
+                request.AttributesJson.Contains("\"isCashMemo\":true")
+            ));
+
+        bool isComposition = (tenantObj?.IsCompositionScheme == true) || (request.InvoiceType == InvoiceType.BillOfSupply);
+        var effectiveInvoiceType = isComposition 
+            ? InvoiceType.BillOfSupply 
+            : (isNonGst ? InvoiceType.SalesEstimate : request.InvoiceType);
+        var prefix = effectiveInvoiceType switch
         {
             InvoiceType.POSBill => "POS",
             InvoiceType.ProformaInvoice => "PI",
-            InvoiceType.SalesEstimate => "EST",
+            InvoiceType.SalesEstimate => "CASH",
             InvoiceType.CreditNote => "CN",
             InvoiceType.DebitNote => "DN",
+            InvoiceType.BillOfSupply => "BOS",
             _ => "INV"
         };
 
         // 3. ⚡ BATCH RETRIEVAL (Zero N+1 DB roundtrips for 2 Lakh scale)
         var itemIds = request.Items.Select(x => x.ItemId).Distinct().ToList();
-        var uomIds = request.Items.Select(x => x.UomId).Where(id => id != Guid.Empty).Distinct().ToList();
-        var batchIds = request.Items.Where(x => x.BatchId.HasValue && x.BatchId.Value != Guid.Empty).Select(x => x.BatchId!.Value).Distinct().ToList();
 
         var itemsDict = await _context.Items
             .Where(it => it.TenantId == tenantId && itemIds.Contains(it.Id) && !it.IsDeleted)
             .ToDictionaryAsync(it => it.Id, cancellationToken);
 
+        var uomIds = request.Items.Select(x => x.UomId).Where(id => id != Guid.Empty).ToList();
+        uomIds.AddRange(itemsDict.Values.Select(it => it.PrimaryUomId).Where(id => id != Guid.Empty));
+        var distinctUomIds = uomIds.Distinct().ToList();
+
         var uomsDict = await _context.UnitsOfMeasure
-            .Where(u => u.TenantId == tenantId && uomIds.Contains(u.Id) && !u.IsDeleted)
+            .Where(u => u.TenantId == tenantId && distinctUomIds.Contains(u.Id) && !u.IsDeleted)
             .ToDictionaryAsync(u => u.Id, cancellationToken);
 
+        if (!uomsDict.Any())
+        {
+            var fallbackUoms = await _context.UnitsOfMeasure
+                .Where(u => u.TenantId == tenantId && !u.IsDeleted)
+                .Take(5)
+                .ToListAsync(cancellationToken);
+            foreach (var fu in fallbackUoms) uomsDict[fu.Id] = fu;
+        }
+
+        var batchIds = request.Items.Where(x => x.BatchId.HasValue && x.BatchId.Value != Guid.Empty).Select(x => x.BatchId!.Value).Distinct().ToList();
         var batchesDict = await _context.ItemBatches
             .Where(b => b.TenantId == tenantId && batchIds.Contains(b.Id) && !b.IsDeleted)
             .ToDictionaryAsync(b => b.Id, cancellationToken);
@@ -579,43 +714,67 @@ public class SalesService : ISalesService
             ? await _context.ItemVariants.Where(v => v.TenantId == tenantId && garmentItemIds.Contains(v.ItemId) && !v.IsDeleted && v.IsActive).ToListAsync(cancellationToken)
             : new List<ItemVariant>();
 
-        var existingStocks = await _context.ItemWarehouseStocks
-            .Include(s => s.Batch)
-            .Where(s => s.TenantId == tenantId && itemIds.Contains(s.ItemId) && s.WarehouseId == warehouseId && !s.IsDeleted)
-            .ToListAsync(cancellationToken);
-
-        foreach (var s in existingStocks)
+        var semaphore = _tenantInvoiceSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+        SalesInvoice? invoice = null;
+        try
         {
-            if (s.Batch != null && !batchesDict.ContainsKey(s.Batch.Id))
+            var existingStocks = await _context.ItemWarehouseStocks
+                .Include(s => s.Batch)
+                .Where(s => s.TenantId == tenantId && itemIds.Contains(s.ItemId) && s.WarehouseId == warehouseId && !s.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            foreach (var s in existingStocks)
             {
-                batchesDict[s.Batch.Id] = s.Batch;
+                if (s.Batch != null && !batchesDict.ContainsKey(s.Batch.Id))
+                {
+                    batchesDict[s.Batch.Id] = s.Batch;
+                }
             }
-        }
 
-        var customerName = !string.IsNullOrWhiteSpace(request.CustomerName) 
-            ? request.CustomerName.Trim() 
-            : (party != null && !string.IsNullOrWhiteSpace(party.LegalName) ? party.LegalName : "Walk-in Customer");
+            var customerName = !string.IsNullOrWhiteSpace(request.CustomerName) 
+                ? request.CustomerName.Trim() 
+                : (party != null && !string.IsNullOrWhiteSpace(party.LegalName) ? party.LegalName : "Walk-in Customer");
 
-        var cleanCustGstin = request.CustomerGSTIN?.Trim().ToUpperInvariant();
-        var branchStateName = !string.IsNullOrWhiteSpace(branch.State) ? branch.State : GstStateHelper.GetStateNameByCode(branchStateCode);
-        var resolvedPos = GstStateHelper.ResolvePlaceOfSupply(
-            cleanCustGstin,
-            request.PlaceOfSupply,
-            request.BillingStateCode,
-            branch.GSTIN,
-            branchStateName,
-            branchStateCode);
+            var cleanCustGstin = request.CustomerGSTIN?.Trim().ToUpperInvariant();
+            var branchStateName = !string.IsNullOrWhiteSpace(branch.State) ? branch.State : GstStateHelper.GetStateNameByCode(branchStateCode);
+            var resolvedPos = GstStateHelper.ResolvePlaceOfSupply(
+                cleanCustGstin,
+                request.PlaceOfSupply,
+                request.BillingStateCode,
+                branch.GSTIN,
+                branchStateName,
+                branchStateCode);
 
-        // Create Invoice Master Instance
-        var invoice = new SalesInvoice
-        {
-            TenantId = tenantId,
-            InvoiceNumber = "PENDING",
-            InvoiceType = request.InvoiceType,
+            string? extractedDocName = null;
+            string? extractedDocReg = null;
+            if (!string.IsNullOrWhiteSpace(request.AttributesJson))
+            {
+                try
+                {
+                    using var attrDoc = System.Text.Json.JsonDocument.Parse(request.AttributesJson);
+                    if (attrDoc.RootElement.TryGetProperty("doctorName", out var dn) && !string.IsNullOrWhiteSpace(dn.GetString()))
+                        extractedDocName = dn.GetString()!.Trim();
+                    if (attrDoc.RootElement.TryGetProperty("doctorRegNumber", out var drn) && !string.IsNullOrWhiteSpace(drn.GetString()))
+                        extractedDocReg = drn.GetString()!.Trim();
+                    else if (attrDoc.RootElement.TryGetProperty("doctorRegNo", out var drn2) && !string.IsNullOrWhiteSpace(drn2.GetString()))
+                        extractedDocReg = drn2.GetString()!.Trim();
+                }
+                catch { }
+            }
+
+            // Create Invoice Master Instance
+            invoice = new SalesInvoice
+            {
+                Id = (request.Id.HasValue && request.Id.Value != Guid.Empty) ? request.Id.Value : Guid.NewGuid(),
+                TenantId = tenantId,
+                InvoiceNumber = "PENDING",
+            InvoiceType = effectiveInvoiceType,
             Status = InvoiceStatus.Issued,
             BranchId = branchId,
             WarehouseId = warehouseId,
-            PartyId = request.PartyId,
+            PartyId = party?.Id,
             CustomerName = customerName,
             CustomerPhone = request.CustomerPhone?.Trim(),
             CustomerEmail = request.CustomerEmail?.Trim().ToLowerInvariant(),
@@ -624,7 +783,7 @@ public class SalesService : ISalesService
             BillingAddress = request.BillingAddress?.Trim(),
             ShippingAddress = request.ShippingAddress?.Trim() ?? request.BillingAddress?.Trim(),
             BillingStateCode = supplyStateCode,
-            ShippingStateCode = request.ShippingStateCode?.Trim() ?? supplyStateCode,
+            ShippingStateCode = GstStateHelper.NormalizeStateCode(request.ShippingStateCode, null, supplyStateCode),
             PlaceOfSupply = resolvedPos,
             InvoiceDate = invDate,
             DueDate = request.DueDate.HasValue ? DateTime.SpecifyKind(request.DueDate.Value, DateTimeKind.Utc) : null,
@@ -645,6 +804,8 @@ public class SalesService : ISalesService
             PoDate = request.PoDate.HasValue ? DateTime.SpecifyKind(request.PoDate.Value, DateTimeKind.Utc) : null,
             IsReverseCharge = request.IsReverseCharge,
             BrokerId = request.BrokerId,
+            DoctorName = extractedDocName,
+            DoctorRegistrationNumber = extractedDocReg,
             AttributesJson = request.AttributesJson ?? "{}",
             IsCancelled = false
         };
@@ -663,12 +824,30 @@ public class SalesService : ISalesService
         {
             if (reqItem.Quantity <= 0 && reqItem.FreeQuantity <= 0)
             {
+                if (tx != null) await tx.RollbackAsync(cancellationToken);
+                _context.ChangeTracker.Clear();
                 return Result<Guid>.Failure("Item quantity must be greater than zero.", "INVALID_QUANTITY");
             }
 
             if (!itemsDict.TryGetValue(reqItem.ItemId, out var itm))
             {
-                return Result<Guid>.Failure($"Item with ID '{reqItem.ItemId}' not found.", "ITEM_NOT_FOUND");
+                // Fallback: try to resolve item by Barcode or SKU for this tenant
+                itm = await _context.Items
+                    .FirstOrDefaultAsync(it => it.TenantId == tenantId && !it.IsDeleted && (
+                        (!string.IsNullOrWhiteSpace(reqItem.BatchNumber) && it.Barcode == reqItem.BatchNumber) ||
+                        (!string.IsNullOrWhiteSpace(reqItem.HsnCode) && it.Sku == reqItem.HsnCode)
+                    ), cancellationToken);
+
+                if (itm != null)
+                {
+                    itemsDict[reqItem.ItemId] = itm;
+                }
+                else
+                {
+                    if (tx != null) await tx.RollbackAsync(cancellationToken);
+                    _context.ChangeTracker.Clear();
+                    return Result<Guid>.Failure($"Item with ID '{reqItem.ItemId}' not found.", "ITEM_NOT_FOUND");
+                }
             }
 
             // Pharma / Expiry validation
@@ -678,20 +857,28 @@ public class SalesService : ISalesService
                 {
                     if (bEntity.IsQuarantined)
                     {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        _context.ChangeTracker.Clear();
                         return Result<Guid>.Failure($"Batch '{bEntity.BatchNumber}' for item '{itm.Name}' is under regulatory quarantine and cannot be billed.", "BATCH_QUARANTINED");
                     }
                     if (bEntity.ExpiryDate != default && bEntity.ExpiryDate.Date < DateTime.UtcNow.Date)
                     {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        _context.ChangeTracker.Clear();
                         return Result<Guid>.Failure($"Batch '{bEntity.BatchNumber}' for item '{itm.Name}' has expired on {bEntity.ExpiryDate:yyyy-MM-dd}.", "BATCH_EXPIRED");
                     }
                     if (!bEntity.IsActive)
                     {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        _context.ChangeTracker.Clear();
                         return Result<Guid>.Failure($"Batch '{bEntity.BatchNumber}' is inactive.", "BATCH_INACTIVE");
                     }
                 }
             }
             if (reqItem.ExpiryDate.HasValue && reqItem.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
             {
+                if (tx != null) await tx.RollbackAsync(cancellationToken);
+                _context.ChangeTracker.Clear();
                 return Result<Guid>.Failure($"Batch '{reqItem.BatchNumber ?? itm.Name}' has expired on {reqItem.ExpiryDate.Value:yyyy-MM-dd}.", "BATCH_EXPIRED");
             }
 
@@ -699,15 +886,18 @@ public class SalesService : ISalesService
                 ? itm.ConversionRatio.Value
                 : 1m;
 
+            decimal effectiveLineGstRate = (isComposition || isNonGst) ? 0m : itm.TaxRate;
+            decimal effectiveLineCessRate = (isComposition || isNonGst) ? 0m : itm.CessRate;
+
             lineInputs.Add(new UdyogBill.Application.Services.Calculations.LineCalculationInput(
                 Quantity: reqItem.Quantity,
                 FreeQuantity: reqItem.FreeQuantity,
                 UnitPrice: reqItem.UnitPrice,
-                IsTaxInclusive: itm.IsTaxInclusive,
+                IsTaxInclusive: (isComposition || isNonGst) ? false : (reqItem.IsTaxInclusive ?? itm.IsTaxInclusive),
                 DiscountPercent: reqItem.DiscountPercent,
                 DiscountAmount: reqItem.DiscountAmount,
-                GstRate: itm.TaxRate,
-                CessRate: itm.CessRate,
+                GstRate: effectiveLineGstRate,
+                CessRate: effectiveLineCessRate,
                 IsIntraState: isIntraState,
                 ConversionRatio: conversion
             ));
@@ -717,7 +907,9 @@ public class SalesService : ISalesService
             lineInputs,
             request.InvoiceDiscountPercent,
             request.InvoiceDiscountAmount,
-            isIntraState
+            isIntraState,
+            additionalCharges: 0m,
+            isReverseCharge: request.IsReverseCharge
         );
 
         // Process line items & in-memory stock mutations
@@ -727,8 +919,14 @@ public class SalesService : ISalesService
             var item = itemsDict[reqItem.ItemId];
             var lineCalc = calculatedLines[i];
 
+            var effectiveUomId = (reqItem.UomId != Guid.Empty && uomsDict.ContainsKey(reqItem.UomId))
+                ? reqItem.UomId
+                : (item.PrimaryUomId != Guid.Empty && uomsDict.ContainsKey(item.PrimaryUomId)
+                    ? item.PrimaryUomId
+                    : (uomsDict.Keys.Any() ? uomsDict.Keys.First() : Guid.Empty));
+
             string uomCode = "UNIT";
-            if (uomsDict.TryGetValue(reqItem.UomId, out var uom))
+            if (effectiveUomId != Guid.Empty && uomsDict.TryGetValue(effectiveUomId, out var uom))
             {
                 uomCode = uom.Code ?? "UNIT";
             }
@@ -853,9 +1051,11 @@ public class SalesService : ISalesService
                 decimal beforeQty = stock?.CurrentQuantity ?? 0m;
                 decimal physicalOut = lineCalc.TotalPhysicalQuantity;
 
-                if (!allowNegativeStock && beforeQty < physicalOut)
+                if (!allowNegativeStock && request.InvoiceType != InvoiceType.POSBill && beforeQty < physicalOut)
                 {
                     var batchStr = effectiveBatchId.HasValue && batchesDict.TryGetValue(effectiveBatchId.Value, out var b) ? $" (Batch: {b.BatchNumber})" : "";
+                    if (tx != null) await tx.RollbackAsync(cancellationToken);
+                    _context.ChangeTracker.Clear();
                     return Result<Guid>.Failure($"Insufficient stock for item '{item.Name}'{batchStr}. Required: {physicalOut:G29}, Available: {beforeQty:G29}.", "INSUFFICIENT_STOCK");
                 }
 
@@ -916,6 +1116,7 @@ public class SalesService : ISalesService
             if (!string.IsNullOrWhiteSpace(reqItem.Packing)) itemAttrs["packing"] = reqItem.Packing;
             if (reqItem.Ptr > 0) itemAttrs["ptr"] = reqItem.Ptr;
             if (reqItem.Pts > 0) itemAttrs["pts"] = reqItem.Pts;
+            if (!string.IsNullOrWhiteSpace(reqItem.LineDescription)) itemAttrs["lineDescription"] = reqItem.LineDescription.Trim();
 
             var lineItem = new SalesInvoiceItem
             {
@@ -924,14 +1125,14 @@ public class SalesService : ISalesService
                 ItemId = item.Id,
                 VariantId = reqItem.VariantId,
                 ItemSku = item.Sku,
-                ItemName = item.Name,
+                ItemName = !string.IsNullOrWhiteSpace(reqItem.ItemName) ? reqItem.ItemName.Trim() : item.Name,
                 HsnCode = !string.IsNullOrWhiteSpace(reqItem.HsnCode) ? reqItem.HsnCode : item.HSNCode,
                 Barcode = item.Barcode,
                 BatchId = effectiveBatchId,
                 BatchNumber = batchNo,
                 ExpiryDate = expiryDate,
                 Quantity = reqItem.Quantity,
-                UomId = reqItem.UomId,
+                UomId = effectiveUomId,
                 UomCode = uomCode,
                 UnitPrice = reqItem.UnitPrice,
                 Mrp = reqItem.Mrp > 0 ? reqItem.Mrp : item.MRP,
@@ -962,14 +1163,20 @@ public class SalesService : ISalesService
                         .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == item.Id && s.SerialNumber.ToLower() == imeiStr.ToLower() && !s.IsDeleted, cancellationToken);
                     if (existingSerial == null)
                     {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        _context.ChangeTracker.Clear();
                         return Result<Guid>.Failure($"IMEI/Serial '{imeiStr}' has not been inwarded. Please inward via Purchase Bill or GRN first.", "SERIAL_NOT_INWARDED");
                     }
                     if (existingSerial.Status == "Sold")
                     {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        _context.ChangeTracker.Clear();
                         return Result<Guid>.Failure($"IMEI/Serial '{imeiStr}' for product '{item.Name}' has already been sold on another invoice.", "SERIAL_ALREADY_SOLD");
                     }
                     if (existingSerial.Status != "InStock" && existingSerial.Status != "Available")
                     {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        _context.ChangeTracker.Clear();
                         return Result<Guid>.Failure($"IMEI/Serial '{imeiStr}' is not available for sale (Current status: {existingSerial.Status}).", "SERIAL_NOT_AVAILABLE");
                     }
 
@@ -1003,6 +1210,15 @@ public class SalesService : ISalesService
         {
             paid = 0m;
         }
+        else if (paid > 0m && Math.Abs(roundedTotal - paid) <= 1.0m)
+        {
+            // Snap only when customer paid nearly full amount (within roundoff ₹1)
+            var grossUnrounded = invoiceTotals.TaxableAmount + invoiceTotals.CgstAmount + invoiceTotals.SgstAmount + invoiceTotals.IgstAmount + invoiceTotals.CessAmount;
+            if (Math.Abs(paid - grossUnrounded) < 0.05m || Math.Abs(paid - roundedTotal) < 0.50m)
+            {
+                paid = roundedTotal;
+            }
+        }
 
         invoice.PaidAmount = paid;
         invoice.BalanceAmount = roundedTotal - paid;
@@ -1012,7 +1228,32 @@ public class SalesService : ISalesService
 
         invoice.Status = invoice.PaymentStatus == PaymentStatus.FullyPaid ? InvoiceStatus.Paid : InvoiceStatus.Issued;
 
-        if (paid > 0)
+        if (request.PaymentSplits != null && request.PaymentSplits.Any(s => s.Amount > 0))
+        {
+            var validSplits = request.PaymentSplits.Where(s => s.Amount > 0).ToList();
+            paid = validSplits.Sum(s => s.Amount);
+            invoice.PaidAmount = paid;
+            invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - paid);
+            invoice.PaymentStatus = invoice.BalanceAmount <= 0.01m
+                ? PaymentStatus.FullyPaid
+                : (paid > 0 ? PaymentStatus.PartiallyPaid : PaymentStatus.Unpaid);
+            invoice.Status = invoice.PaymentStatus == PaymentStatus.FullyPaid ? InvoiceStatus.Paid : InvoiceStatus.Issued;
+
+            foreach (var split in validSplits)
+            {
+                invoice.Payments.Add(new SalesInvoicePayment
+                {
+                    TenantId = tenantId,
+                    Invoice = invoice,
+                    PaymentDate = split.PaymentDate ?? invDate,
+                    Amount = split.Amount,
+                    PaymentMode = split.PaymentMode,
+                    TransactionReference = split.TransactionReference,
+                    Notes = string.IsNullOrWhiteSpace(split.Notes) ? $"Split Payment ({split.PaymentMode})" : split.Notes
+                });
+            }
+        }
+        else if (paid > 0)
         {
             invoice.Payments.Add(new SalesInvoicePayment
             {
@@ -1050,7 +1291,33 @@ public class SalesService : ISalesService
             };
             _context.PartyLedgerEntries.Add(invoiceLedger);
 
-            if (paid > 0)
+            if (request.PaymentSplits != null && request.PaymentSplits.Any(s => s.Amount > 0))
+            {
+                var validSplits = request.PaymentSplits.Where(s => s.Amount > 0).ToList();
+                foreach (var split in validSplits)
+                {
+                    var creditBalance = party.CurrentOutstandingBalance - split.Amount;
+                    party.CurrentOutstandingBalance = creditBalance;
+
+                    var paymentLedger = new PartyLedgerEntry
+                    {
+                        TenantId = tenantId,
+                        PartyId = party.Id,
+                        TransactionDate = split.PaymentDate ?? invDate,
+                        EntryType = PartyLedgerEntryType.PaymentReceipt,
+                        DebitAmount = 0m,
+                        CreditAmount = split.Amount,
+                        RunningBalance = creditBalance,
+                        ReferenceDocumentType = "PaymentReceipt",
+                        ReferenceDocumentId = invoice.Id,
+                        ReferenceDocumentNumber = "PENDING",
+                        PaymentMode = split.PaymentMode.ToString(),
+                        Description = $"Split payment received ({split.PaymentMode}) - Ref: {split.TransactionReference ?? "N/A"}"
+                    };
+                    _context.PartyLedgerEntries.Add(paymentLedger);
+                }
+            }
+            else if (paid > 0)
             {
                 var creditBalance = party.CurrentOutstandingBalance - paid;
                 party.CurrentOutstandingBalance = creditBalance;
@@ -1075,10 +1342,87 @@ public class SalesService : ISalesService
         }
 
         // 4. ⚡ DATABASE-AUTHORITATIVE DISTRIBUTED SEQUENCE ALLOCATION & ATOMIC GL POSTING
-        var semaphore = _tenantInvoiceSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(cancellationToken);
-        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
-        try
+        DocumentSeriesConfigDto? seriesConfig = null;
+        var seriesSetting = await _context.TenantSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Category == "Invoice" && s.Key == "DocumentSeriesConfig", cancellationToken);
+        if (seriesSetting != null && !string.IsNullOrWhiteSpace(seriesSetting.Value))
+        {
+            try
+            {
+                seriesConfig = JsonSerializer.Deserialize<DocumentSeriesConfigDto>(
+                    seriesSetting.Value,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { }
+        }
+
+        DocumentSeriesItemDto? activeSeries = null;
+        if (seriesConfig != null)
+        {
+            if (isNonGst || effectiveInvoiceType == InvoiceType.SalesEstimate)
+            {
+                activeSeries = seriesConfig.CashMemo;
+            }
+            else if (effectiveInvoiceType == InvoiceType.POSBill)
+            {
+                activeSeries = isNonGst ? seriesConfig.CashMemo : seriesConfig.TaxInvoice;
+            }
+            else if (effectiveInvoiceType == InvoiceType.TaxInvoice || effectiveInvoiceType == InvoiceType.BillOfSupply)
+            {
+                activeSeries = isNonGst ? seriesConfig.CashMemo : seriesConfig.TaxInvoice;
+            }
+            else if (effectiveInvoiceType == InvoiceType.ProformaInvoice)
+            {
+                activeSeries = seriesConfig.Quotation;
+            }
+        }
+
+        string currentNumber;
+        if (activeSeries != null && !string.IsNullOrWhiteSpace(activeSeries.Prefix))
+        {
+            var customPrefix = activeSeries.Prefix.Trim();
+            var customSuffix = activeSeries.Suffix?.Trim() ?? string.Empty;
+            int padding = activeSeries.Padding;
+
+            await AcquireSequenceLockAsync(tenantId, customPrefix, fy, cancellationToken);
+
+            var existingInvoices = await _context.SalesInvoices
+                .Where(i => i.TenantId == tenantId && i.InvoiceNumber.StartsWith(customPrefix))
+                .Select(i => i.InvoiceNumber)
+                .ToListAsync(cancellationToken);
+
+            int maxNum = Math.Max(0, activeSeries.NextNumber - 1);
+            foreach (var invNum in existingInvoices)
+            {
+                if (string.IsNullOrWhiteSpace(invNum) || invNum.Length <= customPrefix.Length)
+                    continue;
+
+                var middle = invNum.Substring(customPrefix.Length);
+                if (!string.IsNullOrEmpty(customSuffix) && middle.EndsWith(customSuffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    middle = middle.Substring(0, middle.Length - customSuffix.Length);
+                }
+
+                if (int.TryParse(middle, out int parsed))
+                {
+                    if (parsed > maxNum) maxNum = parsed;
+                }
+                else
+                {
+                    var digits = new string(middle.TakeWhile(char.IsDigit).ToArray());
+                    if (int.TryParse(digits, out int leadParsed) && leadParsed > maxNum)
+                    {
+                        maxNum = leadParsed;
+                    }
+                }
+            }
+
+            int nextVal = maxNum + 1;
+            string numPart = padding > 1 ? nextVal.ToString().PadLeft(padding, '0') : nextVal.ToString();
+            currentNumber = $"{customPrefix}{numPart}{customSuffix}";
+        }
+        else
         {
             await AcquireSequenceLockAsync(tenantId, prefix, fy, cancellationToken);
 
@@ -1110,8 +1454,10 @@ public class SalesService : ISalesService
                 nextNum = count + 1;
             }
 
-            var currentNumber = $"{prefix}-{fy}-{nextNum:D5}";
-            invoice.InvoiceNumber = currentNumber;
+            currentNumber = $"{prefix}-{fy}-{nextNum:D5}";
+        }
+
+        invoice.InvoiceNumber = currentNumber;
 
             // Sync ReferenceDocumentNumber on child entities
             foreach (var m in _context.ChangeTracker.Entries<StockMovement>().Where(e => e.Entity.ReferenceDocumentId == invoice.Id))
@@ -1125,6 +1471,10 @@ public class SalesService : ISalesService
 
             // Auto-post to General Ledger with authoritative final invoice number
             await AutoPostInvoiceToGeneralLedgerAsync(invoice, cancellationToken);
+            foreach (var p in invoice.Payments)
+            {
+                await AutoPostPaymentToGeneralLedgerAsync(invoice, p, cancellationToken);
+            }
 
             // Auto-accrue Broker Commission if broker assigned
             if (invoice.BrokerId.HasValue)
@@ -1232,13 +1582,59 @@ public class SalesService : ISalesService
                 }
             }
 
+            // Jewellery Pillar Inter-linking: Old Gold Exchange & Kitty Scheme Redemption
+            if (!string.IsNullOrWhiteSpace(request.AttributesJson))
+            {
+                try
+                {
+                    using var jDoc = JsonDocument.Parse(request.AttributesJson);
+                    if (jDoc.RootElement.TryGetProperty("oldGoldVoucherId", out var ogvProp) &&
+                        Guid.TryParse(ogvProp.GetString(), out var oldGoldVoucherId) &&
+                        oldGoldVoucherId != Guid.Empty)
+                    {
+                        var voucher = await _context.OldGoldExchangeVouchers
+                            .FirstOrDefaultAsync(v => v.TenantId == tenantId && v.Id == oldGoldVoucherId && !v.IsDeleted, cancellationToken);
+                        if (voucher != null)
+                        {
+                            voucher.InvoiceId = invoice.Id;
+                            voucher.Status = OldGoldStatus.AdjustedAgainstInvoice;
+                        }
+                    }
+
+                    if (jDoc.RootElement.TryGetProperty("kittySchemeId", out var ksProp) &&
+                        Guid.TryParse(ksProp.GetString(), out var kittySchemeId) &&
+                        kittySchemeId != Guid.Empty)
+                    {
+                        var scheme = await _context.GoldSavingsSchemes
+                            .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Id == kittySchemeId && !s.IsDeleted, cancellationToken);
+                        if (scheme != null)
+                        {
+                            scheme.RedeemedInvoiceId = invoice.Id;
+                            scheme.Status = GoldSavingsSchemeStatus.RedeemedAgainstPurchase;
+                        }
+                    }
+                }
+                catch { }
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
             if (tx != null) await tx.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true
+                                        || ex.InnerException?.Message.Contains("unique", StringComparison.OrdinalIgnoreCase) == true
+                                        || ex.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+                                        || ex.Message.Contains("unique", StringComparison.OrdinalIgnoreCase))
+        {
+            if (tx != null) await tx.RollbackAsync(cancellationToken);
+            _context.ChangeTracker.Clear();
+            _logger?.LogError(ex, "Duplicate invoice number constraint violation for tenant {TenantId}: {Message}", tenantId, ex.Message);
+            return Result<Guid>.Failure("A document with this invoice number already exists or concurrent generation conflict occurred. Please retry.", "DUPLICATE_INVOICE_NUMBER");
         }
         catch (Exception ex)
         {
             if (tx != null) await tx.RollbackAsync(cancellationToken);
-            _logger?.LogError(ex, "Failed to create sales invoice {InvoiceNumber} for tenant {TenantId}: {Message}", invoice.InvoiceNumber, tenantId, ex.Message);
+            _context.ChangeTracker.Clear();
+            _logger?.LogError(ex, "Failed to create sales invoice {InvoiceNumber} for tenant {TenantId}: {Message}", invoice?.InvoiceNumber ?? "UNKNOWN", tenantId, ex.Message);
             throw;
         }
         finally
@@ -1288,14 +1684,65 @@ public class SalesService : ISalesService
         }
 
         // 1. Restore Stock of previous items
+        var prevItemIds = invoice.Items.Select(x => x.ItemId).Distinct().ToList();
+        var prevItemsDict = await _context.Items
+            .Where(it => it.TenantId == tenantId && prevItemIds.Contains(it.Id) && !it.IsDeleted)
+            .ToDictionaryAsync(it => it.Id, cancellationToken);
+
         foreach (var item in invoice.Items.ToList())
         {
-            var stock = await _context.ItemWarehouseStocks
-                .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == item.ItemId && s.WarehouseId == invoice.WarehouseId &&
-                                         (!item.BatchId.HasValue || s.BatchId == item.BatchId.Value) && !s.IsDeleted, cancellationToken);
-            if (stock != null)
+            if (prevItemsDict.TryGetValue(item.ItemId, out var masterItem) && masterItem.ItemType == ItemType.Service)
             {
-                stock.CurrentQuantity += item.Quantity;
+                // Do not alter inventory for service items
+            }
+            else
+            {
+                decimal freeQty = 0m;
+                decimal conversion = 1m;
+                if (!string.IsNullOrWhiteSpace(item.AttributesJson))
+                {
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(item.AttributesJson);
+                        if (doc.RootElement.TryGetProperty("freeQuantity", out var fq))
+                        {
+                            if (fq.ValueKind == System.Text.Json.JsonValueKind.Number) freeQty = fq.GetDecimal();
+                            else if (decimal.TryParse(fq.GetString(), out var fqVal)) freeQty = fqVal;
+                        }
+                        if (doc.RootElement.TryGetProperty("conversionRatio", out var cr))
+                        {
+                            if (cr.ValueKind == System.Text.Json.JsonValueKind.Number) conversion = cr.GetDecimal();
+                            else if (decimal.TryParse(cr.GetString(), out var crVal)) conversion = crVal;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (conversion <= 0m) conversion = 1m;
+                decimal restoredUnits = (item.Quantity + freeQty) * conversion;
+
+                var stockQuery = _context.ItemWarehouseStocks
+                    .Where(s => s.TenantId == tenantId && s.ItemId == item.ItemId && s.WarehouseId == invoice.WarehouseId && !s.IsDeleted);
+
+                if (item.VariantId.HasValue)
+                {
+                    stockQuery = stockQuery.Where(s => s.VariantId == item.VariantId.Value);
+                }
+                else
+                {
+                    stockQuery = stockQuery.Where(s => s.VariantId == null);
+                }
+
+                if (item.BatchId.HasValue)
+                {
+                    stockQuery = stockQuery.Where(s => s.BatchId == item.BatchId.Value);
+                }
+
+                var stock = await stockQuery.FirstOrDefaultAsync(cancellationToken);
+                if (stock != null)
+                {
+                    stock.CurrentQuantity += restoredUnits;
+                }
             }
 
             item.IsDeleted = true;
@@ -1303,48 +1750,68 @@ public class SalesService : ISalesService
             item.DeletedBy = _currentUserContext.UserId;
         }
 
+        // Soft-delete previous outward stock movements for this edited invoice to prevent duplicate audit logs in movement ledger
+        var previousOutwardMovements = await _context.StockMovements
+            .Where(sm => sm.TenantId == tenantId
+                      && sm.ReferenceDocumentType == "SalesInvoice"
+                      && sm.ReferenceDocumentId == invoice.Id
+                      && !sm.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var prevMov in previousOutwardMovements)
+        {
+            prevMov.IsDeleted = true;
+            prevMov.DeletedAtUtc = DateTime.UtcNow;
+            prevMov.DeletedBy = _currentUserContext.UserId;
+        }
+
         // 2. Fetch required master references
         var branch = await _context.TenantBranches
             .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == invoice.BranchId && !b.IsDeleted, cancellationToken)
             ?? await _context.TenantBranches.FirstOrDefaultAsync(b => b.TenantId == tenantId && !b.IsDeleted, cancellationToken);
 
-        var sellerStateCode = branch?.StateCode?.Trim();
-        if (string.IsNullOrWhiteSpace(sellerStateCode) && branch != null)
-        {
-            sellerStateCode = GstStateHelper.ExtractStateCodeFromGstin(branch.GSTIN);
-        }
-        if (string.IsNullOrWhiteSpace(sellerStateCode))
-        {
-            var tenantObj = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
-            sellerStateCode = tenantObj?.StateCode?.Trim() ?? GstStateHelper.ExtractStateCodeFromGstin(tenantObj?.GSTIN) ?? "09";
-        }
+        var tenantObj = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+        var sellerStateCode = GstStateHelper.NormalizeStateCode(
+            branch?.StateCode ?? tenantObj?.StateCode ?? tenantObj?.State,
+            branch?.GSTIN ?? tenantObj?.GSTIN,
+            "09");
 
-        string supplyStateCode;
+        string? rawSupplyStateCode = null;
         if (!string.IsNullOrWhiteSpace(request.CustomerGSTIN) && request.CustomerGSTIN.Trim().Length >= 2 && char.IsDigit(request.CustomerGSTIN.Trim()[0]) && char.IsDigit(request.CustomerGSTIN.Trim()[1]))
         {
-            supplyStateCode = request.CustomerGSTIN.Trim().Substring(0, 2);
+            rawSupplyStateCode = request.CustomerGSTIN.Trim().Substring(0, 2);
         }
-        else if (!string.IsNullOrWhiteSpace(request.BillingStateCode) && request.BillingStateCode != "27")
+        else if (!string.IsNullOrWhiteSpace(request.BillingStateCode))
         {
-            supplyStateCode = request.BillingStateCode.Trim();
+            rawSupplyStateCode = request.BillingStateCode.Trim();
         }
-        else
-        {
-            supplyStateCode = sellerStateCode;
-        }
+
+        var supplyStateCode = GstStateHelper.NormalizeStateCode(rawSupplyStateCode, request.CustomerGSTIN, sellerStateCode);
 
         var isIntraState = string.Equals(sellerStateCode, supplyStateCode, StringComparison.OrdinalIgnoreCase);
 
         var itemIds = request.Items.Select(it => it.ItemId).Distinct().ToList();
-        var uomIds = request.Items.Select(it => it.UomId).Distinct().ToList();
 
         var itemsDict = await _context.Items
             .Where(it => it.TenantId == tenantId && itemIds.Contains(it.Id) && !it.IsDeleted)
             .ToDictionaryAsync(it => it.Id, cancellationToken);
 
+        var uomIds = request.Items.Select(it => it.UomId).Where(id => id != Guid.Empty).ToList();
+        uomIds.AddRange(itemsDict.Values.Select(it => it.PrimaryUomId).Where(id => id != Guid.Empty));
+        var distinctUomIds = uomIds.Distinct().ToList();
+
         var uomsDict = await _context.UnitsOfMeasure
-            .Where(u => u.TenantId == tenantId && uomIds.Contains(u.Id) && !u.IsDeleted)
+            .Where(u => u.TenantId == tenantId && distinctUomIds.Contains(u.Id) && !u.IsDeleted)
             .ToDictionaryAsync(u => u.Id, cancellationToken);
+
+        if (!uomsDict.Any())
+        {
+            var fallbackUoms = await _context.UnitsOfMeasure
+                .Where(u => u.TenantId == tenantId && !u.IsDeleted)
+                .Take(5)
+                .ToListAsync(cancellationToken);
+            foreach (var fu in fallbackUoms) uomsDict[fu.Id] = fu;
+        }
 
         var existingStocks = await _context.ItemWarehouseStocks
             .Where(s => s.TenantId == tenantId && itemIds.Contains(s.ItemId) && s.WarehouseId == invoice.WarehouseId && !s.IsDeleted)
@@ -1361,6 +1828,13 @@ public class SalesService : ISalesService
             branchStateName,
             sellerStateCode);
 
+        var oldTotal = invoice.TotalAmount;
+        var oldPaid = invoice.PaidAmount;
+        var partyIdToUse = request.PartyId ?? invoice.PartyId;
+        var party = partyIdToUse.HasValue
+            ? await _context.Parties.FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == partyIdToUse.Value && !p.IsDeleted, cancellationToken)
+            : null;
+
         // 3. Update Invoice Metadata
         invoice.PartyId = request.PartyId ?? invoice.PartyId;
         invoice.CustomerName = customerName;
@@ -1371,8 +1845,9 @@ public class SalesService : ISalesService
         invoice.BillingAddress = request.BillingAddress?.Trim();
         invoice.ShippingAddress = request.ShippingAddress?.Trim() ?? request.BillingAddress?.Trim();
         invoice.BillingStateCode = supplyStateCode;
-        invoice.ShippingStateCode = request.ShippingStateCode?.Trim() ?? supplyStateCode;
+        invoice.ShippingStateCode = GstStateHelper.NormalizeStateCode(request.ShippingStateCode, null, supplyStateCode);
         invoice.PlaceOfSupply = resolvedPos;
+        invoice.TaxSupplyType = isIntraState ? TaxSupplyType.IntraState : TaxSupplyType.InterState;
         if (request.DueDate.HasValue)
         {
             invoice.DueDate = DateTime.SpecifyKind(request.DueDate.Value, DateTimeKind.Utc);
@@ -1393,35 +1868,104 @@ public class SalesService : ISalesService
         if (!string.IsNullOrWhiteSpace(request.AttributesJson))
         {
             invoice.AttributesJson = request.AttributesJson;
+            try
+            {
+                using var attrDoc = System.Text.Json.JsonDocument.Parse(request.AttributesJson);
+                if (attrDoc.RootElement.TryGetProperty("doctorName", out var dn) && !string.IsNullOrWhiteSpace(dn.GetString()))
+                    invoice.DoctorName = dn.GetString()!.Trim();
+                if (attrDoc.RootElement.TryGetProperty("doctorRegNumber", out var drn) && !string.IsNullOrWhiteSpace(drn.GetString()))
+                    invoice.DoctorRegistrationNumber = drn.GetString()!.Trim();
+                else if (attrDoc.RootElement.TryGetProperty("doctorRegNo", out var drn2) && !string.IsNullOrWhiteSpace(drn2.GetString()))
+                    invoice.DoctorRegistrationNumber = drn2.GetString()!.Trim();
+            }
+            catch { }
         }
 
-        // 4. Calculate new items & deplete stock
-        decimal subTotal = 0m;
-        decimal itemDiscountTotal = 0m;
-        decimal totalTaxable = 0m;
-        decimal totalCgst = 0m;
-        decimal totalSgst = 0m;
-        decimal totalIgst = 0m;
-        decimal totalCess = 0m;
+        bool isNonGst = invoice.InvoiceType == InvoiceType.SalesEstimate
+            || (!string.IsNullOrWhiteSpace(request.AttributesJson) && (
+                request.AttributesJson.Contains("\"billingMode\":\"NON_GST\"") ||
+                request.AttributesJson.Contains("\"billingMode\":\"non_gst\"") ||
+                request.AttributesJson.Contains("\"taxTreatment\":\"NON_GST\"") ||
+                request.AttributesJson.Contains("\"isNonGst\":true") ||
+                request.AttributesJson.Contains("\"isCashMemo\":true")
+            ))
+            || (!string.IsNullOrWhiteSpace(invoice.AttributesJson) && (
+                invoice.AttributesJson.Contains("\"billingMode\":\"NON_GST\"") ||
+                invoice.AttributesJson.Contains("\"billingMode\":\"non_gst\"") ||
+                invoice.AttributesJson.Contains("\"taxTreatment\":\"NON_GST\"") ||
+                invoice.AttributesJson.Contains("\"isNonGst\":true") ||
+                invoice.AttributesJson.Contains("\"isCashMemo\":true")
+            ));
 
+        // 4. Prepare inputs for Canonical Calculation Engine
+        var lineInputs = new List<UdyogBill.Application.Services.Calculations.LineCalculationInput>();
         foreach (var reqItem in request.Items)
         {
-            if (!itemsDict.TryGetValue(reqItem.ItemId, out var item))
+            if (!itemsDict.TryGetValue(reqItem.ItemId, out var itm))
             {
                 return Result<Guid>.Failure($"Item with ID '{reqItem.ItemId}' not found.", "ITEM_NOT_FOUND");
             }
 
+            decimal conversion = (itm.SecondaryUomId.HasValue && reqItem.UomId == itm.SecondaryUomId.Value && itm.ConversionRatio.HasValue && itm.ConversionRatio.Value > 0)
+                ? itm.ConversionRatio.Value
+                : 1m;
+
+            bool isComposition = (tenantObj?.IsCompositionScheme == true) || (invoice.InvoiceType == InvoiceType.BillOfSupply);
+            decimal effectiveLineGstRate = (isComposition || isNonGst) ? 0m : itm.TaxRate;
+            decimal effectiveLineCessRate = (isComposition || isNonGst) ? 0m : itm.CessRate;
+
+            lineInputs.Add(new UdyogBill.Application.Services.Calculations.LineCalculationInput(
+                Quantity: reqItem.Quantity,
+                FreeQuantity: reqItem.FreeQuantity,
+                UnitPrice: reqItem.UnitPrice,
+                IsTaxInclusive: (isComposition || isNonGst) ? false : (reqItem.IsTaxInclusive ?? itm.IsTaxInclusive),
+                DiscountPercent: reqItem.DiscountPercent,
+                DiscountAmount: reqItem.DiscountAmount,
+                GstRate: effectiveLineGstRate,
+                CessRate: effectiveLineCessRate,
+                IsIntraState: isIntraState,
+                ConversionRatio: conversion
+            ));
+        }
+
+        var (calculatedLines, invoiceTotals) = _calculationEngine.CalculateInvoice(
+            lineInputs,
+            request.InvoiceDiscountPercent,
+            request.InvoiceDiscountAmount,
+            isIntraState,
+            additionalCharges: 0m,
+            isReverseCharge: request.IsReverseCharge
+        );
+
+        // 5. Process line items, stock mutations and entity creation
+        for (int i = 0; i < request.Items.Count; i++)
+        {
+            var reqItem = request.Items[i];
+            var item = itemsDict[reqItem.ItemId];
+            var lineCalc = calculatedLines[i];
+
+            var effectiveUomId = (reqItem.UomId != Guid.Empty && uomsDict.ContainsKey(reqItem.UomId))
+                ? reqItem.UomId
+                : (item.PrimaryUomId != Guid.Empty && uomsDict.ContainsKey(item.PrimaryUomId)
+                    ? item.PrimaryUomId
+                    : (uomsDict.Keys.Any() ? uomsDict.Keys.First() : Guid.Empty));
+
             string uomCode = "UNIT";
-            if (uomsDict.TryGetValue(reqItem.UomId, out var uom))
+            if (effectiveUomId != Guid.Empty && uomsDict.TryGetValue(effectiveUomId, out var uom))
             {
                 uomCode = uom.Code ?? "UNIT";
             }
+
+            decimal conversion = (item.SecondaryUomId.HasValue && reqItem.UomId == item.SecondaryUomId.Value && item.ConversionRatio.HasValue && item.ConversionRatio.Value > 0)
+                ? item.ConversionRatio.Value
+                : 1m;
 
             if (item.ItemType != ItemType.Service && item.TrackInventory)
             {
                 var stock = existingStocks.FirstOrDefault(s => s.ItemId == reqItem.ItemId && 
                     (!reqItem.BatchId.HasValue || reqItem.BatchId.Value == Guid.Empty || s.BatchId == reqItem.BatchId.Value));
 
+                decimal physicalOut = lineCalc.TotalPhysicalQuantity;
                 decimal beforeQty = 0m;
                 if (stock == null)
                 {
@@ -1431,7 +1975,7 @@ public class SalesService : ISalesService
                         ItemId = item.Id,
                         WarehouseId = invoice.WarehouseId,
                         BatchId = reqItem.BatchId,
-                        CurrentQuantity = -reqItem.Quantity,
+                        CurrentQuantity = -physicalOut,
                         ReservedQuantity = 0
                     };
                     _context.ItemWarehouseStocks.Add(stock);
@@ -1440,7 +1984,7 @@ public class SalesService : ISalesService
                 else
                 {
                     beforeQty = stock.CurrentQuantity;
-                    stock.CurrentQuantity -= reqItem.Quantity;
+                    stock.CurrentQuantity -= physicalOut;
                 }
 
                 var movement = new StockMovement
@@ -1450,11 +1994,11 @@ public class SalesService : ISalesService
                     WarehouseId = invoice.WarehouseId,
                     BatchId = reqItem.BatchId,
                     MovementType = StockMovementType.SalesOutward,
-                    Quantity = -reqItem.Quantity,
+                    Quantity = -physicalOut,
                     QuantityBefore = beforeQty,
                     QuantityAfter = stock.CurrentQuantity,
                     UnitCost = item.PurchasePrice,
-                    TotalCost = item.PurchasePrice * reqItem.Quantity,
+                    TotalCost = item.PurchasePrice * physicalOut,
                     ReferenceDocumentType = "SalesInvoice",
                     ReferenceDocumentId = invoice.Id,
                     ReferenceDocumentNumber = invoice.InvoiceNumber,
@@ -1463,41 +2007,7 @@ public class SalesService : ISalesService
                 _context.StockMovements.Add(movement);
             }
 
-            var gross = reqItem.Quantity * reqItem.UnitPrice;
-            var discAmt = reqItem.DiscountAmount > 0 
-                ? reqItem.DiscountAmount 
-                : (reqItem.DiscountPercent > 0 ? Math.Round(gross * (reqItem.DiscountPercent / 100m), 4) : 0m);
-            var taxable = Math.Max(0m, gross - discAmt);
-
-            var gstRate = item.TaxRate;
-            decimal cgstRate = 0m, cgstAmt = 0m;
-            decimal sgstRate = 0m, sgstAmt = 0m;
-            decimal igstRate = 0m, igstAmt = 0m;
-            decimal cessAmt = taxable * (item.CessRate / 100m);
-
-            if (isIntraState)
-            {
-                cgstRate = gstRate / 2m;
-                sgstRate = gstRate / 2m;
-                cgstAmt = Math.Round(taxable * (cgstRate / 100m), 4);
-                sgstAmt = Math.Round(taxable * (sgstRate / 100m), 4);
-            }
-            else
-            {
-                igstRate = gstRate;
-                igstAmt = Math.Round(taxable * (igstRate / 100m), 4);
-            }
-
-            var lineTotal = taxable + cgstAmt + sgstAmt + igstAmt + cessAmt;
             var itemMrp = reqItem.Mrp > 0 ? reqItem.Mrp : item.MRP;
-
-            subTotal += gross;
-            itemDiscountTotal += discAmt;
-            totalTaxable += taxable;
-            totalCgst += cgstAmt;
-            totalSgst += sgstAmt;
-            totalIgst += igstAmt;
-            totalCess += cessAmt;
 
             string batchNo = reqItem.BatchNumber;
             DateTime? expiryDate = reqItem.ExpiryDate.HasValue 
@@ -1518,9 +2028,11 @@ public class SalesService : ISalesService
                 catch { }
             }
             if (reqItem.FreeQuantity > 0) itemAttrs["freeQuantity"] = reqItem.FreeQuantity;
+            if (conversion > 0) itemAttrs["conversionRatio"] = conversion;
             if (!string.IsNullOrWhiteSpace(reqItem.Packing)) itemAttrs["packing"] = reqItem.Packing;
             if (reqItem.Ptr > 0) itemAttrs["ptr"] = reqItem.Ptr;
             if (reqItem.Pts > 0) itemAttrs["pts"] = reqItem.Pts;
+            if (!string.IsNullOrWhiteSpace(reqItem.LineDescription)) itemAttrs["lineDescription"] = reqItem.LineDescription.Trim();
 
             var lineItem = new SalesInvoiceItem
             {
@@ -1529,69 +2041,196 @@ public class SalesService : ISalesService
                 ItemId = item.Id,
                 VariantId = reqItem.VariantId,
                 ItemSku = item.Sku,
-                ItemName = item.Name,
+                ItemName = !string.IsNullOrWhiteSpace(reqItem.ItemName) ? reqItem.ItemName.Trim() : item.Name,
                 HsnCode = !string.IsNullOrWhiteSpace(reqItem.HsnCode) ? reqItem.HsnCode : item.HSNCode,
                 Barcode = item.Barcode,
                 BatchId = reqItem.BatchId,
                 BatchNumber = batchNo,
                 ExpiryDate = expiryDate,
                 Quantity = reqItem.Quantity,
-                UomId = reqItem.UomId,
+                UomId = effectiveUomId,
                 UomCode = uomCode,
                 UnitPrice = reqItem.UnitPrice,
                 Mrp = itemMrp,
                 PurchasePrice = item.PurchasePrice,
                 DiscountPercent = reqItem.DiscountPercent,
-                DiscountAmount = discAmt,
-                TaxableAmount = taxable,
-                GstRate = gstRate,
-                CgstRate = cgstRate,
-                CgstAmount = cgstAmt,
-                SgstRate = sgstRate,
-                SgstAmount = sgstAmt,
-                IgstRate = igstRate,
-                IgstAmount = igstAmt,
-                CessRate = item.CessRate,
-                CessAmount = cessAmt,
-                TotalAmount = lineTotal,
+                DiscountAmount = lineCalc.ItemDiscountAmount,
+                TaxableAmount = lineCalc.TaxableAmount,
+                GstRate = lineCalc.GstRate,
+                CgstRate = lineCalc.CgstRate,
+                CgstAmount = lineCalc.CgstAmount,
+                SgstRate = lineCalc.SgstRate,
+                SgstAmount = lineCalc.SgstAmount,
+                IgstRate = lineCalc.IgstRate,
+                IgstAmount = lineCalc.IgstAmount,
+                CessRate = lineCalc.CessRate,
+                CessAmount = lineCalc.CessAmount,
+                TotalAmount = lineCalc.LineTotalAmount,
                 AttributesJson = System.Text.Json.JsonSerializer.Serialize(itemAttrs)
             };
 
-            invoice.Items.Add(lineItem);
+            _context.SalesInvoiceItems.Add(lineItem);
         }
 
-        // Invoice Discount
-        decimal invDiscountAmount = 0m;
-        if (request.InvoiceDiscountPercent > 0)
+        invoice.SubTotal = invoiceTotals.SubTotal;
+        invoice.ItemDiscountTotal = invoiceTotals.ItemDiscountTotal;
+        invoice.InvoiceDiscountAmount = invoiceTotals.InvoiceDiscountAmount;
+        invoice.TaxableAmount = invoiceTotals.TaxableAmount;
+        invoice.CgstAmount = invoiceTotals.CgstAmount;
+        invoice.SgstAmount = invoiceTotals.SgstAmount;
+        invoice.IgstAmount = invoiceTotals.IgstAmount;
+        invoice.CessAmount = invoiceTotals.CessAmount;
+        invoice.RoundOff = invoiceTotals.RoundOff;
+        invoice.TotalAmount = invoiceTotals.RoundedTotal;
+
+        var roundedTotal = invoiceTotals.RoundedTotal;
+        decimal updatePaid = Math.Min(Math.Max(0m, request.PaidAmount), roundedTotal);
+        if (request.PrimaryPaymentMode == PaymentMode.CreditAccount)
         {
-            invDiscountAmount = Math.Round(totalTaxable * (request.InvoiceDiscountPercent / 100m), 4);
-            totalTaxable -= invDiscountAmount;
+            updatePaid = 0m;
         }
-
-        var grossTotalWithTax = totalTaxable + totalCgst + totalSgst + totalIgst + totalCess;
-        var roundedTotal = Math.Round(grossTotalWithTax, 0, MidpointRounding.AwayFromZero);
-        var roundOff = roundedTotal - grossTotalWithTax;
-
-        invoice.SubTotal = subTotal;
-        invoice.ItemDiscountTotal = itemDiscountTotal;
-        invoice.InvoiceDiscountAmount = invDiscountAmount;
-        invoice.TaxableAmount = totalTaxable;
-        invoice.CgstAmount = totalCgst;
-        invoice.SgstAmount = totalSgst;
-        invoice.IgstAmount = totalIgst;
-        invoice.CessAmount = totalCess;
-        invoice.RoundOff = roundOff;
-        invoice.TotalAmount = roundedTotal;
-
-        if (request.PaidAmount > 0)
+        else if (updatePaid > 0m && Math.Abs(roundedTotal - updatePaid) <= 1.0m && (Math.Abs(updatePaid - (invoiceTotals.TaxableAmount + invoiceTotals.CgstAmount + invoiceTotals.SgstAmount + invoiceTotals.IgstAmount + invoiceTotals.CessAmount)) < 0.05m || Math.Abs(updatePaid - roundedTotal) < 0.50m))
         {
-            invoice.PaidAmount = Math.Min(request.PaidAmount, roundedTotal);
+            updatePaid = roundedTotal;
         }
-        invoice.BalanceAmount = Math.Max(0m, roundedTotal - invoice.PaidAmount);
+
+        invoice.PrimaryPaymentMode = request.PrimaryPaymentMode;
+        invoice.PaidAmount = updatePaid;
+        invoice.BalanceAmount = Math.Max(0m, roundedTotal - updatePaid);
         invoice.PaymentStatus = invoice.BalanceAmount == 0 
             ? PaymentStatus.FullyPaid 
-            : (invoice.PaidAmount > 0 ? PaymentStatus.PartiallyPaid : PaymentStatus.Unpaid);
+            : (updatePaid > 0 ? PaymentStatus.PartiallyPaid : PaymentStatus.Unpaid);
         invoice.Status = invoice.PaymentStatus == PaymentStatus.FullyPaid ? InvoiceStatus.Paid : InvoiceStatus.Issued;
+
+        // Synchronize payment records
+        if (updatePaid == 0)
+        {
+            foreach (var p in invoice.Payments)
+            {
+                p.IsDeleted = true;
+                p.DeletedAtUtc = DateTime.UtcNow;
+            }
+        }
+        else
+        {
+            var primaryPayment = invoice.Payments.FirstOrDefault(p => !p.IsDeleted);
+            if (primaryPayment != null)
+            {
+                primaryPayment.Amount = updatePaid;
+                primaryPayment.PaymentMode = request.PrimaryPaymentMode;
+            }
+            else
+            {
+                _context.SalesInvoicePayments.Add(new SalesInvoicePayment
+                {
+                    TenantId = tenantId,
+                    Invoice = invoice,
+                    PaymentDate = invoice.InvoiceDate,
+                    Amount = updatePaid,
+                    PaymentMode = request.PrimaryPaymentMode,
+                    TransactionReference = request.PaymentReferenceNumber,
+                    Notes = "Updated invoice payment"
+                });
+            }
+        }
+
+        // Party Financial Ledger Delta Adjustment
+        var invoiceDelta = invoiceTotals.RoundedTotal - oldTotal;
+        var paidDelta = updatePaid - oldPaid;
+
+        if (party != null)
+        {
+            if (invoiceDelta != 0)
+            {
+                party.CurrentOutstandingBalance += invoiceDelta;
+                _context.PartyLedgerEntries.Add(new PartyLedgerEntry
+                {
+                    TenantId = tenantId,
+                    PartyId = party.Id,
+                    TransactionDate = DateTime.UtcNow,
+                    EntryType = invoiceDelta > 0 ? PartyLedgerEntryType.DebitNote : PartyLedgerEntryType.CreditNote,
+                    DebitAmount = invoiceDelta > 0 ? invoiceDelta : 0m,
+                    CreditAmount = invoiceDelta < 0 ? Math.Abs(invoiceDelta) : 0m,
+                    RunningBalance = party.CurrentOutstandingBalance,
+                    ReferenceDocumentType = "SalesInvoice",
+                    ReferenceDocumentId = invoice.Id,
+                    ReferenceDocumentNumber = invoice.InvoiceNumber,
+                    Description = $"Invoice amendment delta ({invoice.InvoiceNumber})"
+                });
+            }
+
+            if (paidDelta != 0)
+            {
+                party.CurrentOutstandingBalance -= paidDelta;
+                _context.PartyLedgerEntries.Add(new PartyLedgerEntry
+                {
+                    TenantId = tenantId,
+                    PartyId = party.Id,
+                    TransactionDate = DateTime.UtcNow,
+                    EntryType = paidDelta > 0 ? PartyLedgerEntryType.PaymentReceipt : PartyLedgerEntryType.CashRefund,
+                    DebitAmount = paidDelta < 0 ? Math.Abs(paidDelta) : 0m,
+                    CreditAmount = paidDelta > 0 ? paidDelta : 0m,
+                    RunningBalance = party.CurrentOutstandingBalance,
+                    ReferenceDocumentType = "SalesInvoicePayment",
+                    ReferenceDocumentId = invoice.Id,
+                    ReferenceDocumentNumber = invoice.InvoiceNumber,
+                    Description = $"Payment amendment on {invoice.InvoiceNumber}"
+                });
+            }
+        }
+
+        // Auto-post updated values to General Ledger
+        try
+        {
+            var existingVoucher = await _context.JournalVouchers
+                .Include(v => v.Legs)
+                .FirstOrDefaultAsync(v => v.TenantId == tenantId && v.ReferenceNumber == invoice.InvoiceNumber && v.VoucherType == "Journal" && !v.IsDeleted, cancellationToken);
+
+            if (existingVoucher != null)
+            {
+                // Create a balancing reversal voucher to reverse superseded posting
+                var revVoucher = new JournalVoucher
+                {
+                    TenantId = tenantId,
+                    VoucherNumber = $"JV-REV-{invoice.InvoiceNumber}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
+                    VoucherDate = DateTime.UtcNow,
+                    VoucherType = "Reversal",
+                    ReferenceNumber = invoice.InvoiceNumber,
+                    TotalDebit = existingVoucher.TotalDebit,
+                    TotalCredit = existingVoucher.TotalCredit,
+                    Narration = $"Reversal of superseded voucher {existingVoucher.VoucherNumber} for invoice amendment",
+                    CreatedByName = "System Auto-Posting"
+                };
+
+                foreach (var oldLeg in existingVoucher.Legs)
+                {
+                    var acc = await _context.LedgerAccounts.FirstOrDefaultAsync(a => a.Id == oldLeg.AccountId, cancellationToken);
+                    if (acc != null)
+                    {
+                        if (oldLeg.DebitAmount > 0) acc.CurrentBalance -= oldLeg.DebitAmount;
+                        if (oldLeg.CreditAmount > 0) acc.CurrentBalance -= oldLeg.CreditAmount;
+                    }
+
+                    revVoucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = oldLeg.AccountId,
+                        DebitAmount = oldLeg.CreditAmount, // swap Debit and Credit to reverse
+                        CreditAmount = oldLeg.DebitAmount,
+                        Narration = $"Reversal: {oldLeg.Narration}"
+                    });
+                }
+                _context.JournalVouchers.Add(revVoucher);
+                existingVoucher.VoucherType = "Superseded";
+            }
+
+            // Post new updated journal voucher
+            await AutoPostInvoiceToGeneralLedgerAsync(invoice, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to update GL auto-posting for invoice {InvoiceNumber}: {Message}", invoice.InvoiceNumber, ex.Message);
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -1620,92 +2259,112 @@ public class SalesService : ISalesService
             return Result<Guid>.Failure("Payment amount must be greater than zero.", "INVALID_AMOUNT");
         }
 
-        var invoice = await _context.SalesInvoices
-            .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == request.InvoiceId && !i.IsDeleted, cancellationToken);
-
-        if (invoice == null)
+        var semaphore = _tenantInvoiceSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        try
         {
-            return Result<Guid>.Failure("Invoice not found.", "NOT_FOUND");
-        }
+            var invoice = await _context.SalesInvoices
+                .Include(i => i.Payments)
+                .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == request.InvoiceId && !i.IsDeleted, cancellationToken);
 
-        if (invoice.IsCancelled)
-        {
-            return Result<Guid>.Failure("Cannot accept payment for cancelled invoice.", "INVOICE_CANCELLED");
-        }
-
-        if (invoice.BalanceAmount <= 0)
-        {
-            return Result<Guid>.Failure("Invoice is already fully paid.", "ALREADY_PAID");
-        }
-
-        var payable = Math.Min(request.Amount, invoice.BalanceAmount);
-        var payDate = DateTime.SpecifyKind(request.PaymentDate, DateTimeKind.Utc);
-
-        var payment = new SalesInvoicePayment
-        {
-            TenantId = tenantId,
-            InvoiceId = invoice.Id,
-            PaymentDate = payDate,
-            Amount = payable,
-            PaymentMode = request.PaymentMode,
-            TransactionReference = request.TransactionReference?.Trim(),
-            Notes = request.Notes?.Trim()
-        };
-
-        invoice.PaidAmount += payable;
-        invoice.BalanceAmount = invoice.TotalAmount - invoice.PaidAmount;
-        invoice.PaymentStatus = invoice.BalanceAmount == 0 ? PaymentStatus.FullyPaid : PaymentStatus.PartiallyPaid;
-        invoice.Status = invoice.PaymentStatus == PaymentStatus.FullyPaid ? InvoiceStatus.Paid : InvoiceStatus.Issued;
-
-        _context.SalesInvoicePayments.Add(payment);
-
-        // Sync Customer Ledger
-        if (invoice.PartyId.HasValue)
-        {
-            var party = await _context.Parties
-                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == invoice.PartyId.Value && !p.IsDeleted, cancellationToken);
-
-            if (party != null)
+            if (invoice == null)
             {
-                var newBal = party.CurrentOutstandingBalance - payable;
-                party.CurrentOutstandingBalance = newBal;
-
-                var ledger = new PartyLedgerEntry
-                {
-                    TenantId = tenantId,
-                    PartyId = party.Id,
-                    TransactionDate = payDate,
-                    EntryType = PartyLedgerEntryType.PaymentReceipt,
-                    DebitAmount = 0m,
-                    CreditAmount = payable,
-                    RunningBalance = newBal,
-                    ReferenceDocumentType = "PaymentReceipt",
-                    ReferenceDocumentId = invoice.Id,
-                    ReferenceDocumentNumber = invoice.InvoiceNumber,
-                    PaymentMode = request.PaymentMode.ToString(),
-                    Description = request.Notes ?? $"Payment against Invoice {invoice.InvoiceNumber}"
-                };
-                _context.PartyLedgerEntries.Add(ledger);
+                return Result<Guid>.Failure("Invoice not found.", "NOT_FOUND");
             }
+
+            if (invoice.IsCancelled)
+            {
+                return Result<Guid>.Failure("Cannot accept payment for cancelled invoice.", "INVOICE_CANCELLED");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.TransactionReference))
+            {
+                var existingPayment = invoice.Payments.FirstOrDefault(p =>
+                    !p.IsDeleted && string.Equals(p.TransactionReference, request.TransactionReference.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (existingPayment != null)
+                {
+                    return Result<Guid>.Success(existingPayment.Id);
+                }
+            }
+
+            if (invoice.PaymentStatus == PaymentStatus.FullyPaid || invoice.Status == InvoiceStatus.Paid || invoice.BalanceAmount <= 0)
+            {
+                return Result<Guid>.Failure("Invoice is already fully paid.", "ALREADY_PAID");
+            }
+
+            var payable = Math.Min(request.Amount, invoice.BalanceAmount);
+            var payDate = DateTime.SpecifyKind(request.PaymentDate, DateTimeKind.Utc);
+
+            var payment = new SalesInvoicePayment
+            {
+                TenantId = tenantId,
+                InvoiceId = invoice.Id,
+                PaymentDate = payDate,
+                Amount = payable,
+                PaymentMode = request.PaymentMode,
+                TransactionReference = request.TransactionReference?.Trim(),
+                Notes = request.Notes?.Trim()
+            };
+
+            invoice.PaidAmount += payable;
+            invoice.BalanceAmount = invoice.TotalAmount - invoice.PaidAmount;
+            invoice.PaymentStatus = invoice.BalanceAmount == 0 ? PaymentStatus.FullyPaid : PaymentStatus.PartiallyPaid;
+            invoice.Status = invoice.PaymentStatus == PaymentStatus.FullyPaid ? InvoiceStatus.Paid : InvoiceStatus.Issued;
+
+            _context.SalesInvoicePayments.Add(payment);
+
+            // Sync Customer Ledger
+            if (invoice.PartyId.HasValue)
+            {
+                var party = await _context.Parties
+                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == invoice.PartyId.Value && !p.IsDeleted, cancellationToken);
+
+                if (party != null)
+                {
+                    var newBal = party.CurrentOutstandingBalance - payable;
+                    party.CurrentOutstandingBalance = newBal;
+
+                    var ledger = new PartyLedgerEntry
+                    {
+                        TenantId = tenantId,
+                        PartyId = party.Id,
+                        TransactionDate = payDate,
+                        EntryType = PartyLedgerEntryType.PaymentReceipt,
+                        DebitAmount = 0m,
+                        CreditAmount = payable,
+                        RunningBalance = newBal,
+                        ReferenceDocumentType = "PaymentReceipt",
+                        ReferenceDocumentId = invoice.Id,
+                        ReferenceDocumentNumber = invoice.InvoiceNumber,
+                        PaymentMode = request.PaymentMode.ToString(),
+                        Description = request.Notes ?? $"Payment against Invoice {invoice.InvoiceNumber}"
+                    };
+                    _context.PartyLedgerEntries.Add(ledger);
+                }
+            }
+
+            await AutoPostPaymentToGeneralLedgerAsync(invoice, payment, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditService.LogAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                UserId = _currentUserContext.UserId,
+                UserEmail = _currentUserContext.Email,
+                Action = AuditActionType.Create,
+                ActionName = "RecordInvoicePayment",
+                EntityName = "SalesInvoicePayment",
+                EntityId = payment.Id.ToString(),
+                NewValuesJson = JsonSerializer.Serialize(new { invoice.InvoiceNumber, request.Amount, request.PaymentMode }),
+                IpAddress = ipAddress
+            }, cancellationToken);
+
+            return Result<Guid>.Success(payment.Id);
         }
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        await _auditService.LogAsync(new AuditLog
+        finally
         {
-            TenantId = tenantId,
-            UserId = _currentUserContext.UserId,
-            UserEmail = _currentUserContext.Email,
-            Action = AuditActionType.Create,
-            ActionName = "RecordInvoicePayment",
-            EntityName = "SalesInvoicePayment",
-            EntityId = payment.Id.ToString(),
-            NewValuesJson = JsonSerializer.Serialize(new { invoice.InvoiceNumber, request.Amount, request.PaymentMode }),
-            IpAddress = ipAddress
-        }, cancellationToken);
-
-        return Result<Guid>.Success(payment.Id);
+            semaphore.Release();
+        }
     }
 
     public async Task<Result> CancelInvoiceAsync(Guid invoiceId, CancelInvoiceRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
@@ -1714,6 +2373,7 @@ public class SalesService : ISalesService
 
         var invoice = await _context.SalesInvoices
             .Include(i => i.Items)
+            .Include(i => i.Payments)
             .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == invoiceId && !i.IsDeleted, cancellationToken);
 
         if (invoice == null)
@@ -1865,8 +2525,7 @@ public class SalesService : ISalesService
 
             if (party != null)
             {
-                var netAdjustment = -(invoice.TotalAmount - invoice.PaidAmount);
-                var newBal = party.CurrentOutstandingBalance + netAdjustment;
+                var newBal = party.CurrentOutstandingBalance - invoice.TotalAmount;
                 party.CurrentOutstandingBalance = newBal;
 
                 var ledger = new PartyLedgerEntry
@@ -1876,7 +2535,7 @@ public class SalesService : ISalesService
                     TransactionDate = DateTime.UtcNow,
                     EntryType = PartyLedgerEntryType.CreditNote,
                     DebitAmount = 0m,
-                    CreditAmount = Math.Abs(netAdjustment),
+                    CreditAmount = invoice.TotalAmount,
                     RunningBalance = newBal,
                     ReferenceDocumentType = "InvoiceCancellation",
                     ReferenceDocumentId = invoice.Id,
@@ -1884,6 +2543,48 @@ public class SalesService : ISalesService
                     Description = $"Reversal for Cancelled Invoice {invoice.InvoiceNumber}: {request.CancellationReason}"
                 };
                 _context.PartyLedgerEntries.Add(ledger);
+            }
+        }
+
+        // Void any recorded payments on this invoice
+        if (invoice.Payments != null)
+        {
+            foreach (var pmt in invoice.Payments.Where(p => !p.IsDeleted))
+            {
+                pmt.IsDeleted = true;
+                pmt.DeletedAtUtc = DateTimeOffset.UtcNow;
+                pmt.Notes = (pmt.Notes ?? "") + $" | Auto-voided on invoice cancellation: {request.CancellationReason}";
+            }
+        }
+        invoice.PaidAmount = 0m;
+        invoice.BalanceAmount = 0m;
+
+        // Restore any linked Jewellery Old Gold Exchange Vouchers to InSafeVault
+        var linkedOldGoldVouchers = await _context.OldGoldExchangeVouchers
+            .Where(v => v.TenantId == tenantId && v.InvoiceId == invoice.Id && !v.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var ogv in linkedOldGoldVouchers)
+        {
+            ogv.Status = OldGoldStatus.InSafeVault;
+            ogv.InvoiceId = null;
+            ogv.Notes = (ogv.Notes ?? "") + $" | Auto-restored to InSafeVault on invoice cancellation: {request.CancellationReason}";
+        }
+
+        // Reverse Broker Commissions if accrued on this invoice
+        var linkedBrokerCommissions = await _context.BrokerCommissionEntries
+            .Where(b => b.TenantId == tenantId && b.SalesInvoiceId == invoice.Id && !b.IsDeleted && b.Status != BrokerCommissionStatus.Cancelled)
+            .ToListAsync(cancellationToken);
+
+        foreach (var bComm in linkedBrokerCommissions)
+        {
+            bComm.Status = BrokerCommissionStatus.Cancelled;
+            bComm.Notes = (bComm.Notes ?? "") + $" | Auto-reversed on invoice cancellation: {request.CancellationReason}";
+            var broker = await _context.Brokers
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == bComm.BrokerId && !b.IsDeleted, cancellationToken);
+            if (broker != null)
+            {
+                broker.CurrentPayableBalance = Math.Max(0m, broker.CurrentPayableBalance - bComm.NetCommissionPayable);
             }
         }
 
@@ -2039,6 +2740,43 @@ public class SalesService : ISalesService
         return Result.Success();
     }
 
+    public async Task<Result<bool>> UpdateCustomerContactAsync(
+        Guid invoiceId,
+        string? customerPhone,
+        string? customerName = null,
+        string? customerEmail = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var invoice = await _context.SalesInvoices
+            .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == invoiceId && !i.IsDeleted, cancellationToken);
+
+        if (invoice == null)
+        {
+            return Result<bool>.Failure("Invoice not found.", "NOT_FOUND");
+        }
+
+        if (customerPhone != null)
+        {
+            invoice.CustomerPhone = customerPhone.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(customerName))
+        {
+            invoice.CustomerName = customerName.Trim();
+        }
+
+        if (customerEmail != null)
+        {
+            invoice.CustomerEmail = customerEmail.Trim();
+        }
+
+        invoice.UpdatedAtUtc = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<bool>.Success(true);
+    }
+
     #region Sales Returns & Credit Notes
 
     public async Task<Result<PagedResult<SalesReturnDto>>> GetSalesReturnsAsync(
@@ -2055,6 +2793,11 @@ public class SalesService : ISalesService
             .Include(r => r.Items)
             .Where(r => r.TenantId == tenantId && !r.IsDeleted)
             .AsNoTracking();
+
+        if (_currentUserContext.BranchId.HasValue && !_currentUserContext.IsSuperAdmin && !_currentUserContext.IsTenantAdmin)
+        {
+            query = query.Where(r => r.BranchId == _currentUserContext.BranchId.Value);
+        }
 
         if (partyId.HasValue && partyId.Value != Guid.Empty)
             query = query.Where(r => r.PartyId == partyId.Value);
@@ -2106,8 +2849,23 @@ public class SalesService : ISalesService
                     i.ReturnQuantity,
                     i.UnitPrice,
                     i.GstRate,
-                    i.TotalAmount
-                )).ToList()
+                    i.TotalAmount,
+                    i.TaxableAmount,
+                    i.CgstRate,
+                    i.CgstAmount,
+                    i.SgstRate,
+                    i.SgstAmount,
+                    i.IgstRate,
+                    i.IgstAmount
+                )).ToList(),
+                r.RefundStatus,
+                r.CashRefundedAmount,
+                r.RefundMode,
+                r.RefundTransactionRef,
+                r.RefundDate,
+                r.AdjustedInvoiceId,
+                r.AdjustedInvoiceNumber,
+                r.CancellationReason
             ))
             .ToListAsync(cancellationToken);
 
@@ -2153,8 +2911,23 @@ public class SalesService : ISalesService
                 i.ReturnQuantity,
                 i.UnitPrice,
                 i.GstRate,
-                i.TotalAmount
-            )).ToList()
+                i.TotalAmount,
+                i.TaxableAmount,
+                i.CgstRate,
+                i.CgstAmount,
+                i.SgstRate,
+                i.SgstAmount,
+                i.IgstRate,
+                i.IgstAmount
+            )).ToList(),
+            r.RefundStatus,
+            r.CashRefundedAmount,
+            r.RefundMode,
+            r.RefundTransactionRef,
+            r.RefundDate,
+            r.AdjustedInvoiceId,
+            r.AdjustedInvoiceNumber,
+            r.CancellationReason
         );
 
         return Result<SalesReturnDto>.Success(dto);
@@ -2237,24 +3010,19 @@ public class SalesService : ISalesService
             }
             creditNoteNumber = $"{cnPrefix}{nextNum:D5}";
 
-            salesReturn = new SalesReturn
+        if (!request.OriginalSalesInvoiceId.HasValue || request.OriginalSalesInvoiceId.Value == Guid.Empty)
+        {
+            if (!string.IsNullOrWhiteSpace(request.OriginalInvoiceNumber))
             {
-                TenantId = tenantId,
-                CreditNoteNumber = creditNoteNumber,
-                ReturnDate = DateTimeOffset.UtcNow,
-                OriginalSalesInvoiceId = request.OriginalSalesInvoiceId,
-                OriginalInvoiceNumber = request.OriginalInvoiceNumber,
-                PartyId = finalPartyId,
-                CustomerName = customerName,
-                BranchId = branchId,
-                WarehouseId = warehouseId,
-                ReturnReason = request.ReturnReason ?? "Customer Return",
-                RestockToWarehouse = request.RestockToWarehouse,
-                Notes = request.Notes
-            };
-
-            decimal subTotal = 0m;
-            decimal taxTotal = 0m;
+                var matched = await _context.SalesInvoices
+                    .Include(i => i.Items)
+                    .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.InvoiceNumber.ToLower() == request.OriginalInvoiceNumber.Trim().ToLower() && !i.IsDeleted, cancellationToken);
+                if (matched != null)
+                {
+                    request.OriginalSalesInvoiceId = matched.Id;
+                }
+            }
+        }
 
         if (!request.OriginalSalesInvoiceId.HasValue || request.OriginalSalesInvoiceId.Value == Guid.Empty)
         {
@@ -2274,6 +3042,41 @@ public class SalesService : ISalesService
         {
             return Result<Guid>.Failure("Cannot process return for a cancelled sales invoice.", "INVOICE_CANCELLED");
         }
+
+        // Determine whether this return qualifies for tax adjustment or commercial credit note based on date limit (Nov 30 of subsequent financial year)
+        bool isCommercialCreditNote = false;
+        if (origInvoice != null)
+        {
+            var invDate = origInvoice.InvoiceDate;
+            int fyEndYear = invDate.Month >= 4 ? invDate.Year + 1 : invDate.Year;
+            var taxAdjustmentCutoff = new DateTime(fyEndYear, 11, 30, 23, 59, 59, DateTimeKind.Utc);
+            if (DateTime.UtcNow > taxAdjustmentCutoff)
+            {
+                isCommercialCreditNote = true;
+            }
+        }
+
+        salesReturn = new SalesReturn
+        {
+            TenantId = tenantId,
+            CreditNoteNumber = creditNoteNumber,
+            ReturnDate = DateTimeOffset.UtcNow,
+            OriginalSalesInvoiceId = origInvoice.Id,
+            OriginalInvoiceNumber = origInvoice.InvoiceNumber,
+            PartyId = finalPartyId,
+            CustomerName = customerName,
+            BranchId = branchId,
+            WarehouseId = warehouseId,
+            ReturnReason = request.ReturnReason ?? "Customer Return",
+            RestockToWarehouse = request.RestockToWarehouse,
+            RefundStatus = "Pending",
+            Notes = isCommercialCreditNote 
+                ? (string.IsNullOrWhiteSpace(request.Notes) ? "Commercial Credit Note" : $"{request.Notes.Trim()} (Commercial Credit Note)")
+                : request.Notes
+        };
+
+        decimal subTotal = 0m;
+        decimal taxTotal = 0m;
 
         var retItemIds = request.Items.Select(x => x.ItemId).Distinct().ToList();
         var retItemsDict = await _context.Items
@@ -2299,21 +3102,6 @@ public class SalesService : ISalesService
                     return Result<Guid>.Failure($"Item '{line.ItemName}' is not part of original invoice {origInvoice.InvoiceNumber}.", "ITEM_NOT_ON_INVOICE");
                 }
 
-                // Cumulative remaining returnable quantity check across all previous returns for this invoice & item
-                var previousReturnedQty = await _context.SalesReturnItems
-                    .Where(ri => ri.TenantId == tenantId && 
-                                 ri.SalesReturn.OriginalSalesInvoiceId == origInvoice.Id && 
-                                 ri.ItemId == line.ItemId && 
-                                 !ri.IsDeleted && 
-                                 !ri.SalesReturn.IsCancelled)
-                    .SumAsync(ri => ri.ReturnQuantity, cancellationToken);
-
-                var remainingReturnableQty = origItem.Quantity - previousReturnedQty;
-                if (line.ReturnQuantity > remainingReturnableQty)
-                {
-                    return Result<Guid>.Failure($"Return quantity ({line.ReturnQuantity}) exceeds remaining returnable quantity ({remainingReturnableQty}) for item '{origItem.ItemName}'.", "RETURN_QUANTITY_EXCEEDED");
-                }
-
                 if (!string.IsNullOrWhiteSpace(origItem.AttributesJson))
                 {
                     try
@@ -2324,17 +3112,80 @@ public class SalesService : ISalesService
                     }
                     catch { }
                 }
+
+                // Total physical delivered units across billed + scheme free units (e.g. 10 billed + 5 free = 15)
+                var totalDeliveredQty = origItem.Quantity + origFreeQty;
+
+                // Cumulative remaining returnable quantity check across all previous returns for this invoice & item
+                var previousReturnedQty = await _context.SalesReturnItems
+                    .Where(ri => ri.TenantId == tenantId && 
+                                 ri.SalesReturn.OriginalSalesInvoiceId == origInvoice.Id && 
+                                 ri.ItemId == line.ItemId && 
+                                 !ri.IsDeleted && 
+                                 !ri.SalesReturn.IsCancelled)
+                    .SumAsync(ri => ri.ReturnQuantity, cancellationToken);
+
+                var remainingReturnableQty = totalDeliveredQty - previousReturnedQty;
+                if (line.ReturnQuantity > remainingReturnableQty)
+                {
+                    return Result<Guid>.Failure($"Return quantity ({line.ReturnQuantity}) exceeds remaining returnable quantity ({remainingReturnableQty}) for item '{origItem.ItemName}'.", "RETURN_QUANTITY_EXCEEDED");
+                }
             }
 
-            decimal effectiveRate = line.UnitPrice;
+            decimal lineTaxable;
+            decimal effectiveRate;
+
             if (origItem != null)
             {
-                effectiveRate = _calculationEngine.CalculateNetEffectiveReturnRate(origItem.TaxableAmount, origItem.Quantity, origFreeQty);
-                if (effectiveRate <= 0) effectiveRate = line.UnitPrice;
+                var totalDeliveredQty = origItem.Quantity + origFreeQty;
+                if (totalDeliveredQty > 0)
+                {
+                    // Net Rate calculation: Return quantity is priced at Net Effective Rate = Taxable / (Billed + Free)
+                    // e.g. Taxable ₹590 / (10 + 5) = ₹39.333333 per bottle
+                    if (line.ReturnQuantity >= totalDeliveredQty)
+                    {
+                        lineTaxable = origItem.TaxableAmount;
+                    }
+                    else
+                    {
+                        decimal netRate = origItem.TaxableAmount / totalDeliveredQty;
+                        lineTaxable = Math.Round(line.ReturnQuantity * netRate, 2);
+                    }
+                    effectiveRate = Math.Round(lineTaxable / line.ReturnQuantity, 4);
+                }
+                else
+                {
+                    effectiveRate = line.UnitPrice > 0 ? line.UnitPrice : origItem.UnitPrice;
+                    lineTaxable = Math.Round(line.ReturnQuantity * effectiveRate, 2);
+                }
+            }
+            else
+            {
+                effectiveRate = line.UnitPrice;
+                lineTaxable = Math.Round(line.ReturnQuantity * effectiveRate, 2);
             }
 
-            var lineTaxable = Math.Round(line.ReturnQuantity * effectiveRate, 4);
-            var lineTax = Math.Round(lineTaxable * (line.GstRate / 100m), 4);
+            bool isIntraState = origInvoice?.TaxSupplyType == TaxSupplyType.IntraState;
+            decimal cgstRate = 0m, cgstAmt = 0m;
+            decimal sgstRate = 0m, sgstAmt = 0m;
+            decimal igstRate = 0m, igstAmt = 0m;
+
+            if (!isCommercialCreditNote && line.GstRate > 0)
+            {
+                if (isIntraState)
+                {
+                    cgstRate = line.GstRate / 2m;
+                    sgstRate = line.GstRate / 2m;
+                    cgstAmt = Math.Round(lineTaxable * (cgstRate / 100m), 2);
+                    sgstAmt = Math.Round(lineTaxable * (sgstRate / 100m), 2);
+                }
+                else
+                {
+                    igstRate = line.GstRate;
+                    igstAmt = Math.Round(lineTaxable * (igstRate / 100m), 2);
+                }
+            }
+            var lineTax = cgstAmt + sgstAmt + igstAmt;
             var lineTotal = lineTaxable + lineTax;
 
             subTotal += lineTaxable;
@@ -2351,20 +3202,24 @@ public class SalesService : ISalesService
                 BatchNumber = line.BatchNumber,
                 ReturnQuantity = line.ReturnQuantity,
                 UnitPrice = effectiveRate,
-                GstRate = line.GstRate,
+                GstRate = isCommercialCreditNote ? 0m : line.GstRate,
+                TaxableAmount = lineTaxable,
+                CgstRate = cgstRate,
+                CgstAmount = cgstAmt,
+                SgstRate = sgstRate,
+                SgstAmount = sgstAmt,
+                IgstRate = igstRate,
+                IgstAmount = igstAmt,
                 TotalAmount = lineTotal
             });
 
             retItemsDict.TryGetValue(line.ItemId, out var retMasterItem);
             bool isServiceItem = retMasterItem != null && retMasterItem.ItemType == ItemType.Service;
 
-            // Restock to Warehouse with scheme free-quantity proportional restoration (Goods only)
+            // Restock to Warehouse (ReturnQuantity is already the physical bottles returned)
             if (request.RestockToWarehouse && warehouseId != Guid.Empty && !isServiceItem)
             {
-                decimal proRataFreeRestored = (origItem != null && origItem.Quantity > 0 && origFreeQty > 0)
-                    ? (line.ReturnQuantity / origItem.Quantity) * origFreeQty
-                    : 0m;
-                decimal physicalUnitsToRestock = (line.ReturnQuantity + proRataFreeRestored) * (conversionRatio > 0 ? conversionRatio : 1m);
+                decimal physicalUnitsToRestock = line.ReturnQuantity * (conversionRatio > 0 ? conversionRatio : 1m);
 
                 var stockQuery = _context.ItemWarehouseStocks
                     .Where(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == warehouseId && !s.IsDeleted);
@@ -2418,7 +3273,7 @@ public class SalesService : ISalesService
                     Quantity = physicalUnitsToRestock,
                     QuantityBefore = (stock?.CurrentQuantity ?? 0) - physicalUnitsToRestock,
                     QuantityAfter = stock?.CurrentQuantity ?? physicalUnitsToRestock,
-                    UnitCost = line.UnitPrice,
+                    UnitCost = effectiveRate,
                     TotalCost = lineTaxable,
                     ReferenceDocumentType = "CreditNote",
                     ReferenceDocumentId = salesReturn.Id,
@@ -2468,6 +3323,10 @@ public class SalesService : ISalesService
                 var newBal = party.CurrentOutstandingBalance - salesReturn.TotalAmount;
                 party.CurrentOutstandingBalance = newBal;
 
+                var noteDesc = isCommercialCreditNote
+                    ? $"Commercial Credit Note for Sales Return {creditNoteNumber}"
+                    : $"Credit Note for Sales Return {creditNoteNumber}";
+
                 var ledger = new PartyLedgerEntry
                 {
                     TenantId = tenantId,
@@ -2480,10 +3339,41 @@ public class SalesService : ISalesService
                     ReferenceDocumentType = "CreditNote",
                     ReferenceDocumentId = salesReturn.Id,
                     ReferenceDocumentNumber = creditNoteNumber,
-                    Description = $"Credit Note for Sales Return {creditNoteNumber}"
+                    Description = noteDesc
                 };
                 _context.PartyLedgerEntries.Add(ledger);
             }
+        }
+
+        // Update original invoice status to PartiallyReturned or FullyReturned
+        if (origInvoice != null)
+        {
+            var otherReturnedItems = await _context.SalesReturnItems
+                .Where(ri => ri.TenantId == tenantId && 
+                             ri.SalesReturn.OriginalSalesInvoiceId == origInvoice.Id && 
+                             !ri.IsDeleted && 
+                             !ri.SalesReturn.IsCancelled)
+                .ToListAsync(cancellationToken);
+
+            var returnedQtyByItem = otherReturnedItems
+                .GroupBy(ri => ri.ItemId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.ReturnQuantity));
+
+            foreach (var line in salesReturn.Items)
+            {
+                if (returnedQtyByItem.ContainsKey(line.ItemId))
+                    returnedQtyByItem[line.ItemId] += line.ReturnQuantity;
+                else
+                    returnedQtyByItem[line.ItemId] = line.ReturnQuantity;
+            }
+
+            bool isFullyReturned = origInvoice.Items.Where(it => !it.IsDeleted).All(it =>
+            {
+                returnedQtyByItem.TryGetValue(it.ItemId, out var ret);
+                return ret >= it.Quantity;
+            });
+
+            origInvoice.Status = isFullyReturned ? InvoiceStatus.FullyReturned : InvoiceStatus.PartiallyReturned;
         }
 
         await AutoPostSalesReturnToGeneralLedgerAsync(salesReturn, cancellationToken);
@@ -2519,6 +3409,450 @@ public class SalesService : ISalesService
         return Result<Guid>.Success(salesReturn.Id);
     }
 
+    public async Task<Result<bool>> SettleSalesReturnCreditAsync(Guid returnId, SettleSalesReturnRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        if (request.Amount <= 0)
+        {
+            return Result<bool>.Failure("Settlement amount must be greater than zero.", "INVALID_AMOUNT");
+        }
+
+        var salesReturn = await _context.SalesReturns
+            .Include(r => r.Items)
+            .FirstOrDefaultAsync(r => r.TenantId == tenantId && r.Id == returnId && !r.IsDeleted, cancellationToken);
+
+        if (salesReturn == null)
+        {
+            return Result<bool>.Failure("Sales return not found.", "NOT_FOUND");
+        }
+
+        if (salesReturn.IsCancelled)
+        {
+            return Result<bool>.Failure("Cannot settle a cancelled sales return.", "RETURN_CANCELLED");
+        }
+
+        var remainingCredit = salesReturn.TotalAmount - (salesReturn.CashRefundedAmount ?? 0m);
+        if (request.Amount > remainingCredit + 0.01m)
+        {
+            return Result<bool>.Failure($"Settlement amount (₹{request.Amount:N2}) exceeds remaining unsettled credit (₹{remainingCredit:N2}).", "AMOUNT_EXCEEDS_CREDIT");
+        }
+
+        var party = await _context.Parties
+            .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == salesReturn.PartyId && !p.IsDeleted, cancellationToken);
+
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            if (string.Equals(request.SettleType, "AdjustAgainstInvoice", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!request.AdjustedInvoiceId.HasValue || request.AdjustedInvoiceId.Value == Guid.Empty)
+                {
+                    return Result<bool>.Failure("Target invoice must be specified for invoice adjustment.", "TARGET_INVOICE_REQUIRED");
+                }
+
+                var targetInvoice = await _context.SalesInvoices
+                    .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == request.AdjustedInvoiceId.Value && !i.IsDeleted, cancellationToken);
+
+                if (targetInvoice == null)
+                {
+                    return Result<bool>.Failure("Target sales invoice not found.", "TARGET_INVOICE_NOT_FOUND");
+                }
+
+                if (targetInvoice.IsCancelled || targetInvoice.Status == InvoiceStatus.Cancelled)
+                {
+                    return Result<bool>.Failure("Cannot adjust credit against a cancelled invoice.", "INVOICE_CANCELLED");
+                }
+
+                var unpaidBalance = targetInvoice.TotalAmount - targetInvoice.PaidAmount;
+                if (unpaidBalance <= 0)
+                {
+                    return Result<bool>.Failure($"Target invoice {targetInvoice.InvoiceNumber} is already fully paid.", "INVOICE_ALREADY_PAID");
+                }
+
+                var adjustAmount = Math.Min(request.Amount, unpaidBalance);
+
+                var payment = new SalesInvoicePayment
+                {
+                    TenantId = tenantId,
+                    InvoiceId = targetInvoice.Id,
+                    PaymentDate = DateTime.UtcNow,
+                    Amount = adjustAmount,
+                    PaymentMode = PaymentMode.CreditAccount,
+                    TransactionReference = $"CN-{salesReturn.CreditNoteNumber}",
+                    Notes = $"Adjusted from Credit Note {salesReturn.CreditNoteNumber}. {request.Notes}".Trim()
+                };
+                _context.SalesInvoicePayments.Add(payment);
+
+                targetInvoice.PaidAmount += adjustAmount;
+                targetInvoice.BalanceAmount = Math.Max(0m, targetInvoice.TotalAmount - targetInvoice.PaidAmount);
+                targetInvoice.PaymentStatus = targetInvoice.BalanceAmount <= 0.01m ? PaymentStatus.FullyPaid : PaymentStatus.PartiallyPaid;
+
+                salesReturn.RefundStatus = "CreditAdjusted";
+                salesReturn.AdjustedInvoiceId = targetInvoice.Id;
+                salesReturn.AdjustedInvoiceNumber = targetInvoice.InvoiceNumber;
+                salesReturn.CashRefundedAmount = (salesReturn.CashRefundedAmount ?? 0m) + adjustAmount;
+                salesReturn.RefundDate = DateTime.UtcNow;
+                if (!string.IsNullOrWhiteSpace(request.Notes))
+                {
+                    salesReturn.Notes = (salesReturn.Notes + $"\n[Credit Adjusted: ₹{adjustAmount:N2} against Inv #{targetInvoice.InvoiceNumber}]").Trim();
+                }
+            }
+            else // CashRefund
+            {
+                var refundMode = !string.IsNullOrWhiteSpace(request.RefundMode) ? request.RefundMode.Trim() : "Cash";
+
+                if (party != null)
+                {
+                    var newBal = party.CurrentOutstandingBalance + request.Amount;
+                    party.CurrentOutstandingBalance = newBal;
+
+                    var ledger = new PartyLedgerEntry
+                    {
+                        TenantId = tenantId,
+                        PartyId = party.Id,
+                        TransactionDate = DateTime.UtcNow,
+                        EntryType = PartyLedgerEntryType.CashRefund,
+                        DebitAmount = request.Amount,
+                        CreditAmount = 0m,
+                        RunningBalance = newBal,
+                        ReferenceDocumentType = "CashRefund",
+                        ReferenceDocumentId = salesReturn.Id,
+                        ReferenceDocumentNumber = salesReturn.CreditNoteNumber,
+                        PaymentMode = refundMode,
+                        Description = $"Payment Refund of ₹{request.Amount:N2} via {refundMode} against Credit Note {salesReturn.CreditNoteNumber}. {request.Notes}".Trim()
+                    };
+                    _context.PartyLedgerEntries.Add(ledger);
+                }
+
+                // General Ledger Posting: Debit AR, Credit Cash/Bank
+                try
+                {
+                    var arAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-AR", "Accounts Receivable (Sundry Debtors)", "GRP-CA", "Current Assets", "Asset", "Debit", cancellationToken);
+                    var assetCode = refundMode.Equals("Cash", StringComparison.OrdinalIgnoreCase) ? "ACC-CASH" : "ACC-BANK";
+                    var assetName = refundMode.Equals("Cash", StringComparison.OrdinalIgnoreCase) ? "Cash in Hand" : "Bank Accounts";
+                    var creditAccount = await GetOrCreateLedgerAccountAsync(tenantId, assetCode, assetName, "GRP-CA", "Current Assets", "Asset", "Debit", cancellationToken);
+
+                    var voucher = new JournalVoucher
+                    {
+                        TenantId = tenantId,
+                        VoucherNumber = $"JV-REF-{salesReturn.CreditNoteNumber}-{DateTime.UtcNow:mmss}",
+                        VoucherDate = DateTime.UtcNow,
+                        VoucherType = "PaymentRefund",
+                        ReferenceNumber = salesReturn.CreditNoteNumber,
+                        TotalDebit = request.Amount,
+                        TotalCredit = request.Amount,
+                        Narration = $"Payment Refund of ₹{request.Amount:N2} via {refundMode} against Credit Note {salesReturn.CreditNoteNumber}",
+                        CreatedByName = "System Auto-Posting"
+                    };
+
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = arAccount.Id,
+                        DebitAmount = request.Amount,
+                        CreditAmount = 0,
+                        Narration = $"Debit AR on refund to party for CN {salesReturn.CreditNoteNumber}"
+                    });
+                    arAccount.CurrentBalance += request.Amount;
+
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = creditAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = request.Amount,
+                        Narration = $"Credit {assetName} on payout for CN {salesReturn.CreditNoteNumber}"
+                    });
+                    creditAccount.CurrentBalance -= request.Amount;
+
+                    _context.JournalVouchers.Add(voucher);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "GL auto-posting skipped or failed for refund on CN {CreditNoteNumber}: {Message}", salesReturn.CreditNoteNumber, ex.Message);
+                }
+
+                salesReturn.RefundStatus = "CashRefunded";
+                salesReturn.CashRefundedAmount = (salesReturn.CashRefundedAmount ?? 0m) + request.Amount;
+                salesReturn.RefundMode = refundMode;
+                salesReturn.RefundTransactionRef = request.TransactionRef;
+                salesReturn.RefundDate = DateTime.UtcNow;
+                if (!string.IsNullOrWhiteSpace(request.Notes))
+                {
+                    salesReturn.Notes = (salesReturn.Notes + $"\n[Refund Paid: ₹{request.Amount:N2} via {refundMode} (Ref: {request.TransactionRef})]").Trim();
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
+            return Result<bool>.Success(true);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            _logger?.LogError(ex, "Failed to settle sales return {ReturnId}: {Message}", returnId, ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<Result<bool>> CancelSalesReturnAsync(Guid returnId, CancelSalesReturnRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var salesReturn = await _context.SalesReturns
+            .Include(r => r.Items)
+            .FirstOrDefaultAsync(r => r.TenantId == tenantId && r.Id == returnId && !r.IsDeleted, cancellationToken);
+
+        if (salesReturn == null)
+        {
+            return Result<bool>.Failure("Sales return not found.", "NOT_FOUND");
+        }
+
+        if (salesReturn.IsCancelled)
+        {
+            return Result<bool>.Failure("Sales return is already cancelled.", "ALREADY_CANCELLED");
+        }
+
+        if (salesReturn.RefundStatus == "CashRefunded" && (salesReturn.CashRefundedAmount ?? 0m) > 0m)
+        {
+            return Result<bool>.Failure("Cannot cancel a sales return that has already been refunded in cash. Please adjust accounts first.", "REFUND_ALREADY_ISSUED");
+        }
+
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            salesReturn.IsCancelled = true;
+            salesReturn.CancellationReason = request.Reason;
+            salesReturn.CancelledAt = DateTime.UtcNow;
+            salesReturn.RefundStatus = "Cancelled";
+            salesReturn.Notes = (salesReturn.Notes + $"\n[Cancelled: {request.Reason}]").Trim();
+
+            // Reverse inventory if restocked
+            if (salesReturn.RestockToWarehouse && salesReturn.WarehouseId != Guid.Empty)
+            {
+                var itemIds = salesReturn.Items.Select(x => x.ItemId).Distinct().ToList();
+                var masterItems = await _context.Items
+                    .Where(it => it.TenantId == tenantId && itemIds.Contains(it.Id) && !it.IsDeleted)
+                    .ToDictionaryAsync(it => it.Id, cancellationToken);
+
+                foreach (var line in salesReturn.Items)
+                {
+                    masterItems.TryGetValue(line.ItemId, out var masterItem);
+                    if (masterItem != null && masterItem.ItemType == ItemType.Service) continue;
+
+                    var stockQuery = _context.ItemWarehouseStocks
+                        .Where(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == salesReturn.WarehouseId && !s.IsDeleted);
+
+                    if (line.VariantId.HasValue)
+                        stockQuery = stockQuery.Where(s => s.VariantId == line.VariantId.Value);
+                    else
+                        stockQuery = stockQuery.Where(s => s.VariantId == null);
+
+                    if (line.BatchId.HasValue)
+                        stockQuery = stockQuery.Where(s => s.BatchId == line.BatchId.Value);
+                    else
+                        stockQuery = stockQuery.Where(s => s.BatchId == null);
+
+                    var stock = await stockQuery.FirstOrDefaultAsync(cancellationToken);
+                    if (stock != null)
+                    {
+                        stock.CurrentQuantity = Math.Max(0m, stock.CurrentQuantity - line.ReturnQuantity);
+
+                        _context.StockMovements.Add(new StockMovement
+                        {
+                            TenantId = tenantId,
+                            WarehouseId = salesReturn.WarehouseId,
+                            ItemId = line.ItemId,
+                            VariantId = line.VariantId,
+                            BatchId = line.BatchId,
+                            MovementType = StockMovementType.PhysicalAdjustment,
+                            Quantity = -line.ReturnQuantity,
+                            ReferenceDocumentType = "CreditNoteCancellation",
+                            ReferenceDocumentId = salesReturn.Id,
+                            ReferenceDocumentNumber = salesReturn.CreditNoteNumber,
+                            Notes = $"Cancellation of Credit Note {salesReturn.CreditNoteNumber}"
+                        });
+                    }
+                }
+            }
+
+            // Reverse Party Ledger balance
+            if (salesReturn.PartyId != Guid.Empty)
+            {
+                var party = await _context.Parties
+                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == salesReturn.PartyId && !p.IsDeleted, cancellationToken);
+
+                if (party != null)
+                {
+                    var newBal = party.CurrentOutstandingBalance + salesReturn.TotalAmount;
+                    party.CurrentOutstandingBalance = newBal;
+
+                    var ledger = new PartyLedgerEntry
+                    {
+                        TenantId = tenantId,
+                        PartyId = party.Id,
+                        TransactionDate = DateTime.UtcNow,
+                        EntryType = PartyLedgerEntryType.JournalAdjustment,
+                        DebitAmount = salesReturn.TotalAmount,
+                        CreditAmount = 0m,
+                        RunningBalance = newBal,
+                        ReferenceDocumentType = "CreditNoteCancellation",
+                        ReferenceDocumentId = salesReturn.Id,
+                        ReferenceDocumentNumber = salesReturn.CreditNoteNumber,
+                        Description = $"Cancellation of Credit Note {salesReturn.CreditNoteNumber}: {request.Reason}"
+                    };
+                    _context.PartyLedgerEntries.Add(ledger);
+                }
+            }
+
+            // Reverse General Ledger
+            try
+            {
+                var arAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-AR", "Accounts Receivable (Sundry Debtors)", "GRP-CA", "Current Assets", "Asset", "Debit", cancellationToken);
+                var retAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SALES-RET", "Sales Returns & Allowances", "GRP-REV", "Direct Sales Revenue", "Revenue", "Debit", cancellationToken);
+
+                var totalCgst = salesReturn.Items.Sum(x => x.CgstAmount);
+                var totalSgst = salesReturn.Items.Sum(x => x.SgstAmount);
+                var totalIgst = salesReturn.Items.Sum(x => x.IgstAmount);
+
+                var cgstAccount = totalCgst > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CGST-OUT", "Output CGST Payable", "GRP-TAX", "Duties & Taxes", "Liability", "Credit", cancellationToken) : null;
+                var sgstAccount = totalSgst > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SGST-OUT", "Output SGST/UTGST Payable", "GRP-TAX", "Duties & Taxes", "Liability", "Credit", cancellationToken) : null;
+                var igstAccount = totalIgst > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-IGST-OUT", "Output IGST Payable", "GRP-TAX", "Duties & Taxes", "Liability", "Credit", cancellationToken) : null;
+
+                var voucher = new JournalVoucher
+                {
+                    TenantId = tenantId,
+                    VoucherNumber = $"JV-REV-CN-{salesReturn.CreditNoteNumber}",
+                    VoucherDate = DateTime.UtcNow,
+                    VoucherType = "CreditNoteCancellation",
+                    ReferenceNumber = salesReturn.CreditNoteNumber,
+                    TotalDebit = salesReturn.TotalAmount,
+                    TotalCredit = salesReturn.TotalAmount,
+                    Narration = $"Reversal of Credit Note {salesReturn.CreditNoteNumber}: {request.Reason}",
+                    CreatedByName = "System Auto-Posting"
+                };
+
+                // Debit AR (re-instate receivable)
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = arAccount.Id,
+                    DebitAmount = salesReturn.TotalAmount,
+                    CreditAmount = 0,
+                    Narration = $"Reversal of AR credit on cancelled CN {salesReturn.CreditNoteNumber}"
+                });
+                arAccount.CurrentBalance += salesReturn.TotalAmount;
+
+                // Credit Sales Return
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = retAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = salesReturn.SubTotal,
+                    Narration = $"Reversal of sales return revenue on cancelled CN {salesReturn.CreditNoteNumber}"
+                });
+                retAccount.CurrentBalance -= salesReturn.SubTotal;
+
+                if (cgstAccount != null && totalCgst > 0)
+                {
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = cgstAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = totalCgst,
+                        Narration = $"Re-instate Output CGST on cancelled CN {salesReturn.CreditNoteNumber}"
+                    });
+                    cgstAccount.CurrentBalance += totalCgst;
+                }
+
+                if (sgstAccount != null && totalSgst > 0)
+                {
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = sgstAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = totalSgst,
+                        Narration = $"Re-instate Output SGST on cancelled CN {salesReturn.CreditNoteNumber}"
+                    });
+                    sgstAccount.CurrentBalance += totalSgst;
+                }
+
+                if (igstAccount != null && totalIgst > 0)
+                {
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = igstAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = totalIgst,
+                        Narration = $"Re-instate Output IGST on cancelled CN {salesReturn.CreditNoteNumber}"
+                    });
+                    igstAccount.CurrentBalance += totalIgst;
+                }
+
+                _context.JournalVouchers.Add(voucher);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "GL auto-posting failed for cancellation of CN {CreditNoteNumber}: {Message}", salesReturn.CreditNoteNumber, ex.Message);
+            }
+
+            // Re-evaluate original invoice status if applicable
+            if (salesReturn.OriginalSalesInvoiceId.HasValue)
+            {
+                var origInv = await _context.SalesInvoices
+                    .Include(i => i.Items)
+                    .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == salesReturn.OriginalSalesInvoiceId.Value && !i.IsDeleted, cancellationToken);
+
+                if (origInv != null && (origInv.Status == InvoiceStatus.PartiallyReturned || origInv.Status == InvoiceStatus.FullyReturned))
+                {
+                    var remainingActiveReturns = await _context.SalesReturnItems
+                        .Where(ri => ri.TenantId == tenantId && 
+                                     ri.SalesReturn.OriginalSalesInvoiceId == origInv.Id && 
+                                     ri.SalesReturnId != salesReturn.Id &&
+                                     !ri.IsDeleted && 
+                                     !ri.SalesReturn.IsCancelled)
+                        .ToListAsync(cancellationToken);
+
+                    if (!remainingActiveReturns.Any())
+                    {
+                        origInv.Status = origInv.PaymentStatus == PaymentStatus.FullyPaid ? InvoiceStatus.Paid : InvoiceStatus.Issued;
+                    }
+                    else
+                    {
+                        var returnedQtyByItem = remainingActiveReturns
+                            .GroupBy(ri => ri.ItemId)
+                            .ToDictionary(g => g.Key, g => g.Sum(x => x.ReturnQuantity));
+
+                        bool isFullyReturned = origInv.Items.Where(it => !it.IsDeleted).All(it =>
+                        {
+                            returnedQtyByItem.TryGetValue(it.ItemId, out var ret);
+                            return ret >= it.Quantity;
+                        });
+
+                        origInv.Status = isFullyReturned ? InvoiceStatus.FullyReturned : InvoiceStatus.PartiallyReturned;
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
+            return Result<bool>.Success(true);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            _logger?.LogError(ex, "Failed to cancel sales return {ReturnId}: {Message}", returnId, ex.Message);
+            throw;
+        }
+    }
+
     private async Task AutoPostInvoiceToGeneralLedgerAsync(SalesInvoice invoice, CancellationToken cancellationToken)
     {
         try
@@ -2529,6 +3863,7 @@ public class SalesService : ISalesService
             var cgstAccount = invoice.CgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CGST-OUT", "Output CGST Payable", "GRP-TAX", "Duties & Taxes", "Liability", "Credit", cancellationToken) : null;
             var sgstAccount = invoice.SgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SGST-OUT", "Output SGST/UTGST Payable", "GRP-TAX", "Duties & Taxes", "Liability", "Credit", cancellationToken) : null;
             var igstAccount = invoice.IgstAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-IGST-OUT", "Output IGST Payable", "GRP-TAX", "Duties & Taxes", "Liability", "Credit", cancellationToken) : null;
+            var cessAccount = invoice.CessAmount > 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CESS-OUT", "Output GST Cess Payable", "GRP-TAX", "Duties & Taxes", "Liability", "Credit", cancellationToken) : null;
             var roundOffAccount = invoice.RoundOff != 0 ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-ROUNDOFF", "Invoice Round Off", "GRP-EXP", "Indirect Expenses", "Expense", "Debit", cancellationToken) : null;
 
             var voucher = new JournalVoucher
@@ -2566,8 +3901,8 @@ public class SalesService : ISalesService
             });
             revAccount.CurrentBalance += invoice.TaxableAmount;
 
-            // Leg 3: Credit Output CGST
-            if (cgstAccount != null && invoice.CgstAmount > 0)
+            // Leg 3: Credit Output CGST (exempt from supplier liability under RCM)
+            if (!invoice.IsReverseCharge && cgstAccount != null && invoice.CgstAmount > 0)
             {
                 voucher.Legs.Add(new JournalVoucherLeg
                 {
@@ -2580,8 +3915,8 @@ public class SalesService : ISalesService
                 cgstAccount.CurrentBalance += invoice.CgstAmount;
             }
 
-            // Leg 4: Credit Output SGST
-            if (sgstAccount != null && invoice.SgstAmount > 0)
+            // Leg 4: Credit Output SGST (exempt from supplier liability under RCM)
+            if (!invoice.IsReverseCharge && sgstAccount != null && invoice.SgstAmount > 0)
             {
                 voucher.Legs.Add(new JournalVoucherLeg
                 {
@@ -2594,8 +3929,8 @@ public class SalesService : ISalesService
                 sgstAccount.CurrentBalance += invoice.SgstAmount;
             }
 
-            // Leg 5: Credit Output IGST
-            if (igstAccount != null && invoice.IgstAmount > 0)
+            // Leg 5: Credit Output IGST (exempt from supplier liability under RCM)
+            if (!invoice.IsReverseCharge && igstAccount != null && invoice.IgstAmount > 0)
             {
                 voucher.Legs.Add(new JournalVoucherLeg
                 {
@@ -2606,6 +3941,20 @@ public class SalesService : ISalesService
                     Narration = $"Output IGST liability on invoice {invoice.InvoiceNumber}"
                 });
                 igstAccount.CurrentBalance += invoice.IgstAmount;
+            }
+
+            // Leg 5b: Credit Output GST Cess (exempt from supplier liability under RCM)
+            if (!invoice.IsReverseCharge && cessAccount != null && invoice.CessAmount > 0)
+            {
+                voucher.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = cessAccount.Id,
+                    DebitAmount = 0,
+                    CreditAmount = invoice.CessAmount,
+                    Narration = $"Output GST Cess liability on invoice {invoice.InvoiceNumber}"
+                });
+                cessAccount.CurrentBalance += invoice.CessAmount;
             }
 
             // Leg 6: Round Off
@@ -2679,7 +4028,13 @@ public class SalesService : ISalesService
             decimal totalSgst = 0m;
             decimal totalIgst = 0m;
 
-            if (salesReturn.TaxAmount > 0)
+            if (salesReturn.Items != null && salesReturn.Items.Any(x => x.CgstAmount > 0 || x.SgstAmount > 0 || x.IgstAmount > 0))
+            {
+                totalCgst = salesReturn.Items.Sum(x => x.CgstAmount);
+                totalSgst = salesReturn.Items.Sum(x => x.SgstAmount);
+                totalIgst = salesReturn.Items.Sum(x => x.IgstAmount);
+            }
+            else if (salesReturn.TaxAmount > 0)
             {
                 if (isIntraState)
                 {
@@ -2790,6 +4145,60 @@ public class SalesService : ISalesService
         }
     }
 
+    private async Task AutoPostPaymentToGeneralLedgerAsync(SalesInvoice invoice, SalesInvoicePayment payment, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var tenantId = invoice.TenantId;
+            var arAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-AR", "Accounts Receivable (Sundry Debtors)", "GRP-CA", "Current Assets", "Asset", "Debit", cancellationToken);
+            
+            string assetAccCode = payment.PaymentMode == PaymentMode.Cash ? "ACC-CASH" : "ACC-BANK";
+            string assetAccName = payment.PaymentMode == PaymentMode.Cash ? "Cash in Hand" : "Main Bank Account";
+            var assetAccount = await GetOrCreateLedgerAccountAsync(tenantId, assetAccCode, assetAccName, "GRP-CA", "Current Assets", "Asset", "Debit", cancellationToken);
+
+            var voucher = new JournalVoucher
+            {
+                TenantId = tenantId,
+                VoucherNumber = $"JV-PAY-{invoice.InvoiceNumber}-{payment.Id.ToString()[..8].ToUpperInvariant()}",
+                VoucherDate = payment.PaymentDate,
+                VoucherType = "Receipt",
+                ReferenceNumber = invoice.InvoiceNumber,
+                TotalDebit = payment.Amount,
+                TotalCredit = payment.Amount,
+                Narration = $"Payment receipt against invoice {invoice.InvoiceNumber} from {invoice.CustomerName} via {payment.PaymentMode}",
+                CreatedByName = "System Auto-Posting"
+            };
+
+            // Debit Cash / Bank Account (Asset increases)
+            voucher.Legs.Add(new JournalVoucherLeg
+            {
+                TenantId = tenantId,
+                AccountId = assetAccount.Id,
+                DebitAmount = payment.Amount,
+                CreditAmount = 0m,
+                Narration = $"Receipt via {payment.PaymentMode}"
+            });
+            assetAccount.CurrentBalance += payment.Amount;
+
+            // Credit Accounts Receivable (Asset decreases)
+            voucher.Legs.Add(new JournalVoucherLeg
+            {
+                TenantId = tenantId,
+                AccountId = arAccount.Id,
+                DebitAmount = 0m,
+                CreditAmount = payment.Amount,
+                Narration = $"Clear AR on Invoice {invoice.InvoiceNumber}"
+            });
+            arAccount.CurrentBalance -= payment.Amount;
+
+            _context.JournalVouchers.Add(voucher);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to auto-post payment receipt {PaymentId} to general ledger: {Message}", payment.Id, ex.Message);
+        }
+    }
+
     private async Task<LedgerAccount> GetOrCreateLedgerAccountAsync(
         Guid tenantId,
         string accountCode,
@@ -2851,6 +4260,80 @@ public class SalesService : ISalesService
         {
             return (null, null);
         }
+    }
+
+    public async Task<Result<LastDealHintDto?>> GetLastSaleDealAsync(Guid itemId, Guid? partyId = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        SalesInvoiceItem? lastItem = null;
+        if (partyId.HasValue && partyId.Value != Guid.Empty)
+        {
+            lastItem = await _context.SalesInvoiceItems
+                .AsNoTracking()
+                .Include(i => i.Invoice)
+                .Where(i => i.TenantId == tenantId &&
+                            i.ItemId == itemId &&
+                            !i.Invoice.IsCancelled &&
+                            i.Invoice.PartyId == partyId.Value)
+                .OrderByDescending(i => i.Invoice.InvoiceDate)
+                .ThenByDescending(i => i.CreatedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (lastItem == null)
+        {
+            lastItem = await _context.SalesInvoiceItems
+                .AsNoTracking()
+                .Include(i => i.Invoice)
+                .Where(i => i.TenantId == tenantId &&
+                            i.ItemId == itemId &&
+                            !i.Invoice.IsCancelled)
+                .OrderByDescending(i => i.Invoice.InvoiceDate)
+                .ThenByDescending(i => i.CreatedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (lastItem == null)
+        {
+            return Result<LastDealHintDto?>.Success(null);
+        }
+
+        decimal freeQty = 0m;
+        if (!string.IsNullOrWhiteSpace(lastItem.AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(lastItem.AttributesJson);
+                if (doc.RootElement.TryGetProperty("freeQuantity", out var fqProp))
+                {
+                    freeQty = fqProp.GetDecimal();
+                }
+            }
+            catch { }
+        }
+
+        string schemeText = "";
+        if (freeQty > 0)
+        {
+            schemeText = lastItem.Quantity > 0
+                ? $"{(int)lastItem.Quantity}+{(int)freeQty}"
+                : $"+{(int)freeQty}";
+        }
+
+        var dto = new LastDealHintDto(
+            UnitPrice: lastItem.UnitPrice,
+            Quantity: lastItem.Quantity,
+            FreeQuantity: freeQty,
+            DiscountPercent: lastItem.DiscountPercent,
+            FreeSchemeText: schemeText,
+            Mrp: lastItem.Mrp,
+            Date: lastItem.Invoice?.InvoiceDate,
+            DocumentNumber: lastItem.Invoice?.InvoiceNumber ?? "",
+            PartyName: lastItem.Invoice?.CustomerName ?? ""
+        );
+
+        return Result<LastDealHintDto?>.Success(dto);
     }
 
     #endregion

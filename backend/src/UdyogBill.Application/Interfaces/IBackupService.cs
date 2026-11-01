@@ -17,4 +17,5 @@ public interface IBackupService
     Task<Result<BackupScheduleConfigDto>> UpdateScheduleConfigAsync(UpdateBackupScheduleConfigRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<SystemHealthReportDto>> GetSystemHealthAsync(CancellationToken cancellationToken = default);
     Task<Result<RestoreVerificationResultDto>> VerifyBackupIntegrityAsync(Guid backupId, CancellationToken cancellationToken = default);
+    Task<Result<RestoreVerificationResultDto>> RestoreBackupAsync(Guid backupId, CancellationToken cancellationToken = default);
 }

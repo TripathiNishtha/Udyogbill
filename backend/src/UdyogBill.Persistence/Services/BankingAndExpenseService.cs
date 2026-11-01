@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Auditing;
+using UdyogBill.Domain.Entities.Accounting;
 using UdyogBill.Domain.Entities.Banking;
 using UdyogBill.Domain.Entities.Parties;
 using UdyogBill.Domain.Entities.Sales;
@@ -139,6 +140,53 @@ public class BankingAndExpenseService : IBankingAndExpenseService
 
         _context.BankAccounts.Add(account);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Auto-create/sync LedgerAccount in Chart of Accounts under GRP-BANK
+        try
+        {
+            var bankGroup = await _context.AccountGroups.FirstOrDefaultAsync(g => g.TenantId == tenantId && (g.Code == "GRP-BANK" || g.Code == "GRP-BANK-ACCOUNTS"), cancellationToken);
+            if (bankGroup == null)
+            {
+                bankGroup = new AccountGroup
+                {
+                    TenantId = tenantId,
+                    Code = "GRP-BANK",
+                    Name = "Bank Accounts",
+                    Category = "Asset",
+                    Nature = "Debit"
+                };
+                _context.AccountGroups.Add(bankGroup);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
+            var cleanAccNum = account.AccountNumber?.Trim();
+            var accTail = !string.IsNullOrWhiteSpace(cleanAccNum) && cleanAccNum.Length >= 4 ? cleanAccNum[^4..] : account.Id.ToString()[..4].ToUpperInvariant();
+            var accCode = $"ACC-BANK-{accTail}";
+
+            var existingLedger = await _context.LedgerAccounts.FirstOrDefaultAsync(a => a.TenantId == tenantId && (a.AccountCode == accCode || (a.BankAccountNumber != null && a.BankAccountNumber == cleanAccNum)), cancellationToken);
+            if (existingLedger == null)
+            {
+                var ledgerAcc = new LedgerAccount
+                {
+                    TenantId = tenantId,
+                    AccountCode = accCode,
+                    AccountName = $"{account.BankName ?? "Bank"} - {account.AccountName}",
+                    GroupId = bankGroup.Id,
+                    Category = "Asset",
+                    BalanceType = "Debit",
+                    OpeningBalance = account.OpeningBalance,
+                    CurrentBalance = account.CurrentBalance,
+                    BankName = account.BankName,
+                    BankAccountNumber = account.AccountNumber,
+                    BankIfscCode = account.IfscCode,
+                    BankBranch = account.BranchName,
+                    IsActive = true
+                };
+                _context.LedgerAccounts.Add(ledgerAcc);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch { }
 
         await _auditService.LogAsync(new AuditLog
         {
@@ -422,6 +470,258 @@ public class BankingAndExpenseService : IBankingAndExpenseService
             bankAccountName,
             request.ReferenceNumber,
             party.CurrentOutstandingBalance
+        ));
+    }
+
+    public async Task<Result<ContraTransferResultDto>> RecordContraTransferAsync(
+        RecordContraTransferRequest request,
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        if (request.Amount <= 0)
+        {
+            return Result<ContraTransferResultDto>.Failure("Transfer amount must be greater than zero.", "INVALID_AMOUNT");
+        }
+
+        BankAccount? sourceAccount = null;
+        BankAccount? destinationAccount = null;
+
+        if (request.TransferType == ContraTransferType.BankToBank)
+        {
+            if (!request.SourceBankAccountId.HasValue || !request.DestinationBankAccountId.HasValue)
+            {
+                return Result<ContraTransferResultDto>.Failure("Both Source and Destination bank accounts are required for Bank to Bank transfer.", "VALIDATION_ERROR");
+            }
+            if (request.SourceBankAccountId.Value == request.DestinationBankAccountId.Value)
+            {
+                return Result<ContraTransferResultDto>.Failure("Source and Destination accounts cannot be the same.", "SAME_ACCOUNT");
+            }
+
+            sourceAccount = await _context.BankAccounts
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == request.SourceBankAccountId.Value && !b.IsDeleted, cancellationToken);
+            if (sourceAccount == null)
+            {
+                return Result<ContraTransferResultDto>.Failure("Source bank account not found.", "NOT_FOUND");
+            }
+
+            destinationAccount = await _context.BankAccounts
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == request.DestinationBankAccountId.Value && !b.IsDeleted, cancellationToken);
+            if (destinationAccount == null)
+            {
+                return Result<ContraTransferResultDto>.Failure("Destination bank account not found.", "NOT_FOUND");
+            }
+
+            sourceAccount.CurrentBalance -= request.Amount;
+            destinationAccount.CurrentBalance += request.Amount;
+        }
+        else if (request.TransferType == ContraTransferType.CashToBank)
+        {
+            if (!request.DestinationBankAccountId.HasValue)
+            {
+                return Result<ContraTransferResultDto>.Failure("Destination bank account is required for Cash to Bank deposit.", "VALIDATION_ERROR");
+            }
+
+            destinationAccount = await _context.BankAccounts
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == request.DestinationBankAccountId.Value && !b.IsDeleted, cancellationToken);
+            if (destinationAccount == null)
+            {
+                return Result<ContraTransferResultDto>.Failure("Destination bank account not found.", "NOT_FOUND");
+            }
+
+            destinationAccount.CurrentBalance += request.Amount;
+
+            if (_currentUserContext.UserId.HasValue)
+            {
+                var activeSession = await _context.CashDrawerSessions
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.CashierUserId == _currentUserContext.UserId.Value && s.Status == CashDrawerStatus.Open && !s.IsDeleted, cancellationToken);
+                if (activeSession != null)
+                {
+                    activeSession.CashPayoutsTotal += request.Amount;
+                }
+            }
+        }
+        else if (request.TransferType == ContraTransferType.BankToCash)
+        {
+            if (!request.SourceBankAccountId.HasValue)
+            {
+                return Result<ContraTransferResultDto>.Failure("Source bank account is required for Bank to Cash withdrawal.", "VALIDATION_ERROR");
+            }
+
+            sourceAccount = await _context.BankAccounts
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == request.SourceBankAccountId.Value && !b.IsDeleted, cancellationToken);
+            if (sourceAccount == null)
+            {
+                return Result<ContraTransferResultDto>.Failure("Source bank account not found.", "NOT_FOUND");
+            }
+
+            sourceAccount.CurrentBalance -= request.Amount;
+
+            if (_currentUserContext.UserId.HasValue)
+            {
+                var activeSession = await _context.CashDrawerSessions
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.CashierUserId == _currentUserContext.UserId.Value && s.Status == CashDrawerStatus.Open && !s.IsDeleted, cancellationToken);
+                if (activeSession != null)
+                {
+                    activeSession.CashReceiptsTotal += request.Amount;
+                }
+            }
+        }
+
+        var voucherNumber = $"CTR-{DateTime.UtcNow:yyMM}-{Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant()}";
+        var voucherId = Guid.NewGuid();
+
+        // Sync with Accounting General Ledger
+        try
+        {
+            var bankAccountsGroup = await _context.AccountGroups
+                .FirstOrDefaultAsync(g => g.TenantId == tenantId && (g.Code == "BANK" || g.Name.Contains("Bank Accounts")) && !g.IsDeleted, cancellationToken);
+
+            LedgerAccount? destLedger = null;
+            LedgerAccount? srcLedger = null;
+
+            if (destinationAccount != null)
+            {
+                destLedger = await _context.LedgerAccounts
+                    .FirstOrDefaultAsync(l => l.TenantId == tenantId && (l.AccountName == destinationAccount.AccountName || l.BankAccountNumber == destinationAccount.AccountNumber) && !l.IsDeleted, cancellationToken);
+                if (destLedger == null && bankAccountsGroup != null)
+                {
+                    destLedger = new LedgerAccount
+                    {
+                        TenantId = tenantId,
+                        AccountCode = $"BNK-{destinationAccount.AccountName.Substring(0, Math.Min(3, destinationAccount.AccountName.Length)).ToUpperInvariant()}-{destinationAccount.Id.ToString().Substring(0, 4)}",
+                        AccountName = destinationAccount.AccountName,
+                        GroupId = bankAccountsGroup.Id,
+                        Category = "Asset",
+                        OpeningBalance = destinationAccount.OpeningBalance,
+                        BalanceType = "Debit",
+                        CurrentBalance = destinationAccount.CurrentBalance,
+                        BankName = destinationAccount.BankName,
+                        BankAccountNumber = destinationAccount.AccountNumber,
+                        BankIfscCode = destinationAccount.IfscCode,
+                        BankBranch = destinationAccount.BranchName,
+                        IsActive = true
+                    };
+                    _context.LedgerAccounts.Add(destLedger);
+                }
+            }
+            else if (request.TransferType == ContraTransferType.BankToCash)
+            {
+                destLedger = await _context.LedgerAccounts
+                    .FirstOrDefaultAsync(l => l.TenantId == tenantId && (l.AccountName.Contains("Cash") || l.AccountCode == "CASH-MAIN") && !l.IsDeleted, cancellationToken);
+            }
+
+            if (sourceAccount != null)
+            {
+                srcLedger = await _context.LedgerAccounts
+                    .FirstOrDefaultAsync(l => l.TenantId == tenantId && (l.AccountName == sourceAccount.AccountName || l.BankAccountNumber == sourceAccount.AccountNumber) && !l.IsDeleted, cancellationToken);
+                if (srcLedger == null && bankAccountsGroup != null)
+                {
+                    srcLedger = new LedgerAccount
+                    {
+                        TenantId = tenantId,
+                        AccountCode = $"BNK-{sourceAccount.AccountName.Substring(0, Math.Min(3, sourceAccount.AccountName.Length)).ToUpperInvariant()}-{sourceAccount.Id.ToString().Substring(0, 4)}",
+                        AccountName = sourceAccount.AccountName,
+                        GroupId = bankAccountsGroup.Id,
+                        Category = "Asset",
+                        OpeningBalance = sourceAccount.OpeningBalance,
+                        BalanceType = "Debit",
+                        CurrentBalance = sourceAccount.CurrentBalance,
+                        BankName = sourceAccount.BankName,
+                        BankAccountNumber = sourceAccount.AccountNumber,
+                        BankIfscCode = sourceAccount.IfscCode,
+                        BankBranch = sourceAccount.BranchName,
+                        IsActive = true
+                    };
+                    _context.LedgerAccounts.Add(srcLedger);
+                }
+            }
+            else if (request.TransferType == ContraTransferType.CashToBank)
+            {
+                srcLedger = await _context.LedgerAccounts
+                    .FirstOrDefaultAsync(l => l.TenantId == tenantId && (l.AccountName.Contains("Cash") || l.AccountCode == "CASH-MAIN") && !l.IsDeleted, cancellationToken);
+            }
+
+            if (destLedger != null && srcLedger != null)
+            {
+                var jv = new JournalVoucher
+                {
+                    Id = voucherId,
+                    TenantId = tenantId,
+                    VoucherNumber = voucherNumber,
+                    VoucherDate = DateTime.SpecifyKind(request.TransferDate, DateTimeKind.Utc),
+                    VoucherType = "Contra",
+                    ReferenceNumber = request.ReferenceNumber,
+                    TotalDebit = request.Amount,
+                    TotalCredit = request.Amount,
+                    Narration = $"Contra Entry: Transferred ₹{request.Amount:N2} from {(sourceAccount?.AccountName ?? "Cash in Hand")} to {(destinationAccount?.AccountName ?? "Cash in Hand")}. {request.Notes ?? ""}".Trim(),
+                    CreatedByName = _currentUserContext.Email ?? "Cashier/Accountant",
+                    SourceDocumentType = "CONTRA_TRANSFER",
+                    SourceDocumentId = voucherId,
+                    IsCancelled = false
+                };
+
+                jv.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = destLedger.Id,
+                    DebitAmount = request.Amount,
+                    CreditAmount = 0m,
+                    Narration = $"Debit Destination: {(destinationAccount?.AccountName ?? "Cash in Hand")}"
+                });
+
+                jv.Legs.Add(new JournalVoucherLeg
+                {
+                    TenantId = tenantId,
+                    AccountId = srcLedger.Id,
+                    DebitAmount = 0m,
+                    CreditAmount = request.Amount,
+                    Narration = $"Credit Source: {(sourceAccount?.AccountName ?? "Cash in Hand")}"
+                });
+
+                _context.JournalVouchers.Add(jv);
+            }
+        }
+        catch
+        {
+            // Graceful fallback
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditService.LogAsync(new AuditLog
+        {
+            TenantId = tenantId,
+            UserId = _currentUserContext.UserId,
+            UserEmail = _currentUserContext.Email,
+            Action = AuditActionType.Create,
+            ActionName = "RecordContraTransfer",
+            EntityName = "ContraTransfer",
+            EntityId = voucherId.ToString(),
+            NewValuesJson = JsonSerializer.Serialize(new
+            {
+                request.TransferType,
+                SourceAccount = sourceAccount?.AccountName ?? "Cash in Hand",
+                DestinationAccount = destinationAccount?.AccountName ?? "Cash in Hand",
+                request.Amount,
+                voucherNumber,
+                request.ReferenceNumber
+            }),
+            IpAddress = ipAddress
+        }, cancellationToken);
+
+        return Result<ContraTransferResultDto>.Success(new ContraTransferResultDto(
+            voucherId,
+            voucherNumber,
+            request.TransferType,
+            request.Amount,
+            request.TransferDate,
+            sourceAccount?.AccountName ?? "Cash in Hand",
+            destinationAccount?.AccountName ?? "Cash in Hand",
+            sourceAccount?.CurrentBalance,
+            destinationAccount?.CurrentBalance,
+            $"Contra transfer voucher {voucherNumber} created successfully."
         ));
     }
 
