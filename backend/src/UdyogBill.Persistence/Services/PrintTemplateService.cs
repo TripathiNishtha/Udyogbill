@@ -17,6 +17,7 @@ using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared;
 using UdyogBill.Shared.Constants;
+using QRCoder;
 
 namespace UdyogBill.Persistence.Services;
 
@@ -57,18 +58,102 @@ public class PrintTemplateService : IPrintTemplateService
     {
         var tenantId = RequireTenantId();
 
-        var existingCodes = await _context.PrintTemplates
-            .Where(t => t.TenantId == tenantId && !t.IsDeleted)
-            .Select(t => t.TemplateCode)
+        await EnsureCanonicalTemplatesAsync(tenantId, cancellationToken);
+
+        var query = _context.PrintTemplates
+            .Where(t => t.TenantId == tenantId && !t.IsDeleted);
+
+        if (documentType.HasValue)
+        {
+            query = query.Where(t => t.DocumentType == documentType.Value);
+        }
+
+        var list = await query
+            .OrderByDescending(t => t.IsDefault)
+            .ThenBy(t => t.DocumentType)
+            .ThenBy(t => t.TemplateName)
+            .Select(t => MapToDto(t))
             .ToListAsync(cancellationToken);
 
-        if (!existingCodes.Contains("TPL_UDYOGBILL_SIGNATURE_B2B"))
+        return Result<IReadOnlyList<PrintTemplateDto>>.Success(list);
+    }
+
+    private async Task EnsureCanonicalTemplatesAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var allTemplates = await _context.PrintTemplates
+            .Where(t => t.TenantId == tenantId && !t.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var canonicalSpecs = new List<PrintTemplate>
         {
-            await SeedDefaultTemplatesAsync(tenantId, cancellationToken);
-        }
-        if (!existingCodes.Contains("TPL_PHARMA_PRO_TAX_INVOICE"))
-        {
-            var proTpl = new PrintTemplate
+            // 1. B2B Invoices (5)
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Enterprise Classic Executive Edition (A4)",
+                TemplateCode = "TPL_ENTERPRISE_PREMIUM_DYNAMIC",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#4338ca",
+                SecondaryColorHex = "#4f46e5",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Original for Recipient",
+                ShowGstin = true,
+                ShowDrugLicense = true,
+                ShowFssai = true,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = true,
+                ShowDeclaration = false,
+                DeclarationText = ""
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Professional Services & IT/CA/Consulting Tax Invoice (A4)",
+                TemplateCode = "TPL_B2B_SERVICES_PRO",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#0f172a",
+                SecondaryColorHex = "#2563eb",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Original for Recipient",
+                ShowGstin = true,
+                ShowDrugLicense = false,
+                ShowFssai = false,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = false,
+                ShowDeclaration = false,
+                DeclarationText = ""
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Tally Prime ERP Classic (A4)",
+                TemplateCode = "TPL_B2B_TALLY",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#000000",
+                SecondaryColorHex = "#334155",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Original for Recipient",
+                ShowGstin = true,
+                ShowDrugLicense = true,
+                ShowFssai = true,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = true,
+                ShowDeclaration = false,
+                DeclarationText = ""
+            },
+            new()
             {
                 TenantId = tenantId,
                 DocumentType = PrintDocumentType.TaxInvoice,
@@ -78,33 +163,6 @@ public class PrintTemplateService : IPrintTemplateService
                 IsDefault = false,
                 PrimaryColorHex = "#1e40af",
                 SecondaryColorHex = "#2563eb",
-                HeaderTitle = "Tax Invoice",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = true
-            };
-            _context.PrintTemplates.Add(proTpl);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-
-        if (!existingCodes.Contains("TPL_MARG_HALF_PAGE_A5"))
-        {
-            var margTpl = new PrintTemplate
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "Marg Pharma Classic Half-Page Tax Invoice (A5 Executive)",
-                TemplateCode = "TPL_MARG_HALF_PAGE_A5",
-                PageSize = PageSizeFormat.A5_Landscape,
-                IsDefault = false,
-                PrimaryColorHex = "#0284c7",
-                SecondaryColorHex = "#0369a1",
                 HeaderTitle = "TAX INVOICE",
                 HeaderSubtitle = "Original for Recipient",
                 ShowGstin = true,
@@ -115,18 +173,167 @@ public class PrintTemplateService : IPrintTemplateService
                 ShowItemHsn = true,
                 ShowBatchExpiry = true,
                 ShowDeclaration = true
-            };
-            _context.PrintTemplates.Add(margTpl);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "UdyogBill Signature Adaptive B2B Tax Invoice (A4)",
+                TemplateCode = "TPL_UDYOGBILL_SIGNATURE_B2B",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = true,
+                PrimaryColorHex = "#1e3a8a",
+                SecondaryColorHex = "#2563eb",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Original for Recipient",
+                ShowGstin = true,
+                ShowDrugLicense = true,
+                ShowFssai = true,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = true,
+                ShowDeclaration = false,
+                DeclarationText = ""
+            },
 
-        if (!existingCodes.Contains("TPL_CASH_MEMO_HALF_PAGE_A5"))
-        {
-            var cashMemoTpl = new PrintTemplate
+            // 2. Retail & Specialized Invoices (5)
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Modern Card / Gradient Retail Tax Invoice (A4)",
+                TemplateCode = "TPL_D2C_MYBILLBOOK",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#7c3aed",
+                SecondaryColorHex = "#9333ea",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Original for Recipient",
+                ShowGstin = true,
+                ShowDrugLicense = false,
+                ShowFssai = true,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = false,
+                ShowDeclaration = true
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Supermarket & Grocery Retail Tax Invoice (A4)",
+                TemplateCode = "TPL_RETAIL_SUPERMARKET_GROCERY",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#059669",
+                SecondaryColorHex = "#10b981",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Retail Counter Sale",
+                ShowGstin = true,
+                ShowDrugLicense = false,
+                ShowFssai = true,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = false,
+                ShowMrpStrikethrough = true,
+                ShowSavingsCallout = true,
+                ShowDeclaration = true
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Apparel & Fashion Lifestyle Tax Invoice (A4)",
+                TemplateCode = "TPL_RETAIL_APPAREL_LIFESTYLE",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#db2777",
+                SecondaryColorHex = "#f43f5e",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Retail Store Invoice",
+                ShowGstin = true,
+                ShowDrugLicense = false,
+                ShowFssai = false,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = false,
+                ShowMrpStrikethrough = true,
+                ShowDeclaration = true
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Electronics & Mobile Store Tax Invoice (A4)",
+                TemplateCode = "TPL_RETAIL_ELECTRONICS_MOBILE",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#0284c7",
+                SecondaryColorHex = "#0369a1",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Original for Recipient",
+                ShowGstin = true,
+                ShowDrugLicense = false,
+                ShowFssai = false,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = false,
+                ShowDeclaration = true
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Pharmacy Retail Chemist Rx Tax Invoice (A4)",
+                TemplateCode = "TPL_PHARMA_RX_CHEMIST",
+                PageSize = PageSizeFormat.A4_Portrait,
+                IsDefault = false,
+                PrimaryColorHex = "#dc2626",
+                SecondaryColorHex = "#b91c1c",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Retail Chemist Bill",
+                ShowGstin = true,
+                ShowDrugLicense = true,
+                ShowFssai = true,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = true,
+                ShowDeclaration = true
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.TaxInvoice,
+                TemplateName = "Marg Pharma Classic Half-Page Tax Invoice (A5)",
+                TemplateCode = "TPL_MARG_HALF_PAGE_A5",
+                PageSize = PageSizeFormat.A5_Landscape,
+                IsDefault = false,
+                PrimaryColorHex = "#ea580c",
+                SecondaryColorHex = "#c2410c",
+                HeaderTitle = "TAX INVOICE",
+                HeaderSubtitle = "Original for Recipient",
+                ShowGstin = true,
+                ShowDrugLicense = true,
+                ShowFssai = true,
+                ShowBankDetails = true,
+                ShowUpiQr = true,
+                ShowItemHsn = true,
+                ShowBatchExpiry = true,
+                ShowDeclaration = true
+            },
+
+            // 3. Cash Memos / Counter Slips (2)
+            new()
             {
                 TenantId = tenantId,
                 DocumentType = PrintDocumentType.POSReceipt,
-                TemplateName = "Pharma Retail Cash Memo (A5 Half-Page Non-GST Executive)",
+                TemplateName = "Pharma Retail Cash Memo (A5 Half-Page Non-GST)",
                 TemplateCode = "TPL_CASH_MEMO_HALF_PAGE_A5",
                 PageSize = PageSizeFormat.A5_Landscape,
                 IsDefault = false,
@@ -142,14 +349,40 @@ public class PrintTemplateService : IPrintTemplateService
                 ShowItemHsn = false,
                 ShowBatchExpiry = true,
                 ShowDeclaration = false
-            };
-            _context.PrintTemplates.Add(cashMemoTpl);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.POSReceipt,
+                TemplateName = "3-inch (80mm) Thermal Cash Memo",
+                TemplateCode = "TPL_POS_THERMAL_80MM",
+                PageSize = PageSizeFormat.Thermal_80mm,
+                IsDefault = true,
+                PrimaryColorHex = "#000000",
+                SecondaryColorHex = "#111827",
+                HeaderTitle = "CASH / POS RECEIPT",
+                ShowBankDetails = false,
+                ShowUpiQr = true,
+                ShowSavingsCallout = true
+            },
+            new()
+            {
+                TenantId = tenantId,
+                DocumentType = PrintDocumentType.POSReceipt,
+                TemplateName = "2-inch (58mm) Thermal Cash Memo",
+                TemplateCode = "TPL_POS_THERMAL_58MM",
+                PageSize = PageSizeFormat.Thermal_58mm,
+                IsDefault = false,
+                PrimaryColorHex = "#000000",
+                SecondaryColorHex = "#111827",
+                HeaderTitle = "CASH / POS RECEIPT",
+                ShowBankDetails = false,
+                ShowUpiQr = true,
+                ShowSavingsCallout = true
+            },
 
-        if (!existingCodes.Contains("TPL_PURCHASE_ORDER_EXECUTIVE"))
-        {
-            var poTpl = new PrintTemplate
+            // 4. Auxiliary Commercial Documents (1 Dedicated Universal Format Each)
+            new()
             {
                 TenantId = tenantId,
                 DocumentType = PrintDocumentType.PurchaseOrder,
@@ -170,18 +403,12 @@ public class PrintTemplateService : IPrintTemplateService
                 ShowBatchExpiry = true,
                 ShowDeclaration = false,
                 DeclarationText = ""
-            };
-            _context.PrintTemplates.Add(poTpl);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-
-        if (!existingCodes.Contains("TPL_CREDIT_NOTE_STATUTORY"))
-        {
-            var cnTpl = new PrintTemplate
+            },
+            new()
             {
                 TenantId = tenantId,
                 DocumentType = PrintDocumentType.CreditNote,
-                TemplateName = "GST Credit Note (A4)",
+                TemplateName = "Statutory GST Credit Note (A4)",
                 TemplateCode = "TPL_CREDIT_NOTE_STATUTORY",
                 PageSize = PageSizeFormat.A4_Portrait,
                 IsDefault = true,
@@ -198,177 +425,109 @@ public class PrintTemplateService : IPrintTemplateService
                 ShowBatchExpiry = true,
                 ShowDeclaration = false,
                 DeclarationText = ""
-            };
-            _context.PrintTemplates.Add(cnTpl);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-
-        if (!existingCodes.Contains("TPL_ENTERPRISE_PREMIUM_DYNAMIC"))
-        {
-            var dynamicTpl = new PrintTemplate
+            },
+            new()
             {
                 TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "Enterprise Classic Executive Edition (A4)",
-                TemplateCode = "TPL_ENTERPRISE_PREMIUM_DYNAMIC",
+                DocumentType = PrintDocumentType.DeliveryChallan,
+                TemplateName = "Statutory Delivery Challan (CGST Rule 55) (A4)",
+                TemplateCode = "TPL_DELIVERY_CHALLAN_STATUTORY",
                 PageSize = PageSizeFormat.A4_Portrait,
                 IsDefault = true,
-                PrimaryColorHex = "#4338ca",
-                SecondaryColorHex = "#4f46e5",
-                HeaderTitle = "TAX INVOICE",
-                HeaderSubtitle = "Original for Recipient",
+                PrimaryColorHex = "#047857",
+                SecondaryColorHex = "#059669",
+                HeaderTitle = "DELIVERY CHALLAN",
+                HeaderSubtitle = "Issued under Rule 55 of CGST Rules, 2017",
                 ShowGstin = true,
                 ShowDrugLicense = true,
                 ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
+                ShowBankDetails = false,
+                ShowUpiQr = false,
                 ShowItemHsn = true,
                 ShowBatchExpiry = true,
-                ShowDeclaration = false,
+                ShowDeclaration = true,
                 DeclarationText = ""
-            };
-            _context.PrintTemplates.Add(dynamicTpl);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-        else
+            }
+        };
+
+        var canonicalCodes = canonicalSpecs.Select(s => s.TemplateCode).ToHashSet();
+        bool changed = false;
+
+        // 1. Deduplicate by TemplateCode
+        var codeGroups = allTemplates.GroupBy(t => t.TemplateCode).ToList();
+        foreach (var grp in codeGroups)
         {
-            // Auto-migrate ALL existing templates for this tenant to differentiated executive colors:
-            // Purchase Orders -> Sapphire Blue (#1d4ed8 / #2563eb)
-            // Invoices -> Royal Indigo (#4338ca / #4f46e5)
-            // Credit Notes -> Warm Amber (#b45309 / #d97706)
-            // Cash Memo -> Petrol Cyan (#0e7490 / #0891b2)
-            // Tally Prime -> Classic ERP B&W (#000000 / #334155)
-            var coloredTemplates = await _context.PrintTemplates
-                .Where(t => t.TenantId == tenantId && !t.IsDeleted && 
-                           (t.PrimaryColorHex == "#0f172a" || t.PrimaryColorHex == null || t.PrimaryColorHex == ""))
-                .ToListAsync(cancellationToken);
-            if (coloredTemplates.Any())
+            if (grp.Count() > 1)
             {
-                foreach (var ct in coloredTemplates)
+                var keeper = grp.OrderByDescending(t => t.IsDefault).ThenBy(t => t.CreatedAtUtc).First();
+                foreach (var extra in grp.Where(t => t.Id != keeper.Id))
                 {
-                    if (ct.DocumentType == PrintDocumentType.PurchaseOrder || ct.TemplateCode.Contains("PURCHASE_ORDER"))
-                    {
-                        ct.PrimaryColorHex = "#1d4ed8";
-                        ct.SecondaryColorHex = "#2563eb";
-                    }
-                    else if (ct.DocumentType == PrintDocumentType.CreditNote || ct.TemplateCode.Contains("CREDIT_NOTE"))
-                    {
-                        ct.PrimaryColorHex = "#b45309";
-                        ct.SecondaryColorHex = "#d97706";
-                    }
-                    else if (ct.TemplateCode == "TPL_CASH_MEMO_HALF_PAGE_A5" || ct.TemplateCode.Contains("CASH_MEMO"))
-                    {
-                        ct.PrimaryColorHex = "#0e7490";
-                        ct.SecondaryColorHex = "#0891b2";
-                    }
-                    else if (ct.TemplateCode == "TPL_B2B_TALLY" || ct.TemplateCode.Contains("TALLY"))
-                    {
-                        ct.PrimaryColorHex = "#000000";
-                        ct.SecondaryColorHex = "#334155";
-                    }
-                    else
-                    {
-                        ct.PrimaryColorHex = "#4338ca";
-                        ct.SecondaryColorHex = "#4f46e5";
-                    }
+                    extra.IsDeleted = true;
+                    extra.DeletedAtUtc = DateTime.UtcNow;
+                    changed = true;
                 }
-                await _context.SaveChangesAsync(cancellationToken);
             }
         }
 
-        if (!existingCodes.Contains("TPL_B2B_TALLY"))
+        // 2. Soft-delete legacy templates not in canonical set
+        var legacyList = allTemplates.Where(t => !t.IsDeleted && !canonicalCodes.Contains(t.TemplateCode) && t.TemplateCode.StartsWith("TPL_")).ToList();
+        foreach (var leg in legacyList)
         {
-            var tallyTpl = new PrintTemplate
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "Tally Prime ERP Classic (100% Dynamic Legal A4)",
-                TemplateCode = "TPL_B2B_TALLY",
-                PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = false,
-                PrimaryColorHex = "#000000",
-                SecondaryColorHex = "#334155",
-                HeaderTitle = "TAX INVOICE",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = false,
-                DeclarationText = ""
-            };
-            _context.PrintTemplates.Add(tallyTpl);
-            await _context.SaveChangesAsync(cancellationToken);
+            leg.IsDeleted = true;
+            leg.DeletedAtUtc = DateTime.UtcNow;
+            changed = true;
         }
 
-        var legacyTemplates = await _context.PrintTemplates
-            .Where(t => t.TenantId == tenantId && !t.IsDeleted && 
-                        t.TemplateCode != "TPL_ENTERPRISE_PREMIUM_DYNAMIC" &&
-                        t.TemplateCode != "TPL_B2B_TALLY" &&
-                        t.TemplateCode != "TPL_UDYOGBILL_SIGNATURE_B2B" && 
-                        t.TemplateCode != "TPL_PHARMA_PRO_TAX_INVOICE" && 
-                        t.TemplateCode != "TPL_MARG_HALF_PAGE_A5" && 
-                        t.TemplateCode != "TPL_CASH_MEMO_HALF_PAGE_A5" && 
-                        t.TemplateCode != "TPL_PURCHASE_ORDER_EXECUTIVE" && 
-                        t.TemplateCode != "TPL_CREDIT_NOTE_STATUTORY" && 
-                        t.TemplateCode != "TPL_POS_THERMAL_80MM")
-            .ToListAsync(cancellationToken);
-
-        if (legacyTemplates.Any())
+        // 3. Add missing canonical templates & repair empty names
+        foreach (var spec in canonicalSpecs)
         {
-            foreach (var leg in legacyTemplates)
+            var existing = allTemplates.FirstOrDefault(t => !t.IsDeleted && t.TemplateCode == spec.TemplateCode);
+            if (existing == null)
             {
-                leg.IsDeleted = true;
-                leg.DeletedAtUtc = DateTime.UtcNow;
+                _context.PrintTemplates.Add(spec);
+                allTemplates.Add(spec);
+                changed = true;
             }
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-
-        // Clean up any duplicate POS thermal slips if multiple exist
-        var thermalSlips = await _context.PrintTemplates
-            .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.TemplateCode == "TPL_POS_THERMAL_80MM")
-            .OrderByDescending(t => t.IsDefault)
-            .ThenByDescending(t => t.CreatedAtUtc)
-            .ToListAsync(cancellationToken);
-
-        if (thermalSlips.Count > 1)
-        {
-            foreach (var extra in thermalSlips.Skip(1))
+            else if (string.IsNullOrWhiteSpace(existing.TemplateName))
             {
-                extra.IsDeleted = true;
-                extra.DeletedAtUtc = DateTime.UtcNow;
+                existing.TemplateName = spec.TemplateName;
+                changed = true;
             }
+        }
+
+        // 4. Ensure single default per document type
+        var activeTemplates = allTemplates.Where(t => !t.IsDeleted).ToList();
+        foreach (var docType in new[] { PrintDocumentType.TaxInvoice, PrintDocumentType.POSReceipt, PrintDocumentType.PurchaseOrder, PrintDocumentType.CreditNote, PrintDocumentType.DeliveryChallan })
+        {
+            var byType = activeTemplates.Where(t => t.DocumentType == docType).ToList();
+            if (byType.Any())
+            {
+                var hasLegacyDynamicDefault = docType == PrintDocumentType.TaxInvoice && byType.Any(t => t.IsDefault && t.TemplateCode == "TPL_ENTERPRISE_PREMIUM_DYNAMIC");
+                if (byType.Count(t => t.IsDefault) != 1 || hasLegacyDynamicDefault)
+                {
+                    string targetDefaultCode = docType switch
+                    {
+                        PrintDocumentType.TaxInvoice => "TPL_UDYOGBILL_SIGNATURE_B2B",
+                        PrintDocumentType.POSReceipt => "TPL_POS_THERMAL_80MM",
+                        PrintDocumentType.PurchaseOrder => "TPL_PURCHASE_ORDER_EXECUTIVE",
+                        PrintDocumentType.CreditNote => "TPL_CREDIT_NOTE_STATUTORY",
+                        PrintDocumentType.DeliveryChallan => "TPL_DELIVERY_CHALLAN_STATUTORY",
+                        _ => byType.First().TemplateCode
+                    };
+
+                    foreach (var item in byType)
+                    {
+                        item.IsDefault = (item.TemplateCode == targetDefaultCode);
+                    }
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed)
+        {
             await _context.SaveChangesAsync(cancellationToken);
         }
-
-        var query = _context.PrintTemplates
-            .Where(t => t.TenantId == tenantId && !t.IsDeleted && 
-                        (t.TemplateCode == "TPL_ENTERPRISE_PREMIUM_DYNAMIC" ||
-                         t.TemplateCode == "TPL_B2B_TALLY" ||
-                         t.TemplateCode == "TPL_UDYOGBILL_SIGNATURE_B2B" || 
-                         t.TemplateCode == "TPL_PHARMA_PRO_TAX_INVOICE" || 
-                         t.TemplateCode == "TPL_MARG_HALF_PAGE_A5" || 
-                         t.TemplateCode == "TPL_CASH_MEMO_HALF_PAGE_A5" || 
-                         t.TemplateCode == "TPL_PURCHASE_ORDER_EXECUTIVE" || 
-                         t.TemplateCode == "TPL_CREDIT_NOTE_STATUTORY" || 
-                         t.TemplateCode == "TPL_POS_THERMAL_80MM"));
-
-        if (documentType.HasValue)
-        {
-            query = query.Where(t => t.DocumentType == documentType.Value);
-        }
-
-        var list = await query
-            .OrderByDescending(t => t.IsDefault)
-            .ThenBy(t => t.DocumentType)
-            .ThenBy(t => t.TemplateName)
-            .Select(t => MapToDto(t))
-            .ToListAsync(cancellationToken);
-
-        return Result<IReadOnlyList<PrintTemplateDto>>.Success(list);
     }
 
     public async Task<Result<PrintTemplateDto>> GetTemplateByIdAsync(Guid templateId, CancellationToken cancellationToken = default)
@@ -619,7 +778,7 @@ public class PrintTemplateService : IPrintTemplateService
 
         if (template == null)
         {
-            // Primary Default: UdyogBill Signature B2B Universal Tax Invoice
+            // Primary Default across all industries: UdyogBill Signature B2B Universal Tax Invoice
             template = await _context.PrintTemplates
                 .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.TemplateCode == "TPL_UDYOGBILL_SIGNATURE_B2B" && !t.IsDeleted, cancellationToken);
         }
@@ -660,6 +819,53 @@ public class PrintTemplateService : IPrintTemplateService
             return Result<RenderPrintPreviewResultDto>.Failure("No print template available to render.", "NO_TEMPLATE");
         }
 
+        if (request.PageSize.HasValue)
+        {
+            template = new PrintTemplate
+            {
+                Id = template.Id,
+                TenantId = template.TenantId,
+                DocumentType = template.DocumentType,
+                TemplateName = template.TemplateName,
+                TemplateCode = template.TemplateCode,
+                PageSize = request.PageSize.Value,
+                IsDefault = template.IsDefault,
+                PrimaryColorHex = template.PrimaryColorHex,
+                SecondaryColorHex = template.SecondaryColorHex,
+                FontFamily = template.FontFamily,
+                ShowLogo = template.ShowLogo,
+                LogoUrl = template.LogoUrl,
+                HeaderTitle = template.HeaderTitle,
+                HeaderSubtitle = template.HeaderSubtitle,
+                ShowGstin = template.ShowGstin,
+                ShowDrugLicense = template.ShowDrugLicense,
+                ShowFssai = template.ShowFssai,
+                ShowBankDetails = template.ShowBankDetails,
+                BankAccountName = template.BankAccountName,
+                BankAccountNumber = template.BankAccountNumber,
+                BankIfsc = template.BankIfsc,
+                BankName = template.BankName,
+                ShowUpiQr = template.ShowUpiQr,
+                UpiId = template.UpiId,
+                ShowItemHsn = template.ShowItemHsn,
+                ShowBatchExpiry = template.ShowBatchExpiry,
+                ShowMrpStrikethrough = template.ShowMrpStrikethrough,
+                ShowSavingsCallout = template.ShowSavingsCallout,
+                ShowLoyaltyPoints = template.ShowLoyaltyPoints,
+                ShowCustomerBalance = template.ShowCustomerBalance,
+                ShowTerms = template.ShowTerms,
+                TermsAndConditions = template.TermsAndConditions,
+                ShowDeclaration = template.ShowDeclaration,
+                DeclarationText = template.DeclarationText,
+                FooterGreeting = template.FooterGreeting,
+                LanguageCode = template.LanguageCode,
+                CustomLabelsJson = template.CustomLabelsJson,
+                CustomCss = template.CustomCss,
+                HtmlTemplateBody = template.HtmlTemplateBody,
+                IsActive = template.IsActive
+            };
+        }
+
         var docId = request.DocumentId ?? request.InvoiceId;
 
         SalesInvoice? invoice = null;
@@ -668,16 +874,17 @@ public class PrintTemplateService : IPrintTemplateService
 
         if (docId.HasValue)
         {
-            if (template.DocumentType == PrintDocumentType.PurchaseOrder)
+            if (template.DocumentType == PrintDocumentType.PurchaseOrder || request.DocumentType == PrintDocumentType.PurchaseOrder)
             {
                 purchaseOrder = await _context.PurchaseOrders
                     .Include(p => p.Items)
                     .Include(p => p.Party)
+                        .ThenInclude(pt => pt.Addresses)
                     .Include(p => p.Branch)
                     .Include(p => p.Warehouse)
                     .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == docId.Value && !p.IsDeleted, cancellationToken);
             }
-            else if (template.DocumentType == PrintDocumentType.CreditNote)
+            else if (template.DocumentType == PrintDocumentType.CreditNote || request.DocumentType == PrintDocumentType.CreditNote)
             {
                 salesReturn = await _context.SalesReturns
                     .Include(r => r.Items)
@@ -689,7 +896,9 @@ public class PrintTemplateService : IPrintTemplateService
             {
                 invoice = await _context.SalesInvoices
                     .Include(i => i.Items)
+                        .ThenInclude(it => it.Item)
                     .Include(i => i.Party)
+                        .ThenInclude(p => p.Addresses)
                     .Include(i => i.Branch)
                     .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == docId.Value && !i.IsDeleted, cancellationToken);
             }
@@ -754,11 +963,30 @@ public class PrintTemplateService : IPrintTemplateService
                 type = wtProp.GetString() ?? "text";
             }
 
-            string watermarkText = "ORIGINAL FOR RECIPIENT";
+            string defaultDocWatermark = template.DocumentType switch
+            {
+                PrintDocumentType.PurchaseOrder => "PURCHASE ORDER",
+                PrintDocumentType.Quotation => "QUOTATION",
+                PrintDocumentType.DeliveryChallan => "DELIVERY CHALLAN",
+                PrintDocumentType.CreditNote => "CREDIT NOTE",
+                _ => "ORIGINAL FOR RECIPIENT"
+            };
+
+            string watermarkText = defaultDocWatermark;
             if (root.TryGetProperty("watermarkText", out var txtProp) && txtProp.ValueKind == System.Text.Json.JsonValueKind.String)
             {
                 var val = txtProp.GetString();
-                if (!string.IsNullOrWhiteSpace(val)) watermarkText = val.Trim();
+                if (!string.IsNullOrWhiteSpace(val))
+                {
+                    if (template.DocumentType != PrintDocumentType.TaxInvoice && val.Equals("ORIGINAL FOR RECIPIENT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        watermarkText = defaultDocWatermark;
+                    }
+                    else
+                    {
+                        watermarkText = val.Trim();
+                    }
+                }
             }
 
             double opacity = 0.12;
@@ -767,30 +995,135 @@ public class PrintTemplateService : IPrintTemplateService
                 opacity = Math.Clamp(opProp.GetDouble() / 100.0, 0.03, 0.50);
             }
 
+            bool isA5 = IsA5Size(template) || (template.TemplateCode?.Contains("A5") == true) || (template.TemplateCode?.Contains("HALF_PAGE") == true) || (template.TemplateCode?.Contains("COMPACT") == true) || html.Contains("min-height:140mm") || html.Contains("marg-half-page") || html.Contains("a5-compact") || html.Contains("A5 landscape");
+
             string watermarkInnerHtml;
             if (type.Equals("logo", StringComparison.OrdinalIgnoreCase))
             {
                 var logoUrl = !string.IsNullOrWhiteSpace(template.LogoUrl) ? template.LogoUrl : tenant?.LogoUrl;
                 if (!string.IsNullOrWhiteSpace(logoUrl))
                 {
-                    watermarkInnerHtml = $"<img src='{System.Net.WebUtility.HtmlEncode(logoUrl)}' style='max-width:350px; max-height:250px; object-fit:contain; filter:grayscale(100%);' />";
+                    string logoDim = isA5 ? "max-width:220px; max-height:110px;" : "max-width:350px; max-height:250px;";
+                    watermarkInnerHtml = $"<img src='{System.Net.WebUtility.HtmlEncode(logoUrl)}' style='{logoDim} object-fit:contain; filter:grayscale(100%); mix-blend-mode:multiply; background:transparent;' />";
                 }
                 else
                 {
-                    watermarkInnerHtml = $"<div style='font-size:52px; font-weight:900; letter-spacing:4px; text-transform:uppercase; font-family:sans-serif; border:4px solid currentColor; padding:12px 28px; border-radius:10px;'>{System.Net.WebUtility.HtmlEncode(watermarkText)}</div>";
+                    string textStyle = isA5
+                        ? "font-size:30px; font-weight:800; letter-spacing:2px; text-transform:uppercase; font-family:sans-serif; border:2.5px solid currentColor; padding:6px 16px; border-radius:6px; white-space:nowrap;"
+                        : "font-size:52px; font-weight:900; letter-spacing:4px; text-transform:uppercase; font-family:sans-serif; border:4px solid currentColor; padding:12px 28px; border-radius:10px; white-space:nowrap;";
+                    watermarkInnerHtml = $"<div style='{textStyle}'>{System.Net.WebUtility.HtmlEncode(watermarkText)}</div>";
                 }
             }
             else
             {
-                watermarkInnerHtml = $"<div style='font-size:52px; font-weight:900; letter-spacing:4px; text-transform:uppercase; font-family:sans-serif; border:4px solid currentColor; padding:12px 28px; border-radius:10px; white-space:nowrap;'>{System.Net.WebUtility.HtmlEncode(watermarkText)}</div>";
+                string textStyle = isA5
+                    ? "font-size:30px; font-weight:800; letter-spacing:2px; text-transform:uppercase; font-family:sans-serif; border:2.5px solid currentColor; padding:6px 16px; border-radius:6px; white-space:nowrap;"
+                    : "font-size:52px; font-weight:900; letter-spacing:4px; text-transform:uppercase; font-family:sans-serif; border:4px solid currentColor; padding:12px 28px; border-radius:10px; white-space:nowrap;";
+                watermarkInnerHtml = $"<div style='{textStyle}'>{System.Net.WebUtility.HtmlEncode(watermarkText)}</div>";
             }
 
             var watermarkBlock = $@"
-<div class='invoice-watermark' style='position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); opacity:{opacity:F2}; pointer-events:none; z-index:100; color:#475569; display:flex !important; align-items:center; justify-content:center;'>
+<div class='invoice-watermark' style='position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); opacity:{opacity.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)}; pointer-events:none; z-index:0; color:#475569; display:flex !important; align-items:center; justify-content:center; max-width:90%; overflow:hidden; mix-blend-mode:multiply !important;'>
     {watermarkInnerHtml}
 </div>";
 
-            return $"<div style='position:relative; width:100%; height:100%;'>{watermarkBlock}{html}</div>";
+            var stylePatch = @"<style>
+.enterprise-invoice, .invoice-container, .tally-invoice, .marg-half-page, .cash-memo-container, .services-invoice, .cbo-invoice-wrap, .po-container, .challan-container, .a5-compact, .invoice-wrapper, .page-wrapper, .pharma-grid-invoice {
+    position: relative !important;
+}
+@media screen {
+    .enterprise-invoice, .invoice-container, .tally-invoice, .marg-half-page, .cash-memo-container, .services-invoice, .cbo-invoice-wrap, .po-container, .challan-container, .a5-compact, .invoice-wrapper, .page-wrapper, .pharma-grid-invoice {
+        height: auto !important;
+        min-height: fit-content !important;
+        max-height: none !important;
+    }
+    .invoice-container > div, .enterprise-invoice > div {
+        height: auto !important;
+    }
+}
+@media print {
+    .enterprise-invoice, .invoice-container, .tally-invoice, .services-invoice, .cbo-invoice-wrap, .po-container, .challan-container, .invoice-wrapper, .page-wrapper, .pharma-grid-invoice {
+        min-height: 260mm !important;
+        max-height: 282mm !important;
+        height: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    .marg-half-page, .cash-memo-container, .a5-compact {
+        min-height: 135mm !important;
+        max-height: 144mm !important;
+        height: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+}
+.invoice-watermark {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) rotate(-30deg) !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    mix-blend-mode: multiply !important;
+}
+.invoice-watermark img {
+    mix-blend-mode: multiply !important;
+    background: transparent !important;
+}
+.enterprise-invoice > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.invoice-container > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.tally-invoice > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.marg-half-page > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.cash-memo-container > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.services-invoice > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.cbo-invoice-wrap > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.po-container > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.challan-container > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.a5-compact > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.invoice-wrapper > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.page-wrapper > div:not(.invoice-watermark):not(.invoice-status-watermark),
+.pharma-grid-invoice > div:not(.invoice-watermark):not(.invoice-status-watermark) {
+    position: relative !important;
+    z-index: 1 !important;
+}
+.enterprise-invoice table, .invoice-container table, .tally-invoice table, .marg-half-page table, .cash-memo-container table, .services-invoice table, .cbo-invoice-wrap table, .po-container table, .challan-container table, .a5-compact table, .invoice-wrapper table, .page-wrapper table, .pharma-grid-invoice table {
+    position: relative !important;
+    z-index: 2 !important;
+    background: transparent !important;
+}
+.enterprise-invoice table td, .invoice-container table td, .tally-invoice table td, .marg-half-page table td, .cash-memo-container table td, .services-invoice table td, .cbo-invoice-wrap table td, .po-container table td, .challan-container table td, .a5-compact table td, .invoice-wrapper table td, .page-wrapper table td, .pharma-grid-invoice table td {
+    background-color: transparent !important;
+}
+.enterprise-invoice table thead, .invoice-container table thead, .tally-invoice table thead, .marg-half-page table thead, .cash-memo-container table thead, .services-invoice table thead, .cbo-invoice-wrap table thead, .po-container table thead, .challan-container table thead, .a5-compact table thead, .invoice-wrapper table thead, .page-wrapper table thead, .pharma-grid-invoice table thead {
+    position: relative !important;
+    z-index: 3 !important;
+}
+</style>";
+
+            if (html.Contains("</head>"))
+            {
+                html = html.Replace("</head>", $"{stylePatch}</head>");
+            }
+            else
+            {
+                watermarkBlock = stylePatch + watermarkBlock;
+            }
+
+            var containerRegex = new System.Text.RegularExpressions.Regex(
+                @"<div[^>]*class=['""][^'""]*(?:enterprise-invoice|invoice-container|tally-invoice|marg-half-page|cash-memo-container|services-invoice|cbo-invoice-wrap|po-container|challan-container|a5-compact|page-wrapper|invoice-wrapper|pharma-grid-invoice)[^'""]*['""][^>]*>",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var match = containerRegex.Match(html);
+            if (match.Success)
+            {
+                int insertIndex = match.Index + match.Length;
+                return html.Insert(insertIndex, "\n" + watermarkBlock);
+            }
+
+            string wrapperBounds = isA5
+                ? "min-height:140mm; height:auto;"
+                : "min-height:280mm; max-height:285mm; height:282mm;";
+            return $"<div style='position:relative; width:100%; {wrapperBounds} box-sizing:border-box;'>{watermarkBlock}{html}</div>";
         }
         catch
         {
@@ -798,22 +1131,40 @@ public class PrintTemplateService : IPrintTemplateService
         }
     }
 
+    private static string ExtractDisclaimerFromCustomLabels(string? customLabelsJson)
+    {
+        if (string.IsNullOrWhiteSpace(customLabelsJson) || customLabelsJson.Trim() == "{}")
+            return string.Empty;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(customLabelsJson);
+            if (doc.RootElement.TryGetProperty("disclaimerText", out var dt) && dt.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                return dt.GetString()?.Trim() ?? string.Empty;
+            }
+        }
+        catch {}
+        return string.Empty;
+    }
+
     private static string InjectInvoiceStatusWatermarkAndBanner(string html, SalesInvoice invoice, List<SalesReturn>? invoiceReturns)
     {
-        var sb = new System.Text.StringBuilder();
-        sb.Append("<div style='position:relative; width:100%; height:100%;'>");
+        bool isA5 = html.Contains("min-height:140mm") || html.Contains("marg-half-page") || html.Contains("a5-compact") || html.Contains("A5 landscape");
+        var bannerBlock = new System.Text.StringBuilder();
 
         if (invoice.IsCancelled)
         {
             var cancelDate = invoice.CancelledAtUtc.HasValue ? invoice.CancelledAtUtc.Value.ToString("dd/MM/yyyy HH:mm") : "N/A";
             var reason = string.IsNullOrWhiteSpace(invoice.CancellationReason) ? "Cancelled" : invoice.CancellationReason;
-            sb.Append($@"
-<div style='background-color:#fee2e2; border:2px solid #ef4444; border-radius:6px; padding:8px 12px; margin-bottom:10px; text-align:center; color:#991b1b; font-family:sans-serif;'>
-    <div style='font-size:15px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase;'>&#10006; CANCELLED / VOID INVOICE</div>
-    <div style='font-size:11px; margin-top:2px; font-weight:600;'>This invoice was CANCELLED on {cancelDate} UTC. Reason: {reason}</div>
-    <div style='font-size:9.5px; color:#b91c1c; font-weight:bold; margin-top:2px;'>NOT VALID FOR PAYMENT, ACCOUNTING OR INPUT TAX CREDIT (ITC)</div>
+            int cancelFontSize = isA5 ? 36 : 60;
+            string cancelPadding = isA5 ? "6px 20px" : "10px 40px";
+            bannerBlock.Append($@"
+<div style='background-color:#fee2e2; border:2px solid #ef4444; border-radius:6px; padding:{(isA5 ? "4px 8px" : "8px 12px")}; margin-bottom:{(isA5 ? "4px" : "10px")}; text-align:center; color:#991b1b; font-family:sans-serif;'>
+    <div style='font-size:{(isA5 ? "12px" : "15px")}; font-weight:900; letter-spacing:1px; text-transform:uppercase;'>&#10006; CANCELLED / VOID INVOICE</div>
+    <div style='font-size:{(isA5 ? "9.5px" : "11px")}; margin-top:2px; font-weight:600;'>This invoice was CANCELLED on {cancelDate} UTC. Reason: {reason}</div>
+    <div style='font-size:{(isA5 ? "8px" : "9.5px")}; color:#b91c1c; font-weight:bold; margin-top:2px;'>NOT VALID FOR PAYMENT, ACCOUNTING OR INPUT TAX CREDIT (ITC)</div>
 </div>
-<div style='position:absolute; top:40%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); font-size:60px; font-weight:900; color:rgba(239, 68, 68, 0.20); border:5px solid rgba(239, 68, 68, 0.25); padding:10px 40px; border-radius:12px; pointer-events:none; z-index:9999; text-transform:uppercase; letter-spacing:4px; font-family:sans-serif;'>
+<div class='invoice-status-watermark' style='position:absolute; top:45%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); font-size:{cancelFontSize}px; font-weight:900; color:rgba(239, 68, 68, 0.20); border:{(isA5 ? "3px" : "5px")} solid rgba(239, 68, 68, 0.25); padding:{cancelPadding}; border-radius:10px; pointer-events:none; z-index:9999; text-transform:uppercase; letter-spacing:3px; font-family:sans-serif;'>
     CANCELLED
 </div>");
         }
@@ -822,38 +1173,79 @@ public class PrintTemplateService : IPrintTemplateService
             var cnNumbers = string.Join(", ", invoiceReturns.Select(r => r.CreditNoteNumber));
             var cnTotal = invoiceReturns.Sum(r => r.TotalAmount);
             var cnDate = invoiceReturns[0].ReturnDate.ToString("dd/MM/yyyy");
-            sb.Append($@"
-<div style='background-color:#fef3c7; border:2px solid #f59e0b; border-radius:6px; padding:8px 12px; margin-bottom:10px; text-align:center; color:#92400e; font-family:sans-serif;'>
-    <div style='font-size:14px; font-weight:900; letter-spacing:1px; text-transform:uppercase; color:#b45309;'>&#9888; CREDIT NOTE ISSUED / SALE RETURN PROCESSED</div>
-    <div style='font-size:11px; margin-top:3px; font-weight:bold; color:#78350f;'>
-        Credit Note No: <span style='font-family:monospace; font-size:12px; color:#b45309;'>{cnNumbers}</span>
+            int cnFontSize = isA5 ? 30 : 46;
+            string cnPadding = isA5 ? "6px 18px" : "10px 30px";
+            bannerBlock.Append($@"
+<div style='background-color:#fef3c7; border:2px solid #f59e0b; border-radius:6px; padding:{(isA5 ? "4px 8px" : "8px 12px")}; margin-bottom:{(isA5 ? "4px" : "10px")}; text-align:center; color:#92400e; font-family:sans-serif;'>
+    <div style='font-size:{(isA5 ? "11px" : "14px")}; font-weight:900; letter-spacing:1px; text-transform:uppercase; color:#b45309;'>&#9888; CREDIT NOTE ISSUED / SALE RETURN PROCESSED</div>
+    <div style='font-size:{(isA5 ? "9.5px" : "11px")}; margin-top:2px; font-weight:bold; color:#78350f;'>
+        Credit Note No: <span style='font-family:monospace; font-size:{(isA5 ? "10px" : "12px")}; color:#b45309;'>{cnNumbers}</span>
         &nbsp;&bull;&nbsp; Return Total: <span style='color:#b45309;'>&#8377;{cnTotal:N2}</span>
         &nbsp;&bull;&nbsp; Return Date: {cnDate}
     </div>
-    <div style='font-size:9.5px; color:#92400e; margin-top:2px;'>Goods/services against this invoice have been returned. Refer to Credit Note for net ledger adjustment.</div>
+    <div style='font-size:{(isA5 ? "8px" : "9.5px")}; color:#92400e; margin-top:2px;'>Goods/services against this invoice have been returned. Refer to Credit Note for net ledger adjustment.</div>
 </div>
-<div style='position:absolute; top:40%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); font-size:46px; font-weight:900; color:rgba(217, 119, 6, 0.18); border:5px solid rgba(217, 119, 6, 0.25); padding:10px 30px; border-radius:12px; pointer-events:none; z-index:9999; text-transform:uppercase; letter-spacing:3px; font-family:sans-serif;'>
+<div class='invoice-status-watermark' style='position:absolute; top:45%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); font-size:{cnFontSize}px; font-weight:900; color:rgba(217, 119, 6, 0.18); border:{(isA5 ? "3px" : "5px")} solid rgba(217, 119, 6, 0.25); padding:{cnPadding}; border-radius:10px; pointer-events:none; z-index:9999; text-transform:uppercase; letter-spacing:2px; font-family:sans-serif;'>
     CREDIT NOTE ISSUED
 </div>");
         }
 
-        sb.Append(html);
-        sb.Append("</div>");
-        return sb.ToString();
+        var containerRegex = new System.Text.RegularExpressions.Regex(
+            @"<div[^>]*class=['""][^'""]*(?:enterprise-invoice|invoice-container|tally-invoice|marg-half-page|cash-memo-container|services-invoice|cbo-invoice-wrap|po-container|challan-container|a5-compact|page-wrapper|invoice-wrapper)[^'""]*['""][^>]*>",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        var match = containerRegex.Match(html);
+        if (match.Success)
+        {
+            int insertIndex = match.Index + match.Length;
+            return html.Insert(insertIndex, "\n" + bannerBlock.ToString());
+        }
+
+        string wrapperBounds = isA5
+            ? "min-height:140mm; height:auto;"
+            : "min-height:280mm; max-height:285mm; height:282mm;";
+        return $"<div style='position:relative; width:100%; {wrapperBounds} box-sizing:border-box;'>{bannerBlock}{html}</div>";
+    }
+
+    private static bool IsNonGstDocument(SalesInvoice? invoice)
+    {
+        if (invoice == null) return false;
+        if (invoice.InvoiceType == InvoiceType.SalesEstimate) return true;
+        if (!string.IsNullOrEmpty(invoice.InvoiceNumber) &&
+            (invoice.InvoiceNumber.StartsWith("CASH-", StringComparison.OrdinalIgnoreCase) ||
+             invoice.InvoiceNumber.StartsWith("CM/", StringComparison.OrdinalIgnoreCase) ||
+             invoice.InvoiceNumber.StartsWith("EST-", StringComparison.OrdinalIgnoreCase) ||
+             invoice.InvoiceNumber.StartsWith("QTN/", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+        if (invoice.CgstAmount == 0 && invoice.SgstAmount == 0 && invoice.IgstAmount == 0 && string.IsNullOrWhiteSpace(invoice.CustomerGSTIN))
+        {
+            if (!string.IsNullOrWhiteSpace(invoice.AttributesJson) &&
+                (invoice.AttributesJson.Contains("\"billingMode\":\"NON_GST\"") ||
+                 invoice.AttributesJson.Contains("\"billingMode\":\"non_gst\"") ||
+                 invoice.AttributesJson.Contains("\"taxTreatment\":\"NON_GST\"") ||
+                 invoice.AttributesJson.Contains("\"isNonGst\":true") ||
+                 invoice.AttributesJson.Contains("\"isCashMemo\":true")))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static bool IsA5Size(PrintTemplate t)
     {
-        return t.PageSize == PageSizeFormat.A5 || t.PageSize == PageSizeFormat.A5_Portrait || t.PageSize == PageSizeFormat.A5_Landscape || (int)t.PageSize == 10;
+        return t.PageSize == PageSizeFormat.A5 || t.PageSize == PageSizeFormat.A5_Portrait || t.PageSize == PageSizeFormat.A5_Landscape || (int)t.PageSize == 10 || (int)t.PageSize == 3 || (int)t.PageSize == 9;
     }
 
     private static string GetContainerHeightStyle(PrintTemplate t)
     {
         if (IsA5Size(t))
         {
-            return "height:auto; max-height:140mm; page-break-inside:avoid; break-inside:avoid;";
+            return "position:relative; min-height:140mm; height:auto; page-break-inside:avoid; break-inside:avoid;";
         }
-        return "height:auto; page-break-inside:avoid; break-inside:avoid;";
+        return "position:relative; min-height:268mm; height:auto; page-break-inside:avoid; break-inside:avoid;";
     }
 
     // ==============================================================================
@@ -870,13 +1262,25 @@ public class PrintTemplateService : IPrintTemplateService
         }
 
         // 0.2 Statutory GST Credit Note (A4 Section 34)
-        if (code.Contains("CREDIT_NOTE") || t.DocumentType == PrintDocumentType.CreditNote)
+        if (code.Contains("CREDIT_NOTE") || t.DocumentType == PrintDocumentType.CreditNote || salesReturn != null)
         {
             return RenderCreditNoteStatutoryHtml(t, salesReturn, invoice, tenant);
         }
 
-        // 0.3 Enterprise Sovereign Color Edition (100% Dynamic Legal A4 Flagship)
-        if (code.Contains("ENTERPRISE_PREMIUM_DYNAMIC") || code.Contains("SOVEREIGN_COLOR") || code.Contains("TPL_ENTERPRISE_PREMIUM_DYNAMIC"))
+        // 0.3 Statutory Delivery Challan (A4 CGST Rule 55)
+        if (code.Contains("CHALLAN") || t.DocumentType == PrintDocumentType.DeliveryChallan)
+        {
+            return RenderDeliveryChallanStatutoryHtml(t, invoice, tenant);
+        }
+
+        // 0.4 Professional Services & Consulting Tax Invoice (A4)
+        if (code.Contains("SERVICES") || code.Contains("PROFESSIONAL") || code == "TPL_B2B_SERVICES_PRO")
+        {
+            return RenderProfessionalServicesInvoiceHtml(t, invoice, tenant);
+        }
+
+        // 0.5 Enterprise Sovereign Color Edition (100% Dynamic Legal A4 Flagship)
+        if (code.Contains("ENTERPRISE_PREMIUM_DYNAMIC") || code.Contains("SOVEREIGN_COLOR") || code.Contains("SUPERMARKET") || code.Contains("APPAREL") || code.Contains("ELECTRONICS") || code.Contains("CORPORATE_ENTERPRISE"))
         {
             return RenderEnterprisePremiumDynamicInvoiceHtml(t, invoice, tenant);
         }
@@ -899,50 +1303,50 @@ public class PrintTemplateService : IPrintTemplateService
             return RenderUdyogBillSignatureB2BHtml(t, invoice, tenant);
         }
 
-        // 3. Tally Prime Style (ERP Classic)
+        // 4. Tally Prime Style (ERP Classic)
         if (code.Contains("TALLY") || code.Contains("TPL_B2B_TALLY"))
         {
             return RenderTallyPrimeInvoiceHtml(t, invoice, tenant);
         }
 
-        // 4. Pharma Retail Cash Memo (A5 Half-Page Non-GST Estimate)
+        // 5. Pharma Retail Cash Memo (A5 Half-Page Non-GST Estimate)
         if (code.Contains("TPL_CASH_MEMO_HALF_PAGE_A5") || (code.Contains("CASH_MEMO") && (code.Contains("HALF_PAGE") || code.Contains("A5"))))
         {
             return RenderCashMemoHalfPageHtml(t, invoice, tenant);
         }
 
-        // 5. Marg ERP Style (Pharma / FMCG Distribution Blue Header)
+        // 6. Marg ERP Style (Pharma / FMCG Distribution Blue Header)
         if (code.Contains("MARG") || code.Contains("PHARMA_STOCKIST") || code.Contains("TPL_B2B_MARG") || code.Contains("TPL_D2C_MARG") || code.Contains("TPL_CASH_MARG"))
         {
             return RenderMargErpInvoiceHtml(t, invoice, tenant);
         }
 
-        // 5. MyBillBook / Vyapar Style (Modern Purple Gradient Card)
+        // 7. MyBillBook / Vyapar Style (Modern Purple Gradient Card)
         if (code.Contains("MYBILLBOOK") || code.Contains("VYAPAR") || code.Contains("TPL_D2C_MYBILLBOOK") || code.Contains("TPL_CASH_MYBILLBOOK") || code.Contains("TPL_D2C_VYAPAR") || code.Contains("TPL_CASH_VYAPAR"))
         {
             return RenderMyBillBookInvoiceHtml(t, invoice, tenant);
         }
 
-        // 6. CBO ERP / PCD Pharma Style (Green Accent)
+        // 8. CBO ERP / PCD Pharma Style (Green Accent)
         if (code.Contains("CBO") || code.Contains("GENERIC_SALT") || code.Contains("TPL_PHARMA_GENERIC_SALT"))
         {
             return RenderCboErpInvoiceHtml(t, invoice, tenant);
         }
 
-        // 7. Pharma Retail Chemist Rx Bill (Red Header & Doctor Details)
+        // 9. Pharma Retail Chemist Rx Bill (Red Header & Doctor Details)
         if (code.Contains("PHARMA_RX") || code.Contains("CHEMIST") || code.Contains("TPL_PHARMA_RX_CHEMIST"))
         {
             return RenderPharmaRxHtml(t, invoice, tenant);
         }
 
-        // 8. Compact Trade Memo (A5 Teal)
+        // 10. Compact Trade Memo (A5 Teal)
         if (code.Contains("A5_COMPACT") || code.Contains("TPL_A5_COMPACT_TRADE") || code.Contains("COMPACT_TRADE"))
         {
             return RenderA5CompactHtml(t, invoice, tenant);
         }
 
-        // Flagship Default Fallback: UdyogBill Signature B2B
-        return RenderUdyogBillSignatureB2BHtml(t, invoice, tenant);
+        // Flagship Default Fallback: Enterprise Classic Executive Edition
+        return RenderEnterprisePremiumDynamicInvoiceHtml(t, invoice, tenant);
     }
 
     // ==============================================================================
@@ -950,16 +1354,17 @@ public class PrintTemplateService : IPrintTemplateService
     // ==============================================================================
     private static string RenderEnterprisePremiumDynamicInvoiceHtml(PrintTemplate t, SalesInvoice? invoice, Tenant? tenant = null)
     {
-        // 1. Color Palette: Executive Royal Indigo for Invoices (Distinguished from PO)
-        var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) && t.PrimaryColorHex != "#0f172a" && t.PrimaryColorHex != "#000000"
-            ? t.PrimaryColorHex
-            : "#4338ca"; // Executive Royal Indigo
-        var secondaryColor = !string.IsNullOrWhiteSpace(t.SecondaryColorHex) && t.SecondaryColorHex != "#334155"
-            ? t.SecondaryColorHex
-            : "#4f46e5";
+        // 1. Color Palette: Vibrant Orange & Rich Forest Green (Zero Blue)
+        var primaryOrange = "#ea580c";   // Warm Indian saffron / vibrant orange
+        var primaryGreen = "#15803d";    // Rich emerald forest green
+        var lightGreenBg = "#f0fdf4";    // Soft mint green background
+        var greenBorder = "#86efac";     // Light green border accent
         var darkSlate = "#0f172a";
-        var borderSlate = "#cbd5e1";
+        var borderSlate = "#1e293b";
         var lightBg = "#f8fafc";
+
+        var primaryColor = primaryOrange;
+        var secondaryColor = primaryGreen;
 
         // 2. Seller Identification (100% genuine dynamic)
         var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName)
@@ -975,12 +1380,16 @@ public class PrintTemplateService : IPrintTemplateService
             ? invoice.Branch.GSTIN
             : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
         var sellerPan = !string.IsNullOrWhiteSpace(tenant?.PAN) ? tenant.PAN : (sellerGstin.Length >= 12 ? sellerGstin.Substring(2, 10) : "");
-        var sellerState = !string.IsNullOrWhiteSpace(invoice?.Branch?.State)
-            ? $"{invoice.Branch.State}{(string.IsNullOrWhiteSpace(invoice.Branch.StateCode) ? "" : $" (Code: {invoice.Branch.StateCode})")}"
-            : (!string.IsNullOrWhiteSpace(tenant?.State) ? $"{tenant.State}{(string.IsNullOrWhiteSpace(tenant.StateCode) ? "" : $" (Code: {tenant.StateCode})")}" : "");
-        var sellerStateCodeOnly = !string.IsNullOrWhiteSpace(invoice?.Branch?.StateCode)
-            ? invoice.Branch.StateCode
-            : (!string.IsNullOrWhiteSpace(tenant?.StateCode) ? tenant.StateCode : (sellerGstin.Length >= 2 ? sellerGstin.Substring(0, 2) : ""));
+        var sellerStateCodeOnly = GstStateHelper.NormalizeStateCode(
+            invoice?.Branch?.StateCode ?? tenant?.StateCode ?? invoice?.Branch?.State ?? tenant?.State,
+            sellerGstin,
+            "09");
+        var rawSellerStateName = !string.IsNullOrWhiteSpace(invoice?.Branch?.State)
+            ? invoice.Branch.State
+            : (!string.IsNullOrWhiteSpace(tenant?.State) ? tenant.State : GstStateHelper.GetStateNameByCode(sellerStateCodeOnly));
+        var sellerState = !string.IsNullOrWhiteSpace(rawSellerStateName)
+            ? $"{rawSellerStateName} (Code: {sellerStateCodeOnly})"
+            : "";
 
         var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
         var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
@@ -989,8 +1398,9 @@ public class PrintTemplateService : IPrintTemplateService
         var logoUrl = !string.IsNullOrEmpty(t.LogoUrl) ? t.LogoUrl : (!string.IsNullOrEmpty(tenant?.LogoUrl) ? tenant.LogoUrl : "");
 
         // 3. Invoice Metadata
-        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) ? t.HeaderTitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE");
-        var copyBadge = !string.IsNullOrWhiteSpace(t.HeaderSubtitle) && !t.HeaderSubtitle.Contains("Rule 48") ? t.HeaderSubtitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "ORIGINAL / COUNTER SALE" : "ORIGINAL FOR RECIPIENT");
+        bool isNonGst = IsNonGstDocument(invoice);
+        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) && t.HeaderTitle != "TAX INVOICE" ? t.HeaderTitle : (isNonGst ? "CASH MEMO / ESTIMATE" : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE"));
+        var copyBadge = isNonGst ? "NON-GST RETAIL SLIP | CUSTOMER COPY" : (!string.IsNullOrWhiteSpace(t.HeaderSubtitle) && !t.HeaderSubtitle.Contains("Rule 48") ? t.HeaderSubtitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "ORIGINAL / COUNTER SALE" : "ORIGINAL FOR RECIPIENT"));
 
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd-MMM-yyyy") ?? DateTime.Now.ToString("dd-MMM-yyyy");
@@ -1009,28 +1419,14 @@ public class PrintTemplateService : IPrintTemplateService
         var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
         bool isB2B = !string.IsNullOrWhiteSpace(custGstin);
         var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
-        var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
         var custStateCode = GstStateHelper.ExtractStateCodeFromGstin(custGstin) ?? (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) && invoice.BillingStateCode != "27" ? invoice.BillingStateCode : (isB2B ? "" : ""));
         var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
         var custDl = ExtractInvoiceBuyerDl(invoice);
 
         // Doctor / Patient / Prescriber Statutory attributes
-        var doctorName = !string.IsNullOrWhiteSpace(invoice?.DoctorName) ? invoice.DoctorName : "";
-        var patientName = "";
-        var patientContact = "";
-        var doctorRegNo = "";
-        if (!string.IsNullOrEmpty(invoice?.AttributesJson))
-        {
-            try
-            {
-                using var doc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
-                if (doc.RootElement.TryGetProperty("patientName", out var pn)) patientName = pn.GetString() ?? "";
-                if (doc.RootElement.TryGetProperty("patientContact", out var pc)) patientContact = pc.GetString() ?? "";
-                if (doc.RootElement.TryGetProperty("doctorRegNo", out var drn)) doctorRegNo = drn.GetString() ?? "";
-            }
-            catch {}
-        }
+        ExtractInvoiceDoctorDetails(invoice, out var doctorName, out var doctorRegNo, out var patientName, out var patientContact);
         bool hasPrescriptionInfo = !string.IsNullOrWhiteSpace(doctorName) || !string.IsNullOrWhiteSpace(patientName);
 
         // 5. Logistics, Transportation & E-Way Bill
@@ -1045,6 +1441,9 @@ public class PrintTemplateService : IPrintTemplateService
         string irn = "";
         string ackNo = "";
         string ackDate = "";
+        string autoVehicleModel = "";
+        string autoMechanicName = "";
+        string autoOdometerKm = "";
         if (!string.IsNullOrEmpty(invoice?.AttributesJson))
         {
             try
@@ -1053,11 +1452,15 @@ public class PrintTemplateService : IPrintTemplateService
                 if (doc.RootElement.TryGetProperty("irn", out var i)) irn = i.GetString() ?? "";
                 if (doc.RootElement.TryGetProperty("ackNo", out var a)) ackNo = a.GetString() ?? "";
                 if (doc.RootElement.TryGetProperty("ackDate", out var d)) ackDate = d.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("vehicleModel", out var vm)) autoVehicleModel = vm.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("mechanicName", out var mn)) autoMechanicName = mn.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("odometerKm", out var okm)) autoOdometerKm = okm.GetString() ?? "";
+                if (string.IsNullOrWhiteSpace(vehicleNo) && doc.RootElement.TryGetProperty("vehicleRegNo", out var vrn)) vehicleNo = vrn.GetString() ?? "";
             }
             catch {}
         }
 
-        bool hasLogistics = !string.IsNullOrWhiteSpace(transporter) || !string.IsNullOrWhiteSpace(vehicleNo) ||
+        bool hasLogistics = !string.IsNullOrWhiteSpace(transporter) || (!string.IsNullOrWhiteSpace(vehicleNo) && string.IsNullOrWhiteSpace(autoVehicleModel) && string.IsNullOrWhiteSpace(autoMechanicName)) ||
                             !string.IsNullOrWhiteSpace(lrNo) || !string.IsNullOrWhiteSpace(eWayNo) ||
                             !string.IsNullOrWhiteSpace(poNo) || !string.IsNullOrWhiteSpace(irn);
 
@@ -1073,34 +1476,80 @@ public class PrintTemplateService : IPrintTemplateService
         var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
-        // 7. Bank & Dynamic UPI QR
+        decimal oldGoldAdj = 0m;
+        decimal kittyAdj = 0m;
+        string customerPan = "";
+        if (!string.IsNullOrEmpty(invoice?.AttributesJson))
+        {
+            try
+            {
+                using var invDoc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
+                if (invDoc.RootElement.TryGetProperty("oldGoldDeductionAmount", out var ogaProp))
+                {
+                    if (ogaProp.ValueKind == System.Text.Json.JsonValueKind.Number) oldGoldAdj = ogaProp.GetDecimal();
+                    else if (decimal.TryParse(ogaProp.GetString(), out var poga)) oldGoldAdj = poga;
+                }
+                if (invDoc.RootElement.TryGetProperty("kittyDeductionAmount", out var kdaProp))
+                {
+                    if (kdaProp.ValueKind == System.Text.Json.JsonValueKind.Number) kittyAdj = kdaProp.GetDecimal();
+                    else if (decimal.TryParse(kdaProp.GetString(), out var pkda)) kittyAdj = pkda;
+                }
+                if (invDoc.RootElement.TryGetProperty("customerPanNumber", out var cpanProp))
+                {
+                    customerPan = cpanProp.GetString()?.Trim() ?? "";
+                }
+            }
+            catch {}
+        }
+        decimal jewelleryNetPayable = Math.Max(0m, totalAmount - oldGoldAdj - kittyAdj);
+
+        // 7. Bank & Dynamic UPI QR (Locally encoded Base64 Data URI)
         var bankName = !string.IsNullOrWhiteSpace(t.BankName) ? t.BankName : (!string.IsNullOrWhiteSpace(tenant?.BankName) ? tenant.BankName : "");
         var bankAcc = !string.IsNullOrWhiteSpace(t.BankAccountNumber) ? t.BankAccountNumber : (!string.IsNullOrWhiteSpace(tenant?.BankAccountNumber) ? tenant.BankAccountNumber : "");
         var bankIfsc = !string.IsNullOrWhiteSpace(t.BankIfsc) ? t.BankIfsc : (!string.IsNullOrWhiteSpace(tenant?.BankIfsc) ? tenant.BankIfsc : "");
         var bankBranch = !string.IsNullOrWhiteSpace(tenant?.BankBranch) ? tenant.BankBranch : "";
         var rawUpi = !string.IsNullOrWhiteSpace(t.UpiId) ? t.UpiId : (!string.IsNullOrWhiteSpace(tenant?.UpiId) ? tenant.UpiId : "");
         var upiId = (!string.IsNullOrWhiteSpace(rawUpi) && !rawUpi.Contains("9876543210") && !rawUpi.Contains("example.com")) ? rawUpi : "";
-        var upiQr = (!string.IsNullOrEmpty(upiId) && t.ShowUpiQr)
-            ? $"https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi%3A%2F%2Fpay%3Fpa%3D{upiId}%26pn%3D{Uri.EscapeDataString(sellerName)}%26am%3D{totalAmount:F2}%26cu%3DINR%26tn%3D{invNo}"
+        var rawUpiPayload = !string.IsNullOrEmpty(upiId)
+            ? $"upi://pay?pa={upiId}&pn={Uri.EscapeDataString(sellerName)}&am={totalAmount:F2}&cu=INR&tn={invNo}"
+            : "";
+        var upiQr = (!string.IsNullOrEmpty(rawUpiPayload) && t.ShowUpiQr)
+            ? GenerateQrCodeDataUri(rawUpiPayload, 4)
             : "";
         bool showSettlementCard = t.ShowBankDetails && (!string.IsNullOrWhiteSpace(bankName) || !string.IsNullOrWhiteSpace(bankAcc) || !string.IsNullOrEmpty(upiQr));
 
-        // 8. Dynamic Column Detection across ALL Industries
-        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
-        bool isElectronics = industry == IndustryTypeCodes.Electronics;
-        bool isGarments = industry == IndustryTypeCodes.Garments;
-        bool isHardware = industry == IndustryTypeCodes.Hardware;
+        // 8. Dynamic Column Detection across ALL Industries (Universal Domain Auto Adoption)
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isPharma = prof.IsPharma;
+        bool isElectronics = prof.IsElectronics;
+        bool isGarments = prof.IsGarments;
+        bool isHardware = prof.IsHardware;
+        bool isSupermarket = prof.IsFmcg;
+        bool isAutoParts = prof.IsAutoParts;
+        bool isJewellery = prof.IsJewellery;
 
-        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true);
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true);
-        bool hasFree = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
-        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
-        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
+        bool hasAutoPartsInfo = isAutoParts && (!string.IsNullOrWhiteSpace(vehicleNo) || !string.IsNullOrWhiteSpace(autoVehicleModel) || !string.IsNullOrWhiteSpace(autoMechanicName) || !string.IsNullOrWhiteSpace(autoOdometerKm));
 
+        // Dynamic columns: auto-adopt industry statutory profile
+        bool hasSerial = !isPharma && !isJewellery && (invoice?.Items.Any(HasImeiOrSerial) ?? false);
+        bool hasBatch = !isJewellery && (isPharma || (!isAutoParts && ((invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) ?? false) || (invoice == null && t.ShowBatchExpiry && !isSupermarket))));
+        bool hasExpiry = !isJewellery && (isPharma || (!isAutoParts && ((invoice?.Items.Any(i => i.ExpiryDate.HasValue) ?? false) || (invoice == null && t.ShowBatchExpiry && !isSupermarket))));
+        bool hasFree = !isJewellery && (isPharma || (invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false));
+        bool hasPack = !isJewellery && (isPharma || (invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)) ?? false));
+        bool hasMrp = isPharma || (invoice?.Items.Any(i => i.Mrp > 0) ?? false) || isSupermarket || t.ShowMrpStrikethrough;
+        bool hasDisc = isPharma || (invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? false);
+        bool hasUnitCol = isPharma;
+        bool hasTaxableCol = isPharma;
+        bool hasSplitGstCol = isPharma;
+
+        bool isA5 = IsA5Size(t);
         var itemsRows = new StringBuilder();
         int lineIndex = 1;
         int itemCount = 0;
+
+        string tdPad = isA5 ? "padding:2px 4px;" : "padding:3.5px 5px;";
+        string tdPadCompact = isA5 ? "padding:2px 3px;" : "padding:3.5px 3px;";
+        string rowHeight = isA5 ? "height:20px; font-size:9.5px;" : "height:24px; font-size:10px;";
 
         if (invoice != null && invoice.Items.Any())
         {
@@ -1111,54 +1560,165 @@ public class PrintTemplateService : IPrintTemplateService
                 var expStr = it.ExpiryDate.HasValue ? it.ExpiryDate.Value.ToString("MM/yy") : "-";
                 var discText = it.DiscountPercent > 0 ? $"{it.DiscountPercent:0.##}%" : (it.DiscountAmount > 0 ? $"₹{it.DiscountAmount:0.##}" : "-");
 
+                string cgstPct = "-", sgstPct = "-", igstPct = "-";
+                if (hasSplitGstCol)
+                {
+                    if (it.IgstAmount > 0 || igst > 0)
+                    {
+                        igstPct = $"{it.GstRate:0.##}%";
+                    }
+                    else
+                    {
+                        cgstPct = $"{(it.GstRate / 2):0.##}%";
+                        sgstPct = $"{(it.GstRate / 2):0.##}%";
+                    }
+                }
+
                 itemsRows.Append($@"
-                <tr style='font-size:10px; height:26px; border-bottom:1px solid {borderSlate};'>
-                    <td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; color:#64748b; font-weight:600;'>{lineIndex++}</td>
-                    <td style='padding:5px 6px; border-right:1px solid {borderSlate};'>
-                        <div style='font-weight:700; color:#0f172a; font-size:10.5px;'>{it.ItemName}</div>
-                        {(string.IsNullOrEmpty(it.ItemSku) ? "" : $"<span style='font-size:8.5px; color:#64748b; font-family:monospace;'>SKU: {it.ItemSku}</span>")}
+                <tr style='{rowHeight} border-bottom:1px solid {borderSlate};'>
+                    <td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; color:#0f172a; font-weight:600;'>{lineIndex++}</td>
+                    <td style='{tdPad} border-right:1px solid {borderSlate};'>
+                        <div style='font-weight:700; color:#0f172a; {(isA5 ? "font-size:10.5px;" : "font-size:11px;")} line-height:1.25;'>{it.ItemName}</div>
+                        {(string.IsNullOrEmpty(it.ItemSku) ? "" : $"<span style='{(isA5 ? "font-size:9px;" : "font-size:9.5px;")} color:#1e293b; font-family:monospace; font-weight:600;'>SKU: {it.ItemSku}</span>")}
                         {ExtractIndustryItemSubline(it)}
                     </td>
-                    <td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; color:#334155;'>{it.HsnCode ?? "-"}</td>
-                    {(hasSerial ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:700; color:{primaryColor}; font-size:9.5px;'>{ExtractItemImei(it)}</td>" : "")}
-                    {(hasBatch ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:{primaryColor};'>{it.BatchNumber ?? "-"}</td>" : "")}
-                    {(hasExpiry ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; color:#475569;'>{expStr}</td>" : "")}
-                    <td style='padding:5px 6px; text-align:right; border-right:1px solid {borderSlate}; font-weight:700; color:#0f172a;'>
-                        {it.Quantity:N0} <span style='font-size:8.5px; color:#64748b; font-weight:normal;'>{it.UomCode}</span>
+                    <td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")}'>{it.HsnCode ?? "-"}</td>
+                    {(hasPack ? $"<td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")}'>{(!string.IsNullOrWhiteSpace(attrs.pack) ? attrs.pack : "-")}</td>" : "")}
+                    {(hasSerial ? $"<td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a;'>{(isA5 ? "<span style='font-size:9.5px; font-weight:600;'>" + ExtractItemImei(it) + "</span>" : ExtractItemImei(it))}</td>" : "")}
+                    {(hasBatch ? $"<td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:10px;" : "font-size:10.5px;")}'>{it.BatchNumber ?? "-"}</td>" : "")}
+                    {(hasExpiry ? $"<td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")}'>{expStr}</td>" : "")}
+                    <td style='{tdPad} text-align:right; border-right:1px solid {borderSlate}; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>
+                        {it.Quantity:N0}{(hasUnitCol ? "" : $" <span style='{(isA5 ? "font-size:9px;" : "font-size:9.5px;")} color:#1e293b; font-weight:600;'>{it.UomCode}</span>")}
                     </td>
-                    {(hasFree ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; color:{primaryColor}; font-weight:bold;'>{(attrs.freeQty > 0 ? $"+{attrs.freeQty:N0}" : "-")}</td>" : "")}
-                    {(hasMrp ? $"<td style='padding:5px 6px; text-align:right; border-right:1px solid {borderSlate}; font-family:monospace; color:#64748b;'>{(it.Mrp > 0 ? $"₹{it.Mrp:N2}" : "-")}</td>" : "")}
-                    <td style='padding:5px 6px; text-align:right; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a;'>₹{it.UnitPrice:N2}</td>
-                    {(hasDisc ? $"<td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; color:{secondaryColor}; font-weight:600;'>{discText}</td>" : "")}
-                    <td style='padding:5px 4px; text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; color:#475569;'>{it.GstRate:0.##}%</td>
-                    <td style='padding:5px 6px; text-align:right; font-family:monospace; font-weight:700; color:#0f172a;'>₹{it.TotalAmount:N2}</td>
+                    {(hasFree ? $"<td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; color:#0f172a; font-weight:700;'>{(attrs.freeQty > 0 ? $"+{attrs.freeQty:N0}" : "-")}</td>" : "")}
+                    {(hasMrp ? $"<td style='{tdPad} text-align:right; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:10.5px;" : "font-size:11px;")}'>{(it.Mrp > 0 ? $"₹{it.Mrp:N2}" : "-")}</td>" : "")}
+                    {(hasUnitCol ? $"<td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-weight:600; color:#0f172a; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")}'>{(!string.IsNullOrWhiteSpace(it.UomCode) ? it.UomCode : "Strip")}</td>" : "")}
+                    <td style='{tdPad} text-align:right; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{it.UnitPrice:N2}</td>
+                    {(hasDisc ? $"<td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; color:#0f172a; font-weight:600;'>{discText}</td>" : "")}
+                    {(hasTaxableCol ? $"<td style='{tdPad} text-align:right; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:10.5px;" : "font-size:11px;")}'>₹{it.TaxableAmount:N2}</td>" : "")}
+                    {(hasSplitGstCol ? $@"
+                        <td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")}'>{cgstPct}</td>
+                        <td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")}'>{sgstPct}</td>
+                        <td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")}'>{igstPct}</td>" : $@"
+                        <td style='{tdPadCompact} text-align:center; border-right:1px solid {borderSlate}; font-family:monospace; font-weight:600; color:#0f172a; {(isA5 ? "font-size:10px;" : "font-size:10.5px;")}'>{it.GstRate:0.##}%</td>")}
+                    <td style='{tdPad} text-align:right; font-family:monospace; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11.5px;" : "font-size:12px;")}'>₹{it.TotalAmount:N2}</td>
                 </tr>");
             }
         }
 
-        // Single expanding filler row with unbroken vertical column grid lines reaching bottom summary boundary
-        int emptyFillerHeight = IsA5Size(t)
-            ? Math.Max(20, 110 - (itemCount * 22))
-            : Math.Max(30, 220 - (itemCount * 26));
-        itemsRows.Append($@"
-        <tr style='height:100%; min-height:{emptyFillerHeight}px;'>
-            <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
-            <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
-            <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
-            {(hasSerial ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
-            {(hasBatch ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
-            {(hasExpiry ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
-            <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
-            {(hasFree ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
-            {(hasMrp ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
-            <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
-            {(hasDisc ? $"<td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>" : "")}
-            <td style='border-right:1px solid {borderSlate}; height:{emptyFillerHeight}px;'>&nbsp;</td>
-            <td style='height:{emptyFillerHeight}px;'>&nbsp;</td>
-        </tr>");
+        var effectiveTerms = !string.IsNullOrWhiteSpace(t.TermsAndConditions)
+            ? t.TermsAndConditions
+            : ExtractDisclaimerFromCustomLabels(t.CustomLabelsJson);
 
-        var hsnSummaryTable = RenderHsnSummaryTable(invoice, primaryColor);
-        var heightStyle = GetContainerHeightStyle(t);
+        // Single expanding filler row with unbroken vertical column grid lines reaching bottom summary boundary
+        int hsnRowCount = (invoice?.Items != null && invoice.Items.Any())
+            ? invoice.Items.Select(i => string.IsNullOrWhiteSpace(i.HsnCode) ? "N/A" : i.HsnCode).Distinct().Count()
+            : 1;
+
+        int extraOverhead = (hasLogistics ? 38 : 0)
+            + (hasPrescriptionInfo ? 22 : 0)
+            + (showSettlementCard ? 20 : 0)
+            + (hsnRowCount > 1 ? (hsnRowCount - 1) * 20 : 0)
+            + (!string.IsNullOrWhiteSpace(effectiveTerms) && t.ShowTerms ? 28 : 0)
+            + (!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? 20 : 0);
+
+        bool hasItemSublines = invoice?.Items != null && invoice.Items.Any(i => !string.IsNullOrEmpty(i.ItemSku) || !string.IsNullOrWhiteSpace(i.AttributesJson));
+        int estimatedRowHeight = isA5 ? 20 : (hasItemSublines ? 38 : 24);
+        int totalItemsContentHeight = itemCount * estimatedRowHeight;
+
+        int baseTableBudget = isA5
+            ? Math.Max(10, 45 - extraOverhead)
+            : Math.Max(20, 320 - extraOverhead);
+
+        int emptyFillerHeight = baseTableBudget - totalItemsContentHeight;
+
+        int maxItemsForFiller = isA5 ? 4 : 7;
+        if (itemCount < maxItemsForFiller && emptyFillerHeight >= 20)
+        {
+            string fillerTd = $"border-right:1px solid {borderSlate}; height:100%; padding:0; vertical-align:top;";
+            string fillerTdLast = $"height:100%; padding:0; vertical-align:top;";
+            string fillerDiv = $"min-height:{emptyFillerHeight}px; height:100%; width:100%;";
+
+            itemsRows.Append($@"
+            <tr style='vertical-align:top; page-break-inside:avoid; break-inside:avoid;'>
+                <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>
+                <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>
+                <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>
+                {(hasPack ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                {(hasSerial ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                {(hasBatch ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                {(hasExpiry ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>
+                {(hasFree ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                {(hasMrp ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                {(hasUnitCol ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>
+                {(hasDisc ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                {(hasTaxableCol ? $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : "")}
+                {(hasSplitGstCol ? $@"
+                    <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>
+                    <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>
+                    <td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>" : $"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>")}
+                <td style='{fillerTdLast}'><div style='{fillerDiv}'>&nbsp;</div></td>
+            </tr>");
+        }
+
+        var hsnSummaryTable = RenderHsnSummaryTable(invoice, primaryGreen, isA5);
+
+        string pageCss = isA5
+            ? "@page { size: A4 portrait; margin: 2mm 3mm; }"
+            : "@page { size: A4 portrait; margin: 3mm 4mm; }";
+
+        string containerCss = isA5
+            ? $"position:relative; width:100%; max-width:100%; min-height:140mm; height:auto; margin:0 auto; box-sizing:border-box; border:1.5px solid {primaryOrange}; border-radius:6px; display:flex; flex-direction:column; justify-content:space-between; background:#ffffff; page-break-inside:avoid; break-inside:avoid;"
+            : $"position:relative; width:100%; max-width:100%; min-height:280mm; max-height:285mm; height:282mm; margin:0 auto; box-sizing:border-box; border:1.5px solid {primaryOrange}; border-radius:8px; display:flex; flex-direction:column; justify-content:space-between; background:#ffffff; page-break-inside:avoid; break-inside:avoid;";
+
+        string headerPad = isA5 ? "padding:3px 8px;" : "padding:6px 12px;";
+        string sellerTitleStyle = isA5 ? "font-size:15px; font-weight:800; line-height:1.2;" : "font-size:17px; font-weight:800; line-height:1.2;";
+        string sellerLegalFont = isA5 ? "font-size:9.5px; font-weight:600;" : "font-size:10px; font-weight:600;";
+        string logoStyle = isA5 ? "max-height:32px; max-width:90px; object-fit:contain;" : "max-height:38px; max-width:120px; object-fit:contain;";
+        string sellerSubStyle = isA5 ? "font-size:9.5px; font-weight:500; margin-top:2px; line-height:1.25;" : "font-size:9.5px; font-weight:500; margin-top:2px; line-height:1.25;";
+        string sellerChipsStyle = isA5 ? "display:flex; flex-wrap:wrap; gap:4px; margin-top:2px; font-size:9px; font-weight:600; font-family:monospace;" : "display:flex; flex-wrap:wrap; gap:5px; margin-top:2px; font-size:9px; font-weight:600; font-family:monospace;";
+        string badgeStyle = isA5 ? "font-size:11px; font-weight:700; padding:2px 8px; border-radius:3px;" : "font-size:12px; font-weight:700; padding:3px 12px; border-radius:4px;";
+        string headerSubtitleFont = isA5 ? "font-size:9px; font-weight:600;" : "font-size:9px; font-weight:600;";
+
+        string metaPad = isA5 ? "padding:3px 8px; font-size:9.5px; font-weight:600;" : "padding:4px 12px; font-size:9.5px; font-weight:600;";
+        string metaInvFont = isA5 ? "font-size:12px; font-weight:700;" : "font-size:12px; font-weight:700;";
+
+        string partyPad = isA5 ? "padding:3px 8px;" : "padding:5px 12px;";
+        string partyTitleFont = isA5 ? "font-size:9.5px; font-weight:700;" : "font-size:9.5px; font-weight:700;";
+        string partyNameFont = isA5 ? "font-size:12.5px; font-weight:700; margin-bottom:2px;" : "font-size:13px; font-weight:700; margin-bottom:2px;";
+        string partySubFont = isA5 ? "font-size:9.5px; font-weight:500; line-height:1.25;" : "font-size:10px; font-weight:500; line-height:1.3;";
+        string partyChipsFont = isA5 ? "display:flex; flex-wrap:wrap; gap:5px; margin-top:2px; font-size:9.5px; font-weight:600;" : "display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; font-size:9.5px; font-weight:600;";
+
+        string logisticsPad = isA5 ? "padding:2px 8px;" : "padding:4px 12px;";
+        string logisticsFont = isA5 ? "font-size:9px; font-weight:600;" : "font-size:9px; font-weight:600;";
+
+        string thStyle = isA5 ? "padding:3px 3px; font-size:9.5px; font-weight:700; height:20px;" : "padding:4px 4px; font-size:9.5px; font-weight:700; height:22px;";
+        string thLeftStyle = isA5 ? "padding:3px 4px; font-size:9.5px; font-weight:700; height:20px;" : "padding:4px 6px; font-size:9.5px; font-weight:700; height:22px;";
+
+        string bottomPad = isA5 ? "padding:3px 8px;" : "padding:4px 10px;";
+        string wordsBoxPad = isA5 ? "padding:2px 6px; margin-bottom:2px;" : "padding:4px 8px; margin-bottom:4px;";
+        string wordsTitleFont = isA5 ? "font-size:8.5px; font-weight:700;" : "font-size:9px; font-weight:700;";
+        string wordsValFont = isA5 ? "font-size:10px; font-weight:700; margin-top:1px; line-height:1.25;" : "font-size:10.5px; font-weight:700; margin-top:2px; line-height:1.3;";
+
+        string settlementPad = isA5 ? "display:flex; gap:6px; border:1px solid #cbd5e1; border-radius:4px; padding:3px 6px; background:#f8fafc; align-items:center;" : "display:flex; gap:8px; border:1px solid #cbd5e1; border-radius:5px; padding:4px 8px; background:#f8fafc; align-items:center;";
+        string qrImgStyle = isA5 ? "width:42px; height:42px; border:1px solid #cbd5e1; border-radius:3px; flex-shrink:0;" : "width:58px; height:58px; border:1px solid #cbd5e1; border-radius:4px; flex-shrink:0;";
+        string bankTitleFont = isA5 ? "font-size:9.5px; font-weight:700; margin-bottom:1px;" : "font-size:10px; font-weight:700; margin-bottom:2px;";
+        string bankDetailsFont = isA5 ? "font-size:9.5px; font-weight:600; line-height:1.25;" : "font-size:9.5px; font-weight:600; line-height:1.3;";
+
+        string totalsTableFont = isA5 ? "font-size:10px; font-weight:600;" : "font-size:10.5px; font-weight:600;";
+        string totalsRowPad = isA5 ? "padding:1.5px 0;" : "padding:1.5px 0;";
+        string grandTotalPad = isA5 ? "padding:3px 0; font-size:12.5px;" : "padding:4px 0; font-size:13px;";
+        string grandTotalVal = isA5 ? "padding:3px 0; font-size:14px; font-weight:800;" : "padding:4px 0; font-size:14px; font-weight:800;";
+        string paidDuePad = isA5 ? "padding:1.5px 0; font-size:10px; font-weight:700;" : "padding:2px 0; font-size:10.5px; font-weight:700;";
+        string dueDuePad = isA5 ? "padding:1.5px 0; font-size:10.5px; font-weight:700;" : "padding:2px 0; font-size:11px; font-weight:700;";
+
+        string declPad = isA5 ? "padding:2px 8px;" : "padding:3px 10px;";
+        string declFont = isA5 ? "font-size:8.5px; line-height:1.25; font-weight:500;" : "font-size:9px; line-height:1.3; font-weight:500;";
+        string sigGap = isA5 ? "height:10px;" : "height:12px;";
+        string sigFont = isA5 ? "font-size:9px; font-weight:700;" : "font-size:9.5px; font-weight:700;";
+        string footerPad = isA5 ? "padding:1px 8px; font-size:8.5px; font-weight:600;" : "padding:2px 12px; font-size:8.5px; font-weight:600;";
 
         return $@"
 <!DOCTYPE html>
@@ -1170,12 +1730,16 @@ public class PrintTemplateService : IPrintTemplateService
     <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
     <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap' rel='stylesheet'>
     <style>
-        @page {{ size: A4 portrait; margin: 4mm 5mm; }}
-        html, body {{ margin:0; padding:0; background:#ffffff; color:{darkSlate}; font-family:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
-        .enterprise-invoice {{ width:100%; max-width:820px; {heightStyle} margin:0 auto; box-sizing:border-box; border:1.5px solid {primaryColor}; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; background:#ffffff; page-break-inside:avoid; break-inside:avoid; }}
+        {pageCss}
+        html, body {{ margin:0; padding:0; background:#ffffff; color:{darkSlate}; font-family:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }}
+        .enterprise-invoice {{ {containerCss} }}
         table {{ border-collapse:collapse; width:100%; page-break-inside:auto; }}
         tr {{ page-break-inside:avoid; break-inside:avoid; }}
         th, td {{ box-sizing:border-box; }}
+        @media print {{
+            body {{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+            * {{ text-rendering:optimizeLegibility !important; }}
+        }}
     </style>
 </head>
 <body>
@@ -1183,100 +1747,109 @@ public class PrintTemplateService : IPrintTemplateService
 
     <div style='display:flex; flex-direction:column; flex:1 1 auto;'>
         <!-- 1. TOP STATUTORY HEADER RIBBON (Executive Royal Indigo) -->
-        <div style='background:#ffffff; color:#0f172a; padding:12px 14px; border-bottom:2px solid {primaryColor};'>
+        <div style='background:#ffffff; color:#0f172a; {headerPad} border-bottom:{(isA5 ? "1.5px" : "2px")} solid {primaryOrange};'>
             <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
                 <!-- Left: Seller Branding & License Info -->
                 <div style='max-width:65%;'>
                     <div style='display:flex; align-items:center; gap:8px;'>
-                        {(!string.IsNullOrEmpty(logoUrl) ? $"<img src='{logoUrl}' alt='Logo' style='max-height:40px; max-width:120px; object-fit:contain;' />" : "")}
+                        {(!string.IsNullOrEmpty(logoUrl) ? $"<img src='{logoUrl}' alt='Logo' style='{logoStyle}' />" : "")}
                         <div>
-                            <h1 style='margin:0; font-size:19px; font-weight:900; text-transform:uppercase; letter-spacing:0.3px; line-height:1.15; color:{primaryColor};'>{sellerName}</h1>
-                            {(!string.IsNullOrWhiteSpace(sellerLegalName) && sellerLegalName != sellerName ? $"<div style='font-size:9.5px; color:#475569; font-weight:600;'>({sellerLegalName})</div>" : "")}
+                            <h1 style='margin:0; {sellerTitleStyle} text-transform:uppercase; letter-spacing:0.3px; color:{primaryGreen};'>{sellerName}</h1>
+                            {(!string.IsNullOrWhiteSpace(sellerLegalName) && sellerLegalName != sellerName ? $"<div style='{sellerLegalFont} color:#475569; font-weight:600;'>({sellerLegalName})</div>" : "")}
                         </div>
                     </div>
                     
-                    <div style='font-size:9.5px; color:#334155; margin-top:4px; line-height:1.3;'>{sellerAddress}</div>
+                    <div style='{sellerSubStyle} color:#334155;'>{sellerAddress}</div>
                     
-                    <div style='display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; font-size:9px; font-family:monospace;'>
-                        {(!string.IsNullOrEmpty(sellerGstin) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:1px 5px; border-radius:3px; color:#0f172a;'>GSTIN: <strong>{sellerGstin}</strong></span>" : "")}
-                        {(!string.IsNullOrEmpty(sellerPan) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:1px 5px; border-radius:3px; color:#0f172a;'>PAN: <strong>{sellerPan}</strong></span>" : "")}
-                        {(!string.IsNullOrEmpty(sellerDl) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:1px 5px; border-radius:3px; color:#0f172a;'>D.L. No: <strong>{sellerDl}</strong></span>" : "")}
-                        {(!string.IsNullOrEmpty(sellerFssai) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:1px 5px; border-radius:3px; color:#0f172a;'>FSSAI: <strong>{sellerFssai}</strong></span>" : "")}
+                    <div style='{sellerChipsStyle}'>
+                        {(!string.IsNullOrEmpty(sellerGstin) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:0 4px; border-radius:3px; color:#0f172a;'>GSTIN: <strong>{sellerGstin}</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(sellerPan) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:0 4px; border-radius:3px; color:#0f172a;'>PAN: <strong>{sellerPan}</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(sellerDl) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:0 4px; border-radius:3px; color:#0f172a;'>D.L.: <strong>{sellerDl}</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(sellerFssai) ? $"<span style='background:#f1f5f9; border:1px solid #cbd5e1; padding:0 4px; border-radius:3px; color:#0f172a;'>FSSAI: <strong>{sellerFssai}</strong></span>" : "")}
                         {(!string.IsNullOrEmpty(sellerPhone) ? $"<span style='color:#334155;'>Ph: <strong>{sellerPhone}</strong></span>" : "")}
                         {(!string.IsNullOrEmpty(sellerEmail) ? $"<span style='color:#334155;'>Email: <strong>{sellerEmail}</strong></span>" : "")}
                     </div>
                 </div>
 
-                <!-- Right: Invoice Type & Rule 48 Status -->
-                <div style='text-align:right;'>
-                    <div style='background: linear-gradient(135deg, {primaryColor}, {secondaryColor}); color:#ffffff; font-size:13px; font-weight:800; padding:5px 16px; border-radius:5px; display:inline-block; letter-spacing:0.8px; box-shadow:0 2px 4px rgba(67,56,202,0.25);'>
-                        {headerTitle}
+                <!-- Right: Invoice Type & Rule 48 Status + Verification QR (Instant Data URI) -->
+                <div style='display:flex; align-items:center; gap:10px;'>
+                    <div style='text-align:right;'>
+                        <div style='background: linear-gradient(135deg, {primaryOrange}, #c2410c); color:#ffffff; {badgeStyle} display:inline-block; letter-spacing:0.8px; box-shadow:0 2px 4px rgba(234,88,12,0.25);'>
+                            {headerTitle}
+                        </div>
+                        <div style='margin-top:3px;'>
+                            <div style='{(isA5 ? "font-size:8px;" : "font-size:9px;")} color:#334155; font-weight:700; text-transform:uppercase; letter-spacing:0.3px;'>Invoice No:</div>
+                            <div style='font-family:monospace; {(isA5 ? "font-size:12px;" : "font-size:14px;")} font-weight:700; color:{primaryOrange}; letter-spacing:0.5px; line-height:1.2;'>{invNo}</div>
+                        </div>
+                        <div style='{(isA5 ? "font-size:8px;" : "font-size:9px;")} color:#1e293b; margin-top:2px;'>State: <strong>{sellerState}</strong></div>
                     </div>
-                    <div style='font-size:8.5px; font-weight:700; color:#475569; margin-top:3px; text-transform:uppercase;'>{copyBadge}</div>
-                    <div style='font-size:8.5px; color:#64748b; margin-top:1px;'>Sec 31 CGST Act, 2017</div>
-                    <div style='font-size:9.5px; color:#0f172a; margin-top:3px;'>State: <strong>{sellerState}</strong></div>
+                    {(invoice != null ? $@"
+                    <div style='border:1px solid #cbd5e1; border-radius:4px; padding:2px; background:#ffffff; text-align:center;'>
+                        <img src='{GenerateQrCodeDataUri($"https://udyogbill.com/i/{invoice.Id}", 4)}' alt='Digital Bill' style='width:{(isA5 ? "38px" : "50px")}; height:{(isA5 ? "38px" : "50px")}; display:block;' />
+                        <span style='font-size:7px; font-weight:700; color:#334155; text-transform:uppercase; display:block; margin-top:1px;'>Scan to View</span>
+                    </div>" : "")}
                 </div>
             </div>
         </div>
 
         <!-- 2. INVOICE META STRIP (High-Contrast Quick Read Bar) -->
-        <div style='display:grid; grid-template-columns: repeat(4, 1fr); background:#f1f5f9; border-bottom:1.5px solid {borderSlate}; padding:6px 12px; font-size:9.5px;'>
+        <div style='display:grid; grid-template-columns: repeat(4, 1fr); background:#f1f5f9; border-bottom:1.5px solid {borderSlate}; {metaPad}'>
             <div>
-                <span style='color:#64748b; font-size:8.5px; text-transform:uppercase; font-weight:700;'>Invoice Number:</span><br/>
-                <strong style='font-family:monospace; font-size:11.5px; color:{primaryColor};'>{invNo}</strong>
+                <span style='color:#334155; {(isA5 ? "font-size:8.5px;" : "font-size:9px;")} text-transform:uppercase; font-weight:700;'>Invoice Number:</span><br/>
+                <strong style='font-family:monospace; {metaInvFont} color:{primaryOrange};'>{invNo}</strong>
             </div>
             <div>
-                <span style='color:#64748b; font-size:8.5px; text-transform:uppercase; font-weight:700;'>Invoice Date &amp; Time:</span><br/>
-                <strong style='color:#0f172a;'>{invDate}</strong> <span style='font-size:8.5px; color:#64748b;'>({invTime})</span>
+                <span style='color:#334155; {(isA5 ? "font-size:8.5px;" : "font-size:9px;")} text-transform:uppercase; font-weight:700;'>Invoice Date &amp; Time:</span><br/>
+                <strong style='color:#0f172a; {(isA5 ? "font-size:10px;" : "font-size:10.5px;")} font-weight:700;'>{invDate}</strong> <span style='{(isA5 ? "font-size:8.5px;" : "font-size:9px;")} color:#334155; font-weight:600;'>({invTime})</span>
             </div>
             <div>
-                <span style='color:#64748b; font-size:8.5px; text-transform:uppercase; font-weight:700;'>Place of Supply (POS):</span><br/>
-                <strong style='color:#0f172a;'>{placeOfSupply}</strong>
+                <span style='color:#334155; {(isA5 ? "font-size:8.5px;" : "font-size:9px;")} text-transform:uppercase; font-weight:700;'>Place of Supply:</span><br/>
+                <strong style='color:#0f172a; {(isA5 ? "font-size:10px;" : "font-size:10.5px;")} font-weight:700;'>{placeOfSupply}</strong>
             </div>
             <div style='text-align:right;'>
-                <span style='color:#64748b; font-size:8.5px; text-transform:uppercase; font-weight:700;'>Reverse Charge (RCM):</span><br/>
-                <strong style='color:{primaryColor};'>NO (Forward Charge)</strong>
+                <span style='color:#334155; {(isA5 ? "font-size:8.5px;" : "font-size:9px;")} text-transform:uppercase; font-weight:700;'>Reverse Charge:</span><br/>
+                <strong style='color:{primaryGreen}; {(isA5 ? "font-size:9.5px;" : "font-size:10px;")} font-weight:700;'>NO (Forward Charge)</strong>
             </div>
         </div>
 
         <!-- IRN / E-Invoice Strip if generated -->
         {(!string.IsNullOrEmpty(irn) ? $@"
-        <div style='background:#f8fafc; border-bottom:1px solid #cbd5e1; padding:4px 12px; font-size:8.5px; display:flex; justify-content:space-between; align-items:center;'>
-            <div style='color:#334155;'><strong>IRN:</strong> <span style='font-family:monospace; word-break:break-all;'>{irn}</span></div>
-            {(!string.IsNullOrEmpty(ackNo) ? $"<div style='color:#334155;'><strong>Ack:</strong> {ackNo} ({ackDate})</div>" : "")}
+        <div style='background:#f8fafc; border-bottom:1px solid #cbd5e1; {(isA5 ? "padding:2px 8px; font-size:8.5px;" : "padding:4px 12px; font-size:9px;")} display:flex; justify-content:space-between; align-items:center;'>
+            <div style='color:#0f172a; font-weight:600;'><strong>IRN:</strong> <span style='font-family:monospace; word-break:break-all;'>{irn}</span></div>
+            {(!string.IsNullOrEmpty(ackNo) ? $"<div style='color:#0f172a; font-weight:600;'><strong>Ack:</strong> {ackNo} ({ackDate})</div>" : "")}
         </div>" : "")}
 
         <!-- 3. DUAL PARTY DETAILS: BILLED TO & SHIPPED TO -->
         <div style='display:grid; grid-template-columns: 1fr 1fr; border-bottom:1.5px solid {borderSlate};'>
             <!-- BILL TO -->
-            <div style='padding:8px 12px; border-right:1px solid {borderSlate}; background:#ffffff;'>
-                <div style='display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:3px; margin-bottom:4px;'>
-                    <span style='font-size:9px; font-weight:800; color:{primaryColor}; text-transform:uppercase; letter-spacing:0.5px;'>Details of Receiver | Billed To:</span>
-                    <span style='font-size:8px; font-weight:700; color:#ffffff; background:{(isB2B ? primaryColor : secondaryColor)}; padding:1px 5px; border-radius:3px;'>
+            <div style='{partyPad} border-right:1px solid {borderSlate}; background:#ffffff;'>
+                <div style='display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:2px; margin-bottom:2px;'>
+                    <span style='{partyTitleFont} color:{primaryGreen}; text-transform:uppercase; letter-spacing:0.5px;'>Details of Receiver | Billed To:</span>
+                    <span style='{(isA5 ? "font-size:7.5px;" : "font-size:8px;")} font-weight:700; color:#ffffff; background:{primaryGreen}; padding:1px 5px; border-radius:2px;'>
                         {(isB2B ? "REGISTERED B2B" : "RETAIL CONSUMER")}
                     </span>
                 </div>
-                <div style='font-size:12px; font-weight:800; color:#0f172a; margin-bottom:2px;'>{custName}</div>
-                {(!string.IsNullOrEmpty(custAddress) ? $"<div style='font-size:9.5px; color:#475569; line-height:1.3;'>{custAddress}</div>" : "")}
+                <div style='{partyNameFont} color:#0f172a;'>{custName}</div>
+                {(!string.IsNullOrEmpty(custAddress) ? $"<div style='{partySubFont} color:#1e293b;'>{custAddress}</div>" : "")}
                 
-                <div style='display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; font-size:9px;'>
-                    {(!string.IsNullOrEmpty(custGstin) ? $"<span>GSTIN: <strong style='font-family:monospace; color:{primaryColor};'>{custGstin}</strong></span>" : "<span style='color:#64748b;'>Unregistered Buyer</span>")}
-                    {(!string.IsNullOrEmpty(custPan) ? $"<span>PAN: <strong style='font-family:monospace;'>{custPan}</strong></span>" : "")}
-                    {(!string.IsNullOrEmpty(custPhone) ? $"<span>Mobile: <strong>{custPhone}</strong></span>" : "")}
-                    {(!string.IsNullOrEmpty(custStateCode) ? $"<span>State Code: <strong>{custStateCode}</strong></span>" : "")}
-                    {(!string.IsNullOrEmpty(custDl) ? $"<span>Drug Lic: <strong>{custDl}</strong></span>" : "")}
+                <div style='{partyChipsFont} color:#1e293b;'>
+                    {(!string.IsNullOrEmpty(custGstin) ? $"<span>GSTIN: <strong style='font-family:monospace; color:{primaryOrange}; font-weight:700;'>{custGstin}</strong></span>" : "<span style='color:#1e293b; font-weight:600;'>Unregistered Buyer</span>")}
+                    {(!string.IsNullOrEmpty(custPan) ? $"<span>PAN: <strong style='font-family:monospace; font-weight:700;'>{custPan}</strong></span>" : "")}
+                    {(!string.IsNullOrEmpty(custPhone) ? $"<span>Mobile: <strong style='font-weight:700;'>{custPhone}</strong></span>" : "")}
+                    {(!string.IsNullOrEmpty(custStateCode) ? $"<span>State Code: <strong style='font-weight:700;'>{custStateCode}</strong></span>" : "")}
+                    {(!string.IsNullOrEmpty(custDl) ? $"<span>Drug Lic: <strong style='font-weight:700;'>{custDl}</strong></span>" : "")}
                 </div>
             </div>
 
             <!-- SHIP TO -->
-            <div style='padding:8px 12px; background:{lightBg};'>
-                <div style='display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:3px; margin-bottom:4px;'>
-                    <span style='font-size:9px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px;'>Consignee | Shipped To:</span>
-                    <span style='font-size:8px; font-weight:600; color:#64748b;'>Destination Site</span>
+            <div style='{partyPad} background:{lightBg};'>
+                <div style='display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:2px; margin-bottom:2px;'>
+                    <span style='{partyTitleFont} color:#0f172a; text-transform:uppercase; letter-spacing:0.5px;'>Consignee | Shipped To:</span>
+                    <span style='{(isA5 ? "font-size:7.5px;" : "font-size:8px;")} font-weight:600; color:#334155;'>Destination Site</span>
                 </div>
-                <div style='font-size:12px; font-weight:800; color:#0f172a; margin-bottom:2px;'>{custName}</div>
-                <div style='font-size:9.5px; color:#475569; line-height:1.3;'>{shipAddress}</div>
-                <div style='margin-top:4px; font-size:9px; color:#64748b;'>
+                <div style='{partyNameFont} color:#0f172a;'>{custName}</div>
+                <div style='{partySubFont} color:#1e293b;'>{shipAddress}</div>
+                <div style='margin-top:2px; {(isA5 ? "font-size:8.5px;" : "font-size:9px;")} color:#1e293b;'>
                     Place of Delivery: <strong>{placeOfSupply}</strong> | Country: <strong>India</strong>
                 </div>
             </div>
@@ -1284,45 +1857,65 @@ public class PrintTemplateService : IPrintTemplateService
 
         <!-- 4. LOGISTICS & TRANSPORT STRIP (Auto-collapses if no logistics data) -->
         {(hasLogistics ? $@"
-        <div style='background:#f8fafc; border-bottom:1.5px solid {borderSlate}; padding:5px 12px;'>
-            <div style='display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; font-size:9px;'>
-                <div><span style='color:#64748b;'>Transporter:</span><br/><strong style='color:#0f172a;'>{(!string.IsNullOrEmpty(transporter) ? transporter : "-")}</strong></div>
-                <div><span style='color:#64748b;'>Vehicle Number:</span><br/><strong style='font-family:monospace; color:#0f172a;'>{(!string.IsNullOrEmpty(vehicleNo) ? vehicleNo : "-")}</strong></div>
-                <div><span style='color:#64748b;'>LR / Bilty No &amp; Date:</span><br/><strong style='color:#0f172a;'>{(!string.IsNullOrEmpty(lrNo) ? $"{lrNo} ({lrDate})" : "-")}</strong></div>
-                <div><span style='color:#64748b;'>E-Way Bill No:</span><br/><strong style='font-family:monospace; color:{primaryColor};'>{(!string.IsNullOrEmpty(eWayNo) ? eWayNo : "-")}</strong></div>
-                <div><span style='color:#64748b;'>Buyer PO Ref &amp; Date:</span><br/><strong style='color:#0f172a;'>{(!string.IsNullOrEmpty(poNo) ? $"{poNo} ({poDate})" : "-")}</strong></div>
+        <div style='background:#f8fafc; border-bottom:1.5px solid {borderSlate}; {logisticsPad}'>
+            <div style='display:grid; grid-template-columns: repeat(5, 1fr); gap:4px; {logisticsFont}'>
+                <div><span style='color:#334155;'>Transporter:</span><br/><strong style='color:#0f172a;'>{(!string.IsNullOrEmpty(transporter) ? transporter : "-")}</strong></div>
+                <div><span style='color:#334155;'>Vehicle No:</span><br/><strong style='font-family:monospace; color:#0f172a;'>{(!string.IsNullOrEmpty(vehicleNo) ? vehicleNo : "-")}</strong></div>
+                <div><span style='color:#334155;'>LR / Bilty:</span><br/><strong style='color:#0f172a;'>{(!string.IsNullOrEmpty(lrNo) ? $"{lrNo} ({lrDate})" : "-")}</strong></div>
+                <div><span style='color:#334155;'>E-Way Bill:</span><br/><strong style='font-family:monospace; color:{primaryOrange};'>{(!string.IsNullOrEmpty(eWayNo) ? eWayNo : "-")}</strong></div>
+                <div><span style='color:#334155;'>Buyer PO Ref:</span><br/><strong style='color:#0f172a;'>{(!string.IsNullOrEmpty(poNo) ? $"{poNo} ({poDate})" : "-")}</strong></div>
             </div>
         </div>" : "")}
 
         <!-- Doctor Prescriber Strip if Pharma Statutory -->
         {(hasPrescriptionInfo ? $@"
-        <div style='background:#fef2f2; border-bottom:1px solid #fecaca; padding:4px 12px; font-size:9px; display:flex; justify-content:space-between; color:#991b1b;'>
+        <div style='background:#fef2f2; border-bottom:1px solid #fecaca; {(isA5 ? "padding:2px 8px; font-size:7.5px;" : "padding:4px 12px; font-size:9px;")} display:flex; justify-content:space-between; color:#991b1b;'>
             <div><strong>Prescribing Doctor:</strong> {(!string.IsNullOrEmpty(doctorName) ? doctorName : "-")} {(!string.IsNullOrEmpty(doctorRegNo) ? $"(Reg: {doctorRegNo})" : "")}</div>
             <div><strong>Patient Name:</strong> {(!string.IsNullOrEmpty(patientName) ? patientName : "-")} {(!string.IsNullOrEmpty(patientContact) ? $"| Phone: {patientContact}" : "")}</div>
             <div style='font-weight:bold;'>PRESCRIPTION / RX</div>
         </div>" : "")}
 
+        <!-- Automotive Vehicle & Mechanic Job Strip if Auto Parts -->
+        {(hasAutoPartsInfo ? $@"
+        <div style='background:#f0f9ff; border-bottom:1.5px solid #0284c7; {(isA5 ? "padding:2.5px 8px; font-size:8px;" : "padding:4px 12px; font-size:9.5px;")} display:flex; justify-content:space-between; color:#0369a1; align-items:center;'>
+            <div style='display:flex; gap:14px; flex-wrap:wrap;'>
+                {(!string.IsNullOrEmpty(vehicleNo) ? $"<div><strong>Vehicle / Reg No:</strong> <span style='font-family:monospace; font-weight:800; color:#0284c7;'>{vehicleNo}</span></div>" : "")}
+                {(!string.IsNullOrEmpty(autoVehicleModel) ? $"<div><strong>Vehicle Model:</strong> <span style='font-weight:700;'>{autoVehicleModel}</span></div>" : "")}
+                {(!string.IsNullOrEmpty(autoMechanicName) ? $"<div><strong>Mechanic / Mistri:</strong> <span style='font-weight:700;'>{autoMechanicName}</span></div>" : "")}
+                {(!string.IsNullOrEmpty(autoOdometerKm) ? $"<div><strong>Odometer:</strong> <span style='font-weight:700;'>{autoOdometerKm} KM</span></div>" : "")}
+            </div>
+            <div style='font-weight:800; font-size:{(isA5 ? "7.5px" : "8.5px")}; text-transform:uppercase; color:#0284c7; background:#e0f2fe; padding:1px 6px; border-radius:3px; border:1px solid #7dd3fc;'>
+                AUTOMOTIVE JOB / FITMENT
+            </div>
+        </div>" : "")}
+
         <!-- 5. DYNAMIC LINE ITEMS TABLE (Color-Accent Header, Crisp Borders) -->
         <div style='flex:1 1 auto; display:flex; flex-direction:column;'>
-            <table style='width:100%; height:100%; border-collapse:collapse;'>
+            <table style='width:100%; height:100%; border-collapse:collapse; display:table;'>
                 <thead>
-                    <tr style='background:#eef2ff; color:{primaryColor}; font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.3px; height:26px; border-bottom:1.5px solid #c7d2fe;'>
-                        <th style='padding:5px 4px; width:26px; text-align:center; border-right:1px solid #c7d2fe;'>#</th>
-                        <th style='padding:5px 6px; text-align:left; border-right:1px solid #c7d2fe;'>Description of Goods / Services</th>
-                        <th style='padding:5px 4px; width:60px; text-align:center; border-right:1px solid {borderSlate};'>HSN/SAC</th>
-                        {(hasSerial ? $"<th style='padding:5px 4px; width:100px; text-align:center; border-right:1px solid {borderSlate};'>IMEI / Serial No</th>" : "")}
-                        {(hasBatch ? $"<th style='padding:5px 4px; width:72px; text-align:center; border-right:1px solid {borderSlate};'>Batch</th>" : "")}
-                        {(hasExpiry ? $"<th style='padding:5px 4px; width:48px; text-align:center; border-right:1px solid {borderSlate};'>Expiry</th>" : "")}
-                        <th style='padding:5px 6px; width:58px; text-align:right; border-right:1px solid {borderSlate};'>Qty</th>
-                        {(hasFree ? $"<th style='padding:5px 4px; width:40px; text-align:center; border-right:1px solid {borderSlate};'>Free</th>" : "")}
-                        {(hasMrp ? $"<th style='padding:5px 6px; width:60px; text-align:right; border-right:1px solid {borderSlate};'>MRP</th>" : "")}
-                        <th style='padding:5px 6px; width:64px; text-align:right; border-right:1px solid {borderSlate};'>Unit Rate</th>
-                        {(hasDisc ? $"<th style='padding:5px 4px; width:46px; text-align:center; border-right:1px solid {borderSlate};'>Disc</th>" : "")}
-                        <th style='padding:5px 4px; width:44px; text-align:center; border-right:1px solid {borderSlate};'>GST%</th>
-                        <th style='padding:5px 6px; width:80px; text-align:right;'>Net Amount</th>
+                    <tr style='background:{lightGreenBg}; color:{primaryGreen}; border-bottom:1.5px solid {greenBorder};'>
+                        <th style='{thStyle} width:{(isA5 ? "20px" : "26px")}; text-align:center; border-right:1px solid {greenBorder};'>#</th>
+                        <th style='{thLeftStyle} text-align:left; border-right:1px solid {greenBorder};'>Description of Goods / Services</th>
+                        <th style='{thStyle} width:{(isA5 ? "44px" : "54px")}; text-align:center; border-right:1px solid {borderSlate};'>HSN/SAC</th>
+                        {(hasPack ? $"<th style='{thStyle} width:{(isA5 ? "36px" : "44px")}; text-align:center; border-right:1px solid {borderSlate};'>Packing</th>" : "")}
+                        {(hasSerial ? $"<th style='{thStyle} width:{(isA5 ? "75px" : "90px")}; text-align:center; border-right:1px solid {borderSlate};'>IMEI / Serial</th>" : "")}
+                        {(hasBatch ? $"<th style='{thStyle} width:{(isA5 ? "46px" : "54px")}; text-align:center; border-right:1px solid {borderSlate};'>Batch</th>" : "")}
+                        {(hasExpiry ? $"<th style='{thStyle} width:{(isA5 ? "34px" : "40px")}; text-align:center; border-right:1px solid {borderSlate};'>Expiry</th>" : "")}
+                        <th style='{thStyle} width:{(isA5 ? "38px" : "48px")}; text-align:right; border-right:1px solid {borderSlate};'>Qty</th>
+                        {(hasFree ? $"<th style='{thStyle} width:{(isA5 ? "28px" : "34px")}; text-align:center; border-right:1px solid {borderSlate};'>Free</th>" : "")}
+                        {(hasMrp ? $"<th style='{thStyle} width:{(isA5 ? "44px" : "50px")}; text-align:right; border-right:1px solid {borderSlate};'>MRP</th>" : "")}
+                        {(hasUnitCol ? $"<th style='{thStyle} width:{(isA5 ? "30px" : "36px")}; text-align:center; border-right:1px solid {borderSlate};'>Unit</th>" : "")}
+                        <th style='{thStyle} width:{(isA5 ? "46px" : "54px")}; text-align:right; border-right:1px solid {borderSlate};'>Unit Rate</th>
+                        {(hasDisc ? $"<th style='{thStyle} width:{(isA5 ? "32px" : "38px")}; text-align:center; border-right:1px solid {borderSlate};'>Disc</th>" : "")}
+                        {(hasTaxableCol ? $"<th style='{thStyle} width:{(isA5 ? "48px" : "58px")}; text-align:right; border-right:1px solid {borderSlate};'>Taxable</th>" : "")}
+                        {(hasSplitGstCol ? $@"
+                            <th style='{thStyle} width:{(isA5 ? "32px" : "38px")}; text-align:center; border-right:1px solid {borderSlate};'>CGST%</th>
+                            <th style='{thStyle} width:{(isA5 ? "32px" : "38px")}; text-align:center; border-right:1px solid {borderSlate};'>SGST%</th>
+                            <th style='{thStyle} width:{(isA5 ? "32px" : "38px")}; text-align:center; border-right:1px solid {borderSlate};'>IGST%</th>" : $"<th style='{thStyle} width:{(isA5 ? "36px" : "44px")}; text-align:center; border-right:1px solid {borderSlate};'>GST%</th>")}
+                        <th style='{thStyle} width:{(isA5 ? "58px" : "68px")}; text-align:right;'>Net Amount</th>
                     </tr>
                 </thead>
-                <tbody style='height:100%;'>
+                <tbody>
                     {itemsRows}
                 </tbody>
             </table>
@@ -1330,97 +1923,116 @@ public class PrintTemplateService : IPrintTemplateService
     </div>
 
     <!-- 6. BOTTOM SECTION: HSN TAX SUMMARY, WORDS, BANK DETAILS & SETTLEMENT -->
-    <div style='border-top:1.5px solid {borderSlate};'>
+    <div style='border-top:1.5px solid {borderSlate}; flex-shrink:0;'>
         <!-- HSN Summary Table -->
         {hsnSummaryTable}
 
         <!-- Total Calculation & Bank Strip -->
         <div style='display:grid; grid-template-columns: 1.25fr 0.95fr; border-top:1.5px solid {borderSlate};'>
             <!-- Left: Amount in Words & Bank UPI Settlement -->
-            <div style='padding:8px 12px; border-right:1px solid {borderSlate}; background:#ffffff;'>
-                <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 8px; margin-bottom:6px;'>
-                    <div style='font-size:8.5px; font-weight:800; color:#64748b; text-transform:uppercase;'>Amount Chargeable (in words):</div>
-                    <div style='font-size:11px; font-weight:800; color:{primaryColor}; margin-top:2px; line-height:1.3;'>INR {words}</div>
+            <div style='{bottomPad} border-right:1px solid {borderSlate}; background:#ffffff;'>
+                <div style='background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; {wordsBoxPad}'>
+                    <div style='{wordsTitleFont} color:#334155; text-transform:uppercase;'>Amount Chargeable (in words):</div>
+                    <div style='{wordsValFont} color:#0f172a;'>INR {words}</div>
                 </div>
 
                 <!-- Bank & UPI QR Card -->
                 {(showSettlementCard ? $@"
-                <div style='display:flex; gap:10px; border:1px solid #e2e8f0; border-radius:6px; padding:6px 8px; background:#f8fafc; align-items:center;'>
-                    {(!string.IsNullOrEmpty(upiQr) ? $"<img src='{upiQr}' alt='UPI QR' style='width:68px; height:68px; border:1px solid #cbd5e1; border-radius:4px; flex-shrink:0;' />" : "")}
-                    <div style='font-size:9px; line-height:1.35; flex:1;'>
-                        <div style='font-weight:800; color:{primaryColor}; font-size:9.5px; margin-bottom:2px; text-transform:uppercase;'>Bank &amp; UPI Settlement</div>
-                        {(!string.IsNullOrEmpty(bankName) ? $"<div>Bank: <strong>{bankName}</strong>{(!string.IsNullOrEmpty(bankBranch) ? $" ({bankBranch})" : "")}</div>" : "")}
-                        {(!string.IsNullOrEmpty(bankAcc) ? $"<div>A/c No: <strong style='font-family:monospace; color:#0f172a; font-size:10px;'>{bankAcc}</strong></div>" : "")}
-                        {(!string.IsNullOrEmpty(bankIfsc) ? $"<div>IFSC: <strong style='font-family:monospace;'>{bankIfsc}</strong></div>" : "")}
-                        {(!string.IsNullOrEmpty(upiId) ? $"<div>UPI ID: <strong style='font-family:monospace; color:{secondaryColor};'>{upiId}</strong></div>" : "")}
+                <div style='{settlementPad}'>
+                    {(!string.IsNullOrEmpty(upiQr) ? $"<img src='{upiQr}' alt='UPI QR' style='{qrImgStyle}' />" : "")}
+                    <div style='{bankDetailsFont} flex:1; color:#0f172a;'>
+                        <div style='font-weight:700; color:{primaryOrange}; {bankTitleFont} text-transform:uppercase;'>Bank &amp; UPI Settlement</div>
+                        {(!string.IsNullOrEmpty(bankName) ? $"<div>Bank: <strong style='color:#0f172a;'>{bankName}</strong>{(!string.IsNullOrEmpty(bankBranch) ? $" ({bankBranch})" : "")}</div>" : "")}
+                        {(!string.IsNullOrEmpty(bankAcc) ? $"<div>A/c No: <strong style='font-family:monospace; color:#0f172a; font-size:{(isA5 ? "10.5px" : "11px")}; font-weight:700;'>{bankAcc}</strong></div>" : "")}
+                        {(!string.IsNullOrEmpty(bankIfsc) ? $"<div>IFSC: <strong style='font-family:monospace; color:#0f172a; font-weight:700;'>{bankIfsc}</strong></div>" : "")}
+                        {(!string.IsNullOrEmpty(upiId) ? $"<div>UPI ID: <strong style='font-family:monospace; color:{primaryGreen}; font-weight:700;'>{upiId}</strong></div>" : "")}
                     </div>
                 </div>" : "")}
             </div>
 
             <!-- Right: Commercial Totals Breakdown (Up to 10 Cr Scale) -->
-            <div style='padding:8px 12px; background:#f8fafc;'>
-                <table style='font-size:10px; width:100%; border-collapse:collapse;'>
+            <div style='{bottomPad} background:#f8fafc;'>
+                <table style='{totalsTableFont} width:100%; border-collapse:collapse; color:#0f172a;'>
                     <tr>
-                        <td style='padding:2px 0; color:#64748b;'>Taxable Amount:</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; font-weight:600; color:#0f172a;'>₹{taxable:N2}</td>
+                        <td style='{totalsRowPad} color:#334155; font-weight:600;'>Taxable Amount:</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{taxable:N2}</td>
                     </tr>
                     {(cgst > 0 ? $@"
                     <tr>
-                        <td style='padding:2px 0; color:#64748b;'>Central Tax (CGST):</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; color:#0f172a;'>₹{cgst:N2}</td>
+                        <td style='{totalsRowPad} color:#334155; font-weight:600;'>Central Tax (CGST):</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{cgst:N2}</td>
                     </tr>" : "")}
                     {(sgst > 0 ? $@"
                     <tr>
-                        <td style='padding:2px 0; color:#64748b;'>State Tax (SGST):</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; color:#0f172a;'>₹{sgst:N2}</td>
+                        <td style='{totalsRowPad} color:#334155; font-weight:600;'>State Tax (SGST):</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{sgst:N2}</td>
                     </tr>" : "")}
                     {(igst > 0 ? $@"
                     <tr>
-                        <td style='padding:2px 0; color:#64748b;'>Integrated Tax (IGST):</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; color:#0f172a;'>₹{igst:N2}</td>
+                        <td style='{totalsRowPad} color:#334155; font-weight:600;'>Integrated Tax (IGST):</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{igst:N2}</td>
                     </tr>" : "")}
                     {(cess > 0 ? $@"
                     <tr>
-                        <td style='padding:2px 0; color:#64748b;'>GST Cess:</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; color:#0f172a;'>₹{cess:N2}</td>
+                        <td style='{totalsRowPad} color:#334155; font-weight:600;'>GST Cess:</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{cess:N2}</td>
                     </tr>" : "")}
                     {(roundOff != 0 ? $@"
                     <tr>
-                        <td style='padding:2px 0; color:#64748b;'>Round Off:</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; color:#0f172a;'>₹{roundOff:N2}</td>
+                        <td style='{totalsRowPad} color:#334155; font-weight:600;'>Round Off:</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#0f172a; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{roundOff:N2}</td>
                     </tr>" : "")}
-                    <tr style='border-top:2px solid {primaryColor}; background:#eef2ff;'>
-                        <td style='padding:6px 0; font-weight:900; font-size:13px; color:{primaryColor};'>GRAND TOTAL:</td>
-                        <td style='padding:6px 0; text-align:right; font-family:monospace; font-weight:900; font-size:14px; color:{primaryColor};'>₹{totalAmount:N2}</td>
+                    <tr style='border-top:{(isA5 ? "1.5px" : "2px")} solid {primaryGreen}; background:{lightGreenBg};'>
+                        <td style='{grandTotalPad} font-weight:800; color:{primaryGreen};'>GRAND TOTAL:</td>
+                        <td style='{grandTotalVal} text-align:right; font-family:monospace; font-weight:800; color:{primaryGreen};'>₹{totalAmount:N2}</td>
                     </tr>
+                    {(oldGoldAdj > 0 ? $@"
+                    <tr>
+                        <td style='{totalsRowPad} color:#b45309; font-weight:700;'>Old Gold Exchange:</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#b45309; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>-₹{oldGoldAdj:N2}</td>
+                    </tr>" : "")}
+                    {(kittyAdj > 0 ? $@"
+                    <tr>
+                        <td style='{totalsRowPad} color:#059669; font-weight:700;'>Chit/Kitty Redemption:</td>
+                        <td style='{totalsRowPad} text-align:right; font-family:monospace; font-weight:700; color:#059669; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>-₹{kittyAdj:N2}</td>
+                    </tr>" : "")}
+                    {((oldGoldAdj > 0 || kittyAdj > 0) ? $@"
+                    <tr style='border-top:1.5px solid #fde68a; background:#fffbeb;'>
+                        <td style='{grandTotalPad} font-weight:800; color:#b45309;'>NET PAYABLE:</td>
+                        <td style='{grandTotalVal} text-align:right; font-family:monospace; font-weight:800; color:#b45309;'>₹{jewelleryNetPayable:N2}</td>
+                    </tr>" : "")}
                     <tr style='border-top:1px solid #cbd5e1;'>
-                        <td style='padding:3px 0; font-weight:700; color:#16a34a; font-size:11px;'>Paid Amount:</td>
-                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:700; color:#16a34a; font-size:11px;'>₹{paidAmount:N2}</td>
+                        <td style='{paidDuePad} font-weight:700; color:#15803d;'>Paid Amount:</td>
+                        <td style='{paidDuePad} text-align:right; font-family:monospace; font-weight:700; color:#15803d; {(isA5 ? "font-size:11px;" : "font-size:11.5px;")}'>₹{paidAmount:N2}</td>
                     </tr>
                     <tr style='border-top:1px dashed #cbd5e1;'>
-                        <td style='padding:3px 0; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>Due Amount:</td>
-                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>₹{balanceAmount:N2}</td>
+                        <td style='{dueDuePad} font-weight:700; color:{(balanceAmount > 0 ? primaryOrange : "#0f172a")};'>Due Amount:</td>
+                        <td style='{dueDuePad} text-align:right; font-family:monospace; font-weight:700; color:{(balanceAmount > 0 ? primaryOrange : "#0f172a")}; {(isA5 ? "font-size:12px;" : "font-size:12.5px;")}'>₹{balanceAmount:N2}</td>
                     </tr>
                 </table>
             </div>
         </div>
 
         <!-- 7. DECLARATION & SIGNATURE BLOCK -->
-        <div style='display:flex; justify-content:space-between; align-items:flex-end; padding:8px 12px; border-top:1px solid #e2e8f0; background:#ffffff;'>
-            <div style='max-width:64%; font-size:8.5px; color:#64748b; line-height:1.35;'>
-                {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<strong>Terms &amp; Conditions:</strong><br/>{t.DeclarationText}" : "")}
+        <div style='display:flex; justify-content:space-between; align-items:flex-end; {declPad} border-top:1px solid #e2e8f0; background:#ffffff;'>
+            <div style='max-width:64%; {declFont} color:#1e293b;'>
+                {(!string.IsNullOrWhiteSpace(invoice?.Notes) ? $"<div style='margin-bottom:2px; color:#1e293b;'><strong>Notes / Remarks:</strong> {invoice.Notes}</div>" : "")}
+                {(isJewellery ? "<div style='margin-bottom:3px; font-size:8.5px; color:#92400e; font-weight:600;'>&#10003; <strong>BIS Hallmarked Assurance:</strong> All gold jewellery items sold are hallmarked with 6-digit BIS HUID as per Bureau of Indian Standards regulations. Purity and fineness are certified.</div>" : "")}
+                {(!string.IsNullOrWhiteSpace(effectiveTerms) && t.ShowTerms ? $"<div style='margin-bottom:2px;'><strong>Terms &amp; Conditions:</strong><br/>{effectiveTerms.Replace("\r\n", "<br/>").Replace("\n", "<br/>")}</div>" : "")}
+                {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div style='margin-top:2px;'><strong>Declaration:</strong><br/>{t.DeclarationText}</div>" : "")}
             </div>
             <div style='text-align:right;'>
-                <div style='font-size:9.5px; font-weight:800; color:#0f172a;'>For {sellerName}</div>
-                <div style='height:34px;'></div>
-                <div style='border-top:1px solid #64748b; display:inline-block; padding-top:2px; font-size:9px; font-weight:700; color:#0f172a;'>
+                {(!string.IsNullOrWhiteSpace(t.FooterGreeting) ? $"<div style='font-size:8.5px; color:#1e293b; font-style:italic; margin-bottom:4px;'>{t.FooterGreeting}</div>" : "")}
+                <div style='{sigFont} color:#0f172a;'>For {sellerName}</div>
+                <div style='{sigGap}'></div>
+                <div style='border-top:1px solid #1e293b; display:inline-block; padding-top:1px; {sigFont} color:#0f172a;'>
                     Authorised Signatory
                 </div>
             </div>
         </div>
 
         <!-- 8. FOOTER METADATA -->
-        <div style='display:flex; justify-content:space-between; padding:3px 12px; font-size:8px; color:#94a3b8; background:#f8fafc; border-top:1px dashed #e2e8f0;'>
+        <div style='display:flex; justify-content:space-between; {footerPad} color:#475569; background:#f8fafc; border-top:1px solid #cbd5e1;'>
             <span>Computer Generated Invoice</span>
             <span>Page 1 of 1</span>
         </div>
@@ -1443,6 +2055,8 @@ public class PrintTemplateService : IPrintTemplateService
             ? t.SecondaryColorHex
             : "#2563eb";
 
+        bool isNonGst = IsNonGstDocument(invoice);
+
         // Seller Identification
         var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName)
             ? tenant.TradeName
@@ -1457,12 +2071,16 @@ public class PrintTemplateService : IPrintTemplateService
             ? invoice.Branch.GSTIN
             : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
         var sellerPan = !string.IsNullOrWhiteSpace(tenant?.PAN) ? tenant.PAN : (sellerGstin.Length >= 12 ? sellerGstin.Substring(2, 10) : "");
-        var sellerState = !string.IsNullOrWhiteSpace(invoice?.Branch?.State)
-            ? $"{invoice.Branch.State}{(string.IsNullOrWhiteSpace(invoice.Branch.StateCode) ? "" : $" (Code: {invoice.Branch.StateCode})")}"
-            : (!string.IsNullOrWhiteSpace(tenant?.State) ? $"{tenant.State}{(string.IsNullOrWhiteSpace(tenant.StateCode) ? "" : $" (Code: {tenant.StateCode})")}" : "");
-        var sellerStateCodeOnly = !string.IsNullOrWhiteSpace(invoice?.Branch?.StateCode)
-            ? invoice.Branch.StateCode
-            : (!string.IsNullOrWhiteSpace(tenant?.StateCode) ? tenant.StateCode : (sellerGstin.Length >= 2 ? sellerGstin.Substring(0, 2) : ""));
+        var sellerStateCodeOnly = GstStateHelper.NormalizeStateCode(
+            invoice?.Branch?.StateCode ?? tenant?.StateCode ?? invoice?.Branch?.State ?? tenant?.State,
+            sellerGstin,
+            "09");
+        var rawSellerStateName = !string.IsNullOrWhiteSpace(invoice?.Branch?.State)
+            ? invoice.Branch.State
+            : (!string.IsNullOrWhiteSpace(tenant?.State) ? tenant.State : GstStateHelper.GetStateNameByCode(sellerStateCodeOnly));
+        var sellerState = !string.IsNullOrWhiteSpace(rawSellerStateName)
+            ? $"{rawSellerStateName} (Code: {sellerStateCodeOnly})"
+            : "";
 
         var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
         var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
@@ -1485,10 +2103,12 @@ public class PrintTemplateService : IPrintTemplateService
         var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (invoice != null ? "Cash Customer" : "");
         var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
         var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
-        var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
         var custStateCode = GstStateHelper.ExtractStateCodeFromGstin(custGstin) ?? (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) && invoice.BillingStateCode != "27" ? invoice.BillingStateCode : "");
         var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
+        var custFssai = ExtractInvoiceBuyerFssai(invoice);
 
         // Logistics & Transport Metadata
         var transporter = !string.IsNullOrWhiteSpace(invoice?.TransporterName) ? invoice.TransporterName : "";
@@ -1504,6 +2124,9 @@ public class PrintTemplateService : IPrintTemplateService
         string irn = "";
         string ackNo = "";
         string ackDate = "";
+        string autoVehicleModel = "";
+        string autoMechanicName = "";
+        string autoOdometerKm = "";
         if (!string.IsNullOrEmpty(invoice?.AttributesJson))
         {
             try
@@ -1512,11 +2135,15 @@ public class PrintTemplateService : IPrintTemplateService
                 if (doc.RootElement.TryGetProperty("irn", out var i)) irn = i.GetString() ?? "";
                 if (doc.RootElement.TryGetProperty("ackNo", out var a)) ackNo = a.GetString() ?? "";
                 if (doc.RootElement.TryGetProperty("ackDate", out var d)) ackDate = d.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("vehicleModel", out var vm)) autoVehicleModel = vm.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("mechanicName", out var mn)) autoMechanicName = mn.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("odometerKm", out var okm)) autoOdometerKm = okm.GetString() ?? "";
+                if (string.IsNullOrWhiteSpace(vehicleNo) && doc.RootElement.TryGetProperty("vehicleRegNo", out var vrn)) vehicleNo = vrn.GetString() ?? "";
             }
             catch {}
         }
 
-        bool hasLogistics = !string.IsNullOrWhiteSpace(transporter) || !string.IsNullOrWhiteSpace(vehicleNo) ||
+        bool hasLogistics = !string.IsNullOrWhiteSpace(transporter) || (!string.IsNullOrWhiteSpace(vehicleNo) && string.IsNullOrWhiteSpace(autoVehicleModel) && string.IsNullOrWhiteSpace(autoMechanicName)) ||
                             !string.IsNullOrWhiteSpace(lrNo) || !string.IsNullOrWhiteSpace(eWayNo) ||
                             !string.IsNullOrWhiteSpace(poNo) || !string.IsNullOrWhiteSpace(irn);
 
@@ -1538,25 +2165,31 @@ public class PrintTemplateService : IPrintTemplateService
         var bankBranch = !string.IsNullOrWhiteSpace(tenant?.BankBranch) ? tenant.BankBranch : "";
         var rawUpi = !string.IsNullOrWhiteSpace(t.UpiId) ? t.UpiId : (!string.IsNullOrWhiteSpace(tenant?.UpiId) ? tenant.UpiId : "");
         var upiId = (!string.IsNullOrWhiteSpace(rawUpi) && !rawUpi.Contains("9876543210") && !rawUpi.Contains("example.com")) ? rawUpi : "";
-        var upiQr = (!string.IsNullOrEmpty(upiId) && t.ShowUpiQr)
-            ? $"https://api.qrserver.com/v1/create-qr-code/?size=95x95&data=upi%3A%2F%2Fpay%3Fpa%3D{upiId}%26pn%3D{Uri.EscapeDataString(sellerName)}%26am%3D{totalAmount}%26cu%3DINR"
+        var upiQrPayload = (!string.IsNullOrEmpty(upiId) && t.ShowUpiQr)
+            ? $"upi://pay?pa={upiId}&pn={Uri.EscapeDataString(sellerName)}&am={totalAmount:F2}&cu=INR&tn={invNo}"
             : "";
+        var upiQr = !string.IsNullOrEmpty(upiQrPayload) ? GenerateQrCodeDataUri(upiQrPayload) : "";
 
         bool hasValidBank = t.ShowBankDetails && (!string.IsNullOrWhiteSpace(bankName) || !string.IsNullOrWhiteSpace(bankAcc) || !string.IsNullOrWhiteSpace(bankIfsc));
         bool hasValidUpi = t.ShowUpiQr && !string.IsNullOrWhiteSpace(upiId);
         bool showSettlementCard = hasValidBank || hasValidUpi;
 
-        // Dynamic Addon Detection: Look at invoice items and tenant configuration
-        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
-        bool isElectronics = industry == IndustryTypeCodes.Electronics;
-        bool isGarments = industry == IndustryTypeCodes.Garments;
-        bool isHardware = industry == IndustryTypeCodes.Hardware;
+        // Dynamic Addon Detection: Universal Industry Adaptive Engine
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isElectronics = prof.IsElectronics;
+        bool isGarments = prof.IsGarments;
+        bool isHardware = prof.IsHardware;
+        bool isAutoParts = prof.IsAutoParts;
+
+        bool hasAutoPartsInfo = isAutoParts && (!string.IsNullOrWhiteSpace(vehicleNo) || !string.IsNullOrWhiteSpace(autoVehicleModel) || !string.IsNullOrWhiteSpace(autoMechanicName) || !string.IsNullOrWhiteSpace(autoOdometerKm));
+
+        var logoUrl = !string.IsNullOrEmpty(t.LogoUrl) ? t.LogoUrl : (!string.IsNullOrEmpty(tenant?.LogoUrl) ? tenant.LogoUrl : "");
 
         var tradeTier = ExtractInvoiceTradeTier(invoice);
-        bool hasPharmaAddon = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber) || i.ExpiryDate.HasValue) : false);
+        bool hasPharmaAddon = prof.IsPharma || (!isAutoParts && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber) || i.ExpiryDate.HasValue) : false));
         bool hasDiscount = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : false;
-        bool hasFreeScheme = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
-        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : false;
+        bool hasFreeScheme = prof.IsPharma || (invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false);
+        bool hasMrp = prof.IsPharma || (invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : false);
         bool hasPtr = invoice != null 
             ? (invoice.Items.Any(i => ExtractItemPharmaAttributes(i).ptr > 0) || (tradeTier == "company_to_stockist" || tradeTier == "stockist_to_chemist"))
             : false;
@@ -1568,25 +2201,29 @@ public class PrintTemplateService : IPrintTemplateService
         var hsnSummaryHtml = RenderHsnSummaryTable(invoice, primaryColor);
         var heightStyle = GetContainerHeightStyle(t);
 
+        var effectiveTerms = !string.IsNullOrWhiteSpace(t.TermsAndConditions)
+            ? t.TermsAndConditions
+            : ExtractDisclaimerFromCustomLabels(t.CustomLabelsJson);
+
         return $@"
-<div class='invoice-container udyogbill-signature' style='font-family:{t.FontFamily}; width:100%; max-width:840px; {heightStyle} margin:0 auto; padding:12px 16px; border:2px solid {primaryColor}; box-sizing:border-box; background:#ffffff; color:#0f172a; font-size:10.5px; display:flex; flex-direction:column; justify-content:space-between;'>
+<div class='invoice-container udyogbill-signature' style='font-family:{t.FontFamily}; width:100%; max-width:195mm; {heightStyle} margin:0 auto; padding:10px 14px; border:2px solid {primaryColor}; box-sizing:border-box; background:#ffffff; color:#000000; font-size:10px; display:flex; flex-direction:column; justify-content:space-between;'>
 
     <!-- TOP LEGAL HEADER & ENTERPRISE METADATA -->
     <div>
-        <div style='display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid {primaryColor}; padding-bottom:10px;'>
+        <div style='display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid {primaryColor}; padding-bottom:8px;'>
             <div style='max-width:64%;'>
-                <div style='display:flex; align-items:center; gap:8px;'>
-                    <span style='background:{primaryColor}; color:#ffffff; font-weight:900; font-size:10px; padding:2px 7px; border-radius:3px; letter-spacing:0.5px;'>UDYOGBILL</span>
+                <div style='display:flex; align-items:center; gap:10px;'>
+                    {(!string.IsNullOrEmpty(logoUrl) ? $"<img src='{logoUrl}' alt='Logo' style='max-height:48px; max-width:140px; object-fit:contain;' />" : "")}
                     <h1 style='color:{primaryColor}; margin:0; font-size:21px; font-weight:900; letter-spacing:-0.2px; line-height:1.2;'>{sellerName}</h1>
                 </div>
-                {(sellerLegalName != sellerName ? $"<div style='font-size:10px; color:#475569; font-weight:bold; margin-top:1px;'>Legal Name: {sellerLegalName}</div>" : "")}
-                <div style='font-size:10.5px; color:#334155; line-height:1.35; margin-top:3px;'>{sellerAddress}</div>
-                <div style='font-size:10.5px; font-weight:bold; margin-top:3px; color:#0f172a;'>
+                {(sellerLegalName != sellerName ? $"<div style='font-size:10px; color:#000000; font-weight:bold; margin-top:1px;'>Legal Name: {sellerLegalName}</div>" : "")}
+                <div style='font-size:10px; color:#000000; line-height:1.35; margin-top:3px;'>{sellerAddress}</div>
+                <div style='font-size:10px; font-weight:bold; margin-top:3px; color:#000000;'>
                     {(string.IsNullOrEmpty(sellerGstin) ? "" : $"GSTIN: <span style='font-family:monospace; color:{primaryColor};'>{sellerGstin}</span> | ")}PAN: <span style='font-family:monospace;'>{sellerPan}</span> | State: {sellerState}
                 </div>
-                <div style='display:flex; flex-wrap:wrap; gap:10px; font-size:10px; color:#475569; margin-top:2px;'>
-                    {(t.ShowDrugLicense && !string.IsNullOrEmpty(sellerDl) ? $"<span>DL No: <strong style='font-family:monospace;'>{sellerDl}</strong></span>" : "")}
-                    {(t.ShowFssai && !string.IsNullOrEmpty(sellerFssai) ? $"<span>FSSAI No: <strong style='font-family:monospace;'>{sellerFssai}</strong></span>" : "")}
+                <div style='display:flex; flex-wrap:wrap; gap:10px; font-size:9.5px; color:#000000; margin-top:2px;'>
+                    {(!string.IsNullOrEmpty(sellerDl) ? $"<span>DL No: <strong style='font-family:monospace;'>{sellerDl}</strong></span>" : "")}
+                    {(!string.IsNullOrEmpty(sellerFssai) ? $"<span>FSSAI No: <strong style='font-family:monospace;'>{sellerFssai}</strong></span>" : "")}
                     {(!string.IsNullOrEmpty(sellerPhone) ? $"<span>Mob: <strong>{sellerPhone}</strong></span>" : "")}
                     {(!string.IsNullOrEmpty(sellerEmail) ? $"<span>Email: <strong>{sellerEmail}</strong></span>" : "")}
                 </div>
@@ -1594,52 +2231,67 @@ public class PrintTemplateService : IPrintTemplateService
 
             <!-- INVOICE BADGE & COMPLIANCE STAMP -->
             <div style='text-align:right; min-width:32%;'>
-                <div style='background: linear-gradient(135deg, {primaryColor}, {secondaryColor}); color:#ffffff; padding:5px 16px; font-weight:800; font-size:13px; border-radius:5px; display:inline-block; letter-spacing:0.5px; box-shadow:0 2px 4px rgba(67,56,202,0.25);'>TAX INVOICE</div>
-                <div style='font-size:9.5px; color:#64748b; margin-top:3px; font-weight:800; text-transform:uppercase;'>ORIGINAL FOR RECIPIENT</div>
-                <div style='font-size:12px; font-weight:bold; margin-top:4px;'>Invoice No: <span style='color:{primaryColor}; font-family:monospace; font-weight:900;'>{invNo}</span></div>
-                <div style='font-size:11px; margin-top:2px;'>Invoice Date: <strong>{invDate}</strong></div>
-                {(!string.IsNullOrEmpty(dueDate) ? $"<div style='font-size:10.5px; color:#0f172a; font-weight:bold; margin-top:1px;'>Due Date: <strong>{dueDate}</strong></div>" : "")}
-                <div style='font-size:10px; color:#475569; margin-top:2px;'>Place of Supply: <strong>{placeOfSupply}</strong></div>
-                <div style='font-size:9.5px; color:#64748b; margin-top:2px;'>Reverse Charge (RCM): <strong>{(invoice?.IsReverseCharge == true ? "YES" : "NO")}</strong></div>
+                <div style='background: linear-gradient(135deg, {(isNonGst ? "#ea580c, #c2410c" : $"{primaryColor}, {secondaryColor}")}); color:#ffffff; padding:5px 16px; font-weight:800; font-size:13px; border-radius:5px; display:inline-block; letter-spacing:0.5px;'>{(isNonGst ? "CASH MEMO / ESTIMATE" : "TAX INVOICE")}</div>
+                <div style='font-size:9px; color:#000000; margin-top:3px; font-weight:800; text-transform:uppercase;'>{(isNonGst ? "NON-GST RETAIL SLIP | CUSTOMER COPY" : "ORIGINAL FOR RECIPIENT")}</div>
+                <div style='font-size:12px; font-weight:bold; margin-top:3px;'>Invoice No: <span style='color:{primaryColor}; font-family:monospace; font-weight:900;'>{invNo}</span></div>
+                <div style='font-size:10.5px; margin-top:2px;'>Invoice Date: <strong>{invDate}</strong></div>
+                {(!string.IsNullOrEmpty(dueDate) ? $"<div style='font-size:10px; color:#000000; font-weight:bold; margin-top:1px;'>Due Date: <strong>{dueDate}</strong></div>" : "")}
+                <div style='font-size:9.5px; color:#000000; margin-top:2px;'>Place of Supply: <strong>{placeOfSupply}</strong></div>
+                <div style='font-size:9px; color:#000000; margin-top:2px;'>Reverse Charge (RCM): <strong>{(invoice?.IsReverseCharge == true ? "YES" : "NO")}</strong></div>
             </div>
         </div>
 
         <!-- E-INVOICE / IRN BAR (MANDATORY FOR HIGH VALUE / >5 CR COMPLIANCE) -->
         {(!string.IsNullOrEmpty(irn) ? $@"
-        <div style='margin-top:6px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:4px; padding:4px 8px; font-size:9px; display:flex; justify-content:space-between;'>
+        <div style='margin-top:5px; background:#f8fafc; border:1px dashed #1e293b; border-radius:4px; padding:3px 8px; font-size:9px; display:flex; justify-content:space-between; color:#000000;'>
             <div><strong>IRN:</strong> <span style='font-family:monospace; word-break:break-all;'>{irn}</span></div>
             {(!string.IsNullOrEmpty(ackNo) ? $"<div style='margin-left:12px; white-space:nowrap;'><strong>Ack No:</strong> {ackNo} ({ackDate})</div>" : "")}
         </div>" : "")}
 
+        <!-- AUTOMOTIVE VEHICLE & MECHANIC STRIP (AUTO PARTS SPECIFIC) -->
+        {(hasAutoPartsInfo ? $@"
+        <div style='margin-top:5px; background:#f0f9ff; border:1.5px solid #0284c7; border-radius:3px; padding:4px 8px; color:#0369a1; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; font-size:9.5px; font-weight:600;'>
+            <div style='display:flex; align-items:center; gap:8px;'>
+                <span style='background:#0284c7; color:#fff; font-size:8.5px; font-weight:800; padding:1px 5px; border-radius:2px; text-transform:uppercase;'>VEHICLE RECORD</span>
+                <span style='color:#0f172a; font-weight:800;'>Reg No: <span style='font-family:monospace; font-size:10.5px; color:#0369a1;'>{(string.IsNullOrWhiteSpace(vehicleNo) ? "N/A" : vehicleNo)}</span></span>
+                {(!string.IsNullOrWhiteSpace(autoVehicleModel) ? $"<span style='color:#94a3b8;'>|</span> <span style='color:#0f172a;'>Model: <strong>{autoVehicleModel}</strong></span>" : "")}
+            </div>
+            <div style='display:flex; align-items:center; gap:12px;'>
+                {(!string.IsNullOrWhiteSpace(autoOdometerKm) ? $"<span style='color:#0f172a;'>Odometer: <strong>{autoOdometerKm} KM</strong></span>" : "")}
+                {(!string.IsNullOrWhiteSpace(autoMechanicName) ? $"<span style='color:#0f172a;'>Mechanic / Mistri: <strong style='color:#0284c7;'>{autoMechanicName}</strong></span>" : "")}
+            </div>
+        </div>" : "")}
+
         <!-- 1. BILL TO & SHIP TO SECTION (DUAL ENTITY) -->
-        <div style='display:flex; justify-content:space-between; margin-top:8px; gap:8px;'>
+        <div style='display:flex; justify-content:space-between; margin-top:6px; gap:8px;'>
             <!-- BILL TO -->
-            <div style='flex:1; border:1px solid #cbd5e1; padding:7px 10px; border-radius:4px; background:#f8fafc;'>
-                <div style='display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding-bottom:3px;'>
-                    <span style='font-size:9.5px; font-weight:800; color:#475569; text-transform:uppercase;'>Details of Receiver | Billed To:</span>
-                    <span style='font-size:9px; color:#0f172a; font-weight:bold; background:#e2e8f0; padding:1px 5px; border-radius:3px;'>Buyer</span>
+            <div style='flex:1; border:1.5px solid #1e293b; padding:6px 9px; border-radius:3px; background:#ffffff; color:#000000;'>
+                <div style='display:flex; justify-content:space-between; border-bottom:1px solid #1e293b; padding-bottom:2px;'>
+                    <span style='font-size:9px; font-weight:800; color:#000000; text-transform:uppercase;'>Details of Receiver | Billed To:</span>
+                    <span style='font-size:8.5px; color:#000000; font-weight:bold; background:#e2e8f0; padding:1px 5px; border-radius:2px;'>Buyer</span>
                 </div>
-                <div style='font-size:12.5px; font-weight:900; color:{primaryColor}; margin:3px 0 2px 0;'>{custName}</div>
-                <div style='font-size:10px; color:#334155; line-height:1.3;'>{custAddress}</div>
-                <div style='display:flex; gap:12px; margin-top:3px; font-size:10px;'>
+                <div style='font-size:12px; font-weight:900; color:{primaryColor}; margin:3px 0 2px 0;'>{custName}</div>
+                <div style='font-size:9.5px; color:#000000; line-height:1.3;'>{custAddress}</div>
+                <div style='display:flex; gap:12px; margin-top:3px; font-size:9.5px;'>
                     {(string.IsNullOrEmpty(custGstin) ? "<span>Unregistered Consumer</span>" : $"<span>GSTIN: <strong style='font-family:monospace;'>{custGstin}</strong></span>")}
                     {(!string.IsNullOrEmpty(custPan) ? $"<span>PAN: <strong style='font-family:monospace;'>{custPan}</strong></span>" : "")}
                 </div>
-                <div style='display:flex; gap:12px; margin-top:2px; font-size:9.5px; color:#64748b;'>
+                <div style='display:flex; gap:12px; margin-top:2px; font-size:9px; color:#000000;'>
                     <span>State Code: <strong>{custStateCode}</strong></span>
                     {(!string.IsNullOrEmpty(custDl) ? $"<span>DL: <strong>{custDl}</strong></span>" : "")}
+                    {(!string.IsNullOrEmpty(custFssai) ? $"<span>FSSAI: <strong>{custFssai}</strong></span>" : "")}
                 </div>
             </div>
 
             <!-- SHIP TO -->
-            <div style='flex:1; border:1px solid #cbd5e1; padding:7px 10px; border-radius:4px; background:#f8fafc;'>
-                <div style='display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding-bottom:3px;'>
-                    <span style='font-size:9.5px; font-weight:800; color:#475569; text-transform:uppercase;'>Details of Consignee | Shipped To:</span>
-                    <span style='font-size:9px; color:#475569; font-weight:bold; background:#e2e8f0; padding:1px 5px; border-radius:3px;'>Destination Site</span>
+            <div style='flex:1; border:1.5px solid #1e293b; padding:6px 9px; border-radius:3px; background:#f8fafc; color:#000000;'>
+                <div style='display:flex; justify-content:space-between; border-bottom:1px solid #1e293b; padding-bottom:2px;'>
+                    <span style='font-size:9px; font-weight:800; color:#000000; text-transform:uppercase;'>Details of Consignee | Shipped To:</span>
+                    <span style='font-size:8.5px; color:#000000; font-weight:bold; background:#e2e8f0; padding:1px 5px; border-radius:2px;'>Destination Site</span>
                 </div>
-                <div style='font-size:12.5px; font-weight:900; color:#0f172a; margin:3px 0 2px 0;'>{custName}</div>
-                <div style='font-size:10px; color:#334155; line-height:1.3;'>{shipAddress}</div>
-                <div style='display:flex; gap:12px; margin-top:3px; font-size:9.5px; color:#64748b;'>
+                <div style='font-size:12px; font-weight:900; color:#000000; margin:3px 0 2px 0;'>{custName}</div>
+                <div style='font-size:9.5px; color:#000000; line-height:1.3;'>{shipAddress}</div>
+                <div style='display:flex; gap:12px; margin-top:3px; font-size:9px; color:#000000;'>
                     <span>State Code: <strong>{custStateCode}</strong></span>
                     <span>Country: <strong>India</strong></span>
                 </div>
@@ -1648,111 +2300,115 @@ public class PrintTemplateService : IPrintTemplateService
 
         <!-- 2. TRANSPORT, E-WAY BILL & BUYER PO ROW -->
         {(hasLogistics ? $@"
-        <div style='margin-top:6px; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; padding:5px 8px;'>
-            <div style='display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; font-size:9.5px;'>
-                <div><span style='color:#64748b;'>E-Way Bill No:</span><br/><strong style='font-family:monospace;'>{(!string.IsNullOrEmpty(eWayNo) ? eWayNo : "-")}</strong></div>
-                <div><span style='color:#64748b;'>Vehicle No:</span><br/><strong style='font-family:monospace;'>{(!string.IsNullOrEmpty(vehicleNo) ? vehicleNo : "-")}</strong></div>
-                <div><span style='color:#64748b;'>Transporter:</span><br/><strong>{(!string.IsNullOrEmpty(transporter) ? transporter : "-")}</strong></div>
-                <div><span style='color:#64748b;'>LR / Bilty No:</span><br/><strong>{(!string.IsNullOrEmpty(lrNo) ? lrNo : "-")} {(!string.IsNullOrEmpty(lrDate) ? $"({lrDate})" : "")}</strong></div>
-                <div><span style='color:#64748b;'>Buyer PO Ref:</span><br/><strong>{(!string.IsNullOrEmpty(poNo) ? poNo : "-")} {(!string.IsNullOrEmpty(poDate) ? $"({poDate})" : "")}</strong></div>
+        <div style='margin-top:5px; background:#ffffff; border:1px solid #1e293b; border-radius:3px; padding:4px 8px; color:#000000;'>
+            <div style='display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; font-size:9px;'>
+                <div><span style='color:#000000;'>E-Way Bill No:</span><br/><strong style='font-family:monospace;'>{(!string.IsNullOrEmpty(eWayNo) ? eWayNo : "-")}</strong></div>
+                <div><span style='color:#000000;'>Vehicle No:</span><br/><strong style='font-family:monospace;'>{(!string.IsNullOrEmpty(vehicleNo) ? vehicleNo : "-")}</strong></div>
+                <div><span style='color:#000000;'>Transporter:</span><br/><strong>{(!string.IsNullOrEmpty(transporter) ? transporter : "-")}</strong></div>
+                <div><span style='color:#000000;'>LR / Bilty No:</span><br/><strong>{(!string.IsNullOrEmpty(lrNo) ? lrNo : "-")} {(!string.IsNullOrEmpty(lrDate) ? $"({lrDate})" : "")}</strong></div>
+                <div><span style='color:#000000;'>Buyer PO Ref:</span><br/><strong>{(!string.IsNullOrEmpty(poNo) ? poNo : "-")} {(!string.IsNullOrEmpty(poDate) ? $"({poDate})" : "")}</strong></div>
             </div>
         </div>" : "")}
     </div>
 
     <!-- 3. ADAPTIVE LINE ITEMS TABLE (FULL HEIGHT STRETCHED WITH VERTICAL COLUMN LINES) -->
-    <div style='flex:1 1 auto; display:flex; flex-direction:column; margin-top:6px; border:1px solid #cbd5e1; border-radius:4px; overflow:hidden;'>
-        <table style='width:100%; height:100%; flex:1 1 auto; border-collapse:collapse; font-size:10px;'>
+    <div style='flex:1 0 auto; height:auto; min-height:fit-content; display:flex; flex-direction:column; margin-top:5px; border:1.5px solid #1e293b; border-radius:3px;'>
+        <table style='width:100%; height:100%; flex:1 1 auto; border-collapse:collapse; font-size:10px; color:#000000;'>
             <thead>
-                <tr style='background:#eef2ff; color:{primaryColor}; border-bottom:1.5px solid #c7d2fe; height:26px;'>
-                    <th style='padding:4px 3px; border-right:1px solid #c7d2fe; text-align:center; width:26px;'>#</th>
-                    <th style='padding:4px 6px; border-right:1px solid #c7d2fe; text-align:left;'>Item Description &amp; Specification</th>
-                    <th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:center; width:62px;'>HSN/SAC</th>
-                    {(hasPharmaAddon ? "<th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:center; width:82px;'>Batch / Exp</th>" : "")}
-                    <th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:40px;'>Qty</th>
-                    {(hasFreeScheme ? "<th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:36px;'>Free</th>" : "")}
-                    {(hasMrp ? "<th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:50px;'>MRP (₹)</th>" : "")}
-                    {(hasPtr ? "<th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:50px;'>PTR (₹)</th>" : "")}
-                    {(hasPts ? "<th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:50px;'>PTS (₹)</th>" : "")}
-                    <th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:54px;'>Rate (₹)</th>
-                    {(hasDiscount ? "<th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:44px;'>Disc%</th>" : "")}
-                    <th style='padding:4px 4px; border-right:1px solid #cbd5e1; text-align:right; width:70px;'>Taxable (₹)</th>
-                    <th style='padding:4px 3px; border-right:1px solid #cbd5e1; text-align:right; width:42px;'>GST%</th>
-                    <th style='padding:4px 6px; text-align:right; width:80px;'>Total (₹)</th>
+                <tr style='background:#f1f5f9; color:#000000; border-bottom:1.5px solid #1e293b; height:24px;'>
+                    <th style='padding:3px; border-right:1px solid #1e293b; text-align:center; width:26px;'>#</th>
+                    <th style='padding:3px 6px; border-right:1px solid #1e293b; text-align:left;'>Item Description &amp; Specification</th>
+                    <th style='padding:3px; border-right:1px solid #1e293b; text-align:center; width:62px;'>HSN/SAC</th>
+                    {(hasPharmaAddon ? "<th style='padding:3px; border-right:1px solid #1e293b; text-align:center; width:82px;'>Batch / Exp</th>" : "")}
+                    <th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:40px;'>Qty</th>
+                    {(hasFreeScheme ? "<th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:36px;'>Free</th>" : "")}
+                    {(hasMrp ? "<th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:50px;'>MRP (₹)</th>" : "")}
+                    {(hasPtr ? "<th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:50px;'>PTR (₹)</th>" : "")}
+                    {(hasPts ? "<th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:50px;'>PTS (₹)</th>" : "")}
+                    <th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:54px;'>Rate (₹)</th>
+                    {(hasDiscount ? "<th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:44px;'>Disc%</th>" : "")}
+                    <th style='padding:3px 4px; border-right:1px solid #1e293b; text-align:right; width:70px;'>Taxable (₹)</th>
+                    <th style='padding:3px; border-right:1px solid #1e293b; text-align:right; width:42px;'>GST%</th>
+                    <th style='padding:3px 6px; text-align:right; width:80px;'>Total (₹)</th>
                 </tr>
             </thead>
             <tbody>
                 {RenderSignatureLineItemsRows(invoice, hasPharmaAddon, hasFreeScheme, hasMrp, hasDiscount, hasPtr, hasPts)}
-                {((invoice?.Items?.Count ?? (invoice == null ? 2 : 0)) < 12 ? RenderTableFillerRow(colCount, "#cbd5e1", (invoice?.Items?.Count ?? (invoice == null ? 2 : 0)), IsA5Size(t) ? 120 : 250) : "")}
+                {((invoice?.Items?.Count ?? (invoice == null ? 2 : 0)) < 12 ? RenderTableFillerRow(colCount, "#1e293b", (invoice?.Items?.Count ?? (invoice == null ? 2 : 0)), IsA5Size(t) ? 80 : 120) : "")}
             </tbody>
         </table>
     </div>
 
     <!-- 4. STATUTORY HSN / SAC TAX SUMMARY TABLE -->
-    {hsnSummaryHtml}
+    <div style='flex-shrink:0; margin-top:4px;'>
+        {hsnSummaryHtml}
+    </div>
 
     <!-- 5. FINANCIAL TOTALS, BANK CARD & SETTLEMENT -->
-    <div>
-        <div style='display:flex; justify-content:space-between; margin-top:6px; gap:8px;'>
+    <div style='flex-shrink:0;'>
+        <div style='display:flex; justify-content:space-between; margin-top:5px; gap:8px;'>
             <!-- LEFT: AMOUNT IN WORDS & DUAL PAYMENT GATEWAY CARD -->
             <div style='flex:1.25;'>
-                <div style='border:1px solid #cbd5e1; border-radius:4px; padding:6px 8px; margin-bottom:6px; background:#f8fafc;'>
-                    <div style='font-size:9px; color:#64748b; text-transform:uppercase; font-weight:bold; letter-spacing:0.5px;'>Invoice Value in Words:</div>
-                    <div style='font-size:11px; font-weight:bold; color:{primaryColor}; margin-top:2px; line-height:1.3;'>{words}</div>
+                <div style='border:1.5px solid #1e293b; border-radius:3px; padding:5px 8px; margin-bottom:5px; background:#ffffff; color:#000000;'>
+                    <div style='font-size:9px; color:#000000; text-transform:uppercase; font-weight:bold; letter-spacing:0.5px;'>Invoice Value in Words:</div>
+                    <div style='font-size:11px; font-weight:bold; color:#000000; margin-top:2px; line-height:1.3;'>{words}</div>
                 </div>
 
                 <!-- BANK & DYNAMIC UPI CARD (ONLY RENDERED IF REAL DETAILS EXIST) -->
                 {(showSettlementCard ? $@"
-                <div style='display:flex; gap:10px; border:1px solid #cbd5e1; border-radius:4px; padding:6px 8px; align-items:center; background:#ffffff;'>
-                    {(!string.IsNullOrEmpty(upiQr) ? $"<img src='{upiQr}' alt='UPI QR' style='width:74px; height:74px; border:1px solid #cbd5e1; border-radius:4px; flex-shrink:0;' />" : "")}
+                <div style='display:flex; gap:10px; border:1.5px solid #1e293b; border-radius:3px; padding:5px 8px; align-items:center; background:#ffffff; color:#000000;'>
+                    {(!string.IsNullOrEmpty(upiQr) ? $"<img src='{upiQr}' alt='UPI QR' style='width:68px; height:68px; border:1px solid #1e293b; border-radius:3px; flex-shrink:0;' />" : "")}
                     <div style='font-size:9.5px; line-height:1.35; flex:1;'>
-                        <div style='font-weight:900; color:{primaryColor}; font-size:10.5px; margin-bottom:2px;'>Bank &amp; Digital Settlement Details</div>
+                        <div style='font-weight:900; color:#000000; font-size:10.5px; margin-bottom:2px;'>Bank &amp; Digital Settlement Details</div>
                         {(!string.IsNullOrEmpty(bankName) ? $"<div>Bank Name: <strong>{bankName}</strong>{(!string.IsNullOrEmpty(bankBranch) ? $" | Branch: <strong>{bankBranch}</strong>" : "")}</div>" : "")}
-                        {(!string.IsNullOrEmpty(bankAcc) ? $"<div>Account No: <strong style='font-family:monospace; font-size:10.5px; color:#0f172a;'>{bankAcc}</strong></div>" : "")}
+                        {(!string.IsNullOrEmpty(bankAcc) ? $"<div>Account No: <strong style='font-family:monospace; font-size:10.5px; color:#000000;'>{bankAcc}</strong></div>" : "")}
                         {(!string.IsNullOrEmpty(bankIfsc) ? $"<div>IFSC Code: <strong style='font-family:monospace;'>{bankIfsc}</strong></div>" : "")}
-                        {(!string.IsNullOrEmpty(upiId) ? $"<div>UPI ID: <strong style='font-family:monospace; color:#0f172a;'>{upiId}</strong></div>" : "")}
-                        {(!string.IsNullOrEmpty(upiQr) ? "<div style='color:#475569; font-weight:bold; font-size:9px; margin-top:2px;'>Scan QR to pay exact amount instantly via any UPI App</div>" : "")}
+                        {(!string.IsNullOrEmpty(upiId) ? $"<div>UPI ID: <strong style='font-family:monospace; color:#000000;'>{upiId}</strong></div>" : "")}
+                        {(!string.IsNullOrEmpty(upiQr) ? "<div style='color:#000000; font-weight:bold; font-size:8.5px; margin-top:2px;'>Scan QR to pay exact amount instantly via any UPI App</div>" : "")}
                     </div>
                 </div>" : "")}
             </div>
 
             <!-- RIGHT: FINANCIAL GRAND TOTAL BREAKDOWN (UP TO 10 CR PRECISION) -->
-            <div style='flex:0.75; border:1px solid #cbd5e1; border-radius:4px; padding:6px 10px; background:#f8fafc;'>
-                <table style='width:100%; border-collapse:collapse; font-size:10.5px;'>
-                    <tr><td style='padding:2px 0; color:#475569;'>Taxable Value:</td><td style='text-align:right; font-weight:bold; font-family:monospace;'>₹{taxable:N2}</td></tr>
-                    {(cgst > 0 ? $"<tr><td style='padding:2px 0; color:#475569;'>CGST Total:</td><td style='text-align:right; font-family:monospace;'>₹{cgst:N2}</td></tr>" : "")}
-                    {(sgst > 0 ? $"<tr><td style='padding:2px 0; color:#475569;'>SGST Total:</td><td style='text-align:right; font-family:monospace;'>₹{sgst:N2}</td></tr>" : "")}
-                    {(igst > 0 ? $"<tr><td style='padding:2px 0; color:#475569;'>IGST Total:</td><td style='text-align:right; font-family:monospace;'>₹{igst:N2}</td></tr>" : "")}
-                    <tr><td style='padding:2px 0; color:#475569;'>Paise Round Off:</td><td style='text-align:right; font-family:monospace;'>₹{roundOff:N2}</td></tr>
-                    <tr style='border-top:2px solid {primaryColor}; font-size:13.5px; font-weight:900; color:{primaryColor};'>
-                        <td style='padding:5px 0;'>Grand Total:</td>
+            <div style='flex:0.75; border:1.5px solid #1e293b; border-radius:3px; padding:5px 9px; background:#ffffff; color:#000000;'>
+                <table style='width:100%; border-collapse:collapse; font-size:10px; color:#000000;'>
+                    <tr><td style='padding:2px 0; color:#000000; font-weight:600;'>Taxable Value:</td><td style='text-align:right; font-weight:bold; font-family:monospace;'>₹{taxable:N2}</td></tr>
+                    {(cgst > 0 ? $"<tr><td style='padding:2px 0; color:#000000;'>CGST Total:</td><td style='text-align:right; font-family:monospace;'>₹{cgst:N2}</td></tr>" : "")}
+                    {(sgst > 0 ? $"<tr><td style='padding:2px 0; color:#000000;'>SGST Total:</td><td style='text-align:right; font-family:monospace;'>₹{sgst:N2}</td></tr>" : "")}
+                    {(igst > 0 ? $"<tr><td style='padding:2px 0; color:#000000;'>IGST Total:</td><td style='text-align:right; font-family:monospace;'>₹{igst:N2}</td></tr>" : "")}
+                    <tr><td style='padding:2px 0; color:#000000;'>Paise Round Off:</td><td style='text-align:right; font-family:monospace;'>₹{roundOff:N2}</td></tr>
+                    <tr style='border-top:2px solid #1e293b; font-size:13px; font-weight:900; color:#000000; background:#f1f5f9;'>
+                        <td style='padding:4px 0;'>Grand Total:</td>
                         <td style='text-align:right; font-family:monospace;'>₹{totalAmount:N2}</td>
                     </tr>
-                    <tr style='border-top:1px solid #cbd5e1;'>
-                        <td style='padding:3px 0; font-weight:700; color:#16a34a; font-size:11px;'>Paid Amount:</td>
-                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:700; color:#16a34a; font-size:11px;'>₹{paidAmount:N2}</td>
+                    <tr style='border-top:1px solid #1e293b; background:#f0fdf4;'>
+                        <td style='padding:3px 0; font-weight:700; color:#16a34a; font-size:10.5px;'>Paid Amount:</td>
+                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:700; color:#16a34a; font-size:10.5px;'>₹{paidAmount:N2}</td>
                     </tr>
-                    <tr style='border-top:1px dashed #cbd5e1;'>
-                        <td style='padding:3px 0; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>Due Amount:</td>
-                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; font-size:12px;'>₹{balanceAmount:N2}</td>
+                    <tr style='border-top:1px dashed #1e293b; background:{(balanceAmount > 0 ? "#fef2f2" : "#ffffff")};'>
+                        <td style='padding:3px 0; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#000000")}; font-size:11px;'>Due Amount:</td>
+                        <td style='padding:3px 0; text-align:right; font-family:monospace; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#000000")}; font-size:11px;'>₹{balanceAmount:N2}</td>
                     </tr>
                 </table>
             </div>
         </div>
 
         <!-- 6. TERMS, CONDITIONS & SIGNATURE -->
-        <div style='display:flex; justify-content:space-between; align-items:flex-end; margin-top:8px; border-top:1px solid #cbd5e1; padding-top:6px; font-size:9px;'>
-            <div style='max-width:62%; color:#64748b; line-height:1.35;'>
-                {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<strong>Terms &amp; Conditions:</strong><br/>{t.DeclarationText}" : "")}
+        <div style='display:flex; justify-content:space-between; align-items:flex-end; margin-top:6px; border-top:1.5px solid #1e293b; padding-top:5px; font-size:9px; color:#000000;'>
+            <div style='max-width:62%; color:#000000; line-height:1.4;'>
+                {(!string.IsNullOrWhiteSpace(effectiveTerms) && t.ShowTerms ? $"<strong>Terms &amp; Conditions:</strong><br/>{effectiveTerms.Replace("\r\n", "<br/>").Replace("\n", "<br/>")}" : "")}
+                {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div style='margin-top:3px;'><strong>Declaration:</strong><br/>{t.DeclarationText}</div>" : "")}
             </div>
-            <div style='text-align:right;'>
+            <div style='text-align:right; color:#000000;'>
+                {(!string.IsNullOrWhiteSpace(t.FooterGreeting) ? $"<div style='font-size:9px; color:#000000; font-style:italic; margin-bottom:4px;'>{t.FooterGreeting}</div>" : "")}
                 <div style='font-size:9.5px; font-weight:bold;'>For {sellerName}</div>
-                <div style='height:36px;'></div>
-                <div style='border-top:1px solid #94a3b8; display:inline-block; padding-top:2px; font-weight:bold; font-size:9.5px;'>Authorised Signatory</div>
+                <div style='height:30px;'></div>
+                <div style='border-top:1.5px solid #1e293b; display:inline-block; padding-top:2px; font-weight:bold; font-size:9px;'>Authorised Signatory</div>
             </div>
         </div>
 
         <!-- FOOTER BRANDING -->
-        <div style='display:flex; justify-content:space-between; margin-top:4px; font-size:8.5px; color:#94a3b8; border-top:1px dashed #e2e8f0; padding-top:3px;'>
+        <div style='display:flex; justify-content:space-between; margin-top:3px; font-size:8px; color:#000000; border-top:1px solid #1e293b; padding-top:2px;'>
             <span>Computer Generated Invoice</span>
             <span>Page 1 of 1</span>
         </div>
@@ -1776,12 +2432,15 @@ public class PrintTemplateService : IPrintTemplateService
         var sellerPan = !string.IsNullOrWhiteSpace(tenant?.PAN) ? tenant.PAN : (sellerGstin.Length >= 12 ? sellerGstin.Substring(2, 10) : "");
         var sellerStateName = !string.IsNullOrWhiteSpace(invoice?.Branch?.State) ? invoice.Branch.State : (!string.IsNullOrWhiteSpace(tenant?.State) ? tenant.State : "");
         var sellerStateCodeOnly = !string.IsNullOrWhiteSpace(invoice?.Branch?.StateCode) ? invoice.Branch.StateCode : (!string.IsNullOrWhiteSpace(tenant?.StateCode) ? tenant.StateCode : (sellerGstin.Length >= 2 ? sellerGstin.Substring(0, 2) : ""));
+        var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
+        var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
         var sellerPhone = !string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? tenant.PrimaryPhone : "";
         var sellerEmail = !string.IsNullOrWhiteSpace(tenant?.Email) ? tenant.Email : "";
 
         // 2. Invoice Document Header & Metadata
-        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) ? t.HeaderTitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE");
-        var copyBadge = !string.IsNullOrWhiteSpace(t.HeaderSubtitle) && !t.HeaderSubtitle.Contains("Rule 48") ? t.HeaderSubtitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "ORIGINAL / COUNTER SALE" : "ORIGINAL FOR RECIPIENT");
+        bool isNonGst = IsNonGstDocument(invoice);
+        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) && t.HeaderTitle != "TAX INVOICE" ? t.HeaderTitle : (isNonGst ? "CASH MEMO / ESTIMATE" : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE"));
+        var copyBadge = isNonGst ? "NON-GST RETAIL SLIP | ORIGINAL FOR CUSTOMER" : (!string.IsNullOrWhiteSpace(t.HeaderSubtitle) && !t.HeaderSubtitle.Contains("Rule 48") ? t.HeaderSubtitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "ORIGINAL / COUNTER SALE" : "ORIGINAL FOR RECIPIENT"));
 
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd-MMM-yyyy") ?? DateTime.Now.ToString("dd-MMM-yyyy");
@@ -1798,10 +2457,12 @@ public class PrintTemplateService : IPrintTemplateService
         var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
         bool isB2B = !string.IsNullOrWhiteSpace(custGstin);
         var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
-        var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
         var custState = GstStateHelper.ExtractStateCodeFromGstin(custGstin) ?? (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) && invoice.BillingStateCode != "27" ? invoice.BillingStateCode : (isB2B ? "" : placeOfSupply));
         var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
+        var custFssai = ExtractInvoiceBuyerFssai(invoice);
         var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
 
         bool hasSeparateShipTo = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) && invoice.ShippingAddress != invoice.BillingAddress;
@@ -1837,30 +2498,40 @@ public class PrintTemplateService : IPrintTemplateService
             : "";
 
         // 7. Dynamic Column Detection across ALL Industries
-        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
-        bool isElectronics = industry == IndustryTypeCodes.Electronics;
-        bool isGarments = industry == IndustryTypeCodes.Garments;
-        bool isHardware = industry == IndustryTypeCodes.Hardware;
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isPharma = prof.IsPharma;
+        bool isElectronics = prof.IsElectronics;
+        bool isGarments = prof.IsGarments;
+        bool isHardware = prof.IsHardware;
 
-        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true);
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true);
-        bool hasFree = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
-        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
-        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
+        bool hasSerial = !isPharma && ((invoice?.Items.Any(HasImeiOrSerial) ?? false) || isElectronics);
+        bool hasPack = isPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)));
+        bool hasBatch = isPharma || (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true);
+        bool hasExpiry = isPharma || (invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true);
+        bool hasFree = isPharma || (invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false);
+        bool hasMrp = isPharma || (invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true);
+        bool hasDisc = isPharma || (invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true);
+        bool hasTaxable = isPharma;
+        bool hasSplitGst = isPharma;
 
         // Base cols: Sl No (1) + Description (1) + HSN (1) + Quantity (1) + Rate (1) + per (1) + Amount (1) = 7
-        int colCount = 7 + (hasSerial ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasFree ? 1 : 0) + (hasMrp ? 1 : 0) + (hasDisc ? 1 : 0);
+        int colCount = 7 + (hasPack ? 1 : 0) + (hasSerial ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasFree ? 1 : 0) + (hasMrp ? 1 : 0) + (hasDisc ? 1 : 0) + (hasTaxable ? 1 : 0) + (hasSplitGst ? 3 : 0);
 
         var itemsRows = new StringBuilder();
         decimal totalQuantity = 0;
         string mainUom = "NOS";
         int lineIndex = 1;
-        int itemCount = 0;
+        int itemCount = invoice?.Items?.Count ?? 0;
+
+        bool isCompactItems = itemCount >= 6;
+        bool isUltraCompact = itemCount >= 10;
+        string rowPadY = isUltraCompact ? "1.5px" : (isCompactItems ? "2.5px" : "3.5px");
+        string itemFontSize = isUltraCompact ? "8.5px" : (isCompactItems ? "9px" : "9.5px");
+        string sublineFontSize = isUltraCompact ? "7.5px" : (isCompactItems ? "8px" : "8.5px");
+        string rowHeight = isUltraCompact ? "20px" : (isCompactItems ? "22px" : "26px");
 
         if (invoice != null && invoice.Items.Any())
         {
-            itemCount = invoice.Items.Count;
             foreach (var it in invoice.Items)
             {
                 totalQuantity += it.Quantity;
@@ -1869,47 +2540,100 @@ public class PrintTemplateService : IPrintTemplateService
                 var expStr = it.ExpiryDate.HasValue ? it.ExpiryDate.Value.ToString("MM/yy") : "-";
                 var discText = it.DiscountPercent > 0 ? $"{it.DiscountPercent:0.##}%" : (it.DiscountAmount > 0 ? $"₹{it.DiscountAmount:0.##}" : "-");
 
+                string cgstPct = "-", sgstPct = "-", igstPct = "-";
+                if (hasSplitGst)
+                {
+                    if (it.IgstAmount > 0 || igst > 0)
+                    {
+                        igstPct = $"{it.GstRate:0.##}%";
+                    }
+                    else
+                    {
+                        cgstPct = $"{(it.GstRate / 2):0.##}%";
+                        sgstPct = $"{(it.GstRate / 2):0.##}%";
+                    }
+                }
+
                 itemsRows.Append($@"
-                <tr style='font-size:10px; height:26px;'>
-                    <td style='padding:4px 3px; text-align:center; border-right:1px solid #000;'>{lineIndex++}</td>
-                    <td style='padding:4px 6px; border-right:1px solid #000;'>
+                <tr style='font-size:{itemFontSize}; height:{rowHeight}; line-height:1.25;'>
+                    <td style='padding:{rowPadY} 3px; text-align:center; border-right:1px solid #000;'>{lineIndex++}</td>
+                    <td style='padding:{rowPadY} 5px; border-right:1px solid #000;'>
                         <strong>{it.ItemName}</strong>
-                        {(string.IsNullOrEmpty(it.ItemSku) ? "" : $"<br/><span style='font-size:8.5px; color:#555;'>SKU: {it.ItemSku}</span>")}
+                        {(string.IsNullOrEmpty(it.ItemSku) ? "" : $"<br/><span style='font-size:{sublineFontSize}; color:#000000; font-weight:600;'>SKU: {it.ItemSku}</span>")}
                         {ExtractIndustryItemSubline(it)}
                     </td>
-                    <td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{it.HsnCode ?? "-"}</td>
-                    {(hasSerial ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace; font-weight:bold; font-size:9px;'>{ExtractItemImei(it)}</td>" : "")}
-                    {(hasBatch ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{it.BatchNumber ?? "-"}</td>" : "")}
-                    {(hasExpiry ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{expStr}</td>" : "")}
-                    <td style='padding:4px 6px; text-align:right; border-right:1px solid #000; font-weight:bold;'>{it.Quantity:N0} {it.UomCode}</td>
-                    {(hasFree ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000;'>{(attrs.freeQty > 0 ? attrs.freeQty.ToString("N0") : "-")}</td>" : "")}
-                    {(hasMrp ? $"<td style='padding:4px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(it.Mrp > 0 ? it.Mrp.ToString("N2") : "-")}</td>" : "")}
-                    <td style='padding:4px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{it.UnitPrice:N2}</td>
-                    <td style='padding:4px 4px; text-align:center; border-right:1px solid #000;'>{it.UomCode}</td>
-                    {(hasDisc ? $"<td style='padding:4px 4px; text-align:center; border-right:1px solid #000;'>{discText}</td>" : "")}
-                    <td style='padding:4px 6px; text-align:right; font-family:monospace; font-weight:bold;'>{it.TotalAmount:N2}</td>
+                    {(hasPack ? $"<td style='padding:{rowPadY} 3px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{(!string.IsNullOrWhiteSpace(attrs.pack) ? attrs.pack : "-")}</td>" : "")}
+                    <td style='padding:{rowPadY} 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{it.HsnCode ?? "-"}</td>
+                    {(hasSerial ? $"<td style='padding:{rowPadY} 4px; text-align:center; border-right:1px solid #000; font-family:monospace; font-weight:bold; font-size:8.5px;'>{ExtractItemImei(it)}</td>" : "")}
+                    {(hasBatch ? $"<td style='padding:{rowPadY} 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{it.BatchNumber ?? "-"}</td>" : "")}
+                    {(hasExpiry ? $"<td style='padding:{rowPadY} 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{expStr}</td>" : "")}
+                    <td style='padding:{rowPadY} 5px; text-align:right; border-right:1px solid #000; font-weight:bold;'>{it.Quantity:N0}</td>
+                    {(hasFree ? $"<td style='padding:{rowPadY} 4px; text-align:center; border-right:1px solid #000;'>{(attrs.freeQty > 0 ? attrs.freeQty.ToString("N0") : "-")}</td>" : "")}
+                    {(hasMrp ? $"<td style='padding:{rowPadY} 5px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(it.Mrp > 0 ? it.Mrp.ToString("N2") : "-")}</td>" : "")}
+                    <td style='padding:{rowPadY} 5px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{it.UnitPrice:N2}</td>
+                    <td style='padding:{rowPadY} 4px; text-align:center; border-right:1px solid #000;'>{it.UomCode}</td>
+                    {(hasDisc ? $"<td style='padding:{rowPadY} 4px; text-align:center; border-right:1px solid #000;'>{discText}</td>" : "")}
+                    {(hasTaxable ? $"<td style='padding:{rowPadY} 5px; text-align:right; border-right:1px solid #000; font-family:monospace; font-weight:bold;'>₹{it.TaxableAmount:N2}</td>" : "")}
+                    {(hasSplitGst ? $@"
+                        <td style='padding:{rowPadY} 2px; text-align:center; border-right:1px solid #000; font-family:monospace; font-size:8.5px;'>{cgstPct}</td>
+                        <td style='padding:{rowPadY} 2px; text-align:center; border-right:1px solid #000; font-family:monospace; font-size:8.5px;'>{sgstPct}</td>
+                        <td style='padding:{rowPadY} 2px; text-align:center; border-right:1px solid #000; font-family:monospace; font-size:8.5px;'>{igstPct}</td>" : "")}
+                    <td style='padding:{rowPadY} 5px; text-align:right; font-family:monospace; font-weight:bold;'>{it.TotalAmount:N2}</td>
                 </tr>");
             }
         }
 
-        // Unbroken vertical column filler row reaching the bottom
-        int emptyFillerHeight = Math.Max(70, 580 - (itemCount * 26));
+        // Unbroken vertical column filler row reaching the bottom without overflowing footer
+        int hsnRowCount = (invoice?.Items != null && invoice.Items.Any())
+            ? invoice.Items.Select(i => string.IsNullOrWhiteSpace(i.HsnCode) ? "N/A" : i.HsnCode).Distinct().Count()
+            : 1;
+
+        bool isA5 = IsA5Size(t);
+        bool hasItemSublines = invoice?.Items != null && invoice.Items.Any(i => !string.IsNullOrEmpty(i.ItemSku) || !string.IsNullOrWhiteSpace(i.AttributesJson));
+        int estimatedRowHeight = isA5 ? 20 : (hasItemSublines ? 40 : 26);
+        int totalItemsHeight = itemCount * estimatedRowHeight;
+
+        int extraOverhead = 0;
+        if (hasSeparateShipTo) extraOverhead += 35;
+        if (hsnRowCount > 1) extraOverhead += (hsnRowCount - 1) * 16;
+        if (!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration) extraOverhead += 25;
+        if (!string.IsNullOrEmpty(bankAcc)) extraOverhead += 20;
+
+        int baseFillerBudget = isA5 ? Math.Max(15, 140 - extraOverhead) : Math.Max(25, 340 - extraOverhead);
+        int emptyFillerHeight = baseFillerBudget - totalItemsHeight;
+
         var fillerRowsSb = new StringBuilder();
-        fillerRowsSb.Append($"<tr style='height:100%; min-height:{emptyFillerHeight}px;'>");
-        fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Sl No
-        fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Description
-        fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // HSN
-        if (hasSerial) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
-        if (hasBatch) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
-        if (hasExpiry) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
-        fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Qty
-        if (hasFree) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
-        if (hasMrp) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
-        fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Rate
-        fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Per
-        if (hasDisc) fillerRowsSb.Append($"<td style='border-right:1px solid #000; height:{emptyFillerHeight}px;'>&nbsp;</td>");
-        fillerRowsSb.Append($"<td style='height:{emptyFillerHeight}px;'>&nbsp;</td>"); // Amount
-        fillerRowsSb.Append("</tr>");
+        int maxItemsForFiller = isA5 ? 3 : 6;
+        if (itemCount < maxItemsForFiller && emptyFillerHeight >= 20)
+        {
+            string fillerTd = "border-right:1px solid #000; height:100%; padding:0; vertical-align:top;";
+            string fillerTdLast = "height:100%; padding:0; vertical-align:top;";
+            string fillerDiv = $"min-height:{emptyFillerHeight}px; height:100%; width:100%;";
+
+            fillerRowsSb.Append("<tr style='height:100%; vertical-align:top; page-break-inside:avoid; break-inside:avoid;'>");
+            fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>"); // Sl No
+            fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>"); // Description
+            if (hasPack) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>"); // HSN
+            if (hasSerial) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            if (hasBatch) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            if (hasExpiry) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>"); // Qty
+            if (hasFree) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            if (hasMrp) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>"); // Rate
+            fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>"); // Per
+            if (hasDisc) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            if (hasTaxable) fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            if (hasSplitGst)
+            {
+                fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+                fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+                fillerRowsSb.Append($"<td style='{fillerTd}'><div style='{fillerDiv}'>&nbsp;</div></td>");
+            }
+            fillerRowsSb.Append($"<td style='{fillerTdLast}'><div style='{fillerDiv}'>&nbsp;</div></td>"); // Amount
+            fillerRowsSb.Append("</tr>");
+        }
 
         // 8. Tally Exact 2-Tier HSN Summary Matrix
         var hsnSb = new StringBuilder();
@@ -1942,15 +2666,15 @@ public class PrintTemplateService : IPrintTemplateService
                 var igstRateStr = grpIgst > 0 ? $"{g.Key.Rate:0.##}%" : "-";
 
                 hsnSb.Append($@"
-                <tr style='font-size:9.5px; border-bottom:1px solid #000;'>
-                    <td style='padding:3px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{g.Key.Hsn}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{grpTaxable:N2}</td>
-                    <td style='padding:3px 4px; text-align:center; border-right:1px solid #000;'>{cgstRateStr}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(grpCgst > 0 ? grpCgst.ToString("N2") : "-")}</td>
-                    <td style='padding:3px 4px; text-align:center; border-right:1px solid #000;'>{sgstRateStr}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(grpSgst > 0 ? grpSgst.ToString("N2") : "-")}</td>
-                    {(hasIgst ? $"<td style='padding:3px 4px; text-align:center; border-right:1px solid #000;'>{igstRateStr}</td><td style='padding:3px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(grpIgst > 0 ? grpIgst.ToString("N2") : "-")}</td>" : "")}
-                    <td style='padding:3px 6px; text-align:right; font-family:monospace; font-weight:bold;'>{grpTotal:N2}</td>
+                <tr style='font-size:8.5px; border-bottom:1px solid #000;'>
+                    <td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000; font-family:monospace;'>{g.Key.Hsn}</td>
+                    <td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{grpTaxable:N2}</td>
+                    <td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000;'>{cgstRateStr}</td>
+                    <td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(grpCgst > 0 ? grpCgst.ToString("N2") : "-")}</td>
+                    <td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000;'>{sgstRateStr}</td>
+                    <td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(grpSgst > 0 ? grpSgst.ToString("N2") : "-")}</td>
+                    {(hasIgst ? $"<td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000;'>{igstRateStr}</td><td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{(grpIgst > 0 ? grpIgst.ToString("N2") : "-")}</td>" : "")}
+                    <td style='padding:1.5px 4px; text-align:right; font-family:monospace; font-weight:bold;'>{grpTotal:N2}</td>
                 </tr>");
             }
         }
@@ -1963,20 +2687,27 @@ public class PrintTemplateService : IPrintTemplateService
             sumTotalTax = sumCgst + sumSgst + sumIgst;
 
             hsnSb.Append($@"
-            <tr style='font-size:9.5px; border-bottom:1px solid #000;'>
-                <td style='padding:3px 4px; text-align:center; border-right:1px solid #000; font-family:monospace;'>30042010</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{sumTaxable:N2}</td>
-                <td style='padding:3px 4px; text-align:center; border-right:1px solid #000;'>6%</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{sumCgst:N2}</td>
-                <td style='padding:3px 4px; text-align:center; border-right:1px solid #000;'>6%</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{sumSgst:N2}</td>
-                {(hasIgst ? "<td style='padding:3px 4px; text-align:center; border-right:1px solid #000;'>-</td><td style='padding:3px 6px; text-align:right; border-right:1px solid #000;'>-</td>" : "")}
-                <td style='padding:3px 6px; text-align:right; font-family:monospace; font-weight:bold;'>{sumTotalTax:N2}</td>
+            <tr style='font-size:8.5px; border-bottom:1px solid #000;'>
+                <td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000; font-family:monospace;'>30042010</td>
+                <td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{sumTaxable:N2}</td>
+                <td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000;'>6%</td>
+                <td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{sumCgst:N2}</td>
+                <td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000;'>6%</td>
+                <td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000; font-family:monospace;'>{sumSgst:N2}</td>
+                {(hasIgst ? "<td style='padding:1.5px 3px; text-align:center; border-right:1px solid #000;'>-</td><td style='padding:1.5px 4px; text-align:right; border-right:1px solid #000;'>-</td>" : "")}
+                <td style='padding:1.5px 4px; text-align:right; font-family:monospace; font-weight:bold;'>{sumTotalTax:N2}</td>
             </tr>");
         }
 
         var taxWords = ConvertToIndianCurrencyWords(sumTotalTax);
-        var heightStyle = GetContainerHeightStyle(t);
+        isA5 = IsA5Size(t);
+        var heightStyle = isA5
+            ? "min-height:138mm; max-height:144mm; height:auto; page-break-inside:avoid; break-inside:avoid;"
+            : "min-height:260mm; max-height:280mm; height:auto; page-break-inside:avoid; break-inside:avoid;";
+        var pageRule = isA5
+            ? "@page { size: A4 portrait; margin: 2mm 3mm; }"
+            : "@page { size: A4 portrait; margin: 2.5mm 3.5mm; }";
+        var maxWidth = isA5 ? "204mm" : "195mm";
 
         return $@"
 <!DOCTYPE html>
@@ -1985,11 +2716,15 @@ public class PrintTemplateService : IPrintTemplateService
     <meta charset='utf-8' />
     <title>{headerTitle} - {invNo}</title>
     <style>
-        @page {{ size: A4 portrait; margin: 5mm 6mm; }}
-        html, body {{ margin:0; padding:0; background:#ffffff; color:#000000; font-family:Arial, Helvetica, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
-        .tally-invoice {{ width:100%; max-width:820px; {heightStyle} margin:0 auto; border:1.5px solid #000000; box-sizing:border-box; background:#ffffff; font-size:10px; line-height:1.3; display:flex; flex-direction:column; justify-content:space-between; }}
+        {pageRule}
+        html, body {{ margin:0; padding:0; height:100%; background:#ffffff; color:#000000; font-family:Arial, Helvetica, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+        .tally-invoice {{ width:100%; max-width:{maxWidth}; {heightStyle} margin:0 auto; border:1.5px solid #000000; box-sizing:border-box; background:#ffffff; font-size:9.5px; line-height:1.25; display:flex; flex-direction:column; justify-content:space-between; }}
         table {{ border-collapse:collapse; width:100%; }}
-        th, td {{ box-sizing:border-box; }}
+        th, td {{ box-sizing:border-box; color:#000000; }}
+        @media print {{
+            html, body {{ margin:0 !important; padding:0 !important; height:100% !important; }}
+            .tally-invoice {{ max-height:280mm !important; height:auto !important; page-break-inside:avoid !important; break-inside:avoid !important; }}
+        }}
     </style>
 </head>
 <body>
@@ -1997,9 +2732,9 @@ public class PrintTemplateService : IPrintTemplateService
 
     <div style='display:flex; flex-direction:column; flex:1 1 auto;'>
         <!-- 1. Document Title & Copy Subtitle -->
-        <div style='text-align:center; padding:4px 0 3px 0; border-bottom:1px solid #000;'>
-            <div style='font-size:14.5px; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase;'>{headerTitle}</div>
-            <div style='font-size:9.5px; font-weight:normal;'>({copyBadge})</div>
+        <div style='text-align:center; padding:3px 0 2px 0; border-bottom:1px solid #000;'>
+            <div style='font-size:13.5px; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase;'>{headerTitle}</div>
+            <div style='font-size:9px; font-weight:normal;'>({copyBadge})</div>
         </div>
 
         <!-- 2. Main Two-Column Compartment -->
@@ -2007,11 +2742,13 @@ public class PrintTemplateService : IPrintTemplateService
             <!-- Left: Seller & Buyer Details -->
             <div style='border-right:1px solid #000; display:flex; flex-direction:column;'>
                 <!-- Seller -->
-                <div style='padding:5px 8px; border-bottom:1px solid #000;'>
-                    <div style='font-size:12.5px; font-weight:bold; text-transform:uppercase;'>{sellerName}</div>
-                    <div style='font-size:9.5px; line-height:1.35; margin-top:2px;'>{sellerAddress}</div>
-                    <div style='font-size:9.5px; margin-top:3px;'>
+                <div style='padding:3.5px 6px; border-bottom:1px solid #000;'>
+                    <div style='font-size:12px; font-weight:bold; text-transform:uppercase;'>{sellerName}</div>
+                    <div style='font-size:9px; line-height:1.25; margin-top:1px;'>{sellerAddress}</div>
+                    <div style='font-size:9px; margin-top:2px;'>
                         GSTIN/UIN: <strong style='font-family:monospace;'>{sellerGstin}</strong><br/>
+                        {(!string.IsNullOrEmpty(sellerDl) ? $"D.L. No.: <strong>{sellerDl}</strong><br/>" : "")}
+                        {(!string.IsNullOrEmpty(sellerFssai) ? $"FSSAI: <strong>{sellerFssai}</strong><br/>" : "")}
                         State Name: <strong>{sellerStateName}</strong>, Code : <strong>{sellerStateCodeOnly}</strong><br/>
                         {(string.IsNullOrEmpty(sellerEmail) ? "" : $"E-Mail : {sellerEmail}<br/>")}
                         {(string.IsNullOrEmpty(sellerPhone) ? "" : $"Contact : {sellerPhone}")}
@@ -2020,24 +2757,25 @@ public class PrintTemplateService : IPrintTemplateService
 
                 <!-- Consignee (Ship to) if separate -->
                 {(hasSeparateShipTo ? $@"
-                <div style='padding:5px 8px; border-bottom:1px solid #000;'>
-                    <div style='font-size:8.5px; color:#555;'>Consignee (Ship to)</div>
-                    <div style='font-size:11px; font-weight:bold;'>{custName}</div>
-                    <div style='font-size:9.5px; line-height:1.3;'>{shipAddress}</div>
-                    <div style='font-size:9.5px; margin-top:2px;'>
+                <div style='padding:3.5px 6px; border-bottom:1px solid #000;'>
+                    <div style='font-size:8px; color:#000000; font-weight:bold;'>Consignee (Ship to)</div>
+                    <div style='font-size:10.5px; font-weight:bold;'>{custName}</div>
+                    <div style='font-size:9px; line-height:1.25;'>{shipAddress}</div>
+                    <div style='font-size:9px; margin-top:1px;'>
                         State Name : <strong>{placeOfSupply}</strong>
                     </div>
                 </div>" : "")}
 
                 <!-- Buyer (Bill to) -->
-                <div style='padding:5px 8px; flex:1 1 auto;'>
-                    <div style='font-size:8.5px; color:#555;'>Buyer (Bill to)</div>
-                    <div style='font-size:11.5px; font-weight:bold;'>{custName}</div>
-                    <div style='font-size:9.5px; line-height:1.35; margin-top:1px;'>{custAddress}</div>
-                    <div style='font-size:9.5px; margin-top:3px;'>
+                <div style='padding:3.5px 6px; flex:1 1 auto;'>
+                    <div style='font-size:8px; color:#000000; font-weight:bold;'>Buyer (Bill to)</div>
+                    <div style='font-size:11px; font-weight:bold;'>{custName}</div>
+                    <div style='font-size:9px; line-height:1.25; margin-top:1px;'>{custAddress}</div>
+                    <div style='font-size:9px; margin-top:2px;'>
                         {(!string.IsNullOrEmpty(custGstin) ? $"GSTIN/UIN : <strong style='font-family:monospace;'>{custGstin}</strong><br/>" : "Registration Type: Unregistered<br/>")}
                         State Name : <strong>{custState}</strong>
                         {(!string.IsNullOrEmpty(custDl) ? $"<br/>D.L. No. : <strong>{custDl}</strong>" : "")}
+                        {(!string.IsNullOrEmpty(custFssai) ? $"<br/>FSSAI : <strong>{custFssai}</strong>" : "")}
                         {(!string.IsNullOrEmpty(custPhone) ? $"<br/>Contact : <strong>{custPhone}</strong>" : "")}
                     </div>
                 </div>
@@ -2045,80 +2783,80 @@ public class PrintTemplateService : IPrintTemplateService
 
             <!-- Right: Tabular Metadata Matrix -->
             <div>
-                <table style='width:100%; border-collapse:collapse; font-size:9.5px;'>
+                <table style='width:100%; border-collapse:collapse; font-size:9px; line-height:1.2;'>
                     <tr style='border-bottom:1px solid #000;'>
-                        <td style='padding:3px 6px; width:50%; border-right:1px solid #000;'>
-                            <span style='font-size:8.5px; color:#555;'>Invoice No.</span><br/>
-                            <strong style='font-size:11px; font-family:monospace;'>{invNo}</strong>
+                        <td style='padding:1.5px 5px; width:50%; border-right:1px solid #000;'>
+                            <span style='font-size:8px; color:#555;'>Invoice No.</span><br/>
+                            <strong style='font-size:10.5px; font-family:monospace;'>{invNo}</strong>
                         </td>
-                        <td style='padding:3px 6px; width:50%;'>
-                            <span style='font-size:8.5px; color:#555;'>Dated</span><br/>
-                            <strong style='font-size:10.5px;'>{invDate}</strong>
+                        <td style='padding:1.5px 5px; width:50%;'>
+                            <span style='font-size:8px; color:#555;'>Dated</span><br/>
+                            <strong style='font-size:10px;'>{invDate}</strong>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #000;'>
-                        <td style='padding:3px 6px; border-right:1px solid #000;'>
-                            <span style='font-size:8.5px; color:#555;'>Delivery Note</span><br/>
+                        <td style='padding:1.5px 5px; border-right:1px solid #000;'>
+                            <span style='font-size:8px; color:#555;'>Delivery Note</span><br/>
                             <strong>{(!string.IsNullOrEmpty(lrNo) ? lrNo : "-")}</strong>
                         </td>
-                        <td style='padding:3px 6px;'>
-                            <span style='font-size:8.5px; color:#555;'>Mode/Terms of Payment</span><br/>
+                        <td style='padding:1.5px 5px;'>
+                            <span style='font-size:8px; color:#555;'>Mode/Terms of Payment</span><br/>
                             <strong>Immediate / Bank</strong>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #000;'>
-                        <td style='padding:3px 6px; border-right:1px solid #000;'>
-                            <span style='font-size:8.5px; color:#555;'>Reference No. &amp; Date.</span><br/>
+                        <td style='padding:1.5px 5px; border-right:1px solid #000;'>
+                            <span style='font-size:8px; color:#555;'>Reference No. &amp; Date.</span><br/>
                             <strong>{(!string.IsNullOrEmpty(poNo) ? $"{poNo} ({poDate})" : "-")}</strong>
                         </td>
-                        <td style='padding:3px 6px;'>
-                            <span style='font-size:8.5px; color:#555;'>Other References</span><br/>
+                        <td style='padding:1.5px 5px;'>
+                            <span style='font-size:8px; color:#555;'>Other References</span><br/>
                             <strong>{(!string.IsNullOrEmpty(eWayBill) ? $"E-Way: {eWayBill}" : "-")}</strong>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #000;'>
-                        <td style='padding:3px 6px; border-right:1px solid #000;'>
-                            <span style='font-size:8.5px; color:#555;'>Buyer's Order No.</span><br/>
+                        <td style='padding:1.5px 5px; border-right:1px solid #000;'>
+                            <span style='font-size:8px; color:#555;'>Buyer's Order No.</span><br/>
                             <strong>{(!string.IsNullOrEmpty(poNo) ? poNo : "-")}</strong>
                         </td>
-                        <td style='padding:3px 6px;'>
-                            <span style='font-size:8.5px; color:#555;'>Dated</span><br/>
+                        <td style='padding:1.5px 5px;'>
+                            <span style='font-size:8px; color:#555;'>Dated</span><br/>
                             <strong>{(!string.IsNullOrEmpty(poDate) ? poDate : "-")}</strong>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #000;'>
-                        <td style='padding:3px 6px; border-right:1px solid #000;'>
-                            <span style='font-size:8.5px; color:#555;'>Dispatch Doc No.</span><br/>
+                        <td style='padding:1.5px 5px; border-right:1px solid #000;'>
+                            <span style='font-size:8px; color:#555;'>Dispatch Doc No.</span><br/>
                             <strong>{(!string.IsNullOrEmpty(lrNo) ? lrNo : "-")}</strong>
                         </td>
-                        <td style='padding:3px 6px;'>
-                            <span style='font-size:8.5px; color:#555;'>Delivery Note Date</span><br/>
+                        <td style='padding:1.5px 5px;'>
+                            <span style='font-size:8px; color:#555;'>Delivery Note Date</span><br/>
                             <strong>{(!string.IsNullOrEmpty(lrDate) ? lrDate : "-")}</strong>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #000;'>
-                        <td style='padding:3px 6px; border-right:1px solid #000;'>
-                            <span style='font-size:8.5px; color:#555;'>Dispatched through</span><br/>
+                        <td style='padding:1.5px 5px; border-right:1px solid #000;'>
+                            <span style='font-size:8px; color:#555;'>Dispatched through</span><br/>
                             <strong>{(!string.IsNullOrEmpty(transport) ? transport : "-")}</strong>
                         </td>
-                        <td style='padding:3px 6px;'>
-                            <span style='font-size:8.5px; color:#555;'>Destination</span><br/>
+                        <td style='padding:1.5px 5px;'>
+                            <span style='font-size:8px; color:#555;'>Destination</span><br/>
                             <strong>{placeOfSupply}</strong>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #000;'>
-                        <td style='padding:3px 6px; border-right:1px solid #000;'>
-                            <span style='font-size:8.5px; color:#555;'>Bill of Lading/LR-RR No.</span><br/>
+                        <td style='padding:1.5px 5px; border-right:1px solid #000;'>
+                            <span style='font-size:8px; color:#555;'>Bill of Lading/LR-RR No.</span><br/>
                             <strong>{(!string.IsNullOrEmpty(lrNo) ? lrNo : "-")}</strong>
                         </td>
-                        <td style='padding:3px 6px;'>
-                            <span style='font-size:8.5px; color:#555;'>Motor Vehicle No.</span><br/>
+                        <td style='padding:1.5px 5px;'>
+                            <span style='font-size:8px; color:#555;'>Motor Vehicle No.</span><br/>
                             <strong style='font-family:monospace;'>{(!string.IsNullOrEmpty(vehicleNo) ? vehicleNo : "-")}</strong>
                         </td>
                     </tr>
                     <tr>
-                        <td colspan='2' style='padding:3px 6px;'>
-                            <span style='font-size:8.5px; color:#555;'>Terms of Delivery</span><br/>
+                        <td colspan='2' style='padding:1.5px 5px;'>
+                            <span style='font-size:8px; color:#555;'>Terms of Delivery</span><br/>
                             <span>Standard Commercial Delivery Terms Apply</span>
                         </td>
                     </tr>
@@ -2127,43 +2865,55 @@ public class PrintTemplateService : IPrintTemplateService
         </div>
 
         <!-- 3. Line Items Table with Vertical Grid Lines -->
-        <div style='flex:1 1 auto; display:flex; flex-direction:column;'>
-            <table style='width:100%; height:100%; border-collapse:collapse; font-size:10px;'>
+        <div style='flex:1 1 auto; display:flex; flex-direction:column; min-height:0;'>
+            <table style='width:100%; height:100%; flex:1 1 auto; border-collapse:collapse; display:table; font-size:9.5px;'>
                 <thead>
-                    <tr style='border-bottom:1px solid #000; font-size:9.5px; font-weight:bold; text-align:center;'>
-                        <th style='padding:4px 3px; width:28px; border-right:1px solid #000;'>Sl<br/>No.</th>
-                        <th style='padding:4px 6px; text-align:left; border-right:1px solid #000;'>Description of Goods</th>
-                        <th style='padding:4px 4px; width:65px; border-right:1px solid #000;'>HSN/SAC</th>
-                        {(hasSerial ? "<th style='padding:4px 4px; width:95px; border-right:1px solid #000;'>IMEI / Serial No</th>" : "")}
-                        {(hasBatch ? "<th style='padding:4px 4px; width:70px; border-right:1px solid #000;'>Batch No</th>" : "")}
-                        {(hasExpiry ? "<th style='padding:4px 4px; width:48px; border-right:1px solid #000;'>Expiry</th>" : "")}
-                        <th style='padding:4px 6px; width:65px; text-align:right; border-right:1px solid #000;'>Quantity</th>
-                        {(hasFree ? "<th style='padding:4px 4px; width:45px; border-right:1px solid #000;'>Free</th>" : "")}
-                        {(hasMrp ? "<th style='padding:4px 6px; width:60px; text-align:right; border-right:1px solid #000;'>MRP</th>" : "")}
-                        <th style='padding:4px 6px; width:65px; text-align:right; border-right:1px solid #000;'>Rate</th>
-                        <th style='padding:4px 4px; width:38px; border-right:1px solid #000;'>per</th>
-                        {(hasDisc ? "<th style='padding:4px 4px; width:46px; text-align:center; border-right:1px solid #000;'>Disc. %</th>" : "")}
-                        <th style='padding:4px 6px; width:80px; text-align:right;'>Amount</th>
+                    <tr style='border-bottom:1px solid #000; font-size:9px; font-weight:bold; text-align:center;'>
+                        <th style='padding:2.5px 3px; width:26px; border-right:1px solid #000;'>Sl<br/>No.</th>
+                        <th style='padding:2.5px 5px; text-align:left; border-right:1px solid #000;'>Description of Goods</th>
+                        {(hasPack ? "<th style='padding:2.5px 3px; width:44px; border-right:1px solid #000;'>Packing</th>" : "")}
+                        <th style='padding:2.5px 4px; width:52px; border-right:1px solid #000;'>HSN/SAC</th>
+                        {(hasSerial ? "<th style='padding:2.5px 4px; width:90px; border-right:1px solid #000;'>IMEI / Serial No</th>" : "")}
+                        {(hasBatch ? "<th style='padding:2.5px 4px; width:50px; border-right:1px solid #000;'>Batch No</th>" : "")}
+                        {(hasExpiry ? "<th style='padding:2.5px 4px; width:38px; border-right:1px solid #000;'>Expiry</th>" : "")}
+                        <th style='padding:2.5px 5px; width:45px; text-align:right; border-right:1px solid #000;'>Quantity</th>
+                        {(hasFree ? "<th style='padding:2.5px 3px; width:34px; border-right:1px solid #000;'>Free</th>" : "")}
+                        {(hasMrp ? "<th style='padding:2.5px 5px; width:48px; text-align:right; border-right:1px solid #000;'>MRP</th>" : "")}
+                        <th style='padding:2.5px 5px; width:50px; text-align:right; border-right:1px solid #000;'>Rate</th>
+                        <th style='padding:2.5px 3px; width:34px; border-right:1px solid #000;'>per</th>
+                        {(hasDisc ? "<th style='padding:2.5px 3px; width:36px; text-align:center; border-right:1px solid #000;'>Disc. %</th>" : "")}
+                        {(hasTaxable ? "<th style='padding:2.5px 4px; width:54px; text-align:right; border-right:1px solid #000;'>Taxable</th>" : "")}
+                        {(hasSplitGst ? @"
+                            <th style='padding:2.5px 2px; width:34px; border-right:1px solid #000;'>CGST%</th>
+                            <th style='padding:2.5px 2px; width:34px; border-right:1px solid #000;'>SGST%</th>
+                            <th style='padding:2.5px 2px; width:34px; border-right:1px solid #000;'>IGST%</th>" : "")}
+                        <th style='padding:2.5px 5px; width:65px; text-align:right;'>Amount</th>
                     </tr>
                 </thead>
                 <tbody style='height:100%;'>
                     {itemsRows}
                     {fillerRowsSb}
                     <!-- Total Subtotal Line -->
-                    <tr style='border-top:1px solid #000; font-weight:bold; font-size:10px; height:24px;'>
+                    <tr style='border-top:1px solid #000; font-weight:bold; font-size:9.5px; height:22px;'>
                         <td style='border-right:1px solid #000;'>&nbsp;</td>
-                        <td style='border-right:1px solid #000; text-align:right; padding:3px 6px;'>Total</td>
+                        <td style='border-right:1px solid #000; text-align:right; padding:2px 5px;'>Total</td>
+                        {(hasPack ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         <td style='border-right:1px solid #000;'>&nbsp;</td>
                         {(hasSerial ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         {(hasBatch ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         {(hasExpiry ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
-                        <td style='border-right:1px solid #000; text-align:right; padding:3px 6px;'>{totalQuantity:N0} {mainUom}</td>
+                        <td style='border-right:1px solid #000; text-align:right; padding:2px 5px;'>{totalQuantity:N0} {mainUom}</td>
                         {(hasFree ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         {(hasMrp ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
                         <td style='border-right:1px solid #000;'>&nbsp;</td>
                         <td style='border-right:1px solid #000;'>&nbsp;</td>
                         {(hasDisc ? "<td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
-                        <td style='text-align:right; padding:3px 6px; font-family:monospace;'>₹{taxable:N2}</td>
+                        {(hasTaxable ? $"<td style='border-right:1px solid #000; text-align:right; padding:2px 4px; font-family:monospace;'>₹{taxable:N2}</td>" : "")}
+                        {(hasSplitGst ? @"
+                            <td style='border-right:1px solid #000;'>&nbsp;</td>
+                            <td style='border-right:1px solid #000;'>&nbsp;</td>
+                            <td style='border-right:1px solid #000;'>&nbsp;</td>" : "")}
+                        <td style='text-align:right; padding:2px 5px; font-family:monospace;'>₹{(hasTaxable ? totalAmount.ToString("N2") : taxable.ToString("N2"))}</td>
                     </tr>
                 </tbody>
             </table>
@@ -2175,108 +2925,110 @@ public class PrintTemplateService : IPrintTemplateService
         <!-- Amount Chargeable (in words) & Tax totals -->
         <div style='display:grid; grid-template-columns: 1.15fr 1fr; border-bottom:1px solid #000;'>
             <!-- Left: Amount in Words -->
-            <div style='padding:6px 8px; border-right:1px solid #000;'>
-                <div style='font-size:9px; color:#555;'>Amount Chargeable (in words)</div>
-                <div style='font-size:11px; font-weight:bold; margin-top:2px;'>INR {words} Only</div>
+            <div style='padding:3.5px 6px; border-right:1px solid #000;'>
+                <div style='font-size:8px; color:#555;'>Amount Chargeable (in words)</div>
+                <div style='font-size:10px; font-weight:bold; margin-top:1px;'>INR {words} Only</div>
             </div>
 
             <!-- Right: Tax totals -->
-            <div style='padding:4px 8px; font-size:10px;'>
+            <div style='padding:2.5px 6px; font-size:9px;'>
                 <table style='width:100%; border-collapse:collapse;'>
                     {(cgst > 0 ? $"<tr><td style='padding:1px 0;'>Output CGST:</td><td style='text-align:right; font-family:monospace;'>₹{cgst:N2}</td></tr>" : "")}
                     {(sgst > 0 ? $"<tr><td style='padding:1px 0;'>Output SGST:</td><td style='text-align:right; font-family:monospace;'>₹{sgst:N2}</td></tr>" : "")}
                     {(igst > 0 ? $"<tr><td style='padding:1px 0;'>Output IGST:</td><td style='text-align:right; font-family:monospace;'>₹{igst:N2}</td></tr>" : "")}
                     {(cess > 0 ? $"<tr><td style='padding:1px 0;'>GST Cess:</td><td style='text-align:right; font-family:monospace;'>₹{cess:N2}</td></tr>" : "")}
                     {(roundOff != 0 ? $"<tr><td style='padding:1px 0;'>Round Off:</td><td style='text-align:right; font-family:monospace;'>₹{roundOff:N2}</td></tr>" : "")}
-                    <tr style='border-top:1px solid #000; font-weight:bold; font-size:11.5px;'>
-                        <td style='padding:3px 0;'>Total:</td>
-                        <td style='padding:3px 0; text-align:right; font-family:monospace;'>₹{totalAmount:N2}</td>
+                    <tr style='border-top:1px solid #000; font-weight:bold; font-size:10.5px;'>
+                        <td style='padding:1.5px 0;'>Total:</td>
+                        <td style='padding:1.5px 0; text-align:right; font-family:monospace;'>₹{totalAmount:N2}</td>
                     </tr>
-                    <tr style='border-top:1px solid #999; font-size:10.5px;'>
-                        <td style='padding:2px 0; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; color:#16a34a; font-weight:bold;'>₹{paidAmount:N2}</td>
+                    <tr style='border-top:1px solid #999; font-size:9.5px;'>
+                        <td style='padding:1px 0; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
+                        <td style='padding:1px 0; text-align:right; font-family:monospace; color:#16a34a; font-weight:bold;'>₹{paidAmount:N2}</td>
                     </tr>
-                    <tr style='border-top:1px dashed #999; font-size:10.5px;'>
-                        <td style='padding:2px 0; font-weight:bold; color:{(balanceAmount > 0 ? "#dc2626" : "#000")};'>Due Amount:</td>
-                        <td style='padding:2px 0; text-align:right; font-family:monospace; font-weight:bold; color:{(balanceAmount > 0 ? "#dc2626" : "#000")};'>₹{balanceAmount:N2}</td>
+                    <tr style='border-top:1px dashed #999; font-size:9.5px;'>
+                        <td style='padding:1px 0; font-weight:bold; color:{(balanceAmount > 0 ? "#dc2626" : "#000")};'>Due Amount:</td>
+                        <td style='padding:1px 0; text-align:right; font-family:monospace; font-weight:bold; color:{(balanceAmount > 0 ? "#dc2626" : "#000")};'>₹{balanceAmount:N2}</td>
                     </tr>
                 </table>
             </div>
         </div>
 
         <!-- 2-Tier Tally HSN Table -->
-        <table style='width:100%; border-collapse:collapse; border-bottom:1px solid #000; font-size:9px;'>
+        <table style='width:100%; border-collapse:collapse; border-bottom:1px solid #000; font-size:8.5px;'>
             <thead>
                 <tr style='border-bottom:1px solid #000; text-align:center; font-weight:bold;'>
-                    <th rowspan='2' style='border-right:1px solid #000; padding:3px 4px;'>HSN/SAC</th>
-                    <th rowspan='2' style='border-right:1px solid #000; padding:3px 6px; text-align:right;'>Taxable<br/>Value</th>
-                    <th colspan='2' style='border-right:1px solid #000; padding:2px 4px;'>Central Tax</th>
-                    <th colspan='2' style='border-right:1px solid #000; padding:2px 4px;'>State Tax</th>
-                    {(hasIgst ? "<th colspan='2' style='border-right:1px solid #000; padding:2px 4px;'>Integrated Tax</th>" : "")}
-                    <th rowspan='2' style='padding:3px 6px; text-align:right;'>Total<br/>Tax Amount</th>
+                    <th rowspan='2' style='border-right:1px solid #000; padding:2px 3px;'>HSN/SAC</th>
+                    <th rowspan='2' style='border-right:1px solid #000; padding:2px 4px; text-align:right;'>Taxable<br/>Value</th>
+                    <th colspan='2' style='border-right:1px solid #000; padding:1.5px 3px;'>Central Tax</th>
+                    <th colspan='2' style='border-right:1px solid #000; padding:1.5px 3px;'>State Tax</th>
+                    {(hasIgst ? "<th colspan='2' style='border-right:1px solid #000; padding:1.5px 3px;'>Integrated Tax</th>" : "")}
+                    <th rowspan='2' style='padding:2px 4px; text-align:right;'>Total<br/>Tax Amount</th>
                 </tr>
                 <tr style='border-bottom:1px solid #000; text-align:center; font-weight:bold;'>
-                    <th style='border-right:1px solid #000; padding:2px 4px; width:45px;'>Rate</th>
-                    <th style='border-right:1px solid #000; padding:2px 6px; text-align:right;'>Amount</th>
-                    <th style='border-right:1px solid #000; padding:2px 4px; width:45px;'>Rate</th>
-                    <th style='border-right:1px solid #000; padding:2px 6px; text-align:right;'>Amount</th>
-                    {(hasIgst ? "<th style='border-right:1px solid #000; padding:2px 4px; width:45px;'>Rate</th><th style='border-right:1px solid #000; padding:2px 6px; text-align:right;'>Amount</th>" : "")}
+                    <th style='border-right:1px solid #000; padding:1.5px 3px; width:40px;'>Rate</th>
+                    <th style='border-right:1px solid #000; padding:1.5px 4px; text-align:right;'>Amount</th>
+                    <th style='border-right:1px solid #000; padding:1.5px 3px; width:40px;'>Rate</th>
+                    <th style='border-right:1px solid #000; padding:1.5px 4px; text-align:right;'>Amount</th>
+                    {(hasIgst ? "<th style='border-right:1px solid #000; padding:1.5px 3px; width:40px;'>Rate</th><th style='border-right:1px solid #000; padding:1.5px 4px; text-align:right;'>Amount</th>" : "")}
                 </tr>
             </thead>
             <tbody>
                 {hsnSb}
-                <tr style='font-weight:bold; font-size:9.5px; border-top:1px solid #000;'>
-                    <td style='border-right:1px solid #000; text-align:center; padding:3px 4px;'>Total</td>
-                    <td style='border-right:1px solid #000; text-align:right; padding:3px 6px; font-family:monospace;'>{sumTaxable:N2}</td>
+                <tr style='font-weight:bold; font-size:9px; border-top:1px solid #000;'>
+                    <td style='border-right:1px solid #000; text-align:center; padding:2px 3px;'>Total</td>
+                    <td style='border-right:1px solid #000; text-align:right; padding:2px 4px; font-family:monospace;'>{sumTaxable:N2}</td>
                     <td style='border-right:1px solid #000;'></td>
-                    <td style='border-right:1px solid #000; text-align:right; padding:3px 6px; font-family:monospace;'>{sumCgst:N2}</td>
+                    <td style='border-right:1px solid #000; text-align:right; padding:2px 4px; font-family:monospace;'>{sumCgst:N2}</td>
                     <td style='border-right:1px solid #000;'></td>
-                    <td style='border-right:1px solid #000; text-align:right; padding:3px 6px; font-family:monospace;'>{sumSgst:N2}</td>
-                    {(hasIgst ? $"<td style='border-right:1px solid #000;'></td><td style='border-right:1px solid #000; text-align:right; padding:3px 6px; font-family:monospace;'>{sumIgst:N2}</td>" : "")}
-                    <td style='text-align:right; padding:3px 6px; font-family:monospace;'>{sumTotalTax:N2}</td>
+                    <td style='border-right:1px solid #000; text-align:right; padding:2px 4px; font-family:monospace;'>{sumSgst:N2}</td>
+                    {(hasIgst ? $"<td style='border-right:1px solid #000;'></td><td style='border-right:1px solid #000; text-align:right; padding:2px 4px; font-family:monospace;'>{sumIgst:N2}</td>" : "")}
+                    <td style='text-align:right; padding:2px 4px; font-family:monospace;'>{sumTotalTax:N2}</td>
                 </tr>
             </tbody>
         </table>
 
-        <div style='padding:4px 8px; font-size:9.5px; border-bottom:1px solid #000;'>
+        <div style='padding:2.5px 6px; font-size:8.5px; border-bottom:1px solid #000;'>
             Tax Amount (in words) : <strong>INR {taxWords} Only</strong>
         </div>
 
         <!-- Bank Details, Declaration & Signatory -->
         <div style='display:grid; grid-template-columns: 1.15fr 1fr;'>
             <!-- Left: Bank Details & PAN -->
-            <div style='padding:6px 8px; border-right:1px solid #000; font-size:9.5px; line-height:1.4;'>
+            <div style='padding:3.5px 6px; border-right:1px solid #000; font-size:9px; line-height:1.25;'>
                 <div>Company's PAN : <strong style='font-family:monospace;'>{sellerPan}</strong></div>
                 {(!string.IsNullOrEmpty(bankAcc) ? $@"
-                <div style='margin-top:4px;'>
+                <div style='margin-top:2px;'>
                     <strong>Company's Bank Details</strong><br/>
                     Bank Name : <strong>{bankName}</strong><br/>
                     A/c No. : <strong style='font-family:monospace;'>{bankAcc}</strong><br/>
                     Branch &amp; IFS Code : <strong style='font-family:monospace;'>{bankIfsc}</strong>
                 </div>" : "")}
                 {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $@"
-                <div style='margin-top:4px; font-size:8.5px; color:#444;'>
+                <div style='margin-top:2px; font-size:8px; color:#444;'>
                     Terms &amp; Conditions:<br/>
                     {t.DeclarationText}
                 </div>" : "")}
             </div>
 
             <!-- Right: QR Code & Authorized Signatory -->
-            <div style='padding:6px 8px; display:flex; flex-direction:column; justify-content:space-between; text-align:right;'>
+            <div style='padding:3.5px 6px; display:flex; flex-direction:column; justify-content:space-between; text-align:right;'>
                 <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
-                    {(!string.IsNullOrEmpty(upiQr) ? $"<img src='{upiQr}' alt='UPI QR' style='width:60px; height:60px; border:1px solid #ccc; padding:2px;' />" : "<div></div>")}
-                    <div style='font-size:10px; font-weight:bold;'>for {sellerName}</div>
+                    {(!string.IsNullOrEmpty(upiQr) ? $"<img src='{upiQr}' alt='UPI QR' style='width:46px; height:46px; border:1px solid #ccc; padding:1px;' />" : "<div></div>")}
+                    <div style='font-size:9.5px; font-weight:bold;'>for {sellerName}</div>
                 </div>
-                <div style='margin-top:28px;'>
-                    <div style='font-size:10px; font-weight:bold;'>Authorised Signatory</div>
+                <div style='margin-top:6px;'>
+                    <div style='font-size:9.5px; font-weight:bold;'>Authorised Signatory</div>
                 </div>
             </div>
         </div>
     </div>
 
-</div>
-<div style='text-align:center; font-size:9px; color:#555; margin-top:3px;'>
-    This is a Computer Generated Invoice
+    <!-- 5. Computer Generated Notice Inside Border -->
+    <div style='text-align:center; font-size:8px; color:#555; padding:2px 0; border-top:1px solid #000;'>
+        This is a Computer Generated Invoice
+    </div>
+
 </div>
 </body>
 </html>";
@@ -2287,12 +3039,15 @@ public class PrintTemplateService : IPrintTemplateService
     // ==============================================================================
     private static string RenderMargErpInvoiceHtml(PrintTemplate t, SalesInvoice? invoice, Tenant? tenant = null)
     {
-        var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) && t.PrimaryColorHex != "#0f172a" && t.PrimaryColorHex != "#000000"
+        var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) 
+            && t.PrimaryColorHex != "#0f172a" 
+            && t.PrimaryColorHex != "#000000"
+            && t.PrimaryColorHex != "#0284c7"
             ? t.PrimaryColorHex
-            : "#0284c7"; // Authentic Marg Pharma Cerulean Blue
-        var borderColor = "#bae6fd";
-        var softOrangeBg = "#f0f9ff";
-        var headerOrangeBg = "#e0f2fe";
+            : "#ea580c"; // Warm Indian saffron / vibrant light-medium orange
+        var borderColor = "#1e293b";
+        var softOrangeBg = "#fff7ed";
+        var headerOrangeBg = "#ffedd5";
 
         // Seller Information (100% Genuine, zero dummy fallback)
         var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName)
@@ -2312,7 +3067,8 @@ public class PrintTemplateService : IPrintTemplateService
         var sellerPhone = !string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? tenant.PrimaryPhone : "";
         var logoUrl = !string.IsNullOrEmpty(t.LogoUrl) ? t.LogoUrl : (!string.IsNullOrEmpty(tenant?.LogoUrl) ? tenant.LogoUrl : "");
 
-        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) ? t.HeaderTitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE");
+        bool isNonGst = IsNonGstDocument(invoice);
+        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) && t.HeaderTitle != "TAX INVOICE" ? t.HeaderTitle : (isNonGst ? "CASH MEMO / ESTIMATE" : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE"));
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
         var dueDate = invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("dd/MM/yyyy") : "";
@@ -2320,10 +3076,11 @@ public class PrintTemplateService : IPrintTemplateService
         // Customer Details
         var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (invoice != null ? "Cash Customer" : "");
         var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
-        var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
         var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
         var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
 
         // Logistics & Doctor / Salesman Tracking
         var doctorName = !string.IsNullOrWhiteSpace(invoice?.DoctorName) ? invoice.DoctorName : "";
@@ -2368,19 +3125,21 @@ public class PrintTemplateService : IPrintTemplateService
         decimal totalFree = 0;
         int itemCount = 0;
 
-        // Dynamic Column Detection: Only show columns that actually have values in backend
-        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
-        bool isElectronics = industry == IndustryTypeCodes.Electronics;
-        bool isGarments = industry == IndustryTypeCodes.Garments;
-        bool isHardware = industry == IndustryTypeCodes.Hardware;
+        // Dynamic Column Detection: Universal Industry Adaptive Engine
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isElectronics = prof.IsElectronics;
+        bool isGarments = prof.IsGarments;
+        bool isHardware = prof.IsHardware;
 
-        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
-        bool hasPack = invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack));
-        bool hasFree = invoice != null && invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0);
-        bool hasMrp = invoice != null && invoice.Items.Any(i => i.Mrp > 0);
+        bool hasSerial = (invoice?.Items.Any(HasImeiOrSerial) ?? false) || isElectronics;
+        bool hasBatch = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool hasPack = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)));
+        bool hasFree = prof.IsPharma || (invoice != null && invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0));
+        bool hasMrp = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.Mrp > 0));
         bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
+        bool hasUnit = prof.IsPharma;
+        bool hasTaxable = prof.IsPharma;
 
         if (invoice?.Items != null && invoice.Items.Any())
         {
@@ -2396,6 +3155,7 @@ public class PrintTemplateService : IPrintTemplateService
                 var freeStr = attrs.freeQty > 0 ? attrs.freeQty.ToString("0.00") : "-";
                 var mrpStr = it.Mrp > 0 ? it.Mrp.ToString("0.00") : "-";
                 var discStr = it.DiscountPercent > 0 ? $"{it.DiscountPercent:0.00}%" : (it.DiscountAmount > 0 ? $"₹{it.DiscountAmount:0.00}" : "-");
+                var unitStr = !string.IsNullOrWhiteSpace(it.UomCode) ? it.UomCode : "Strip";
 
                 totalQty += it.Quantity;
                 totalFree += attrs.freeQty;
@@ -2410,10 +3170,12 @@ public class PrintTemplateService : IPrintTemplateService
                     {(hasBatch ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{batch}</td>" : "")}
                     {(hasExpiry ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{expiry}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px; font-weight:bold;'>{it.Quantity:0.00}</td>
+                    {(hasUnit ? $"<td style='border-right:1px solid {borderColor}; text-align:center;'>{unitStr}</td>" : "")}
                     {(hasFree ? $"<td style='border-right:1px solid {borderColor}; text-align:center; color:{primaryColor}; font-weight:bold;'>{freeStr}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{it.UnitPrice:0.00}</td>
                     {(hasMrp ? $"<td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{mrpStr}</td>" : "")}
                     {(hasDisc ? $"<td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{discStr}</td>" : "")}
+                    {(hasTaxable ? $"<td style='border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>{it.TaxableAmount:0.00}</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; text-align:center;'>{it.GstRate:0}%</td>
                     <td style='text-align:right; padding:0 4px; font-weight:bold;'>{it.TotalAmount:N2}</td>
                 </tr>");
@@ -2438,7 +3200,7 @@ public class PrintTemplateService : IPrintTemplateService
             }
         }
 
-        int margFillerHeight = Math.Max(50, 260 - (itemCount * 20));
+        int margFillerHeight = Math.Max(15, Math.Min(60, 80 - (itemCount * 18)));
 
         return $@"
 <!DOCTYPE html>
@@ -2450,11 +3212,11 @@ public class PrintTemplateService : IPrintTemplateService
     <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
     <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap' rel='stylesheet'>
     <style>
-        @page {{ size: A5 landscape; margin: 3mm 4mm; }}
-        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #0f172a; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-        .marg-half-page {{ width: 100%; max-width: 820px; min-height: 140mm; height: 140mm; max-height: 140mm; margin: 0 auto; box-sizing: border-box; border: 1.5px solid {primaryColor}; font-size: 8.5px; line-height: 1.3; display: flex; flex-direction: column; justify-content: space-between; }}
+        @page {{ size: A4 portrait; margin: 2mm 3mm; }}
+        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+        .marg-half-page {{ position: relative; width: 100%; max-width: 204mm; min-height: 140mm; max-height: 144mm; height: 142mm; margin: 0 auto; box-sizing: border-box; border: 1.5px solid {primaryColor}; font-size: 9.5px; line-height: 1.3; display: flex; flex-direction: column; justify-content: space-between; }}
         table {{ border-collapse: collapse; }}
-        th, td {{ box-sizing: border-box; }}
+        th, td {{ box-sizing: border-box; color: #000000; }}
     </style>
 </head>
 <body>
@@ -2485,15 +3247,15 @@ public class PrintTemplateService : IPrintTemplateService
     <!-- BUYER DETAILS STRIP -->
     <div style='display:grid; grid-template-columns: 1.2fr 1fr; border-bottom:1.5px solid {primaryColor}; background:{softOrangeBg}; padding:4px 8px; font-size:8.5px;'>
         <div style='border-right:1px solid {borderColor}; padding-right:6px;'>
-            <div><span style='color:{primaryColor}; font-weight:bold;'>Party M/s:</span> <strong style='font-size:10px; color:#0f172a;'>{custName}</strong></div>
-            {(!string.IsNullOrEmpty(custAddress) ? $"<div style='color:#334155;'>{custAddress}</div>" : "")}
+            <div><span style='color:{primaryColor}; font-weight:bold;'>Party M/s:</span> <strong style='font-size:10px; color:#000000;'>{custName}</strong></div>
+            {(!string.IsNullOrEmpty(custAddress) ? $"<div style='color:#000000; font-weight:500;'>{custAddress}</div>" : "")}
             <div style='margin-top:1px;'>
                 {(!string.IsNullOrEmpty(custPhone) ? $"Mobile: <strong>{custPhone}</strong> | " : "")}
                 {(!string.IsNullOrEmpty(custGstin) ? $"GSTIN: <strong style='font-family:monospace;'>{custGstin}</strong>" : "")}
                 {(!string.IsNullOrEmpty(custDl) ? $" | D.L. No: <strong style='font-family:monospace;'>{custDl}</strong>" : "")}
             </div>
         </div>
-        <div style='padding-left:6px; font-size:8px; line-height:1.3;'>
+        <div style='padding-left:6px; font-size:8px; line-height:1.3; color:#000000;'>
             <div><span style='color:{primaryColor}; font-weight:bold;'>Place of Supply:</span> <strong>{placeOfSupply}</strong></div>
             {(!string.IsNullOrEmpty(doctorName) ? $"<div><span style='color:{primaryColor};'>Doctor:</span> <strong>{doctorName}</strong></div>" : "")}
             {(!string.IsNullOrEmpty(salesman) ? $"<div><span style='color:{primaryColor};'>Salesman:</span> <strong>{salesman}</strong></div>" : "")}
@@ -2503,9 +3265,9 @@ public class PrintTemplateService : IPrintTemplateService
 
     <!-- PRODUCT TABLE CONTAINER (FLEX: 1 - STRETCHES DOWN TO COVER ALL WHITE SPACE) -->
     <div style='flex:1; display:flex; flex-direction:column;'>
-        <table style='width:100%; height:100%; border-collapse:collapse; font-size:8.5px;'>
+        <table style='width:100%; height:100%; border-collapse:collapse; font-size:8.5px; color:#000000;'>
             <thead>
-                <tr style='background:{headerOrangeBg}; border-bottom:1.5px solid {primaryColor}; font-weight:bold; color:#0f172a; height:19px;'>
+                <tr style='background:{headerOrangeBg}; border-bottom:1.5px solid {primaryColor}; font-weight:bold; color:#000000; height:19px;'>
                     <th style='width:22px; border-right:1px solid {borderColor}; text-align:center;'>#</th>
                     <th style='border-right:1px solid {borderColor}; text-align:left; padding:0 4px;'>Item Description</th>
                     {(hasPack ? $"<th style='width:42px; border-right:1px solid {borderColor}; text-align:center;'>Pack</th>" : "")}
@@ -2514,10 +3276,12 @@ public class PrintTemplateService : IPrintTemplateService
                     {(hasBatch ? $"<th style='width:46px; border-right:1px solid {borderColor}; text-align:center;'>Batch</th>" : "")}
                     {(hasExpiry ? $"<th style='width:38px; border-right:1px solid {borderColor}; text-align:center;'>Exp</th>" : "")}
                     <th style='width:36px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Qty</th>
+                    {(hasUnit ? $"<th style='width:34px; border-right:1px solid {borderColor}; text-align:center;'>Unit</th>" : "")}
                     {(hasFree ? $"<th style='width:30px; border-right:1px solid {borderColor}; text-align:center;'>Free</th>" : "")}
                     <th style='width:44px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Rate</th>
                     {(hasMrp ? $"<th style='width:44px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>MRP</th>" : "")}
                     {(hasDisc ? $"<th style='width:34px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Dis%</th>" : "")}
+                    {(hasTaxable ? $"<th style='width:48px; border-right:1px solid {borderColor}; text-align:right; padding:0 3px;'>Taxable</th>" : "")}
                     <th style='width:32px; border-right:1px solid {borderColor}; text-align:center;'>GST</th>
                     <th style='width:56px; text-align:right; padding:0 4px;'>Amount</th>
                 </tr>
@@ -2534,10 +3298,12 @@ public class PrintTemplateService : IPrintTemplateService
                     {(hasBatch ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     {(hasExpiry ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
+                    {(hasUnit ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     {(hasFree ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
                     {(hasMrp ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     {(hasDisc ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasTaxable ? $"<td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>" : "")}
                     <td style='border-right:1px solid {borderColor}; height:{margFillerHeight}px;'>&nbsp;</td>
                     <td style='height:{margFillerHeight}px;'>&nbsp;</td>
                 </tr>
@@ -2644,7 +3410,7 @@ public class PrintTemplateService : IPrintTemplateService
         var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) && t.PrimaryColorHex != "#0f172a" && t.PrimaryColorHex != "#000000"
             ? t.PrimaryColorHex
             : "#0e7490"; // Executive Retail Cyan / Petrol
-        var borderColor = "#99f6e4";
+        var borderColor = "#1e293b";
         var softOrangeBg = "#ecfeff";
         var headerOrangeBg = "#cffafe";
 
@@ -2668,8 +3434,10 @@ public class PrintTemplateService : IPrintTemplateService
 
         // Customer Details (Counter Sale / Retail - Zero GST)
         var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : "";
-        var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
+        var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
 
         // Doctor / Salesman Tracking
         var doctorName = !string.IsNullOrWhiteSpace(invoice?.DoctorName) ? invoice.DoctorName : "";
@@ -2704,18 +3472,18 @@ public class PrintTemplateService : IPrintTemplateService
         decimal subTotal = 0;
         int itemCount = 0;
 
-        // Dynamic Column Detection: Only show columns that actually have values in backend
-        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
-        bool isElectronics = industry == IndustryTypeCodes.Electronics;
-        bool isGarments = industry == IndustryTypeCodes.Garments;
-        bool isHardware = industry == IndustryTypeCodes.Hardware;
+        // Dynamic Column Detection: Universal Industry Adaptive Engine
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isElectronics = prof.IsElectronics;
+        bool isGarments = prof.IsGarments;
+        bool isHardware = prof.IsHardware;
 
-        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
-        bool hasPack = invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack));
-        bool hasFree = invoice != null && invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0);
-        bool hasMrp = invoice != null && invoice.Items.Any(i => i.Mrp > 0);
+        bool hasSerial = (invoice?.Items.Any(HasImeiOrSerial) ?? false) || isElectronics;
+        bool hasBatch = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool hasPack = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack) || (!string.IsNullOrWhiteSpace(i.AttributesJson) && i.AttributesJson.Contains("\"packSize\""))));
+        bool hasFree = prof.IsPharma || (invoice != null && invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0));
+        bool hasMrp = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.Mrp > 0));
         bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
 
         if (invoice?.Items != null && invoice.Items.Any())
@@ -2726,6 +3494,15 @@ public class PrintTemplateService : IPrintTemplateService
             {
                 var attrs = ExtractItemPharmaAttributes(it);
                 var packing = !string.IsNullOrWhiteSpace(attrs.pack) ? attrs.pack : "-";
+                if (packing == "-" && !string.IsNullOrWhiteSpace(it.AttributesJson))
+                {
+                    try
+                    {
+                        using var pd = System.Text.Json.JsonDocument.Parse(it.AttributesJson);
+                        if (pd.RootElement.TryGetProperty("packSize", out var psVal)) packing = psVal.GetString() ?? "-";
+                    }
+                    catch {}
+                }
                 var batch = !string.IsNullOrWhiteSpace(it.BatchNumber) ? it.BatchNumber : "-";
                 var expiry = it.ExpiryDate.HasValue ? it.ExpiryDate.Value.ToString("MM/yy") : "-";
                 var freeStr = attrs.freeQty > 0 ? attrs.freeQty.ToString("0.00") : "-";
@@ -2760,7 +3537,7 @@ public class PrintTemplateService : IPrintTemplateService
 
         if (subTotal == 0) subTotal = totalAmount;
         decimal savings = totalMrp > totalAmount ? (totalMrp - totalAmount) : 0m;
-        int memoFillerHeight = Math.Max(50, 260 - (itemCount * 20));
+        int memoFillerHeight = Math.Max(15, Math.Min(60, 80 - (itemCount * 18)));
 
         return $@"
 <!DOCTYPE html>
@@ -2772,11 +3549,11 @@ public class PrintTemplateService : IPrintTemplateService
     <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
     <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap' rel='stylesheet'>
     <style>
-        @page {{ size: A5 landscape; margin: 3mm 4mm; }}
-        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #0f172a; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-        .marg-half-page {{ width: 100%; max-width: 820px; min-height: 140mm; height: 140mm; max-height: 140mm; margin: 0 auto; box-sizing: border-box; border: 1.5px solid {primaryColor}; font-size: 8.5px; line-height: 1.3; display: flex; flex-direction: column; justify-content: space-between; }}
+        @page {{ size: A4 portrait; margin: 2mm 3mm; }}
+        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+        .marg-half-page {{ position: relative; width: 100%; max-width: 204mm; min-height: 140mm; max-height: 144mm; height: 142mm; margin: 0 auto; box-sizing: border-box; border: 1.5px solid {primaryColor}; font-size: 9.5px; line-height: 1.3; display: flex; flex-direction: column; justify-content: space-between; }}
         table {{ border-collapse: collapse; }}
-        th, td {{ box-sizing: border-box; }}
+        th, td {{ box-sizing: border-box; color: #000000; }}
     </style>
 </head>
 <body>
@@ -2805,11 +3582,14 @@ public class PrintTemplateService : IPrintTemplateService
     <!-- CUSTOMER DETAILS STRIP (ZERO GST) -->
     <div style='display:grid; grid-template-columns: 1.2fr 1fr; border-bottom:1.5px solid {primaryColor}; background:{softOrangeBg}; padding:4px 8px; font-size:8.5px;'>
         <div style='border-right:1px solid {borderColor}; padding-right:6px;'>
-            <div><span style='color:{primaryColor}; font-weight:bold;'>Customer M/s:</span> <strong style='font-size:10px; color:#0f172a;'>{custName}</strong></div>
-            {(!string.IsNullOrEmpty(custAddress) ? $"<div style='color:#334155;'>{custAddress}</div>" : "")}
-            {(!string.IsNullOrEmpty(custPhone) ? $"<div style='margin-top:1px;'>Mobile: <strong>{custPhone}</strong></div>" : "")}
+            <div><span style='color:{primaryColor}; font-weight:bold;'>Customer M/s:</span> <strong style='font-size:10px; color:#000000;'>{custName}</strong></div>
+            {(!string.IsNullOrEmpty(custAddress) ? $"<div style='color:#000000; font-weight:500;'>{custAddress}</div>" : "")}
+            <div style='margin-top:1px;'>
+                {(!string.IsNullOrEmpty(custPhone) ? $"Mobile: <strong>{custPhone}</strong>" : "")}
+                {(!string.IsNullOrEmpty(custDl) ? $" | D.L. No: <strong style='font-family:monospace;'>{custDl}</strong>" : "")}
+            </div>
         </div>
-        <div style='padding-left:6px; font-size:8px; line-height:1.3;'>
+        <div style='padding-left:6px; font-size:8px; line-height:1.3; color:#000000;'>
             <div><span style='color:{primaryColor}; font-weight:bold;'>Sale Type:</span> <strong>Retail Counter Cash Sale</strong></div>
             {(!string.IsNullOrEmpty(doctorName) ? $"<div><span style='color:{primaryColor};'>Doctor:</span> <strong>{doctorName}</strong></div>" : "")}
             {(!string.IsNullOrEmpty(salesman) ? $"<div><span style='color:{primaryColor};'>Salesman:</span> <strong>{salesman}</strong></div>" : "")}
@@ -2819,9 +3599,9 @@ public class PrintTemplateService : IPrintTemplateService
 
     <!-- PRODUCT TABLE CONTAINER (FLEX: 1 - STRETCHES DOWN TO COVER ALL WHITE SPACE) -->
     <div style='flex:1; display:flex; flex-direction:column;'>
-        <table style='width:100%; height:100%; border-collapse:collapse; font-size:8.5px;'>
+        <table style='width:100%; height:100%; border-collapse:collapse; font-size:8.5px; color:#000000;'>
             <thead>
-                <tr style='background:{headerOrangeBg}; border-bottom:1.5px solid {primaryColor}; font-weight:bold; color:#0f172a; height:19px;'>
+                <tr style='background:{headerOrangeBg}; border-bottom:1.5px solid {primaryColor}; font-weight:bold; color:#000000; height:19px;'>
                     <th style='width:24px; border-right:1px solid {borderColor}; text-align:center;'>#</th>
                     <th style='border-right:1px solid {borderColor}; text-align:left; padding:0 4px;'>Item Description</th>
                     {(hasPack ? $"<th style='width:46px; border-right:1px solid {borderColor}; text-align:center;'>Pack</th>" : "")}
@@ -2942,10 +3722,18 @@ public class PrintTemplateService : IPrintTemplateService
     // ==============================================================================
     private static string RenderPurchaseOrderExecutiveHtml(PrintTemplate t, PurchaseOrder? po, SalesInvoice? invoice, Tenant? tenant)
     {
+        var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) && t.PrimaryColorHex != "#000000" && t.PrimaryColorHex != "#0f172a"
+            ? t.PrimaryColorHex
+            : "#1e3a8a"; // Executive Corporate Navy
+        var secondaryColor = !string.IsNullOrWhiteSpace(t.SecondaryColorHex) && t.SecondaryColorHex != "#334155"
+            ? t.SecondaryColorHex
+            : "#2563eb"; // Royal Sapphire
+        var borderSlate = "#cbd5e1";
+
         // Purchaser / Buyer Information (Our Company)
         var buyerName = !string.IsNullOrWhiteSpace(tenant?.TradeName)
             ? tenant.TradeName
-            : (!string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : "Purchaser");
+            : (!string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : "");
         var buyerLegalName = !string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : buyerName;
 
         var buyerAddress = !string.IsNullOrWhiteSpace(po?.Branch?.AddressLine1)
@@ -2959,48 +3747,87 @@ public class PrintTemplateService : IPrintTemplateService
         var buyerPhone = !string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? tenant.PrimaryPhone : "";
         var buyerEmail = !string.IsNullOrWhiteSpace(tenant?.Email) ? tenant.Email : "";
         var buyerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
+        var buyerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
+        var logoUrl = !string.IsNullOrEmpty(t.LogoUrl) && !t.LogoUrl.Contains("placeholder") && !t.LogoUrl.Contains("dummy")
+            ? t.LogoUrl 
+            : (!string.IsNullOrEmpty(tenant?.LogoUrl) && !tenant.LogoUrl.Contains("placeholder") && !tenant.LogoUrl.Contains("dummy") ? tenant.LogoUrl : "");
 
         // PO Metadata
         var poNo = po?.OrderNumber ?? (invoice != null ? $"PO-{invoice.InvoiceNumber}" : "");
-        var poDate = po?.OrderDate.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
-        var expDate = po?.ExpectedDeliveryDate.HasValue == true ? po.ExpectedDeliveryDate.Value.ToString("dd/MM/yyyy") : "";
+        var poDate = po?.OrderDate.ToString("dd/MM/yyyy") ?? (invoice?.InvoiceDate.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy"));
+        var expDate = po?.ExpectedDeliveryDate.HasValue == true 
+            ? po.ExpectedDeliveryDate.Value.ToString("dd/MM/yyyy") 
+            : (invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("dd/MM/yyyy") : "");
         var poStatus = po != null ? po.Status.ToString().ToUpperInvariant() : "APPROVED";
 
         // Vendor / Supplier Information
+        var partyAddr = po?.Party?.Addresses?.FirstOrDefault(a => a.IsDefault) ?? po?.Party?.Addresses?.FirstOrDefault();
+        var partyAddressStr = partyAddr != null
+            ? $"{partyAddr.AddressLine1}{(string.IsNullOrWhiteSpace(partyAddr.AddressLine2) ? "" : $", {partyAddr.AddressLine2}")}{(string.IsNullOrWhiteSpace(partyAddr.City) ? "" : $", {partyAddr.City}")}{(string.IsNullOrWhiteSpace(partyAddr.State) ? "" : $", {partyAddr.State}")}{(string.IsNullOrWhiteSpace(partyAddr.Pincode) ? "" : $" - {partyAddr.Pincode}")}"
+            : "";
+
         var vendorName = !string.IsNullOrWhiteSpace(po?.SupplierName)
             ? po.SupplierName
-            : (!string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (po != null ? "Supplier" : ""));
-        var vendorAddress = !string.IsNullOrWhiteSpace(po?.SupplierAddress)
+            : (!string.IsNullOrWhiteSpace(po?.Party?.LegalName) ? po.Party.LegalName : (!string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : ""));
+
+        var vendorAddress = !string.IsNullOrWhiteSpace(po?.SupplierAddress) && !po.SupplierAddress.Contains("Okhla")
             ? po.SupplierAddress
-            : (!string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "");
+            : (!string.IsNullOrWhiteSpace(partyAddressStr) ? partyAddressStr : (!string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : ""));
+
         var vendorGstin = !string.IsNullOrWhiteSpace(po?.SupplierGSTIN)
             ? po.SupplierGSTIN
-            : (!string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "");
-        var vendorPhone = !string.IsNullOrWhiteSpace(po?.SupplierPhone)
-            ? po.SupplierPhone
-            : (!string.IsNullOrWhiteSpace(invoice?.CustomerPhone) ? invoice.CustomerPhone : "");
-        var vendorState = !string.IsNullOrWhiteSpace(po?.SupplierStateCode) ? po.SupplierStateCode : "";
+            : (!string.IsNullOrWhiteSpace(po?.Party?.GSTIN) ? po.Party.GSTIN : (!string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : ""));
 
-        // Delivery Destination (Warehouse / Branch)
+        var vendorPhone = !string.IsNullOrWhiteSpace(po?.SupplierPhone) && !po.SupplierPhone.Contains("4987 6543")
+            ? po.SupplierPhone
+            : (!string.IsNullOrWhiteSpace(po?.Party?.Mobile) ? po.Party.Mobile : (!string.IsNullOrWhiteSpace(po?.Party?.PrimaryPhone) ? po.Party.PrimaryPhone : (!string.IsNullOrWhiteSpace(invoice?.CustomerPhone) ? invoice.CustomerPhone : "")));
+
+        var vendorState = !string.IsNullOrWhiteSpace(po?.SupplierStateCode) 
+            ? po.SupplierStateCode 
+            : (!string.IsNullOrWhiteSpace(po?.Party?.StateCode) ? po.Party.StateCode : "");
+
+        var vendorDl = !string.IsNullOrWhiteSpace(po?.Party?.DrugLicenseNumber1) ? po.Party.DrugLicenseNumber1 : "";
+        var vendorFssai = !string.IsNullOrWhiteSpace(po?.Party?.FSSAINumber) ? po.Party.FSSAINumber : "";
+
         var shipDestName = !string.IsNullOrWhiteSpace(po?.Warehouse?.WarehouseName)
             ? po.Warehouse.WarehouseName
-            : (!string.IsNullOrWhiteSpace(po?.Branch?.BranchName) ? po.Branch.BranchName : "");
+            : (!string.IsNullOrWhiteSpace(po?.Branch?.BranchName) ? po.Branch.BranchName : buyerName);
+
         var shipAddress = !string.IsNullOrWhiteSpace(po?.Warehouse?.Location)
             ? po.Warehouse.Location
             : buyerAddress;
 
-        // Auto-Detect Industry Add-on (Pharma / Batch / Expiry)
-        bool isPharma = !string.IsNullOrWhiteSpace(buyerDl);
+        // Auto-Detect Industry Add-on (Universal Engine)
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isPharma = prof.IsPharma || !string.IsNullOrWhiteSpace(buyerDl);
+        bool hasFree = isPharma;
+        bool hasPack = isPharma;
+
         if (po?.Items != null && po.Items.Any())
         {
-            if (po.Items.Any(i => i.AttributesJson != null && (i.AttributesJson.Contains("pack") || i.AttributesJson.Contains("batch") || i.AttributesJson.Contains("expiry"))))
+            if (po.Items.Any(i => i.FreeQuantity > 0 || (i.AttributesJson != null && (i.AttributesJson.Contains("pack") || i.AttributesJson.Contains("batch") || i.AttributesJson.Contains("expiry") || i.AttributesJson.Contains("free")))))
+            {
                 isPharma = true;
+                hasPack = true;
+            }
+            if (po.Items.Any(i => i.FreeQuantity > 0 || (i.AttributesJson != null && (i.AttributesJson.Contains("freeQty") || i.AttributesJson.Contains("freeQuantity")))))
+            {
+                hasFree = true;
+            }
         }
         else if (invoice?.Items != null && invoice.Items.Any())
         {
             if (invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber) || (i.AttributesJson != null && i.AttributesJson.Contains("pack"))))
+            {
                 isPharma = true;
+                hasPack = true;
+            }
+            if (invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0))
+            {
+                hasFree = true;
+            }
         }
+        if (isPharma) hasFree = true;
 
         // Table Rows & Financial Accumulators
         var rowsSb = new StringBuilder();
@@ -3034,52 +3861,36 @@ public class PrintTemplateService : IPrintTemplateService
                 var discText = item.DiscountPercent > 0 ? $"{item.DiscountPercent:0.00}%" : (item.DiscountAmount > 0 ? $"₹{item.DiscountAmount:0.00}" : "—");
 
                 string packStr = "—";
-                string freeStr = "—";
-                if (isPharma && !string.IsNullOrWhiteSpace(item.AttributesJson))
+                decimal freeVal = item.FreeQuantity;
+                if (!string.IsNullOrWhiteSpace(item.AttributesJson))
                 {
                     try
                     {
                         using var doc = System.Text.Json.JsonDocument.Parse(item.AttributesJson);
                         if (doc.RootElement.TryGetProperty("pack", out var p)) packStr = p.GetString() ?? "—";
-                        if (doc.RootElement.TryGetProperty("freeQty", out var f)) freeStr = f.GetDecimal().ToString("0.00");
+                        if (freeVal <= 0 && doc.RootElement.TryGetProperty("freeQuantity", out var fq)) freeVal = fq.GetDecimal();
+                        if (freeVal <= 0 && doc.RootElement.TryGetProperty("freeQty", out var f)) freeVal = f.GetDecimal();
                     }
                     catch { }
                 }
 
-                if (isPharma)
-                {
-                    rowsSb.Append($@"
-                    <tr style='border-bottom:1px solid #e2e8f0; font-size:9px;'>
-                        <td style='padding:5px 4px; text-align:center; border-right:1px solid #cbd5e1;'>{rowIdx++}</td>
-                        <td style='padding:5px 6px; font-weight:bold; color:#0f172a; border-right:1px solid #cbd5e1;'>{item.ItemName} <span style='font-size:8px; color:#64748b; font-weight:normal;'>({item.ItemSku})</span></td>
-                        <td style='padding:5px 4px; text-align:center; font-family:monospace; border-right:1px solid #cbd5e1;'>{hsn}</td>
-                        <td style='padding:5px 4px; text-align:center; border-right:1px solid #cbd5e1;'>{packStr}</td>
-                        <td style='padding:5px 4px; text-align:right; font-weight:bold; border-right:1px solid #cbd5e1;'>{item.OrderQuantity:0.00}</td>
-                        <td style='padding:5px 4px; text-align:center; color:#0f172a; font-weight:bold; border-right:1px solid #cbd5e1;'>{freeStr}</td>
-                        <td style='padding:5px 4px; text-align:center; border-right:1px solid #cbd5e1;'>{uom}</td>
-                        <td style='padding:5px 4px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.UnitPrice:0.00}</td>
-                        <td style='padding:5px 4px; text-align:right; border-right:1px solid #cbd5e1;'>{discText}</td>
-                        <td style='padding:5px 4px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.TaxableAmount:N2}</td>
-                        <td style='padding:5px 4px; text-align:right; border-right:1px solid #cbd5e1;'>{item.GstRate:0.00}%</td>
-                        <td style='padding:5px 6px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {(item.TaxableAmount + item.CgstAmount + item.SgstAmount + item.IgstAmount):N2}</td>
-                    </tr>");
-                }
-                else
-                {
-                    rowsSb.Append($@"
-                    <tr style='border-bottom:1px solid #e2e8f0; font-size:9.5px;'>
-                        <td style='padding:6px 6px; text-align:center; border-right:1px solid #cbd5e1;'>{rowIdx++}</td>
-                        <td style='padding:6px 8px; font-weight:bold; color:#0f172a; border-right:1px solid #cbd5e1;'>{item.ItemName} <span style='font-size:8.5px; color:#64748b; font-weight:normal;'>({item.ItemSku})</span></td>
-                        <td style='padding:6px 6px; text-align:center; font-family:monospace; border-right:1px solid #cbd5e1;'>{hsn}</td>
-                        <td style='padding:6px 6px; text-align:right; font-weight:bold; border-right:1px solid #cbd5e1;'>{item.OrderQuantity:0.00}</td>
-                        <td style='padding:6px 6px; text-align:center; border-right:1px solid #cbd5e1;'>{uom}</td>
-                        <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.UnitPrice:0.00}</td>
-                        <td style='padding:6px 6px; text-align:right; border-right:1px solid #cbd5e1;'>{discText}</td>
-                        <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.TaxableAmount:N2}</td>
-                        <td style='padding:6px 6px; text-align:right; border-right:1px solid #cbd5e1;'>{item.GstRate:0.00}%</td>
-                        <td style='padding:6px 8px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {(item.TaxableAmount + item.CgstAmount + item.SgstAmount + item.IgstAmount):N2}</td>
-                    </tr>");
-                }
+                string freeStr = freeVal > 0 ? (freeVal % 1 == 0 ? freeVal.ToString("0") : freeVal.ToString("0.##")) : "—";
+
+                rowsSb.Append($@"
+                <tr style='border-bottom:1px solid #e2e8f0; font-size:9px;'>
+                    <td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>{rowIdx++}</td>
+                    <td style='padding:6px 6px; font-weight:bold; color:#0f172a; border-right:1px solid {borderSlate};'>{item.ItemName} {(string.IsNullOrWhiteSpace(item.ItemSku) ? "" : $"<span style='font-size:8px; color:#64748b; font-weight:normal;'>({item.ItemSku})</span>")}</td>
+                    <td style='padding:6px 4px; text-align:center; font-family:monospace; border-right:1px solid {borderSlate};'>{hsn}</td>
+                    {(hasPack ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>{packStr}</td>" : "")}
+                    <td style='padding:6px 4px; text-align:right; font-weight:bold; border-right:1px solid {borderSlate};'>{item.OrderQuantity:0.##}</td>
+                    {(hasFree ? $"<td style='padding:6px 4px; text-align:center; color:#0f172a; font-weight:bold; border-right:1px solid {borderSlate};'>{freeStr}</td>" : "")}
+                    <td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>{uom}</td>
+                    <td style='padding:6px 4px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.UnitPrice:N2}</td>
+                    <td style='padding:6px 4px; text-align:right; border-right:1px solid {borderSlate};'>{discText}</td>
+                    <td style='padding:6px 4px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.TaxableAmount:N2}</td>
+                    <td style='padding:6px 4px; text-align:right; border-right:1px solid {borderSlate};'>{item.GstRate:0.##}%</td>
+                    <td style='padding:6px 6px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {(item.TaxableAmount + item.CgstAmount + item.SgstAmount + item.IgstAmount):N2}</td>
+                </tr>");
             }
         }
         else if (invoice?.Items != null && invoice.Items.Any())
@@ -3098,50 +3909,73 @@ public class PrintTemplateService : IPrintTemplateService
             {
                 var attrs = ExtractItemPharmaAttributes(item);
                 var hsn = !string.IsNullOrWhiteSpace(item.HsnCode) ? item.HsnCode : "3004";
-                var uom = !string.IsNullOrWhiteSpace(item.UomCode) ? item.UomCode : "Strip";
+                var uom = !string.IsNullOrWhiteSpace(item.UomCode) ? item.UomCode : "PCS";
                 var discText = item.DiscountPercent > 0 ? $"{item.DiscountPercent:0.00}%" : (item.DiscountAmount > 0 ? $"₹{item.DiscountAmount:0.00}" : "—");
                 var packStr = !string.IsNullOrWhiteSpace(attrs.pack) ? attrs.pack : "—";
-                var freeStr = attrs.freeQty > 0 ? attrs.freeQty.ToString("0.00") : "—";
+                var freeVal = attrs.freeQty;
+                string freeStr = freeVal > 0 ? (freeVal % 1 == 0 ? freeVal.ToString("0") : freeVal.ToString("0.##")) : "—";
 
-                if (isPharma)
-                {
-                    rowsSb.Append($@"
-                    <tr style='border-bottom:1px solid #e2e8f0; font-size:9px;'>
-                        <td style='padding:5px 4px; text-align:center; border-right:1px solid #cbd5e1;'>{rowIdx++}</td>
-                        <td style='padding:5px 6px; font-weight:bold; color:#0f172a; border-right:1px solid #cbd5e1;'>{item.ItemName}</td>
-                        <td style='padding:5px 4px; text-align:center; font-family:monospace; border-right:1px solid #cbd5e1;'>{hsn}</td>
-                        <td style='padding:5px 4px; text-align:center; border-right:1px solid #cbd5e1;'>{packStr}</td>
-                        <td style='padding:5px 4px; text-align:right; font-weight:bold; border-right:1px solid #cbd5e1;'>{item.Quantity:0.00}</td>
-                        <td style='padding:5px 4px; text-align:center; color:#0f172a; font-weight:bold; border-right:1px solid #cbd5e1;'>{freeStr}</td>
-                        <td style='padding:5px 4px; text-align:center; border-right:1px solid #cbd5e1;'>{uom}</td>
-                        <td style='padding:5px 4px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.UnitPrice:0.00}</td>
-                        <td style='padding:5px 4px; text-align:right; border-right:1px solid #cbd5e1;'>{discText}</td>
-                        <td style='padding:5px 4px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.TaxableAmount:N2}</td>
-                        <td style='padding:5px 4px; text-align:right; border-right:1px solid #cbd5e1;'>{item.GstRate:0.00}%</td>
-                        <td style='padding:5px 6px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {item.TotalAmount:N2}</td>
-                    </tr>");
-                }
-                else
-                {
-                    rowsSb.Append($@"
-                    <tr style='border-bottom:1px solid #e2e8f0; font-size:9.5px;'>
-                        <td style='padding:6px 6px; text-align:center; border-right:1px solid #cbd5e1;'>{rowIdx++}</td>
-                        <td style='padding:6px 8px; font-weight:bold; color:#0f172a; border-right:1px solid #cbd5e1;'>{item.ItemName}</td>
-                        <td style='padding:6px 6px; text-align:center; font-family:monospace; border-right:1px solid #cbd5e1;'>{hsn}</td>
-                        <td style='padding:6px 6px; text-align:right; font-weight:bold; border-right:1px solid #cbd5e1;'>{item.Quantity:0.00}</td>
-                        <td style='padding:6px 6px; text-align:center; border-right:1px solid #cbd5e1;'>Pcs</td>
-                        <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.UnitPrice:0.00}</td>
-                        <td style='padding:6px 6px; text-align:right; border-right:1px solid #cbd5e1;'>{discText}</td>
-                        <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid #cbd5e1;'>₹ {item.TaxableAmount:N2}</td>
-                        <td style='padding:6px 6px; text-align:right; border-right:1px solid #cbd5e1;'>{item.GstRate:0.00}%</td>
-                        <td style='padding:6px 8px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {item.TotalAmount:N2}</td>
-                    </tr>");
-                }
+                rowsSb.Append($@"
+                <tr style='border-bottom:1px solid #e2e8f0; font-size:9px;'>
+                    <td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>{rowIdx++}</td>
+                    <td style='padding:6px 6px; font-weight:bold; color:#0f172a; border-right:1px solid {borderSlate};'>{item.ItemName}</td>
+                    <td style='padding:6px 4px; text-align:center; font-family:monospace; border-right:1px solid {borderSlate};'>{hsn}</td>
+                    {(hasPack ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>{packStr}</td>" : "")}
+                    <td style='padding:6px 4px; text-align:right; font-weight:bold; border-right:1px solid {borderSlate};'>{item.Quantity:0.##}</td>
+                    {(hasFree ? $"<td style='padding:6px 4px; text-align:center; color:#0f172a; font-weight:bold; border-right:1px solid {borderSlate};'>{freeStr}</td>" : "")}
+                    <td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>{uom}</td>
+                    <td style='padding:6px 4px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.UnitPrice:N2}</td>
+                    <td style='padding:6px 4px; text-align:right; border-right:1px solid {borderSlate};'>{discText}</td>
+                    <td style='padding:6px 4px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.TaxableAmount:N2}</td>
+                    <td style='padding:6px 4px; text-align:right; border-right:1px solid {borderSlate};'>{item.GstRate:0.##}%</td>
+                    <td style='padding:6px 6px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {item.TotalAmount:N2}</td>
+                </tr>");
             }
         }
+        else
+        {
+            // Sample preview lines for pristine sandbox demonstration
+            itemCount = 2;
+            totalGross = 110000.00m;
+            totalDisc = 0m;
+            totalTaxable = 110000.00m;
+            totalCgst = 9900.00m;
+            totalSgst = 9900.00m;
+            totalIgst = 0m;
+            totalAmount = 129800.00m;
 
-        int colCount = isPharma ? 12 : 10;
+            rowsSb.Append($@"
+            <tr style='border-bottom:1px solid #e2e8f0; font-size:9.5px;'>
+                <td style='padding:6px 6px; text-align:center; border-right:1px solid {borderSlate};'>1</td>
+                <td style='padding:6px 8px; font-weight:bold; color:#0f172a; border-right:1px solid {borderSlate};'>Industrial Grade Linear Motion Actuator 500mm <span style='font-size:8.5px; color:#64748b; font-weight:normal;'>(SKU-ACT-050)</span></td>
+                <td style='padding:6px 6px; text-align:center; font-family:monospace; border-right:1px solid {borderSlate};'>8483</td>
+                {(hasPack ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>BOX</td>" : "")}
+                <td style='padding:6px 6px; text-align:right; font-weight:bold; border-right:1px solid {borderSlate};'>10.00</td>
+                {(hasFree ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>—</td>" : "")}
+                <td style='padding:6px 6px; text-align:center; border-right:1px solid {borderSlate};'>SET</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ 6,000.00</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>—</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ 60,000.00</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>18.00%</td>
+                <td style='padding:6px 8px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ 70,800.00</td>
+            </tr>
+            <tr style='border-bottom:1px solid #e2e8f0; font-size:9.5px;'>
+                <td style='padding:6px 6px; text-align:center; border-right:1px solid {borderSlate};'>2</td>
+                <td style='padding:6px 8px; font-weight:bold; color:#0f172a; border-right:1px solid {borderSlate};'>Precision Electrical Control Assembly Modules <span style='font-size:8.5px; color:#64748b; font-weight:normal;'>(SKU-ECM-204)</span></td>
+                <td style='padding:6px 6px; text-align:center; font-family:monospace; border-right:1px solid {borderSlate};'>8504</td>
+                {(hasPack ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>PCS</td>" : "")}
+                <td style='padding:6px 6px; text-align:right; font-weight:bold; border-right:1px solid {borderSlate};'>20.00</td>
+                {(hasFree ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>—</td>" : "")}
+                <td style='padding:6px 6px; text-align:center; border-right:1px solid {borderSlate};'>PCS</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ 2,500.00</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>—</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ 50,000.00</td>
+                <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>18.00%</td>
+                <td style='padding:6px 8px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ 59,000.00</td>
+            </tr>");
+        }
 
+        int colCount = 10 + (hasPack ? 1 : 0) + (hasFree ? 1 : 0);
         var words = ConvertToIndianCurrencyWords(totalAmount);
 
         return $@"
@@ -3154,168 +3988,257 @@ public class PrintTemplateService : IPrintTemplateService
     <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
     <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap' rel='stylesheet'>
     <style>
-        @page {{ size: A4 portrait; margin: 8mm 10mm; }}
-        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #0f172a; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-        .po-container {{ width: 100%; max-width: 800px; min-height: 275mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid #2563eb; }}
+        @page {{ size: A4 portrait; margin: 4mm 5mm; }}
+        @media print {{
+            html, body {{
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }}
+            .po-container {{
+                border: 1.5px solid {primaryColor} !important;
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                max-width: 195mm !important;
+                min-height: 268mm !important;
+                max-height: 278mm !important;
+                height: auto !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }}
+        }}
+        html, body {{
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            color: #000000;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }}
+        .po-container {{
+            width: 100%;
+            max-width: 195mm;
+            min-height: 268mm;
+            max-height: 278mm;
+            height: auto;
+            margin: 0 auto;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1.5px solid {primaryColor};
+            border-radius: 6px;
+            background: #ffffff;
+            overflow: hidden;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }}
         table {{ border-collapse: collapse; }}
-        th, td {{ box-sizing: border-box; }}
+        th, td {{ box-sizing: border-box; color: #000000; }}
     </style>
 </head>
 <body>
 <div class='po-container'>
 
     <div>
-        <!-- TOP EXECUTIVE SAPPHIRE BLUE HEADER BAR -->
-        <div style='background: #ffffff; border-bottom: 2px solid #2563eb; color:#0f172a; padding:12px 16px; display:flex; justify-content:space-between; align-items:flex-start;'>
-            <div style='max-width:62%;'>
-                <div style='font-size:18px; font-weight:900; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2; color:#1e3a8a;'>{buyerName}</div>
-                <div style='font-size:9.5px; color:#334155; margin-top:3px; line-height:1.3;'>{buyerAddress}</div>
-                <div style='font-size:9px; color:#475569; margin-top:4px; font-family:monospace; display:flex; flex-wrap:wrap; gap:8px;'>
-                    <span><strong>GSTIN:</strong> {buyerGstin}</span>
-                    {(!string.IsNullOrEmpty(buyerPan) ? $"<span><strong>PAN:</strong> {buyerPan}</span>" : "")}
-                    {(!string.IsNullOrEmpty(buyerPhone) ? $"<span><strong>Ph:</strong> {buyerPhone}</span>" : "")}
-                    {(!string.IsNullOrEmpty(buyerDl) ? $"<span><strong>D.L.:</strong> {buyerDl}</span>" : "")}
+        <!-- TOP CORPORATE ACCENT BAR -->
+        <div style='height: 4px; background: linear-gradient(90deg, {primaryColor} 0%, {secondaryColor} 60%, #f59e0b 100%);'></div>
+
+        <!-- 1. EXECUTIVE CORPORATE HEADER SECTION -->
+        <div style='background: #ffffff; border-bottom: 2px solid {primaryColor}; padding: 12px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;'>
+            
+            <!-- Left: Company Identity -->
+            <div style='display: flex; align-items: flex-start; gap: 12px; max-width: 62%;'>
+                {(!string.IsNullOrEmpty(logoUrl) ? $"<img src='{logoUrl}' alt='Logo' onerror=\"this.style.display='none'\" style='max-height: 52px; max-width: 120px; object-fit: contain; border-radius: 4px; padding: 2px; border: 1px solid #e2e8f0;' />" : "")}
+
+                <div>
+                    <div style='font-size: 17px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.2; color: #0f172a;'>{buyerName}</div>
+                    {(!string.IsNullOrWhiteSpace(buyerAddress) ? $"<div style='font-size: 8.5px; color: #475569; margin-top: 3px; line-height: 1.35;'>{buyerAddress}</div>" : "")}
+                    
+                    <!-- Statutory Badges Strip -->
+                    <div style='display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; font-size: 8px;'>
+                        {(!string.IsNullOrEmpty(buyerGstin) ? $"<span style='background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 5px; border-radius: 3px; color: #1e293b;'>GSTIN: <strong style='font-family: monospace; color: #0f172a;'>{buyerGstin}</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(buyerPan) ? $"<span style='background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 5px; border-radius: 3px; color: #1e293b;'>PAN: <strong style='font-family: monospace;'>{buyerPan}</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(buyerPhone) ? $"<span style='background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 5px; border-radius: 3px; color: #1e293b;'>Ph: <strong>{buyerPhone}</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(buyerDl) ? $"<span style='background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 5px; border-radius: 3px; color: #1e293b;'>D.L.: <strong>{buyerDl}</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(buyerFssai) ? $"<span style='background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 5px; border-radius: 3px; color: #1e293b;'>FSSAI: <strong>{buyerFssai}</strong></span>" : "")}
+                    </div>
                 </div>
             </div>
-            <div style='text-align:right;'>
-                <div style='background: linear-gradient(135deg, #1d4ed8, #2563eb); color:#ffffff; font-size:13px; font-weight:800; padding:5px 16px; border-radius:5px; display:inline-block; letter-spacing:0.5px; box-shadow:0 2px 4px rgba(37,99,235,0.25);'>PURCHASE ORDER</div>
-                <div style='margin-top:6px; font-size:9.5px; line-height:1.4; color:#334155;'>
-                    <div>PO No: <strong style='font-family:monospace; font-size:11px; color:#1d4ed8;'>{poNo}</strong></div>
+
+            <!-- Right: Document Identity Badge -->
+            <div style='text-align: right; shrink-0;'>
+                <div style='background: linear-gradient(135deg, {primaryColor}, {secondaryColor}); color: #ffffff; padding: 5px 16px; border-radius: 5px; display: inline-block; text-align: center; box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);'>
+                    <div style='font-size: 7px; text-transform: uppercase; font-weight: 800; letter-spacing: 1.2px; color: #93c5fd;'>Official Commercial Contract</div>
+                    <div style='font-size: 14px; font-weight: 900; letter-spacing: 0.8px; margin-top: 1px;'>PURCHASE ORDER</div>
+                </div>
+                
+                <div style='margin-top: 5px; font-size: 9px; line-height: 1.4; color: #334155;'>
+                    <div>PO No: <strong style='font-family: monospace; font-size: 11px; color: {secondaryColor};'>{poNo}</strong></div>
                     <div>PO Date: <strong>{poDate}</strong></div>
-                    <div>Due Date: <strong>{expDate}</strong></div>
-                    <div style='margin-top:2px;'><span style='background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 8px; border-radius:4px; font-size:8.5px; font-weight:bold;'>STATUS: {poStatus}</span></div>
+                    <div>Delivery Due: <strong style='color: #0f172a;'>{expDate}</strong></div>
+                    <div style='margin-top: 2px;'>
+                        <span style='background: #eff6ff; color: {secondaryColor}; border: 1px solid #bfdbfe; padding: 1px 6px; border-radius: 3px; font-size: 8px; font-weight: 800; text-transform: uppercase;'>STATUS: {poStatus}</span>
+                    </div>
                 </div>
             </div>
+
         </div>
 
-        <!-- TWIN METADATA CARDS: VENDOR (SUPPLIER) & DELIVERY LOCATION (SHIP TO) -->
-        <div style='display:grid; grid-template-columns: 1.15fr 1fr; gap:10px; padding:10px 12px; background:#f8fafc; border-bottom:1.5px solid #cbd5e1;'>
+        <!-- QUICK PROCUREMENT METADATA RIBBON -->
+        <div style='background: #f8fafc; border-bottom: 1.5px solid {borderSlate}; padding: 5px 16px; font-size: 8.5px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; color: #334155;'>
+            <div>Payment Terms: <strong style='color: #0f172a;'>Net 30 Days</strong></div>
+            <div>Delivery Mode: <strong style='color: #0f172a;'>Road Transport</strong></div>
+            <div>Dispatch Port: <strong style='color: #0f172a;'>Ex-Works / Door Delivery</strong></div>
+            <div>Currency: <strong style='color: #0f172a;'>INR (₹)</strong></div>
+        </div>
+
+        <!-- TWIN CORPORATE METADATA CARDS: VENDOR & SHIP-TO DESTINATION -->
+        <div style='display: grid; grid-template-columns: 1.15fr 1fr; border-bottom: 1.5px solid {borderSlate}; background: #ffffff;'>
             
-            <!-- Vendor Card -->
-            <div style='background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; font-size:9px; line-height:1.4;'>
-                <div style='font-size:9px; text-transform:uppercase; color:#1d4ed8; font-weight:bold; letter-spacing:0.3px; border-bottom:1px solid #bfdbfe; padding-bottom:3px; margin-bottom:4px;'>
-                    Vendor / Supplier (Bill &amp; Ship From):
+            <!-- Vendor Card (Issued To) -->
+            <div style='padding: 8px 16px; border-right: 1px solid {borderSlate}; font-size: 9px; line-height: 1.35;'>
+                <div style='font-size: 8px; font-weight: 800; color: {secondaryColor}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;'>
+                    VENDOR / SUPPLIER (ISSUED TO):
                 </div>
-                <div style='font-size:12px; font-weight:bold; color:#1e3a8a;'>{vendorName}</div>
-                <div style='color:#334155; margin-top:2px;'>{vendorAddress}</div>
-                <div style='margin-top:4px; font-family:monospace;'>
-                    <div><strong>GSTIN:</strong> {vendorGstin} | <strong>State:</strong> {vendorState}</div>
-                    {(!string.IsNullOrEmpty(vendorPhone) ? $"<div><strong>Phone:</strong> {vendorPhone}</div>" : "")}
-                </div>
+                <div style='font-size: 12.5px; font-weight: 800; color: #0f172a;'>{vendorName}</div>
+                {(!string.IsNullOrWhiteSpace(vendorAddress) ? $"<div style='color: #475569; margin-top: 2px;'>{vendorAddress}</div>" : "")}
+                {(!string.IsNullOrWhiteSpace(vendorGstin) || !string.IsNullOrWhiteSpace(vendorState) ? $@"
+                <div style='margin-top: 3px; font-family: monospace; font-size: 8.5px;'>
+                    {(!string.IsNullOrWhiteSpace(vendorGstin) ? $"<span><strong>GSTIN:</strong> {vendorGstin}</span>" : "")}
+                    {(!string.IsNullOrWhiteSpace(vendorGstin) && !string.IsNullOrWhiteSpace(vendorState) ? " | " : "")}
+                    {(!string.IsNullOrWhiteSpace(vendorState) ? $"<span>State: {vendorState}</span>" : "")}
+                </div>" : "")}
+                {(!string.IsNullOrWhiteSpace(vendorPhone) ? $"<div style='color: #64748b; font-size: 8.5px; margin-top: 2px;'>Phone: {vendorPhone}</div>" : "")}
+                {(!string.IsNullOrWhiteSpace(vendorDl) || !string.IsNullOrWhiteSpace(vendorFssai) ? $@"
+                <div style='margin-top: 2px; font-size: 8px; color: #475569;'>
+                    {(!string.IsNullOrWhiteSpace(vendorDl) ? $"<span><strong>D.L.:</strong> {vendorDl}</span>" : "")}
+                    {(!string.IsNullOrWhiteSpace(vendorDl) && !string.IsNullOrWhiteSpace(vendorFssai) ? " | " : "")}
+                    {(!string.IsNullOrWhiteSpace(vendorFssai) ? $"<span><strong>FSSAI:</strong> {vendorFssai}</span>" : "")}
+                </div>" : "")}
             </div>
 
-            <!-- Ship To Card -->
-            <div style='background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; font-size:9px; line-height:1.4;'>
-                <div style='font-size:9px; text-transform:uppercase; color:#1d4ed8; font-weight:bold; letter-spacing:0.3px; border-bottom:1px solid #bfdbfe; padding-bottom:3px; margin-bottom:4px;'>
-                    Delivery Warehouse (Ship To Destination):
+            <!-- Ship To Destination Card -->
+            <div style='padding: 8px 16px; font-size: 9px; line-height: 1.35;'>
+                <div style='font-size: 8px; font-weight: 800; color: {primaryColor}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;'>
+                    SHIP TO / DELIVERY DESTINATION:
                 </div>
-                <div style='font-size:12px; font-weight:bold; color:#1e3a8a;'>{shipDestName}</div>
-                <div style='color:#334155; margin-top:2px;'>{shipAddress}</div>
-                <div style='margin-top:4px;'>
-                    <div>Delivery Mode: <strong>Surface Cargo / Road Transport</strong></div>
-                    <div>Payment Terms: <strong>Net 30 Days from Receipt</strong></div>
+                <div style='font-size: 12.5px; font-weight: 800; color: #0f172a;'>{shipDestName}</div>
+                {(!string.IsNullOrWhiteSpace(shipAddress) ? $"<div style='color: #475569; margin-top: 2px;'>{shipAddress}</div>" : "")}
+                <div style='margin-top: 3px; font-size: 8.5px;'>
+                    <span>Consignee GSTIN: <strong style='font-family: monospace;'>{(string.IsNullOrEmpty(buyerGstin) ? "—" : buyerGstin)}</strong></span>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- 2. LINE ITEMS TABLE WITH CONTINUOUS VERTICAL GRID LINES EXTENDING THROUGH EMPTY SPACE -->
-    <div style='flex:1 1 auto; display:flex; flex-direction:column;'>
-        <table style='width:100%; height:100%; border-collapse:collapse; font-size:9.5px;'>
+    <!-- 2. LINE ITEMS TABLE WITH UNBROKEN VERTICAL GRID LINES REACHING BOTTOM -->
+    <div style='flex: 1 1 auto; display: flex; flex-direction: column;'>
+        <table style='width: 100%; border-collapse: collapse; font-size: 9px;'>
             <thead>
-                <tr style='background:#eff6ff; color:#1e40af; border-bottom:1.5px solid #bfdbfe; font-size:9px; text-transform:uppercase; letter-spacing:0.2px; height:26px;'>
-                    <th style='padding:7px 4px; width:28px; border-right:1px solid #bfdbfe; text-align:center;'>#</th>
-                    <th style='padding:7px 8px; text-align:left; border-right:1px solid #bfdbfe;'>Item Description</th>
-                    <th style='padding:7px 4px; width:65px; border-right:1px solid #bfdbfe; text-align:center;'>HSN/SAC</th>
-                    {(isPharma ? "<th style='padding:7px 4px; width:45px; border-right:1px solid #bfdbfe; text-align:center;'>Pack</th>" : "")}
-                    <th style='padding:7px 6px; width:60px; border-right:1px solid #bfdbfe; text-align:right;'>Qty</th>
-                    {(isPharma ? "<th style='padding:7px 4px; width:40px; border-right:1px solid #bfdbfe; text-align:center;'>Free</th>" : "")}
-                    <th style='padding:7px 4px; width:45px; border-right:1px solid #bfdbfe; text-align:center;'>UOM</th>
-                    <th style='padding:7px 6px; width:65px; border-right:1px solid #bfdbfe; text-align:right;'>Rate (₹)</th>
-                    <th style='padding:7px 4px; width:45px; border-right:1px solid #bfdbfe; text-align:right;'>Dis%</th>
-                    <th style='padding:7px 6px; width:75px; border-right:1px solid #bfdbfe; text-align:right;'>Taxable (₹)</th>
-                    <th style='padding:7px 4px; width:50px; border-right:1px solid #bfdbfe; text-align:right;'>GST%</th>
-                    <th style='padding:7px 8px; width:85px; text-align:right;'>Amount (₹)</th>
+                <tr style='background: #eff6ff; color: #1e3a8a; border-bottom: 1.5px solid #bfdbfe; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.2px; height: 24px;'>
+                    <th style='padding: 6px 4px; width: 28px; border-right: 1px solid #bfdbfe; text-align: center;'>#</th>
+                    <th style='padding: 6px 8px; text-align: left; border-right: 1px solid #bfdbfe;'>Item Description &amp; Specifications</th>
+                    <th style='padding: 6px 4px; width: 65px; border-right: 1px solid #bfdbfe; text-align: center;'>HSN/SAC</th>
+                    {(hasPack ? "<th style='padding: 6px 4px; width: 45px; border-right: 1px solid #bfdbfe; text-align: center;'>Pack</th>" : "")}
+                    <th style='padding: 6px 6px; width: 55px; border-right: 1px solid #bfdbfe; text-align: right;'>Qty</th>
+                    {(hasFree ? "<th style='padding: 6px 4px; width: 42px; border-right: 1px solid #bfdbfe; text-align: center;'>Free</th>" : "")}
+                    <th style='padding: 6px 4px; width: 42px; border-right: 1px solid #bfdbfe; text-align: center;'>UOM</th>
+                    <th style='padding: 6px 6px; width: 65px; border-right: 1px solid #bfdbfe; text-align: right;'>Rate (₹)</th>
+                    <th style='padding: 6px 4px; width: 42px; border-right: 1px solid #bfdbfe; text-align: right;'>Dis%</th>
+                    <th style='padding: 6px 6px; width: 75px; border-right: 1px solid #bfdbfe; text-align: right;'>Taxable (₹)</th>
+                    <th style='padding: 6px 4px; width: 48px; border-right: 1px solid #bfdbfe; text-align: right;'>GST%</th>
+                    <th style='padding: 6px 8px; width: 85px; text-align: right;'>Amount (₹)</th>
                 </tr>
             </thead>
-            <tbody style='height:100%;'>
+            <tbody>
                 {rowsSb}
-                {RenderTableFillerRow(colCount, "#cbd5e1", itemCount, 250)}
+                {RenderTableFillerRow(colCount, borderSlate, itemCount, 440)}
             </tbody>
         </table>
     </div>
 
-    <!-- BOTTOM COMMERCIAL SUMMARY & TERMS -->
+    <!-- 3. BOTTOM COMMERCIAL SUMMARY, TERMS & DUAL SIGNATURES -->
     <div>
-        <div style='display:grid; grid-template-columns: 1.25fr 1fr; border-top:1.5px solid #cbd5e1; background:#f8fafc; padding:10px 12px; gap:12px;'>
+        <div style='display: grid; grid-template-columns: 1.25fr 1fr; border-top: 1.5px solid {borderSlate}; background: #f8fafc; padding: 8px 12px; gap: 10px;'>
             
             <!-- Terms & Conditions -->
-            <div style='font-size:8.5px; line-height:1.4;'>
-                {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $@"
-                <div style='font-size:9px; font-weight:bold; color:#1d4ed8; border-bottom:1px solid #cbd5e1; padding-bottom:2px; margin-bottom:4px; text-transform:uppercase;'>
-                    Terms &amp; Conditions:
+            <div style='font-size: 8px; line-height: 1.35;'>
+                <div style='font-size: 8.5px; font-weight: bold; color: {primaryColor}; border-bottom: 1px solid {borderSlate}; padding-bottom: 2px; margin-bottom: 3px; text-transform: uppercase;'>
+                    Purchase Order Terms &amp; Conditions:
                 </div>
-                <div style='color:#334155;'>
-                    {t.DeclarationText}
-                </div>" : "<div></div>")}
+                <div style='color: #334155;'>
+                    {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? t.DeclarationText : @"
+                    1. Goods supplied must strictly match PO specifications, brand, and quality benchmarks.<br/>
+                    2. Delivery challan and invoice copy must accompany the consignment with PO number referenced.<br/>
+                    3. Rejected goods due to damage or defect shall be replaced within 48 hours at vendor expense.<br/>
+                    4. Payment will be processed strictly as per agreed payment terms post physical verification.")}
+                </div>
             </div>
 
             <!-- Financial Totals Box -->
             <div>
-                <table style='width:100%; border:1px solid #cbd5e1; font-size:9.5px; background:#ffffff; border-radius:4px;'>
-                    <tr style='border-bottom:1px solid #e2e8f0;'>
-                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0;'>Gross Subtotal:</td>
-                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {totalGross:N2}</td>
+                <table style='width: 100%; border: 1px solid {borderSlate}; font-size: 9px; background: #ffffff; border-radius: 4px;'>
+                    <tr style='border-bottom: 1px solid #e2e8f0;'>
+                        <td style='padding: 2.5px 5px; border-right: 1px solid #e2e8f0;'>Gross Subtotal:</td>
+                        <td style='padding: 2.5px 5px; text-align: right; font-family: monospace;'>₹ {totalGross:N2}</td>
                     </tr>
                     {(totalDisc > 0 ? $@"
-                    <tr style='border-bottom:1px solid #e2e8f0;'>
-                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0;'>Total Discount:</td>
-                        <td style='padding:3px 6px; text-align:right; font-family:monospace; color:#0f172a;'>(-) ₹ {totalDisc:N2}</td>
+                    <tr style='border-bottom: 1px solid #e2e8f0;'>
+                        <td style='padding: 2.5px 5px; border-right: 1px solid #e2e8f0;'>Total Discount:</td>
+                        <td style='padding: 2.5px 5px; text-align: right; font-family: monospace; color: #0f172a;'>(-) ₹ {totalDisc:N2}</td>
                     </tr>" : "")}
-                    <tr style='border-bottom:1px solid #e2e8f0;'>
-                        <td style='padding:3px 6px; font-weight:bold; border-right:1px solid #e2e8f0;'>Taxable Order Value:</td>
-                        <td style='padding:3px 6px; text-align:right; font-family:monospace; font-weight:bold;'>₹ {totalTaxable:N2}</td>
+                    <tr style='border-bottom: 1px solid #e2e8f0;'>
+                        <td style='padding: 2.5px 5px; font-weight: bold; border-right: 1px solid #e2e8f0;'>Taxable Order Value:</td>
+                        <td style='padding: 2.5px 5px; text-align: right; font-family: monospace; font-weight: bold;'>₹ {totalTaxable:N2}</td>
                     </tr>
                     {(totalCgst > 0 ? $@"
-                    <tr style='border-bottom:1px solid #e2e8f0;'>
-                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0;'>CGST:</td>
-                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {totalCgst:N2}</td>
+                    <tr style='border-bottom: 1px solid #e2e8f0;'>
+                        <td style='padding: 2.5px 5px; border-right: 1px solid #e2e8f0;'>CGST:</td>
+                        <td style='padding: 2.5px 5px; text-align: right; font-family: monospace;'>₹ {totalCgst:N2}</td>
                     </tr>" : "")}
                     {(totalSgst > 0 ? $@"
-                    <tr style='border-bottom:1px solid #e2e8f0;'>
-                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0;'>SGST:</td>
-                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {totalSgst:N2}</td>
+                    <tr style='border-bottom: 1px solid #e2e8f0;'>
+                        <td style='padding: 2.5px 5px; border-right: 1px solid #e2e8f0;'>SGST:</td>
+                        <td style='padding: 2.5px 5px; text-align: right; font-family: monospace;'>₹ {totalSgst:N2}</td>
                     </tr>" : "")}
                     {(totalIgst > 0 ? $@"
-                    <tr style='border-bottom:1px solid #e2e8f0;'>
-                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0;'>IGST:</td>
-                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {totalIgst:N2}</td>
+                    <tr style='border-bottom: 1px solid #e2e8f0;'>
+                        <td style='padding: 2.5px 5px; border-right: 1px solid #e2e8f0;'>IGST:</td>
+                        <td style='padding: 2.5px 5px; text-align: right; font-family: monospace;'>₹ {totalIgst:N2}</td>
                     </tr>" : "")}
                     {(roundOff != 0 ? $@"
-                    <tr style='border-bottom:1px solid #e2e8f0;'>
-                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0;'>Round Off:</td>
-                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {roundOff:N2}</td>
+                    <tr style='border-bottom: 1px solid #e2e8f0;'>
+                        <td style='padding: 2.5px 5px; border-right: 1px solid #e2e8f0;'>Round Off:</td>
+                        <td style='padding: 2.5px 5px; text-align: right; font-family: monospace;'>₹ {roundOff:N2}</td>
                     </tr>" : "")}
-                    <tr style='background:#eff6ff; color:#1e40af; border-top:2px solid #2563eb; font-weight:900; font-size:12px;'>
-                        <td style='padding:5px 6px; border-right:1px solid #bfdbfe;'>TOTAL ORDER VALUE:</td>
-                        <td style='padding:5px 6px; text-align:right; font-family:monospace;'>₹ {totalAmount:N2}</td>
+                    <tr style='background: #eff6ff; color: #1e3a8a; border-top: 2px solid {primaryColor}; font-weight: 900; font-size: 11px;'>
+                        <td style='padding: 4px 5px; border-right: 1px solid #bfdbfe;'>TOTAL ORDER VALUE:</td>
+                        <td style='padding: 4px 5px; text-align: right; font-family: monospace;'>₹ {totalAmount:N2}</td>
                     </tr>
                 </table>
-                <div style='font-size:8px; color:#475569; text-align:center; margin-top:3px; font-style:italic;'>({words})</div>
+                <div style='font-size: 7.5px; color: #475569; text-align: center; margin-top: 2px; font-style: italic;'>({words})</div>
             </div>
 
         </div>
 
         <!-- DUAL EXECUTION & SIGNATURE FOOTER -->
-        <div style='display:grid; grid-template-columns: 1fr 1fr; border-top:1px solid #cbd5e1; background:#ffffff; padding:12px 16px; font-size:9px;'>
+        <div style='display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid {borderSlate}; background: #ffffff; padding: 10px 16px; font-size: 8.5px;'>
             <div>
-                <div style='font-weight:bold; color:#1e3a8a; margin-bottom:28px;'>Vendor Acceptance Acknowledgement:</div>
-                <div style='font-size:8px; color:#64748b; border-top:1px dashed #94a3b8; width:75%; padding-top:2px;'>Authorized Signatory &amp; Stamp (Date: ______)</div>
+                <div style='font-weight: bold; color: #0f172a; margin-bottom: 22px;'>Vendor Acceptance Acknowledgement:</div>
+                <div style='font-size: 7.5px; color: #64748b; border-top: 1px dashed #94a3b8; width: 70%; padding-top: 2px;'>Authorized Signatory &amp; Stamp (Date: ______)</div>
             </div>
-            <div style='text-align:right;'>
-                <div style='font-weight:bold; color:#1e3a8a; margin-bottom:28px;'>For {buyerName}:</div>
-                <div style='font-size:8px; color:#64748b; border-top:1px dashed #94a3b8; width:75%; margin-left:auto; padding-top:2px;'>Authorized Procurement Officer</div>
+            <div style='text-align: right;'>
+                <div style='font-weight: bold; color: #0f172a; margin-bottom: 22px;'>For {buyerName}:</div>
+                <div style='font-size: 7.5px; color: #64748b; border-top: 1px dashed #94a3b8; width: 70%; margin-left: auto; padding-top: 2px;'>Authorized Procurement Officer</div>
             </div>
         </div>
     </div>
@@ -3346,6 +4269,7 @@ public class PrintTemplateService : IPrintTemplateService
         var sellerPan = !string.IsNullOrWhiteSpace(tenant?.PAN) ? tenant.PAN : (sellerGstin.Length >= 12 ? sellerGstin.Substring(2, 10) : "");
         var sellerPhone = !string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? tenant.PrimaryPhone : "";
         var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
+        var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
 
         // Credit Note Metadata
         var cnNo = sr?.CreditNoteNumber ?? (invoice != null ? (invoice.InvoiceNumber.StartsWith("CN") ? invoice.InvoiceNumber : $"CN-{invoice.InvoiceNumber}") : "");
@@ -3361,14 +4285,13 @@ public class PrintTemplateService : IPrintTemplateService
         var custGstin = !string.IsNullOrWhiteSpace(sr?.Party?.GSTIN)
             ? sr.Party.GSTIN
             : (!string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "");
-        var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress)
-            ? invoice.BillingAddress
-            : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var custPhone = !string.IsNullOrWhiteSpace(sr?.Party?.PrimaryPhone) ? sr.Party.PrimaryPhone : (invoice?.CustomerPhone ?? "");
         var posState = !string.IsNullOrWhiteSpace(invoice?.PlaceOfSupply) ? invoice.PlaceOfSupply : "";
 
-        // Auto-Detect Pharma / Batch Tracking
-        bool hasPharma = !string.IsNullOrWhiteSpace(sellerDl);
+        // Universal Industry Profile
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool hasPharma = prof.IsPharma || !string.IsNullOrWhiteSpace(sellerDl);
         if (sr?.Items != null && sr.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber))) hasPharma = true;
         if (invoice?.Items != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber))) hasPharma = true;
 
@@ -3504,11 +4427,11 @@ public class PrintTemplateService : IPrintTemplateService
     <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
     <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap' rel='stylesheet'>
     <style>
-        @page {{ size: A4 portrait; margin: 8mm 10mm; }}
-        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #0f172a; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-        .cn-container {{ width: 100%; max-width: 800px; min-height: 275mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid #d97706; }}
+        @page {{ size: A4 portrait; margin: 4mm 5mm; }}
+        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+        .cn-container {{ width: 100%; max-width: 195mm; min-height: 268mm; max-height: 278mm; height: auto; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; border: 1.5px solid #d97706; page-break-inside: avoid; break-inside: avoid; }}
         table {{ border-collapse: collapse; }}
-        th, td {{ box-sizing: border-box; }}
+        th, td {{ box-sizing: border-box; color: #000000; }}
     </style>
 </head>
 <body>
@@ -3525,6 +4448,7 @@ public class PrintTemplateService : IPrintTemplateService
                     {(!string.IsNullOrEmpty(sellerPan) ? $"<span><strong>PAN:</strong> {sellerPan}</span>" : "")}
                     {(!string.IsNullOrEmpty(sellerPhone) ? $"<span><strong>Phone:</strong> {sellerPhone}</span>" : "")}
                     {(!string.IsNullOrEmpty(sellerDl) ? $"<span><strong>D.L.:</strong> {sellerDl}</span>" : "")}
+                    {(!string.IsNullOrEmpty(sellerFssai) ? $"<span><strong>FSSAI:</strong> {sellerFssai}</span>" : "")}
                 </div>
             </div>
             <div style='text-align: right;'>
@@ -3573,7 +4497,7 @@ public class PrintTemplateService : IPrintTemplateService
 
     <!-- ITEMS RETURNED TABLE WITH CONTINUOUS VERTICAL GRID LINES EXTENDING THROUGH EMPTY SPACE -->
     <div style='flex:1 1 auto; display:flex; flex-direction:column;'>
-        <table style='width: 100%; height: 100%; border-collapse: collapse; font-size: 9.5px;'>
+        <table style='width: 100%; height: 100%; flex: 1 1 auto; border-collapse: collapse; font-size: 9.5px;'>
             <thead>
                 <tr style='background: #fffbeb; color: #92400e; border-bottom: 1.5px solid #fde68a; font-size: 9px; text-transform: uppercase; letter-spacing: 0.2px; height: 26px;'>
                     <th style='padding: 7px 4px; width: 28px; border-right: 1px solid #fde68a; text-align: center;'>#</th>
@@ -3590,13 +4514,13 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody style='height:100%;'>
                 {rowsSb}
-                {RenderTableFillerRow(cnColCount, "#cbd5e1", cnItemCount, 250)}
+                {RenderTableFillerRow(cnColCount, "#cbd5e1", cnItemCount, 580)}
             </tbody>
         </table>
     </div>
 
     <!-- BOTTOM TOTALS & OPTIONAL TERMS -->
-    <div>
+    <div style='margin-top: auto;'>
         <div style='display: grid; grid-template-columns: 1.25fr 1fr; border-top: 1.5px solid #cbd5e1; background: #f8fafc; padding: 10px 14px; gap: 12px;'>
             
             <!-- Terms & Conditions (if configured) -->
@@ -3663,7 +4587,569 @@ public class PrintTemplateService : IPrintTemplateService
     // ==============================================================================
     // 4. 📱 MYBILLBOOK / VYAPAR STYLE (MODERN PURPLE GRADIENT CARD A4/A5)
     // ==============================================================================
-    private static string RenderMyBillBookInvoiceHtml(PrintTemplate t, SalesInvoice? invoice, Tenant? tenant = null)
+        // ==============================================================================
+    // 3.4 🚚 STATUTORY DELIVERY CHALLAN (CGST RULE 55 COMPLIANT - GOODS IN TRANSIT)
+    // ==============================================================================
+    private static string RenderDeliveryChallanStatutoryHtml(PrintTemplate t, SalesInvoice? invoice, Tenant? tenant)
+    {
+        var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) && t.PrimaryColorHex != "#0f172a" && t.PrimaryColorHex != "#000000"
+            ? t.PrimaryColorHex
+            : "#047857"; // Forest Transport Green
+        var secondaryColor = !string.IsNullOrWhiteSpace(t.SecondaryColorHex) && t.SecondaryColorHex != "#334155"
+            ? t.SecondaryColorHex
+            : "#059669";
+        var borderSlate = "#cbd5e1";
+
+        // Consignor (Dispatch From / Supplier)
+        var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName)
+            ? tenant.TradeName
+            : (!string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : "Consignor");
+        var sellerAddress = !string.IsNullOrWhiteSpace(invoice?.Branch?.AddressLine1)
+            ? $"{invoice.Branch.AddressLine1}{(string.IsNullOrWhiteSpace(invoice.Branch.City) ? "" : $", {invoice.Branch.City}")}{(string.IsNullOrWhiteSpace(invoice.Branch.State) ? "" : $", {invoice.Branch.State}")}{(string.IsNullOrWhiteSpace(invoice.Branch.Pincode) ? "" : $" - {invoice.Branch.Pincode}")}"
+            : (!string.IsNullOrWhiteSpace(tenant?.AddressLine1) ? $"{tenant.AddressLine1}{(string.IsNullOrWhiteSpace(tenant.AddressLine2) ? "" : $", {tenant.AddressLine2}")}{(string.IsNullOrWhiteSpace(tenant.City) ? "" : $", {tenant.City}")}{(string.IsNullOrWhiteSpace(tenant.State) ? "" : $", {tenant.State}")}{(string.IsNullOrWhiteSpace(tenant.Pincode) ? "" : $" - {tenant.Pincode}")}" : "");
+        var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN)
+            ? invoice.Branch.GSTIN
+            : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
+        var sellerPan = !string.IsNullOrWhiteSpace(tenant?.PAN) ? tenant.PAN : (sellerGstin.Length >= 12 ? sellerGstin.Substring(2, 10) : "");
+        var sellerState = !string.IsNullOrWhiteSpace(invoice?.Branch?.State) ? invoice.Branch.State : (tenant?.State ?? "");
+        var sellerPhone = !string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? tenant.PrimaryPhone : "";
+
+        // Consignee (Ship To / Recipient)
+        var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (invoice != null ? "Consignee / Recipient" : "");
+        var custAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress)
+            ? invoice.ShippingAddress
+            : (!string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "");
+        var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
+        var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
+        var posState = !string.IsNullOrWhiteSpace(invoice?.PlaceOfSupply) ? invoice.PlaceOfSupply : (invoice?.BillingStateCode ?? "");
+
+        // Challan Logistics & Transportation Metadata
+        var challanNo = !string.IsNullOrWhiteSpace(invoice?.InvoiceNumber)
+            ? (invoice.InvoiceNumber.StartsWith("DC") ? invoice.InvoiceNumber : $"DC-{invoice.InvoiceNumber}")
+            : "DC-SAMPLE-001";
+        var challanDate = invoice?.InvoiceDate.ToString("dd-MMM-yyyy") ?? DateTime.Now.ToString("dd-MMM-yyyy");
+        var eWayNo = !string.IsNullOrWhiteSpace(invoice?.EWayBillNumber) ? invoice.EWayBillNumber : "";
+        var vehicleNo = !string.IsNullOrWhiteSpace(invoice?.VehicleNumber) ? invoice.VehicleNumber : "";
+        var transporter = !string.IsNullOrWhiteSpace(invoice?.TransporterName) ? invoice.TransporterName : "";
+        var lrNo = !string.IsNullOrWhiteSpace(invoice?.LrNumber) ? invoice.LrNumber : "";
+        var lrDate = invoice?.LrDate?.ToString("dd-MMM-yyyy") ?? "";
+
+        // Reason for Transportation (CGST Rule 55 requirement)
+        string reasonForTransport = "Supply on Approval / Stock Transfer / Job Work (Rule 55)";
+        if (!string.IsNullOrWhiteSpace(invoice?.Notes) && (invoice.Notes.Contains("Job Work") || invoice.Notes.Contains("Approval") || invoice.Notes.Contains("Exhibition") || invoice.Notes.Contains("Return")))
+        {
+            reasonForTransport = invoice.Notes;
+        }
+
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool hasBatch = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+
+        // Line Items Table
+        var rowsSb = new StringBuilder();
+        int rowIdx = 1;
+        int itemCount = 0;
+        decimal totalTaxable = 0;
+        decimal totalTax = 0;
+        decimal totalValue = 0;
+
+        if (invoice?.Items != null && invoice.Items.Any())
+        {
+            itemCount = invoice.Items.Count;
+            totalTaxable = invoice.TaxableAmount;
+            totalTax = invoice.CgstAmount + invoice.SgstAmount + invoice.IgstAmount;
+            totalValue = invoice.TotalAmount;
+
+            foreach (var item in invoice.Items)
+            {
+                var hsn = !string.IsNullOrWhiteSpace(item.HsnCode) ? item.HsnCode : "—";
+                var uom = !string.IsNullOrWhiteSpace(item.UomCode) ? item.UomCode : "Pcs";
+                var lineTax = item.CgstAmount + item.SgstAmount + item.IgstAmount;
+
+                rowsSb.Append($@"
+                <tr style='border-bottom:1px solid #e2e8f0; font-size:9.5px;'>
+                    <td style='padding:6px 4px; text-align:center; border-right:1px solid {borderSlate};'>{rowIdx++}</td>
+                    <td style='padding:6px 8px; font-weight:bold; color:#0f172a; border-right:1px solid {borderSlate};'>
+                        {item.ItemName}
+                        {(string.IsNullOrEmpty(item.ItemSku) ? "" : $"<span style='font-size:8px; color:#64748b; font-weight:normal; font-family:monospace;'> ({item.ItemSku})</span>")}
+                    </td>
+                    <td style='padding:6px 6px; text-align:center; font-family:monospace; border-right:1px solid {borderSlate};'>{hsn}</td>
+                    {(hasBatch ? $"<td style='padding:6px 6px; text-align:center; font-family:monospace; border-right:1px solid {borderSlate};'>{(!string.IsNullOrWhiteSpace(item.BatchNumber) ? item.BatchNumber : "—")}</td>" : "")}
+                    <td style='padding:6px 6px; text-align:right; font-weight:bold; border-right:1px solid {borderSlate};'>{item.Quantity:0.##}</td>
+                    <td style='padding:6px 6px; text-align:center; border-right:1px solid {borderSlate};'>{uom}</td>
+                    <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.UnitPrice:0.00}</td>
+                    <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.TaxableAmount:N2}</td>
+                    <td style='padding:6px 6px; text-align:right; border-right:1px solid {borderSlate};'>{item.GstRate:0.##}%</td>
+                    <td style='padding:6px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {lineTax:N2}</td>
+                    <td style='padding:6px 8px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {item.TotalAmount:N2}</td>
+                </tr>");
+            }
+        }
+
+        int colCount = hasBatch ? 11 : 10;
+        var words = ConvertToIndianCurrencyWords(totalValue);
+
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Delivery Challan - {challanNo}</title>
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap' rel='stylesheet'>
+    <style>
+        @page {{ size: A4 portrait; margin: 4mm 5mm; }}
+        html, body {{ margin:0; padding:0; background:#ffffff; color:#000000; font-family:'Plus Jakarta Sans', system-ui, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+        .challan-container {{ width:100%; max-width:195mm; min-height:268mm; max-height:278mm; height:auto; margin:0 auto; box-sizing:border-box; border:1.5px solid {primaryColor}; border-radius:6px; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; background:#ffffff; page-break-inside:avoid; break-inside:avoid; }}
+    </style>
+</head>
+<body>
+<div class='challan-container'>
+    
+    <!-- 1. HEADER STRIP -->
+    <div>
+        <div style='background:{primaryColor}; color:#ffffff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center;'>
+            <div>
+                <div style='font-size:18px; font-weight:900; letter-spacing:0.5px; text-transform:uppercase;'>DELIVERY CHALLAN</div>
+                <div style='font-size:9.5px; opacity:0.9; margin-top:2px;'>Issued under Rule 55 of CGST Rules, 2017 &bull; Goods in Transit / Not for Sale</div>
+            </div>
+            <div style='text-align:right;'>
+                <div style='font-size:12px; font-weight:bold; font-family:monospace; background:rgba(255,255,255,0.15); padding:3px 8px; border-radius:4px;'>
+                    CHALLAN NO: {challanNo}
+                </div>
+                <div style='font-size:9.5px; margin-top:3px;'>Date: <strong>{challanDate}</strong></div>
+            </div>
+        </div>
+
+        <!-- REASON FOR TRANSPORTATION CALLOUT -->
+        <div style='background:#ecfdf5; border-bottom:1px solid #a7f3d0; padding:5px 14px; font-size:9px; display:flex; justify-content:space-between; align-items:center;'>
+            <div><span style='color:{primaryColor}; font-weight:bold; text-transform:uppercase;'>Nature of Movement:</span> <strong>{reasonForTransport}</strong></div>
+            <div style='color:#065f46; font-size:8.5px; font-style:italic;'>Rule 55(1) CGST Rules (Delivery without Invoice)</div>
+        </div>
+
+        <!-- CONSIGNOR & CONSIGNEE DETAILS -->
+        <div style='display:grid; grid-template-columns: 1fr 1fr; border-bottom:1.5px solid {borderSlate}; background:#f8fafc;'>
+            <!-- Consignor (Shipper) -->
+            <div style='padding:10px 14px; border-right:1px solid {borderSlate}; font-size:9.5px; line-height:1.4;'>
+                <div style='font-size:8.5px; font-weight:800; color:{primaryColor}; text-transform:uppercase; margin-bottom:3px;'>Consignor (Dispatch From):</div>
+                <div style='font-size:13px; font-weight:900; color:#0f172a;'>{sellerName}</div>
+                <div style='color:#475569; margin-top:2px;'>{sellerAddress}</div>
+                <div style='margin-top:4px; font-family:monospace;'>
+                    {(!string.IsNullOrEmpty(sellerGstin) ? $"<span><strong>GSTIN:</strong> {sellerGstin}</span> | " : "")}
+                    {(!string.IsNullOrEmpty(sellerState) ? $"<span>State: {sellerState}</span>" : "")}
+                </div>
+                {(!string.IsNullOrEmpty(sellerPhone) ? $"<div style='color:#64748b;'>Phone: {sellerPhone}</div>" : "")}
+            </div>
+
+            <!-- Consignee (Ship To) -->
+            <div style='padding:10px 14px; font-size:9.5px; line-height:1.4;'>
+                <div style='font-size:8.5px; font-weight:800; color:{primaryColor}; text-transform:uppercase; margin-bottom:3px;'>Consignee (Ship To / Recipient):</div>
+                <div style='font-size:13px; font-weight:900; color:#0f172a;'>{custName}</div>
+                <div style='color:#475569; margin-top:2px;'>{custAddress}</div>
+                <div style='margin-top:4px; font-family:monospace;'>
+                    <span><strong>GSTIN:</strong> {(string.IsNullOrEmpty(custGstin) ? "Unregistered" : custGstin)}</span>
+                    {(!string.IsNullOrEmpty(posState) ? $" | <span>State: {posState}</span>" : "")}
+                </div>
+                {(!string.IsNullOrEmpty(custPhone) ? $"<div style='color:#64748b;'>Phone: {custPhone}</div>" : "")}
+            </div>
+        </div>
+
+        <!-- TRANSPORT & DISPATCH DETAILS STRIP -->
+        <div style='background:#ffffff; border-bottom:1.5px solid {borderSlate}; padding:6px 14px; font-size:9px; display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;'>
+            <div>Vehicle No: <strong style='font-family:monospace; color:#0f172a;'>{(!string.IsNullOrEmpty(vehicleNo) ? vehicleNo : "—")}</strong></div>
+            <div>E-Way Bill No: <strong style='font-family:monospace; color:#0f172a;'>{(!string.IsNullOrEmpty(eWayNo) ? eWayNo : "—")}</strong></div>
+            <div>Transporter: <strong>{(!string.IsNullOrEmpty(transporter) ? transporter : "—")}</strong></div>
+            <div>LR / GR No: <strong style='font-family:monospace;'>{(!string.IsNullOrEmpty(lrNo) ? $"{lrNo} ({lrDate})" : "—")}</strong></div>
+        </div>
+    </div>
+
+    <!-- 2. LINE ITEMS TABLE WITH CONTINUOUS VERTICAL GRID LINES -->
+    <div style='flex:1 1 auto; display:flex; flex-direction:column;'>
+        <table style='width:100%; height:100%; border-collapse:collapse; font-size:9.5px;'>
+            <thead>
+                <tr style='background:#ecfdf5; color:#065f46; border-bottom:1.5px solid #a7f3d0; font-size:9px; text-transform:uppercase; letter-spacing:0.2px; height:26px;'>
+                    <th style='padding:7px 4px; width:28px; border-right:1px solid #a7f3d0; text-align:center;'>#</th>
+                    <th style='padding:7px 8px; text-align:left; border-right:1px solid #a7f3d0;'>Item Description &amp; Specifications</th>
+                    <th style='padding:7px 6px; width:65px; border-right:1px solid #a7f3d0; text-align:center;'>HSN/SAC</th>
+                    {(hasBatch ? $"<th style='padding:7px 6px; width:70px; border-right:1px solid #a7f3d0; text-align:center;'>Batch</th>" : "")}
+                    <th style='padding:7px 6px; width:65px; border-right:1px solid #a7f3d0; text-align:right;'>Qty</th>
+                    <th style='padding:7px 4px; width:45px; border-right:1px solid #a7f3d0; text-align:center;'>UOM</th>
+                    <th style='padding:7px 6px; width:70px; border-right:1px solid #a7f3d0; text-align:right;'>Rate (₹)</th>
+                    <th style='padding:7px 6px; width:80px; border-right:1px solid #a7f3d0; text-align:right;'>Taxable (₹)</th>
+                    <th style='padding:7px 4px; width:45px; border-right:1px solid #a7f3d0; text-align:right;'>GST%</th>
+                    <th style='padding:7px 6px; width:75px; border-right:1px solid #a7f3d0; text-align:right;'>Tax (₹)</th>
+                    <th style='padding:7px 8px; width:85px; text-align:right;'>Total Value (₹)</th>
+                </tr>
+            </thead>
+            <tbody style='height:100%;'>
+                {rowsSb}
+                {RenderTableFillerRow(colCount, borderSlate, itemCount, 250)}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 3. BOTTOM SUMMARY & RULE 55 DECLARATION -->
+    <div>
+        <div style='display:grid; grid-template-columns: 1.3fr 1fr; border-top:1.5px solid {borderSlate}; background:#f8fafc; padding:10px 14px; gap:12px;'>
+            
+            <!-- Statutory Notice & Notes -->
+            <div style='font-size:8.5px; line-height:1.4;'>
+                <div style='font-size:9px; font-weight:bold; color:{primaryColor}; border-bottom:1px solid {borderSlate}; padding-bottom:2px; margin-bottom:4px; text-transform:uppercase;'>
+                    Statutory Rule 55 Declaration:
+                </div>
+                <div style='color:#334155;'>
+                    1. This Delivery Challan is issued under Rule 55 of CGST Rules, 2017 for movement of goods without tax invoice.<br/>
+                    2. <strong>THIS IS NOT A TAX INVOICE.</strong> No Input Tax Credit can be claimed based on this document.<br/>
+                    3. Goods are transported for purpose of delivery/testing/demonstration/job-work as specified.
+                </div>
+                {(!string.IsNullOrWhiteSpace(invoice?.Notes) ? $"<div style='margin-top:6px; color:#0f172a;'><strong>Notes / Remarks:</strong> {invoice.Notes}</div>" : "")}
+                {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div style='margin-top:4px; color:#475569;'><strong>Terms:</strong> {t.DeclarationText}</div>" : "")}
+            </div>
+
+            <!-- Value Matrix -->
+            <div>
+                <table style='width:100%; border:1px solid {borderSlate}; font-size:9.5px; background:#ffffff; border-radius:4px;'>
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:4px 6px; border-right:1px solid #e2e8f0;'>Taxable Goods Value:</td>
+                        <td style='padding:4px 6px; text-align:right; font-family:monospace;'>₹ {totalTaxable:N2}</td>
+                    </tr>
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:4px 6px; border-right:1px solid #e2e8f0;'>Indicative Applicable Tax:</td>
+                        <td style='padding:4px 6px; text-align:right; font-family:monospace;'>₹ {totalTax:N2}</td>
+                    </tr>
+                    <tr style='background:#ecfdf5; color:#065f46; border-top:2px solid {primaryColor}; font-weight:900; font-size:11.5px;'>
+                        <td style='padding:6px 6px; border-right:1px solid #a7f3d0;'>TOTAL VALUE OF GOODS:</td>
+                        <td style='padding:6px 6px; text-align:right; font-family:monospace;'>₹ {totalValue:N2}</td>
+                    </tr>
+                </table>
+                <div style='font-size:8px; color:#475569; text-align:center; margin-top:3px; font-style:italic;'>({words})</div>
+            </div>
+
+        </div>
+
+        <!-- DUAL EXECUTION & SIGNATURE FOOTER -->
+        <div style='display:grid; grid-template-columns: 1fr 1fr; border-top:1px solid {borderSlate}; background:#ffffff; padding:12px 16px; font-size:9px;'>
+            <div>
+                <div style='font-weight:bold; color:#0f172a; margin-bottom:28px;'>Receiver&apos;s Acknowledgement:</div>
+                <div style='font-size:8px; color:#64748b; border-top:1px dashed #94a3b8; width:75%; padding-top:2px;'>Received above goods in good condition &amp; verified quantity (Sign &amp; Stamp)</div>
+            </div>
+            <div style='text-align:right;'>
+                <div style='font-weight:bold; color:#0f172a; margin-bottom:28px;'>For {sellerName}:</div>
+                <div style='font-size:8px; color:#64748b; border-top:1px dashed #94a3b8; width:75%; margin-left:auto; padding-top:2px;'>Authorised Dispatch Officer</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>";
+    }
+
+    // ==============================================================================
+    // 3.5 💼 PROFESSIONAL SERVICES & IT/CA/CONSULTING TAX INVOICE (A4)
+    // ==============================================================================
+    private static string RenderProfessionalServicesInvoiceHtml(PrintTemplate t, SalesInvoice? invoice, Tenant? tenant = null)
+    {
+        var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) && t.PrimaryColorHex != "#0f172a" && t.PrimaryColorHex != "#000000"
+            ? t.PrimaryColorHex
+            : "#0f172a"; // Executive Midnight Slate
+        var secondaryColor = !string.IsNullOrWhiteSpace(t.SecondaryColorHex) && t.SecondaryColorHex != "#334155"
+            ? t.SecondaryColorHex
+            : "#2563eb"; // Professional Blue
+        var borderSlate = "#cbd5e1";
+
+        // Service Provider / Firm Identification
+        var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName)
+            ? tenant.TradeName
+            : (!string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : "Consulting Firm");
+        var sellerAddress = !string.IsNullOrWhiteSpace(invoice?.Branch?.AddressLine1)
+            ? $"{invoice.Branch.AddressLine1}{(string.IsNullOrWhiteSpace(invoice.Branch.City) ? "" : $", {invoice.Branch.City}")}{(string.IsNullOrWhiteSpace(invoice.Branch.State) ? "" : $", {invoice.Branch.State}")}{(string.IsNullOrWhiteSpace(invoice.Branch.Pincode) ? "" : $" - {invoice.Branch.Pincode}")}"
+            : (!string.IsNullOrWhiteSpace(tenant?.AddressLine1) ? $"{tenant.AddressLine1}{(string.IsNullOrWhiteSpace(tenant.AddressLine2) ? "" : $", {tenant.AddressLine2}")}{(string.IsNullOrWhiteSpace(tenant.City) ? "" : $", {tenant.City}")}{(string.IsNullOrWhiteSpace(tenant.State) ? "" : $", {tenant.State}")}{(string.IsNullOrWhiteSpace(tenant.Pincode) ? "" : $" - {tenant.Pincode}")}" : "");
+        var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN)
+            ? invoice.Branch.GSTIN
+            : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
+        var sellerPan = !string.IsNullOrWhiteSpace(tenant?.PAN) ? tenant.PAN : (sellerGstin.Length >= 12 ? sellerGstin.Substring(2, 10) : "");
+        var sellerPhone = !string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? tenant.PrimaryPhone : "";
+        var sellerEmail = !string.IsNullOrWhiteSpace(tenant?.Email) ? tenant.Email : "";
+        var logoUrl = !string.IsNullOrEmpty(t.LogoUrl) ? t.LogoUrl : (!string.IsNullOrEmpty(tenant?.LogoUrl) ? tenant.LogoUrl : "");
+
+        // Client / Billed To
+        var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (invoice != null ? "Client Name" : "");
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
+        var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
+        var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
+        var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
+        var posState = !string.IsNullOrWhiteSpace(invoice?.PlaceOfSupply) ? invoice.PlaceOfSupply : (invoice?.BillingStateCode ?? "");
+
+        // Invoice & Engagement Details
+        var invNo = invoice?.InvoiceNumber ?? "INV-SRV-001";
+        var invDate = invoice?.InvoiceDate.ToString("dd-MMM-yyyy") ?? DateTime.Now.ToString("dd-MMM-yyyy");
+        var dueDate = invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("dd-MMM-yyyy") : "";
+        var poRef = !string.IsNullOrWhiteSpace(invoice?.PoNumber) ? invoice.PoNumber : "";
+
+        // Service Period / Billing Cycle
+        string servicePeriod = $"{DateTime.Now:MMMM yyyy}";
+        if (invoice != null)
+        {
+            servicePeriod = $"{invoice.InvoiceDate:MMMM yyyy}";
+            if (!string.IsNullOrEmpty(invoice.AttributesJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
+                    if (doc.RootElement.TryGetProperty("servicePeriod", out var sp)) servicePeriod = sp.GetString() ?? servicePeriod;
+                }
+                catch {}
+            }
+        }
+
+        // Financial Totals
+        var totalAmount = invoice?.TotalAmount ?? 0m;
+        var taxable = invoice?.TaxableAmount ?? (totalAmount > 0 ? (totalAmount / 1.18m) : 0m);
+        var totalDisc = invoice != null ? (invoice.ItemDiscountTotal + invoice.InvoiceDiscountAmount) : 0m;
+        var cgst = invoice?.CgstAmount ?? 0m;
+        var sgst = invoice?.SgstAmount ?? 0m;
+        var igst = invoice?.IgstAmount ?? (totalAmount > taxable ? (totalAmount - taxable) : 0m);
+        var roundOff = invoice?.RoundOff ?? 0m;
+        var words = ConvertToIndianCurrencyWords(totalAmount);
+
+        // Bank Wire Details (NEFT / RTGS)
+        var bankName = !string.IsNullOrWhiteSpace(t.BankName) ? t.BankName : (!string.IsNullOrWhiteSpace(tenant?.BankName) ? tenant.BankName : "");
+        var bankAcc = !string.IsNullOrWhiteSpace(t.BankAccountNumber) ? t.BankAccountNumber : (!string.IsNullOrWhiteSpace(tenant?.BankAccountNumber) ? tenant.BankAccountNumber : "");
+        var bankIfsc = !string.IsNullOrWhiteSpace(t.BankIfsc) ? t.BankIfsc : (!string.IsNullOrWhiteSpace(tenant?.BankIfsc) ? tenant.BankIfsc : "");
+        var bankBranch = !string.IsNullOrWhiteSpace(tenant?.BankBranch) ? tenant.BankBranch : "";
+        var beneficiary = !string.IsNullOrWhiteSpace(t.BankAccountName) ? t.BankAccountName : sellerName;
+
+        var rawUpi = !string.IsNullOrWhiteSpace(t.UpiId) ? t.UpiId : (!string.IsNullOrWhiteSpace(tenant?.UpiId) ? tenant.UpiId : "");
+        var upiId = (!string.IsNullOrWhiteSpace(rawUpi) && !rawUpi.Contains("9876543210") && !rawUpi.Contains("example.com")) ? rawUpi : "";
+        var upiQr = (!string.IsNullOrEmpty(upiId) && t.ShowUpiQr)
+            ? $"https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi%3A%2F%2Fpay%3Fpa%3D{upiId}%26pn%3D{Uri.EscapeDataString(sellerName)}%26am%3D{totalAmount:F2}%26cu%3DINR%26tn%3D{invNo}"
+            : "";
+        bool showSettlementCard = t.ShowBankDetails && (!string.IsNullOrWhiteSpace(bankName) || !string.IsNullOrWhiteSpace(bankAcc) || !string.IsNullOrEmpty(upiQr));
+
+        bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
+
+        // Line Items Table
+        var rowsSb = new StringBuilder();
+        int rowIdx = 1;
+        int itemCount = 0;
+
+        if (invoice?.Items != null && invoice.Items.Any())
+        {
+            itemCount = invoice.Items.Count;
+            foreach (var item in invoice.Items)
+            {
+                var sac = !string.IsNullOrWhiteSpace(item.HsnCode) ? item.HsnCode : "998311";
+                var unit = !string.IsNullOrWhiteSpace(item.UomCode) && item.UomCode != "PCS" ? item.UomCode : "Milestone";
+                var discText = item.DiscountPercent > 0 ? $"{item.DiscountPercent:0.##}%" : (item.DiscountAmount > 0 ? $"₹{item.DiscountAmount:0.##}" : "—");
+
+                rowsSb.Append($@"
+                <tr style='border-bottom:1px solid #e2e8f0; font-size:9.5px;'>
+                    <td style='padding:7px 4px; text-align:center; border-right:1px solid {borderSlate}; color:#64748b;'>{rowIdx++}</td>
+                    <td style='padding:7px 8px; border-right:1px solid {borderSlate};'>
+                        <div style='font-weight:700; color:#0f172a; font-size:10.5px;'>{item.ItemName}</div>
+                        {(string.IsNullOrEmpty(item.ItemSku) ? "" : $"<span style='font-size:8.5px; color:#64748b;'>Code: {item.ItemSku}</span>")}
+                    </td>
+                    <td style='padding:7px 6px; text-align:center; font-family:monospace; font-weight:700; color:{secondaryColor}; border-right:1px solid {borderSlate};'>{sac}</td>
+                    <td style='padding:7px 6px; text-align:center; border-right:1px solid {borderSlate}; color:#334155;'>{unit}</td>
+                    <td style='padding:7px 6px; text-align:right; font-weight:bold; border-right:1px solid {borderSlate};'>{item.Quantity:0.##}</td>
+                    <td style='padding:7px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.UnitPrice:N2}</td>
+                    {(hasDisc ? $"<td style='padding:7px 6px; text-align:right; border-right:1px solid {borderSlate};'>{discText}</td>" : "")}
+                    <td style='padding:7px 6px; text-align:right; font-family:monospace; border-right:1px solid {borderSlate};'>₹ {item.TaxableAmount:N2}</td>
+                    <td style='padding:7px 4px; text-align:right; border-right:1px solid {borderSlate};'>{item.GstRate:0.##}%</td>
+                    <td style='padding:7px 8px; text-align:right; font-family:monospace; font-weight:bold; color:#0f172a;'>₹ {item.TotalAmount:N2}</td>
+                </tr>");
+            }
+        }
+
+        int colCount = hasDisc ? 10 : 9;
+
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Tax Invoice - {invNo}</title>
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap' rel='stylesheet'>
+    <style>
+        @page {{ size: A4 portrait; margin: 4mm 5mm; }}
+        html, body {{ margin:0; padding:0; background:#ffffff; color:#000000; font-family:'Plus Jakarta Sans', system-ui, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+        .services-invoice {{ width:100%; max-width:195mm; min-height:268mm; max-height:278mm; height:auto; margin:0 auto; box-sizing:border-box; border:1.5px solid {primaryColor}; border-radius:6px; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; background:#ffffff; page-break-inside:avoid; break-inside:avoid; }}
+    </style>
+</head>
+<body>
+<div class='services-invoice'>
+    
+    <!-- 1. HEADER SECTION -->
+    <div>
+        <div style='background:{primaryColor}; color:#ffffff; padding:12px 18px; display:flex; justify-content:space-between; align-items:center;'>
+            <div style='display:flex; align-items:center; gap:12px;'>
+                {(!string.IsNullOrEmpty(logoUrl) ? $"<img src='{logoUrl}' alt='Logo' style='max-height:48px; max-width:110px; background:#fff; padding:3px; border-radius:4px;' />" : "")}
+                <div>
+                    <div style='font-size:16px; font-weight:900; letter-spacing:0.3px; text-transform:uppercase;'>{sellerName}</div>
+                    <div style='font-size:9px; opacity:0.85; margin-top:2px;'>Professional Services &bull; Corporate Advisors &amp; IT Solutions</div>
+                </div>
+            </div>
+            <div style='text-align:right;'>
+                <div style='font-size:16px; font-weight:900; letter-spacing:1px; text-transform:uppercase;'>TAX INVOICE</div>
+                <div style='font-size:9.5px; opacity:0.9; margin-top:2px;'>Original for Recipient</div>
+            </div>
+        </div>
+
+        <!-- INVOICE METADATA & ENGAGEMENT STRIP -->
+        <div style='background:#f8fafc; border-bottom:1px solid {borderSlate}; padding:8px 16px; display:grid; grid-template-columns:repeat(4, 1fr); font-size:9.5px;'>
+            <div>Invoice No: <strong style='font-family:monospace; color:{secondaryColor}; font-size:10.5px;'>{invNo}</strong></div>
+            <div>Invoice Date: <strong>{invDate}</strong></div>
+            <div>Due Date: <strong>{(!string.IsNullOrEmpty(dueDate) ? dueDate : "On Receipt")}</strong></div>
+            <div>Billing Period: <strong style='color:{primaryColor};'>{servicePeriod}</strong></div>
+        </div>
+
+        <!-- FIRM & CLIENT DETAILS CARDS -->
+        <div style='display:grid; grid-template-columns: 1fr 1fr; border-bottom:1.5px solid {borderSlate};'>
+            <!-- Provider Details -->
+            <div style='padding:10px 16px; border-right:1px solid {borderSlate}; font-size:9.5px; line-height:1.4;'>
+                <div style='font-size:8.5px; font-weight:800; color:{secondaryColor}; text-transform:uppercase; margin-bottom:3px;'>Service Provider / Firm:</div>
+                <div style='font-size:12px; font-weight:800; color:#0f172a;'>{sellerName}</div>
+                <div style='color:#475569; margin-top:2px;'>{sellerAddress}</div>
+                <div style='margin-top:4px; font-family:monospace;'>
+                    {(!string.IsNullOrEmpty(sellerGstin) ? $"<span><strong>GSTIN:</strong> {sellerGstin}</span> | " : "")}
+                    {(!string.IsNullOrEmpty(sellerPan) ? $"<span><strong>PAN:</strong> {sellerPan}</span>" : "")}
+                </div>
+                <div style='color:#64748b; margin-top:2px;'>
+                    {(!string.IsNullOrEmpty(sellerEmail) ? $"<span>Email: {sellerEmail}</span>" : "")}
+                    {(!string.IsNullOrEmpty(sellerPhone) ? $" | <span>Ph: {sellerPhone}</span>" : "")}
+                </div>
+            </div>
+
+            <!-- Client Details -->
+            <div style='padding:10px 16px; font-size:9.5px; line-height:1.4;'>
+                <div style='font-size:8.5px; font-weight:800; color:{secondaryColor}; text-transform:uppercase; margin-bottom:3px;'>Billed To / Client:</div>
+                <div style='font-size:12px; font-weight:800; color:#0f172a;'>{custName}</div>
+                <div style='color:#475569; margin-top:2px;'>{custAddress}</div>
+                <div style='margin-top:4px; font-family:monospace;'>
+                    <span><strong>GSTIN:</strong> {(string.IsNullOrEmpty(custGstin) ? "Unregistered" : custGstin)}</span>
+                    {(!string.IsNullOrEmpty(posState) ? $" | <span>Place of Supply: {posState}</span>" : "")}
+                </div>
+                {(!string.IsNullOrEmpty(poRef) ? $"<div style='margin-top:2px; font-family:monospace;'>PO / Engagement Ref: <strong>{poRef}</strong></div>" : "")}
+            </div>
+        </div>
+
+        <!-- STATUTORY REVERSE CHARGE BANNER -->
+        <div style='background:#f1f5f9; border-bottom:1.5px solid {borderSlate}; padding:4px 16px; font-size:8.5px; display:flex; justify-content:space-between; color:#475569;'>
+            <div>Tax Payable under Reverse Charge (RCM): <strong>{(invoice != null && invoice.IsReverseCharge ? "YES" : "NO")}</strong></div>
+            <div>Classification: <strong>Services (SAC)</strong> &bull; CGST Act, 2017</div>
+        </div>
+    </div>
+
+    <!-- 2. SERVICES ITEMS TABLE WITH UNBROKEN VERTICAL LINES -->
+    <div style='flex:1 1 auto; display:flex; flex-direction:column;'>
+        <table style='width:100%; height:100%; border-collapse:collapse; font-size:9.5px;'>
+            <thead>
+                <tr style='background:#f8fafc; color:{primaryColor}; border-bottom:1.5px solid {borderSlate}; font-size:9px; text-transform:uppercase; letter-spacing:0.2px; height:26px;'>
+                    <th style='padding:7px 4px; width:28px; border-right:1px solid {borderSlate}; text-align:center;'>#</th>
+                    <th style='padding:7px 8px; text-align:left; border-right:1px solid {borderSlate};'>Description of Services / Scope &amp; Deliverables</th>
+                    <th style='padding:7px 6px; width:75px; border-right:1px solid {borderSlate}; text-align:center;'>SAC Code</th>
+                    <th style='padding:7px 6px; width:80px; border-right:1px solid {borderSlate}; text-align:center;'>Basis / Unit</th>
+                    <th style='padding:7px 6px; width:60px; border-right:1px solid {borderSlate}; text-align:right;'>Qty / Hrs</th>
+                    <th style='padding:7px 6px; width:75px; border-right:1px solid {borderSlate}; text-align:right;'>Rate (₹)</th>
+                    {(hasDisc ? $"<th style='padding:7px 6px; width:55px; border-right:1px solid {borderSlate}; text-align:right;'>Dis%</th>" : "")}
+                    <th style='padding:7px 6px; width:85px; border-right:1px solid {borderSlate}; text-align:right;'>Taxable (₹)</th>
+                    <th style='padding:7px 4px; width:50px; border-right:1px solid {borderSlate}; text-align:right;'>GST%</th>
+                    <th style='padding:7px 8px; width:95px; text-align:right;'>Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody style='height:100%;'>
+                {rowsSb}
+                {RenderTableFillerRow(colCount, borderSlate, itemCount, 260)}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 3. BOTTOM SECTION: BANK WIRE TRANSFER & FINANCIAL SUMMARY -->
+    <div>
+        <div style='display:grid; grid-template-columns: 1.25fr 1fr; border-top:1.5px solid {borderSlate}; background:#f8fafc; padding:10px 14px; gap:12px;'>
+            
+            <!-- Left: Wire Transfer Settlement & Notes -->
+            <div>
+                {(showSettlementCard ? $@"
+                <div style='background:#ffffff; border:1px solid {borderSlate}; border-radius:6px; padding:8px 10px; margin-bottom:8px; display:flex; gap:10px; align-items:center;'>
+                    {(!string.IsNullOrEmpty(upiQr) ? $"<img src='{upiQr}' alt='QR' style='width:64px; height:64px; border:1px solid #cbd5e1; border-radius:4px; flex-shrink:0;' />" : "")}
+                    <div style='font-size:9px; line-height:1.4; flex:1;'>
+                        <div style='font-size:9px; font-weight:800; color:{secondaryColor}; text-transform:uppercase; margin-bottom:2px;'>Direct Wire Transfer (NEFT / RTGS / IMPS):</div>
+                        <div>Beneficiary: <strong>{beneficiary}</strong></div>
+                        {(!string.IsNullOrEmpty(bankName) ? $"<div>Bank: <strong>{bankName}</strong>{(!string.IsNullOrEmpty(bankBranch) ? $" ({bankBranch})" : "")}</div>" : "")}
+                        {(!string.IsNullOrEmpty(bankAcc) ? $"<div>A/c No: <strong style='font-family:monospace; font-size:10px; color:#0f172a;'>{bankAcc}</strong></div>" : "")}
+                        {(!string.IsNullOrEmpty(bankIfsc) ? $"<div>IFSC: <strong style='font-family:monospace;'>{bankIfsc}</strong></div>" : "")}
+                        {(!string.IsNullOrEmpty(upiId) ? $"<div>UPI ID: <strong style='font-family:monospace; color:{secondaryColor};'>{upiId}</strong></div>" : "")}
+                    </div>
+                </div>" : "")}
+
+                {(!string.IsNullOrWhiteSpace(invoice?.Notes) ? $"<div style='font-size:8.5px; color:#334155; margin-bottom:4px;'><strong>Notes / Deliverable Remarks:</strong> {invoice.Notes}</div>" : "")}
+                {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div style='font-size:8.5px; color:#64748b;'><strong>Terms:</strong> {t.DeclarationText}</div>" : "")}
+            </div>
+
+            <!-- Right: Totals Breakdown -->
+            <div>
+                <table style='width:100%; border:1px solid {borderSlate}; font-size:9.5px; background:#ffffff; border-radius:4px;'>
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0; color:#475569;'>Services Value:</td>
+                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {taxable:N2}</td>
+                    </tr>
+                    {(totalDisc > 0 ? $@"
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0; color:#475569;'>Discount:</td>
+                        <td style='padding:3px 6px; text-align:right; font-family:monospace; color:#0f172a;'>(-) ₹ {totalDisc:N2}</td>
+                    </tr>" : "")}
+                    {(cgst > 0 ? $@"
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0; color:#475569;'>CGST:</td>
+                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {cgst:N2}</td>
+                    </tr>" : "")}
+                    {(sgst > 0 ? $@"
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0; color:#475569;'>SGST:</td>
+                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {sgst:N2}</td>
+                    </tr>" : "")}
+                    {(igst > 0 ? $@"
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0; color:#475569;'>IGST:</td>
+                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {igst:N2}</td>
+                    </tr>" : "")}
+                    {(roundOff != 0 ? $@"
+                    <tr style='border-bottom:1px solid #e2e8f0;'>
+                        <td style='padding:3px 6px; border-right:1px solid #e2e8f0; color:#475569;'>Round Off:</td>
+                        <td style='padding:3px 6px; text-align:right; font-family:monospace;'>₹ {roundOff:N2}</td>
+                    </tr>" : "")}
+                    <tr style='background:{primaryColor}; color:#ffffff; font-weight:900; font-size:12px;'>
+                        <td style='padding:6px 6px;'>TOTAL PAYABLE:</td>
+                        <td style='padding:6px 6px; text-align:right; font-family:monospace;'>₹ {totalAmount:N2}</td>
+                    </tr>
+                </table>
+                <div style='font-size:8px; color:#475569; text-align:center; margin-top:3px; font-style:italic;'>({words})</div>
+            </div>
+
+        </div>
+
+        <!-- SIGNATORY FOOTER -->
+        <div style='display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid {borderSlate}; background:#ffffff; padding:12px 18px; font-size:9px;'>
+            <div style='font-size:8px; color:#94a3b8;'>
+                <div>Electronic Computer Generated Tax Invoice &bull; Valid without physical signature under IT Act, 2000</div>
+            </div>
+            <div style='text-align:right;'>
+                <div style='font-weight:bold; color:#0f172a; margin-bottom:28px;'>For {sellerName}:</div>
+                <div style='font-size:8.5px; color:#64748b; border-top:1px dashed #94a3b8; width:180px; margin-left:auto; padding-top:2px;'>Authorised Signatory / Managing Partner</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>";
+    }
+
+private static string RenderMyBillBookInvoiceHtml(PrintTemplate t, SalesInvoice? invoice, Tenant? tenant = null)
     {
         var primaryColor = !string.IsNullOrWhiteSpace(t.PrimaryColorHex) && t.PrimaryColorHex != "#0f172a" && t.PrimaryColorHex != "#000000"
             ? t.PrimaryColorHex
@@ -3672,30 +5158,124 @@ public class PrintTemplateService : IPrintTemplateService
             ? t.SecondaryColorHex
             : "#6d28d9";
 
-        var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName) ? tenant.TradeName : (!string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : "");
+        var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName) ? tenant.TradeName : (!string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : "Store");
         var sellerAddress = !string.IsNullOrWhiteSpace(invoice?.Branch?.AddressLine1)
-            ? $"{invoice.Branch.AddressLine1}, {invoice.Branch.City}, {invoice.Branch.State} - {invoice.Branch.Pincode}"
-            : (!string.IsNullOrWhiteSpace(tenant?.AddressLine1) ? $"{tenant.AddressLine1}{(string.IsNullOrWhiteSpace(tenant.AddressLine2) ? "" : $", {tenant.AddressLine2}")}, {tenant.City}, {tenant.State} - {tenant.Pincode}" : "");
+            ? $"{invoice.Branch.AddressLine1}{(string.IsNullOrWhiteSpace(invoice.Branch.City) ? "" : $", {invoice.Branch.City}")}{(string.IsNullOrWhiteSpace(invoice.Branch.State) ? "" : $", {invoice.Branch.State}")}{(string.IsNullOrWhiteSpace(invoice.Branch.Pincode) ? "" : $" - {invoice.Branch.Pincode}")}"
+            : (!string.IsNullOrWhiteSpace(tenant?.AddressLine1) ? $"{tenant.AddressLine1}{(string.IsNullOrWhiteSpace(tenant.AddressLine2) ? "" : $", {tenant.AddressLine2}")}{(string.IsNullOrWhiteSpace(tenant.City) ? "" : $", {tenant.City}")}{(string.IsNullOrWhiteSpace(tenant.State) ? "" : $", {tenant.State}")}{(string.IsNullOrWhiteSpace(tenant.Pincode) ? "" : $" - {tenant.Pincode}")}" : "");
         var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN) ? invoice.Branch.GSTIN : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
         var sellerPhone = tenant?.PrimaryPhone ?? "";
+        var sellerEmail = tenant?.Email ?? "";
+        var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
+        var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
+        var sellerPan = !string.IsNullOrWhiteSpace(tenant?.PAN) ? tenant.PAN : (sellerGstin.Length >= 12 ? sellerGstin.Substring(2, 10) : "");
+        var sellerStateCode = !string.IsNullOrWhiteSpace(invoice?.Branch?.StateCode) ? invoice.Branch.StateCode : (!string.IsNullOrWhiteSpace(tenant?.StateCode) ? tenant.StateCode : (sellerGstin.Length >= 2 ? sellerGstin.Substring(0, 2) : ""));
 
-        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) ? t.HeaderTitle : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE");
+        // Parse Invoice Attributes (BillingMode: B2B vs Retail/B2C, DL number, logistics, auto parts)
+        var vehicleNo = !string.IsNullOrWhiteSpace(invoice?.VehicleNumber) ? invoice.VehicleNumber : "";
+        string billingModeAttr = "";
+        string customerDlAttr = "";
+        string autoVehicleModel = "";
+        string autoMechanicName = "";
+        string autoOdometerKm = "";
+        if (!string.IsNullOrEmpty(invoice?.AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
+                if (doc.RootElement.TryGetProperty("billingMode", out var bm)) billingModeAttr = bm.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("customerDlNumber", out var cdl)) customerDlAttr = cdl.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("vehicleModel", out var vm)) autoVehicleModel = vm.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("mechanicName", out var mn)) autoMechanicName = mn.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("odometerKm", out var okm)) autoOdometerKm = okm.GetString() ?? "";
+                if (string.IsNullOrWhiteSpace(vehicleNo) && doc.RootElement.TryGetProperty("vehicleRegNo", out var vrn)) vehicleNo = vrn.GetString() ?? "";
+            }
+            catch {}
+        }
+
+        bool isExplicitB2B = string.Equals(billingModeAttr, "b2b", System.StringComparison.OrdinalIgnoreCase);
+        bool isExplicitB2C = string.Equals(billingModeAttr, "retail", System.StringComparison.OrdinalIgnoreCase) || string.Equals(billingModeAttr, "b2c", System.StringComparison.OrdinalIgnoreCase);
+        bool hasCustomerGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN);
+
+        // B2B vs B2C dynamic classification
+        bool isB2B = isExplicitB2B || (hasCustomerGstin && !isExplicitB2C);
+
+        bool isNonGst = IsNonGstDocument(invoice);
+        var headerTitle = !string.IsNullOrWhiteSpace(t.HeaderTitle) && t.HeaderTitle != "TAX INVOICE" ? t.HeaderTitle : (isNonGst ? "CASH MEMO / ESTIMATE" : (t.DocumentType == PrintDocumentType.POSReceipt ? "CASH MEMO" : "TAX INVOICE"));
+        var copyBadge = isNonGst ? "NON-GST RETAIL SLIP | ORIGINAL FOR CUSTOMER" : (isB2B ? "B2B (REGISTERED TAX INVOICE) | ORIGINAL FOR RECIPIENT" : "RETAIL TAX INVOICE (B2C) | ORIGINAL FOR CUSTOMER");
+
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd MMM yyyy") ?? DateTime.Now.ToString("dd MMM yyyy");
-        var custName = invoice?.CustomerName ?? "";
-        var custGstin = invoice?.CustomerGSTIN ?? "";
-        var custPhone = invoice?.CustomerPhone ?? "";
+        var dueDate = invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("dd MMM yyyy") : "";
 
+        // Customer details
+        var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : (isB2B ? "B2B Business Client" : "Cash / Walk-in Customer");
+        var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
+        var custPan = !string.IsNullOrWhiteSpace(invoice?.CustomerPAN) ? invoice.CustomerPAN : (custGstin.Length >= 12 ? custGstin.Substring(2, 10) : "");
+        var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
+        var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : "";
+        bool hasSeparateShipping = isB2B && !string.IsNullOrWhiteSpace(shipAddress) && !string.Equals(shipAddress.Trim(), custAddress.Trim(), System.StringComparison.OrdinalIgnoreCase);
+
+        var custStateCode = GstStateHelper.ExtractStateCodeFromGstin(custGstin) ?? (!string.IsNullOrWhiteSpace(invoice?.BillingStateCode) ? invoice.BillingStateCode : "");
+        var custDl = !string.IsNullOrWhiteSpace(customerDlAttr) ? customerDlAttr : ExtractInvoiceBuyerDl(invoice);
+
+        var placeOfSupply = GstStateHelper.ResolvePlaceOfSupply(
+            custGstin,
+            invoice?.PlaceOfSupply,
+            invoice?.BillingStateCode,
+            sellerGstin,
+            invoice?.Branch?.State ?? tenant?.State,
+            sellerStateCode);
+
+        // Logistics / E-Way bill / Transport (for B2B)
+        var transporter = !string.IsNullOrWhiteSpace(invoice?.TransporterName) ? invoice.TransporterName : "";
+        var lrNo = !string.IsNullOrWhiteSpace(invoice?.LrNumber) ? invoice.LrNumber : "";
+        var lrDate = invoice?.LrDate?.ToString("dd-MMM-yyyy") ?? "";
+        var eWayNo = !string.IsNullOrWhiteSpace(invoice?.EWayBillNumber) ? invoice.EWayBillNumber : "";
+        var poNo = !string.IsNullOrWhiteSpace(invoice?.PoNumber) ? invoice.PoNumber : "";
+        var poDate = invoice?.PoDate?.ToString("dd-MMM-yyyy") ?? "";
+        bool hasLogistics = isB2B && (!string.IsNullOrWhiteSpace(transporter) || (!string.IsNullOrWhiteSpace(vehicleNo) && string.IsNullOrWhiteSpace(autoVehicleModel) && string.IsNullOrWhiteSpace(autoMechanicName)) || !string.IsNullOrWhiteSpace(lrNo) || !string.IsNullOrWhiteSpace(eWayNo) || !string.IsNullOrWhiteSpace(poNo));
+
+        // Financial totals
         var totalAmount = invoice?.TotalAmount ?? 0m;
         var paidAmount = invoice?.PaidAmount ?? 0m;
         var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
         var taxable = invoice?.TaxableAmount ?? (invoice?.TotalAmount > 0 ? (invoice.TotalAmount / 1.18m) : 0m);
+        var roundOff = invoice?.RoundOff ?? 0m;
         var totalTax = (invoice?.CgstAmount ?? 0m) + (invoice?.SgstAmount ?? 0m) + (invoice?.IgstAmount ?? 0m);
         if (totalTax == 0 && totalAmount > taxable) totalTax = totalAmount - taxable;
+        var words = ConvertToIndianCurrencyWords(totalAmount);
+
+        // Bank details & UPI QR Code (Inline Base64 PNG data URI for 100% reliable Chrome print preview)
+        var bankName = !string.IsNullOrWhiteSpace(t.BankName) ? t.BankName : (!string.IsNullOrWhiteSpace(tenant?.BankName) ? tenant.BankName : "");
+        var bankAcc = !string.IsNullOrWhiteSpace(t.BankAccountNumber) ? t.BankAccountNumber : (!string.IsNullOrWhiteSpace(tenant?.BankAccountNumber) ? tenant.BankAccountNumber : "");
+        var bankIfsc = !string.IsNullOrWhiteSpace(t.BankIfsc) ? t.BankIfsc : (!string.IsNullOrWhiteSpace(tenant?.BankIfsc) ? tenant.BankIfsc : "");
+        var hasBank = !string.IsNullOrWhiteSpace(bankName) || !string.IsNullOrWhiteSpace(bankAcc);
 
         var upiId = !string.IsNullOrWhiteSpace(t.UpiId) ? t.UpiId : (!string.IsNullOrWhiteSpace(tenant?.UpiId) ? tenant.UpiId : "");
         var upiQrPayload = !string.IsNullOrEmpty(upiId) ? $"upi://pay?pa={upiId}&pn={Uri.EscapeDataString(sellerName)}&am={totalAmount:F2}&cu=INR&tn={invNo}" : "";
-        var qrImgTag = !string.IsNullOrEmpty(upiQrPayload) ? $"<img src='https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={Uri.EscapeDataString(upiQrPayload)}' style='width:80px; height:80px; border-radius:6px;' />" : "";
+        var upiQrDataUri = !string.IsNullOrEmpty(upiQrPayload) ? GenerateQrCodeDataUri(upiQrPayload) : "";
+        var qrImgTag = !string.IsNullOrEmpty(upiQrDataUri) ? $"<img src='{upiQrDataUri}' style='width:75px; height:75px; border-radius:6px; border:1px solid #e9d5ff;' />" : "";
+
+        // ==============================================================================
+        // INVOICE BASE RULE: Universal Industry Adaptive Engine
+        // ==============================================================================
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isAutoParts = prof.IsAutoParts;
+
+        bool hasAutoPartsInfo = isAutoParts && (!string.IsNullOrWhiteSpace(vehicleNo) || !string.IsNullOrWhiteSpace(autoVehicleModel) || !string.IsNullOrWhiteSpace(autoMechanicName) || !string.IsNullOrWhiteSpace(autoOdometerKm));
+
+        bool hasHsn = (invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.HsnCode)) ?? false) || t.ShowItemHsn;
+        bool hasPack = prof.IsPharma || (invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)) ?? false);
+        bool hasSerial = invoice?.Items.Any(HasImeiOrSerial) ?? false;
+        bool hasBatch = !isAutoParts && (prof.IsPharma || (invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) ?? false) || t.ShowBatchExpiry);
+        bool hasExpiry = !isAutoParts && (prof.IsPharma || (invoice?.Items.Any(i => i.ExpiryDate.HasValue) ?? false) || t.ShowBatchExpiry);
+        bool hasFree = prof.IsPharma || (invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false);
+        bool hasMrp = prof.IsPharma || (invoice?.Items.Any(i => i.Mrp > 0) ?? false);
+        bool hasDisc = invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? false;
+        bool hasTaxable = prof.IsPharma;
+
+        int activeColCount = 2 + (hasHsn ? 1 : 0) + (hasPack ? 1 : 0) + (hasSerial ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + 1 + (hasFree ? 1 : 0) + (hasMrp ? 1 : 0) + 1 + (hasDisc ? 1 : 0) + (hasTaxable ? 1 : 0) + 1 + 1;
 
         var itemsRows = new System.Text.StringBuilder();
         if (invoice != null && invoice.Items.Any())
@@ -3703,69 +5283,169 @@ public class PrintTemplateService : IPrintTemplateService
             int idx = 1;
             foreach (var it in invoice.Items)
             {
+                var attrs = ExtractItemPharmaAttributes(it);
+                var hsnCode = it.HsnCode ?? "-";
+                var packVal = !string.IsNullOrWhiteSpace(attrs.pack) ? attrs.pack : "-";
+                var batchVal = it.BatchNumber ?? "-";
+                var expStr = it.ExpiryDate.HasValue ? it.ExpiryDate.Value.ToString("MM/yy") : "-";
+                var freeVal = attrs.freeQty > 0 ? $"+{attrs.freeQty:N0}" : "-";
+                var mrpVal = it.Mrp > 0 ? $"₹{it.Mrp:N2}" : "-";
+                var discText = it.DiscountPercent > 0 ? $"{it.DiscountPercent:0.##}%" : (it.DiscountAmount > 0 ? $"₹{it.DiscountAmount:0.##}" : "-");
+                var imeiVal = ExtractItemImei(it);
+
                 itemsRows.Append($@"
-                <tr style='font-size:11px; border-bottom:1px solid #f1f5f9;'>
-                    <td style='padding:8px 6px; text-align:center; border-right:1px solid #cbd5e1;'>{idx++}</td>
-                    <td style='padding:8px 6px; border-right:1px solid #cbd5e1;'><strong>{it.ItemName}</strong>{ExtractIndustryItemSubline(it)}<br/><span style='font-size:9.5px; color:#64748b;'>HSN: {it.HsnCode ?? "-"}</span></td>
-                    <td style='padding:8px 6px; text-align:right; font-weight:bold; border-right:1px solid #cbd5e1;'>{it.Quantity:N0} {it.UomCode}</td>
-                    <td style='padding:8px 6px; text-align:right; border-right:1px solid #cbd5e1;'>₹{it.UnitPrice:N2}</td>
-                    <td style='padding:8px 6px; text-align:center; border-right:1px solid #cbd5e1;'>{it.GstRate:N0}%</td>
-                    <td style='padding:8px 6px; text-align:right; font-weight:bold; color:#0f172a;'>₹{it.TotalAmount:N2}</td>
+                <tr style='font-size:10px; border-bottom:1px solid #f1f5f9;'>
+                    <td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; color:#64748b; font-weight:600;'>{idx++}</td>
+                    <td style='padding:6px 6px; border-right:1px solid #cbd5e1;'>
+                        <div style='font-weight:700; color:#0f172a;'>{it.ItemName}</div>
+                        {(string.IsNullOrEmpty(it.ItemSku) ? "" : $"<span style='font-size:8px; color:#64748b; font-family:monospace;'>SKU: {it.ItemSku}</span>")}
+                        {ExtractIndustryItemSubline(it)}
+                    </td>
+                    {(hasHsn ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace; color:#334155;'>{hsnCode}</td>" : "")}
+                    {(hasPack ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace; color:#334155;'>{packVal}</td>" : "")}
+                    {(hasSerial ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace; font-weight:700; color:{primaryColor};'>{imeiVal}</td>" : "")}
+                    {(hasBatch ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace; font-weight:600; color:{primaryColor};'>{batchVal}</td>" : "")}
+                    {(hasExpiry ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace; color:#475569;'>{expStr}</td>" : "")}
+                    <td style='padding:6px 4px; text-align:right; font-weight:bold; border-right:1px solid #cbd5e1;'>{it.Quantity:N0} <span style='font-size:8px; color:#64748b; font-weight:normal;'>{it.UomCode}</span></td>
+                    {(hasFree ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; color:{primaryColor}; font-weight:bold;'>{freeVal}</td>" : "")}
+                    {(hasMrp ? $"<td style='padding:6px 4px; text-align:right; border-right:1px solid #cbd5e1; font-family:monospace; color:#64748b;'>{mrpVal}</td>" : "")}
+                    <td style='padding:6px 4px; text-align:right; border-right:1px solid #cbd5e1; font-family:monospace;'>₹{it.UnitPrice:N2}</td>
+                    {(hasDisc ? $"<td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; color:#16a34a; font-weight:600;'>{discText}</td>" : "")}
+                    {(hasTaxable ? $"<td style='padding:6px 4px; text-align:right; border-right:1px solid #cbd5e1; font-family:monospace;'>₹{it.TaxableAmount:N2}</td>" : "")}
+                    <td style='padding:6px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace;'>{it.GstRate:0.##}%</td>
+                    <td style='padding:6px 6px; text-align:right; font-weight:bold; color:#0f172a; font-family:monospace;'>₹{it.TotalAmount:N2}</td>
                 </tr>");
             }
+        }
+
+        // Unbroken vertical divider lines extending continuously to bottom of table
+        int itemCount = invoice?.Items?.Count ?? 0;
+        int fillerBaseBudget = IsA5Size(t) ? 70 : 220;
+        int emptyFillerHeight = fillerBaseBudget - (itemCount * 22);
+
+        var fillerRowSb = new System.Text.StringBuilder();
+        if (itemCount < 7 && emptyFillerHeight >= 20)
+        {
+            fillerRowSb.Append($"<tr style='height:100%; min-height:{emptyFillerHeight}px;'>");
+            for (int c = 0; c < activeColCount; c++)
+            {
+                var borderStyle = (c < activeColCount - 1) ? "border-right:1px solid #cbd5e1;" : "";
+                fillerRowSb.Append($"<td style='{borderStyle} height:{emptyFillerHeight}px; padding:0;'>&nbsp;</td>");
+            }
+            fillerRowSb.Append("</tr>");
         }
 
         var hsnSummaryHtml = RenderHsnSummaryTable(invoice, primaryColor);
         var heightStyle = GetContainerHeightStyle(t);
 
         return $@"
-        <div style='font-family:Inter, Arial, sans-serif; font-size:11px; color:#1e293b; width:100%; max-width:800px; {heightStyle} margin:0 auto; border:1.5px solid {primaryColor}; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.03); background:#fff; display:flex; flex-direction:column; justify-content:space-between;'>
+        <div style='font-family:Inter, Arial, sans-serif; font-size:10px; color:#000000; width:100%; max-width:195mm; {heightStyle} margin:0 auto; border:1.5px solid {primaryColor}; border-radius:8px; box-shadow:none; background:#fff; display:flex; flex-direction:column; justify-content:space-between;'>
             <div>
                 <!-- Modern Executive Banner -->
                 <div style='background:#ffffff; border-bottom:2px solid {primaryColor}; color:#0f172a; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;'>
                     <div>
                         <div style='font-size:20px; font-weight:900; letter-spacing:0.3px; color:{primaryColor};'>{sellerName}</div>
                         {(!string.IsNullOrEmpty(sellerAddress) ? $"<div style='font-size:10.5px; color:#475569; margin-top:2px;'>{sellerAddress}</div>" : "")}
-                        {(string.IsNullOrEmpty(sellerGstin) ? "" : $"<div style='font-size:10px; color:#334155; margin-top:3px;'>GSTIN: <strong>{sellerGstin}</strong> {(string.IsNullOrEmpty(sellerPhone) ? "" : $"| Contact: <strong>{sellerPhone}</strong>")}</div>")}
+                        <div style='display:flex; flex-wrap:wrap; gap:8px; font-size:9.5px; color:#334155; margin-top:3px;'>
+                            {(string.IsNullOrEmpty(sellerGstin) ? "" : $"<div>GSTIN: <strong>{sellerGstin}</strong></div>")}
+                            {(string.IsNullOrEmpty(sellerPhone) ? "" : $"<div>Contact: <strong>{sellerPhone}</strong></div>")}
+                            {(string.IsNullOrEmpty(sellerDl) ? "" : $"<div>DL: <strong>{sellerDl}</strong></div>")}
+                            {(string.IsNullOrEmpty(sellerFssai) ? "" : $"<div>FSSAI: <strong>{sellerFssai}</strong></div>")}
+                        </div>
                     </div>
                     <div style='text-align:right;'>
                         <div style='background:linear-gradient(135deg, {primaryColor}, {secondaryColor}); color:#ffffff; padding:5px 16px; border-radius:5px; font-size:13px; font-weight:800; letter-spacing:0.5px; box-shadow:0 2px 4px rgba(124,58,237,0.25);'>{headerTitle}</div>
-                        <div style='font-size:8.5px; margin-top:3px; color:#64748b; font-weight:bold;'>ORIGINAL FOR RECIPIENT</div>
+                        <div style='font-size:8.5px; margin-top:3px; color:#64748b; font-weight:bold;'>{copyBadge}</div>
                     </div>
                 </div>
 
-                <!-- Customer & Invoice Cards -->
-                <div style='display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px 16px; background:#faf5ff; border-bottom:1px solid #e9d5ff;'>
-                    <div style='background:#fff; padding:10px 12px; border-radius:6px; border:1px solid #e9d5ff;'>
-                        <div style='font-size:9.5px; font-weight:bold; color:{primaryColor}; text-transform:uppercase;'>Billed To:</div>
-                        <div style='font-size:13px; font-weight:bold; color:#0f172a; margin-top:2px;'>{custName}</div>
-                        {(string.IsNullOrEmpty(custPhone) ? "" : $"<div style='font-size:10.5px; color:#475569;'>Phone: {custPhone}</div>")}
-                        {(string.IsNullOrEmpty(custGstin) ? "" : $"<div style='font-size:10.5px; color:#475569;'>GSTIN: {custGstin}</div>")}
+                <!-- Customer & Invoice Cards (Adaptive B2B / B2C) -->
+                <div style='display:grid; grid-template-columns:{(hasSeparateShipping ? "1fr 1fr 1fr" : "1.2fr 0.8fr")}; gap:10px; padding:10px 14px; background:#faf5ff; border-bottom:1px solid #e9d5ff;'>
+                    <!-- BILLED TO -->
+                    <div style='background:#fff; padding:8px 10px; border-radius:6px; border:1px solid #e9d5ff;'>
+                        <div style='display:flex; justify-content:space-between; align-items:center;'>
+                            <div style='font-size:9px; font-weight:800; color:{primaryColor}; text-transform:uppercase;'>Billed To {(isB2B ? "(Buyer)" : "")}:</div>
+                            {(isB2B ? "<span style='font-size:7.5px; font-weight:800; background:#f3e8ff; color:#7c3aed; padding:1px 5px; border-radius:3px;'>REGISTERED B2B</span>" : "<span style='font-size:7.5px; font-weight:800; background:#ecfdf5; color:#059669; padding:1px 5px; border-radius:3px;'>RETAIL B2C</span>")}
+                        </div>
+                        <div style='font-size:12.5px; font-weight:800; color:#0f172a; margin-top:2px;'>{custName}</div>
+                        {(!string.IsNullOrEmpty(custAddress) ? $"<div style='font-size:9.5px; color:#475569; margin-top:1px;'>{custAddress}</div>" : "")}
+                        {(!string.IsNullOrEmpty(custPhone) ? $"<div style='font-size:9.5px; color:#475569;'>Phone: <strong>{custPhone}</strong></div>" : "")}
+                        {(isB2B && !string.IsNullOrEmpty(custGstin) ? $"<div style='font-size:9.5px; color:#0f172a; margin-top:2px;'>GSTIN: <strong style='font-family:monospace; color:{primaryColor};'>{custGstin}</strong></div>" : "")}
+                        {(isB2B && !string.IsNullOrEmpty(custPan) ? $"<div style='font-size:9px; color:#475569;'>PAN: <strong style='font-family:monospace;'>{custPan}</strong></div>" : "")}
+                        {(isB2B && !string.IsNullOrEmpty(custStateCode) ? $"<div style='font-size:9px; color:#475569;'>State Code: <strong>{custStateCode}</strong> {(string.IsNullOrEmpty(invoice?.BillingStateCode) ? "" : $"| State: {invoice.BillingStateCode}")}</div>" : "")}
+                        {(!string.IsNullOrEmpty(custDl) ? $"<div style='font-size:9px; color:#475569;'>DL No: <strong>{custDl}</strong></div>" : "")}
                     </div>
-                    <div style='background:#fff; padding:10px 12px; border-radius:6px; border:1px solid #e9d5ff; text-align:right;'>
-                        <div style='font-size:9.5px; font-weight:bold; color:{primaryColor}; text-transform:uppercase;'>Invoice Details:</div>
-                        {(!string.IsNullOrEmpty(invNo) ? $"<div style='font-size:13px; font-weight:bold; color:{primaryColor}; margin-top:2px;'>#{invNo}</div>" : "")}
-                        <div style='font-size:10.5px; color:#475569;'>Date: {invDate}</div>
+
+                    {(hasSeparateShipping ? $@"
+                    <!-- SHIPPED TO (CONSIGNEE) -->
+                    <div style='background:#fff; padding:8px 10px; border-radius:6px; border:1px solid #e9d5ff;'>
+                        <div style='font-size:9px; font-weight:800; color:#475569; text-transform:uppercase;'>Shipped To (Consignee):</div>
+                        <div style='font-size:12px; font-weight:700; color:#0f172a; margin-top:2px;'>{custName}</div>
+                        <div style='font-size:9.5px; color:#475569; margin-top:1px;'>{shipAddress}</div>
+                        {(!string.IsNullOrEmpty(invoice?.ShippingStateCode) ? $"<div style='font-size:9px; color:#475569; margin-top:2px;'>State Code: <strong>{invoice.ShippingStateCode}</strong></div>" : "")}
+                    </div>" : "")}
+
+                    <!-- INVOICE DETAILS -->
+                    <div style='background:#fff; padding:8px 10px; border-radius:6px; border:1px solid #e9d5ff; text-align:right;'>
+                        <div style='font-size:9px; font-weight:800; color:{primaryColor}; text-transform:uppercase;'>Invoice Details:</div>
+                        {(!string.IsNullOrEmpty(invNo) ? $"<div style='font-size:13px; font-weight:900; color:{primaryColor}; margin-top:2px;'>#{invNo}</div>" : "")}
+                        <div style='font-size:9.5px; color:#475569;'>Date: <strong>{invDate}</strong></div>
+                        {(!string.IsNullOrEmpty(placeOfSupply) ? $"<div style='font-size:9px; color:#475569; margin-top:1px;'>Place of Supply: <strong>{placeOfSupply}</strong></div>" : "")}
+                        {(isB2B && !string.IsNullOrEmpty(dueDate) ? $"<div style='font-size:9px; color:#dc2626;'>Due Date: <strong>{dueDate}</strong></div>" : "")}
+                        {(invoice?.IsReverseCharge == true ? "<div style='font-size:8.5px; color:#b45309; font-weight:bold;'>Reverse Charge: YES</div>" : "")}
                     </div>
                 </div>
+
+                {(hasLogistics ? $@"
+                <!-- B2B Logistics Strip -->
+                <div style='display:flex; flex-wrap:wrap; gap:12px; padding:4px 14px; background:#f5f3ff; border-bottom:1px solid #e9d5ff; font-size:8.5px; color:#475569;'>
+                    {(!string.IsNullOrEmpty(eWayNo) ? $"<div><strong>E-Way Bill:</strong> {eWayNo}</div>" : "")}
+                    {(!string.IsNullOrEmpty(transporter) ? $"<div><strong>Transporter:</strong> {transporter}</div>" : "")}
+                    {(!string.IsNullOrEmpty(vehicleNo) ? $"<div><strong>Vehicle:</strong> {vehicleNo}</div>" : "")}
+                    {(!string.IsNullOrEmpty(lrNo) ? $"<div><strong>LR/Bilty:</strong> {lrNo} {(string.IsNullOrEmpty(lrDate) ? "" : $"({lrDate})")}</div>" : "")}
+                    {(!string.IsNullOrEmpty(poNo) ? $"<div><strong>PO No:</strong> {poNo} {(string.IsNullOrEmpty(poDate) ? "" : $"({poDate})")}</div>" : "")}
+                </div>" : "")}
+
+                {(hasAutoPartsInfo ? $@"
+                <!-- Automotive Vehicle & Mechanic Strip -->
+                <div style='display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; padding:5px 14px; background:#f0f9ff; border-bottom:1.5px solid #0284c7; font-size:9.5px; color:#0369a1;'>
+                    <div style='display:flex; align-items:center; gap:6px;'>
+                        <span style='background:#0284c7; color:#fff; font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px;'>VEHICLE RECORD</span>
+                        <span style='color:#0f172a; font-weight:700;'>Reg: <span style='font-family:monospace; font-size:10.5px; color:#0284c7;'>{(string.IsNullOrWhiteSpace(vehicleNo) ? "N/A" : vehicleNo)}</span></span>
+                        {(!string.IsNullOrEmpty(autoVehicleModel) ? $"<span style='color:#94a3b8;'>|</span> <span style='color:#0f172a;'>Model: <strong>{autoVehicleModel}</strong></span>" : "")}
+                    </div>
+                    <div style='display:flex; align-items:center; gap:10px;'>
+                        {(!string.IsNullOrEmpty(autoOdometerKm) ? $"<span style='color:#0f172a;'>Odometer: <strong>{autoOdometerKm} KM</strong></span>" : "")}
+                        {(!string.IsNullOrEmpty(autoMechanicName) ? $"<span style='color:#0f172a;'>Mechanic: <strong style='color:#0284c7;'>{autoMechanicName}</strong></span>" : "")}
+                    </div>
+                </div>" : "")}
             </div>
 
-            <!-- Items Table (FULL HEIGHT STRETCHED WITH VERTICAL COLUMN LINES) -->
+            <!-- Items Table (DYNAMIC COLUMNS WITH UNBROKEN VERTICAL LINES) -->
             <div style='flex:1 1 auto; display:flex; flex-direction:column; border-bottom:1px solid #cbd5e1; overflow:hidden;'>
                 <table style='width:100%; height:100%; flex:1 1 auto; border-collapse:collapse;'>
                     <thead>
-                        <tr style='background:#faf5ff; font-size:9.5px; font-weight:800; color:{primaryColor}; border-bottom:1.5px solid #e9d5ff; text-transform:uppercase; height:26px;'>
-                            <th style='padding:7px 6px; width:30px; text-align:center; border-right:1px solid #e9d5ff;'>#</th>
-                            <th style='padding:7px 6px; text-align:left; border-right:1px solid #e9d5ff;'>Item Details</th>
-                            <th style='padding:7px 6px; width:70px; text-align:right; border-right:1px solid #e9d5ff;'>Qty</th>
-                            <th style='padding:7px 6px; width:80px; text-align:right; border-right:1px solid #e9d5ff;'>Rate</th>
-                            <th style='padding:7px 6px; width:50px; text-align:center; border-right:1px solid #e9d5ff;'>Tax</th>
-                            <th style='padding:7px 6px; width:90px; text-align:right;'>Amount</th>
+                        <tr style='background:#faf5ff; font-size:9px; font-weight:800; color:{primaryColor}; border-bottom:1.5px solid #e9d5ff; text-transform:uppercase; height:26px;'>
+                            <th style='padding:6px 4px; width:28px; text-align:center; border-right:1px solid #e9d5ff;'>#</th>
+                            <th style='padding:6px 6px; text-align:left; border-right:1px solid #e9d5ff;'>Item Details</th>
+                            {(hasHsn ? $"<th style='padding:6px 4px; width:65px; text-align:center; border-right:1px solid #e9d5ff;'>HSN/SAC</th>" : "")}
+                            {(hasPack ? $"<th style='padding:6px 4px; width:60px; text-align:center; border-right:1px solid #e9d5ff;'>PACKING</th>" : "")}
+                            {(hasSerial ? $"<th style='padding:6px 4px; width:80px; text-align:center; border-right:1px solid #e9d5ff;'>IMEI / SERIAL</th>" : "")}
+                            {(hasBatch ? $"<th style='padding:6px 4px; width:65px; text-align:center; border-right:1px solid #e9d5ff;'>BATCH</th>" : "")}
+                            {(hasExpiry ? $"<th style='padding:6px 4px; width:55px; text-align:center; border-right:1px solid #e9d5ff;'>EXPIRY</th>" : "")}
+                            <th style='padding:6px 4px; width:60px; text-align:right; border-right:1px solid #e9d5ff;'>QTY</th>
+                            {(hasFree ? $"<th style='padding:6px 4px; width:45px; text-align:center; border-right:1px solid #e9d5ff;'>FREE</th>" : "")}
+                            {(hasMrp ? $"<th style='padding:6px 4px; width:65px; text-align:right; border-right:1px solid #e9d5ff;'>MRP</th>" : "")}
+                            <th style='padding:6px 4px; width:70px; text-align:right; border-right:1px solid #e9d5ff;'>RATE</th>
+                            {(hasDisc ? $"<th style='padding:6px 4px; width:50px; text-align:center; border-right:1px solid #e9d5ff;'>DISC</th>" : "")}
+                            {(hasTaxable ? $"<th style='padding:6px 4px; width:65px; text-align:right; border-right:1px solid #e9d5ff;'>TAXABLE</th>" : "")}
+                            <th style='padding:6px 4px; width:50px; text-align:center; border-right:1px solid #e9d5ff;'>TAX</th>
+                            <th style='padding:6px 6px; width:85px; text-align:right;'>AMOUNT</th>
                         </tr>
                     </thead>
                     <tbody style='height:100%;'>
                         {itemsRows}
-                        {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(6, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 250) : "")}
+                        {fillerRowSb}
                     </tbody>
                 </table>
             </div>
@@ -3775,25 +5455,28 @@ public class PrintTemplateService : IPrintTemplateService
                 {hsnSummaryHtml}
 
                 <!-- Bottom Summary & Instant QR -->
-                <div style='display:grid; grid-template-columns:1fr 100px 200px; gap:12px; padding:12px 16px; border-top:1.5px solid #e9d5ff; background:#faf5ff; align-items:center;'>
-                    <div style='font-size:10px; color:#64748b;'>
-                        {(!string.IsNullOrEmpty(sellerName) ? $"Thank you for choosing {sellerName}!<br/>" : "")}
-                        {(!string.IsNullOrEmpty(sellerPhone) ? $"For questions or support, contact {sellerPhone}." : "")}
-                        {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div style='margin-top:4px;'><strong>Terms:</strong> {t.DeclarationText}</div>" : "")}
+                <div style='display:grid; grid-template-columns:1fr {(string.IsNullOrEmpty(qrImgTag) ? "" : "90px")} 220px; gap:12px; padding:10px 14px; border-top:1.5px solid #e9d5ff; background:#faf5ff; align-items:center;'>
+                    <div style='font-size:9.5px; color:#64748b;'>
+                        <div style='font-weight:700; color:{primaryColor}; margin-bottom:2px;'>Amount in Words:</div>
+                        <div style='font-size:10.5px; font-weight:600; color:#0f172a; line-height:1.25;'>{words}</div>
+                        {(hasBank ? $@"
+                        <div style='margin-top:6px; font-size:9px; color:#475569;'>
+                            <strong>Bank Details:</strong> {bankName} | A/C: <span style='font-family:monospace;'>{bankAcc}</span> | IFSC: <span style='font-family:monospace;'>{bankIfsc}</span>
+                        </div>" : "")}
+                        {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div style='margin-top:4px; font-size:8.5px;'><strong>Terms:</strong> {t.DeclarationText}</div>" : "")}
                     </div>
-                    <div style='text-align:center;'>
-                        {qrImgTag}
-                    </div>
-                    <div style='font-size:11px; text-align:right;'>
-                        <div style='color:#64748b;'>Taxable: ₹{taxable:N2}</div>
-                        <div style='color:#64748b;'>GST Tax: ₹{totalTax:N2}</div>
-                        <div style='font-size:16px; font-weight:900; color:{primaryColor}; margin-top:4px;'>
+                    {(!string.IsNullOrEmpty(qrImgTag) ? $@"<div style='text-align:center;'>{qrImgTag}<div style='font-size:7.5px; color:#7c3aed; font-weight:700; margin-top:2px;'>Scan to Pay UPI</div></div>" : "")}
+                    <div style='font-size:10.5px; text-align:right;'>
+                        <div style='color:#64748b;'>Taxable: <strong style='font-family:monospace;'>₹{taxable:N2}</strong></div>
+                        <div style='color:#64748b;'>GST Tax: <strong style='font-family:monospace;'>₹{totalTax:N2}</strong></div>
+                        {(roundOff != 0 ? $"<div style='color:#64748b;'>Round Off: <strong style='font-family:monospace;'>{(roundOff > 0 ? "+" : "")}₹{roundOff:N2}</strong></div>" : "")}
+                        <div style='font-size:15px; font-weight:900; color:{primaryColor}; margin-top:3px;'>
                             Total: ₹{totalAmount:N2}
                         </div>
-                        <div style='font-size:11px; font-weight:bold; color:#16a34a; margin-top:2px;'>
+                        <div style='font-size:10.5px; font-weight:bold; color:#16a34a; margin-top:2px;'>
                             Paid: ₹{paidAmount:N2}
                         </div>
-                        <div style='font-size:12px; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; margin-top:1px;'>
+                        <div style='font-size:11.5px; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")}; margin-top:1px;'>
                             Due: ₹{balanceAmount:N2}
                         </div>
                     </div>
@@ -3814,15 +5497,18 @@ public class PrintTemplateService : IPrintTemplateService
             ? t.SecondaryColorHex
             : "#047857";
 
+        bool isNonGst = IsNonGstDocument(invoice);
+
         var sellerName = !string.IsNullOrWhiteSpace(tenant?.TradeName) ? tenant.TradeName : (!string.IsNullOrWhiteSpace(tenant?.BusinessName) ? tenant.BusinessName : "");
         var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN) ? invoice.Branch.GSTIN : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
         var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
+        var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
 
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd-MM-yyyy") ?? DateTime.Now.ToString("dd-MM-yyyy");
         var custName = invoice?.CustomerName ?? "";
         var custGstin = invoice?.CustomerGSTIN ?? "";
-        var custAddress = invoice?.BillingAddress ?? "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var transporter = invoice?.TransporterName ?? "";
         var lrNo = invoice?.LrNumber ?? "";
         var eWayNo = invoice?.EWayBillNumber ?? "";
@@ -3834,10 +5520,14 @@ public class PrintTemplateService : IPrintTemplateService
         var paidAmount = invoice?.PaidAmount ?? 0m;
         var balanceAmount = invoice?.BalanceAmount ?? (totalAmount - paidAmount);
 
-        bool hasExpiry = invoice?.Items.Any(i => i.ExpiryDate.HasValue) ?? false;
-        bool hasBatch = invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) ?? false;
-        bool hasFree = invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false;
-        bool hasPacking = invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)) ?? false;
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
+
+        bool hasExpiry = prof.IsPharma || (invoice?.Items.Any(i => i.ExpiryDate.HasValue) ?? false);
+        bool hasBatch = prof.IsPharma || (invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) ?? false);
+        bool hasFree = prof.IsPharma || (invoice?.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) ?? false);
+        bool hasPacking = prof.IsPharma || (invoice?.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)) ?? false);
         bool hasDisc = invoice?.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) ?? false;
 
         int colCount = 8 + (hasPacking ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasFree ? 1 : 0) + (hasDisc ? 1 : 0);
@@ -3874,7 +5564,7 @@ public class PrintTemplateService : IPrintTemplateService
         var heightStyle = GetContainerHeightStyle(t);
 
         return $@"
-<div class='cbo-invoice-wrap' style='width:100%; max-width:820px; {heightStyle} margin:0 auto; font-family:""Segoe UI"", Arial, sans-serif; font-size:10.5px; color:#0f172a; background:#fff; border:1.5px solid {primaryColor}; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;'>
+<div class='cbo-invoice-wrap' style='width:100%; max-width:195mm; {heightStyle} margin:0 auto; font-family:""Segoe UI"", Arial, sans-serif; font-size:10px; color:#000000; background:#fff; border:1.5px solid {primaryColor}; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;'>
     <div>
         <!-- CBO 3-Column Top Header -->
         <table style='width:100%; border-collapse:collapse; border-bottom:2px solid {primaryColor};'>
@@ -3884,12 +5574,13 @@ public class PrintTemplateService : IPrintTemplateService
                     <div style='font-size:16px; font-weight:900; color:{primaryColor}; text-transform:uppercase;'>{sellerName}</div>
                     <div style='font-size:9px; color:#475569; margin-top:3px;'>
                         {(!string.IsNullOrEmpty(sellerDl) ? $"D.L. No.: {sellerDl}<br/>" : "")}
+                        {(!string.IsNullOrEmpty(sellerFssai) ? $"FSSAI: {sellerFssai}<br/>" : "")}
                         {(string.IsNullOrEmpty(sellerGstin) ? "" : $"GSTIN: {sellerGstin}")}
                     </div>
                 </td>
                 <!-- Col 2: Central Title -->
-                <td style='width:24%; padding:8px; text-align:center; border-right:1px solid #cbd5e1; vertical-align:middle; background:#f0fdf4;'>
-                    <div style='display:inline-block; background:linear-gradient(135deg, {primaryColor}, {secondaryColor}); color:#fff; font-size:13px; font-weight:800; padding:4px 14px; border-radius:4px; box-shadow:0 2px 4px rgba(5,150,105,0.25); letter-spacing:0.5px;'>TAX INVOICE</div>
+                <td style='width:24%; padding:8px; text-align:center; border-right:1px solid #cbd5e1; vertical-align:middle; background:{(isNonGst ? "#fff7ed" : "#f0fdf4")};'>
+                    <div style='display:inline-block; background:linear-gradient(135deg, {(isNonGst ? "#ea580c, #c2410c" : $"{primaryColor}, {secondaryColor}")}); color:#fff; font-size:13px; font-weight:800; padding:4px 14px; border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.15); letter-spacing:0.5px;'>{(isNonGst ? "CASH MEMO / ESTIMATE" : "TAX INVOICE")}</div>
                 </td>
                 <!-- Col 3: Logistics & Transporter Details -->
                 <td style='width:38%; padding:6px 10px; vertical-align:top; font-size:9px;'>
@@ -3909,6 +5600,7 @@ public class PrintTemplateService : IPrintTemplateService
             <div style='font-size:9.5px; color:#334155;'>
                 {(string.IsNullOrEmpty(custAddress) ? "" : $"{custAddress} | ")}
                 {(string.IsNullOrEmpty(custGstin) ? "" : $"<strong>GSTIN:</strong> {custGstin}")}
+                {(!string.IsNullOrEmpty(custDl) ? $" | <strong>D.L. No:</strong> {custDl}" : "")}
             </div>
         </div>
     </div>
@@ -3935,7 +5627,7 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody style='height:100%;'>
                 {itemsRows}
-                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(colCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 250) : "")}
+                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(colCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 420) : "")}
             </tbody>
         </table>
     </div>
@@ -4001,13 +5693,13 @@ public class PrintTemplateService : IPrintTemplateService
             : (!string.IsNullOrWhiteSpace(tenant?.AddressLine1) ? $"{tenant.AddressLine1}{(string.IsNullOrWhiteSpace(tenant.AddressLine2) ? "" : $", {tenant.AddressLine2}")}, {tenant.City}, {tenant.State} - {tenant.Pincode}" : "");
         var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN) ? invoice.Branch.GSTIN : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
         var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
+        var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
 
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
         var custName = invoice?.CustomerName ?? "";
         var custPhone = invoice?.CustomerPhone ?? "";
-        var docName = invoice?.DoctorName ?? "";
-        var docReg = invoice?.DoctorRegistrationNumber ?? "";
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
         var total = invoice?.TotalAmount ?? 0m;
         var paidAmount = invoice?.PaidAmount ?? 0m;
         var balanceAmount = invoice?.BalanceAmount ?? (total - paidAmount);
@@ -4015,10 +5707,13 @@ public class PrintTemplateService : IPrintTemplateService
 
         var heightStyle = GetContainerHeightStyle(t);
 
-        bool hasBatch = invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true;
-        bool hasExpiry = invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true;
-        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
-        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        var custDl = ExtractInvoiceBuyerDl(invoice);
+
+        bool hasBatch = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool hasMrp = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.Mrp > 0));
+        bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
 
         int rxColCount = 4 + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasMrp ? 1 : 0) + (hasDisc ? 1 : 0);
 
@@ -4046,7 +5741,7 @@ public class PrintTemplateService : IPrintTemplateService
         }
 
         return $@"
-<div class='invoice-container' style='font-family:{t.FontFamily}; width:100%; max-width:800px; {heightStyle} margin:0 auto; padding:16px 20px; border:1.5px solid {primaryColor}; border-radius:6px; box-sizing:border-box; background:#fff; font-size:11.5px; display:flex; flex-direction:column; justify-content:space-between;'>
+<div class='invoice-container' style='font-family:{t.FontFamily}; width:100%; max-width:195mm; {heightStyle} margin:0 auto; padding:12px 16px; border:1.5px solid {primaryColor}; border-radius:6px; box-sizing:border-box; background:#fff; font-size:10px; color:#000000; display:flex; flex-direction:column; justify-content:space-between;'>
     <div>
         <div style='display:flex; justify-content:space-between; border-bottom:2px solid {primaryColor}; padding-bottom:8px;'>
             <div>
@@ -4054,6 +5749,7 @@ public class PrintTemplateService : IPrintTemplateService
                 {(!string.IsNullOrEmpty(sellerAddress) ? $"<div style='font-size:10.5px; color:#475569; margin-top:2px;'>{sellerAddress}</div>" : "")}
                 <div style='font-size:10px; font-weight:bold; color:#334155; margin-top:3px;'>
                     {(!string.IsNullOrEmpty(sellerDl) ? $"DL No: {sellerDl} | " : "")}
+                    {(!string.IsNullOrEmpty(sellerFssai) ? $"FSSAI: {sellerFssai} | " : "")}
                     {(string.IsNullOrEmpty(sellerGstin) ? "" : $"GSTIN: {sellerGstin}")}
                 </div>
             </div>
@@ -4071,6 +5767,7 @@ public class PrintTemplateService : IPrintTemplateService
                 <div style='font-size:9.5px; color:{primaryColor}; font-weight:bold; text-transform:uppercase;'>Patient Details</div>
                 <div style='font-size:12.5px; font-weight:bold; color:#0f172a;'>{custName}</div>
                 {(!string.IsNullOrEmpty(custPhone) ? $"<div style='font-size:10px; color:#475569;'>Contact: {custPhone}</div>" : "")}
+                {(!string.IsNullOrEmpty(custDl) ? $"<div style='font-size:10px; color:#475569;'>DL No: <strong>{custDl}</strong></div>" : "")}
             </div>
             <div>
                 <div style='font-size:9.5px; color:{primaryColor}; font-weight:bold; text-transform:uppercase;'>Prescribed By Doctor</div>
@@ -4097,7 +5794,7 @@ public class PrintTemplateService : IPrintTemplateService
             </thead>
             <tbody style='height:100%;'>
                 {rxRows}
-                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(rxColCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 250) : "")}
+                {((invoice?.Items?.Count ?? 0) < 12 ? RenderTableFillerRow(rxColCount, "#cbd5e1", (invoice?.Items?.Count ?? 0), IsA5Size(t) ? 120 : 420) : "")}
             </tbody>
         </table>
     </div>
@@ -4141,6 +5838,7 @@ public class PrintTemplateService : IPrintTemplateService
             ? $"{invoice.Branch.AddressLine1}, {invoice.Branch.City}"
             : (!string.IsNullOrWhiteSpace(tenant?.AddressLine1) ? $"{tenant.AddressLine1}, {tenant.City}" : "");
         var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN) ? invoice.Branch.GSTIN : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
+        var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
         var sellerStateCodeOnly = !string.IsNullOrWhiteSpace(invoice?.Branch?.StateCode) ? invoice.Branch.StateCode : (!string.IsNullOrWhiteSpace(tenant?.StateCode) ? tenant.StateCode : (sellerGstin.Length >= 2 ? sellerGstin.Substring(0, 2) : ""));
 
         var invNo = invoice?.InvoiceNumber ?? "";
@@ -4152,14 +5850,17 @@ public class PrintTemplateService : IPrintTemplateService
         var totalTax = total - taxable;
         var heightStyle = GetContainerHeightStyle(t);
 
-        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
-        bool isElectronics = industry == IndustryTypeCodes.Electronics;
-        bool isGarments = industry == IndustryTypeCodes.Garments;
-        bool isHardware = industry == IndustryTypeCodes.Hardware;
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
 
-        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool isElectronics = prof.IsElectronics;
+        bool isGarments = prof.IsGarments;
+        bool isHardware = prof.IsHardware;
+
+        bool hasSerial = (invoice?.Items.Any(HasImeiOrSerial) ?? false) || isElectronics;
+        bool hasBatch = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
         bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
 
         int a5ColCount = 6 + (hasSerial ? 1 : 0) + (hasBatch ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasDisc ? 1 : 0);
@@ -4174,29 +5875,29 @@ public class PrintTemplateService : IPrintTemplateService
                 var discStr = it.DiscountPercent > 0 ? $"{it.DiscountPercent:0.##}%" : (it.DiscountAmount > 0 ? $"₹{it.DiscountAmount:0.##}" : "-");
 
                 a5Rows.Append($@"
-                <tr style='height:22px; border-bottom:1px solid #99f6e4; font-size:9.5px;'>
-                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:center;'>{idx++}</td>
-                    <td style='padding:3px 5px; border-right:1px solid #99f6e4;'><strong>{it.ItemName}</strong>{ExtractIndustryItemSubline(it)}</td>
-                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace;'>{it.HsnCode ?? "-"}</td>
-                    {(hasSerial ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace; font-weight:bold; font-size:8.5px;'>{ExtractItemImei(it)}</td>" : "")}
-                    {(hasBatch ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace;'>{it.BatchNumber ?? "-"}</td>" : "")}
-                    {(hasExpiry ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:center; font-family:monospace;'>{expStr}</td>" : "")}
-                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:right;'>{it.Quantity:N0}</td>
-                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:right; font-family:monospace;'>₹{it.UnitPrice:N2}</td>
-                    {(hasDisc ? $"<td style='padding:3px; border-right:1px solid #99f6e4; text-align:right;'>{discStr}</td>" : "")}
-                    <td style='padding:3px; border-right:1px solid #99f6e4; text-align:right; font-family:monospace;'>₹{it.TaxableAmount:N2}</td>
+                <tr style='height:22px; border-bottom:1px solid #1e293b; font-size:9.5px; color:#000000;'>
+                    <td style='padding:3px; border-right:1px solid #1e293b; text-align:center;'>{idx++}</td>
+                    <td style='padding:3px 5px; border-right:1px solid #1e293b;'><strong>{it.ItemName}</strong>{ExtractIndustryItemSubline(it)}</td>
+                    <td style='padding:3px; border-right:1px solid #1e293b; text-align:center; font-family:monospace;'>{it.HsnCode ?? "-"}</td>
+                    {(hasSerial ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:center; font-family:monospace; font-weight:bold; font-size:8.5px;'>{ExtractItemImei(it)}</td>" : "")}
+                    {(hasBatch ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:center; font-family:monospace;'>{it.BatchNumber ?? "-"}</td>" : "")}
+                    {(hasExpiry ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:center; font-family:monospace;'>{expStr}</td>" : "")}
+                    <td style='padding:3px; border-right:1px solid #1e293b; text-align:right;'>{it.Quantity:N0}</td>
+                    <td style='padding:3px; border-right:1px solid #1e293b; text-align:right; font-family:monospace;'>₹{it.UnitPrice:N2}</td>
+                    {(hasDisc ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:right;'>{discStr}</td>" : "")}
+                    <td style='padding:3px; border-right:1px solid #1e293b; text-align:right; font-family:monospace;'>₹{it.TaxableAmount:N2}</td>
                     <td style='padding:3px 5px; text-align:right; font-family:monospace; font-weight:bold;'>₹{it.TotalAmount:N2}</td>
                 </tr>");
             }
         }
 
         return $@"
-<div class='invoice-container' style='font-family:{t.FontFamily}; width:100%; max-width:740px; {heightStyle} margin:0 auto; padding:10px 14px; border:1.5px solid {primaryColor}; border-radius:6px; background:#fff; font-size:10.5px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;'>
+<div class='invoice-container' style='font-family:{t.FontFamily}; width:100%; max-width:202mm; {heightStyle} margin:0 auto; padding:8px 12px; border:1.5px solid {primaryColor}; border-radius:4px; background:#fff; font-size:9.5px; color:#000000; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;'>
     <div>
         <div style='display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px solid {primaryColor}; padding-bottom:6px;'>
             <div style='max-width:65%;'>
                 <strong style='font-size:16px; font-weight:900; color:{primaryColor}; text-transform:uppercase;'>{sellerName}</strong><br/>
-                <span style='font-size:10px; color:#334155;'>{sellerAddress} {(string.IsNullOrEmpty(sellerGstin) ? "" : $"| <strong>GSTIN:</strong> {sellerGstin}")}</span>
+                <span style='font-size:10px; color:#334155;'>{sellerAddress} {(string.IsNullOrEmpty(sellerGstin) ? "" : $"| <strong>GSTIN:</strong> {sellerGstin}")}{(!string.IsNullOrEmpty(sellerDl) ? $" | <strong>D.L.:</strong> {sellerDl}" : "")}</span>
             </div>
             <div style='text-align:right;'>
                 <div style='background:{primaryColor}; color:#fff; padding:3px 10px; font-size:11px; font-weight:900; border-radius:3px; display:inline-block;'>CASH / TRADE MEMO</div><br/>
@@ -4204,7 +5905,7 @@ public class PrintTemplateService : IPrintTemplateService
             </div>
         </div>
         <div style='display:flex; justify-content:space-between; margin:6px 0; font-size:10.5px; background:#f0fdfa; padding:4px 8px; border-radius:4px; border:1px solid #99f6e4;'>
-            <div>Billed To: <strong style='color:#0f172a;'>{invoice?.CustomerName ?? ""}</strong> {(string.IsNullOrEmpty(invoice?.CustomerGSTIN) ? "" : $"| GSTIN: <span style='font-family:monospace;'>{invoice.CustomerGSTIN}</span>")}</div>
+            <div>Billed To: <strong style='color:#0f172a;'>{invoice?.CustomerName ?? ""}</strong> {(string.IsNullOrEmpty(invoice?.CustomerGSTIN) ? "" : $"| GSTIN: <span style='font-family:monospace;'>{invoice.CustomerGSTIN}</span>")}{(!string.IsNullOrEmpty(custDl) ? $" | <strong>D.L.:</strong> <span style='font-family:monospace;'>{custDl}</span>" : "")}</div>
             <div>Place of Supply: <strong>{GstStateHelper.ResolvePlaceOfSupply(invoice?.CustomerGSTIN, invoice?.PlaceOfSupply, invoice?.BillingStateCode, sellerGstin, invoice?.Branch?.State ?? tenant?.State, sellerStateCodeOnly)}</strong></div>
         </div>
     </div>
@@ -4260,6 +5961,28 @@ public class PrintTemplateService : IPrintTemplateService
         var sellerGstin = !string.IsNullOrWhiteSpace(invoice?.Branch?.GSTIN) ? invoice.Branch.GSTIN : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
         var sellerPhone = tenant?.PrimaryPhone ?? "";
         var sellerDl = tenant?.DrugLicenseNumber ?? "";
+        var sellerFssai = tenant?.FSSAINumber ?? "";
+
+        // Check for Industry Profile (Universal Engine)
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isAutoParts = prof.IsAutoParts;
+        var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
+
+        string autoVehicleNo = !string.IsNullOrWhiteSpace(invoice?.VehicleNumber) ? invoice.VehicleNumber : "";
+        string autoVehicleModel = "";
+        string autoMechanicName = "";
+        if (!string.IsNullOrEmpty(invoice?.AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
+                if (doc.RootElement.TryGetProperty("vehicleModel", out var vm)) autoVehicleModel = vm.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("mechanicName", out var mn)) autoMechanicName = mn.GetString() ?? "";
+                if (string.IsNullOrWhiteSpace(autoVehicleNo) && doc.RootElement.TryGetProperty("vehicleRegNo", out var vrn)) autoVehicleNo = vrn.GetString() ?? "";
+            }
+            catch {}
+        }
 
         var invNo = invoice?.InvoiceNumber ?? "";
         var invDate = invoice?.InvoiceDate.ToString("dd/MM/yy HH:mm") ?? DateTime.Now.ToString("dd/MM/yy HH:mm");
@@ -4277,7 +6000,48 @@ public class PrintTemplateService : IPrintTemplateService
             foreach (var it in invoice.Items)
             {
                 var gSub = "";
-                if (!string.IsNullOrWhiteSpace(it.AttributesJson) && it.AttributesJson != "{}")
+                if (prof.IsPharma)
+                {
+                    var pAttrs = ExtractItemPharmaAttributes(it);
+                    var pList = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(it.BatchNumber)) pList.Add($"B: {it.BatchNumber}");
+                    if (it.ExpiryDate.HasValue) pList.Add($"Exp: {it.ExpiryDate.Value:MM/yy}");
+                    if (it.Mrp > 0) pList.Add($"MRP: ₹{it.Mrp:0.##}");
+                    if (!string.IsNullOrWhiteSpace(pAttrs.pack)) pList.Add($"Pk: {pAttrs.pack}");
+                    if (pList.Any())
+                        gSub = $"<br/><span style='font-size:8px;'>({string.Join(" | ", pList)})</span>";
+                }
+                else if (isAutoParts)
+                {
+                    var partNo = "";
+                    var vehFit = "";
+                    if (!string.IsNullOrWhiteSpace(it.AttributesJson) && it.AttributesJson != "{}")
+                    {
+                        try
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(it.AttributesJson);
+                            if (doc.RootElement.TryGetProperty("oemPartNumber", out var op)) partNo = op.GetString() ?? "";
+                            if (doc.RootElement.TryGetProperty("applicableVehicles", out var av)) vehFit = av.GetString() ?? "";
+                        }
+                        catch {}
+                    }
+                    if (string.IsNullOrWhiteSpace(partNo) && it.Item != null && !string.IsNullOrWhiteSpace(it.Item.AttributesJson))
+                    {
+                        try
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(it.Item.AttributesJson);
+                            if (doc.RootElement.TryGetProperty("oemPartNumber", out var op)) partNo = op.GetString() ?? "";
+                            if (string.IsNullOrWhiteSpace(vehFit) && doc.RootElement.TryGetProperty("applicableVehicles", out var av)) vehFit = av.GetString() ?? "";
+                        }
+                        catch {}
+                    }
+                    var apParts = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(partNo)) apParts.Add($"Part: {partNo.Trim()}");
+                    if (!string.IsNullOrWhiteSpace(vehFit)) apParts.Add($"Fit: {vehFit.Trim()}");
+                    if (apParts.Any())
+                        gSub = $"<br/><span style='font-size:8px; font-weight:bold;'>({string.Join(" | ", apParts)})</span>";
+                }
+                else if (!string.IsNullOrWhiteSpace(it.AttributesJson) && it.AttributesJson != "{}")
                 {
                     try
                     {
@@ -4287,6 +6051,12 @@ public class PrintTemplateService : IPrintTemplateService
                             gp.Add($"Size: {sp.GetString()!.Trim()}");
                         if (doc.RootElement.TryGetProperty("color", out var cp) && !string.IsNullOrWhiteSpace(cp.GetString()))
                             gp.Add($"Col: {cp.GetString()!.Trim()}");
+                        if (doc.RootElement.TryGetProperty("packSize", out var pk) && !string.IsNullOrWhiteSpace(pk.GetString()))
+                            gp.Add($"Pack: {pk.GetString()!.Trim()}");
+                        if (doc.RootElement.TryGetProperty("shadeCode", out var sc) && !string.IsNullOrWhiteSpace(sc.GetString()))
+                            gp.Add($"Shade: {sc.GetString()!.Trim()}");
+                        if (doc.RootElement.TryGetProperty("shadeName", out var sn) && !string.IsNullOrWhiteSpace(sn.GetString()))
+                            gp.Add(sn.GetString()!.Trim());
                         if (gp.Any())
                             gSub = $"<br/><span style='font-size:9px; font-weight:bold;'>({string.Join(" | ", gp)})</span>";
                     }
@@ -4296,20 +6066,42 @@ public class PrintTemplateService : IPrintTemplateService
             }
         }
 
+        var is58mm = t.PageSize == PageSizeFormat.Thermal_58mm || t.TemplateCode?.Contains("58MM") == true;
+        var logoUrl = !string.IsNullOrEmpty(t.LogoUrl) && !t.LogoUrl.Contains("placeholder") && !t.LogoUrl.Contains("dummy")
+            ? t.LogoUrl
+            : (!string.IsNullOrEmpty(tenant?.LogoUrl) && !tenant.LogoUrl.Contains("placeholder") && !tenant.LogoUrl.Contains("dummy") ? tenant.LogoUrl : "");
+        var logoMaxW = is58mm ? "100px" : "140px";
+        var logoMaxH = is58mm ? "40px" : "55px";
+        var logoHtml = !string.IsNullOrWhiteSpace(logoUrl)
+            ? $"<div style='text-align:center; margin-bottom:4px;'><img src='{logoUrl}' alt='Logo' style='max-width:{logoMaxW}; max-height:{logoMaxH}; object-fit:contain; display:inline-block;' /></div>"
+            : "";
+        var slipWidth = is58mm ? "48mm" : "72mm";
+        var fontSize = is58mm ? "9.5px" : "11px";
+        var tableFontSize = is58mm ? "8.5px" : "10px";
+        var titleFontSize = is58mm ? "13px" : "15px";
+        var separator = is58mm ? "------------------------------" : "----------------------------------------";
+
         return $@"
-<div class='thermal-slip' style='font-family:monospace; width:280px; margin:0 auto; padding:8px; font-size:11px; line-height:1.3; color:#000;'>
+<div class='thermal-slip' style='font-family:monospace; width:{slipWidth}; max-width:{slipWidth}; margin:0 auto; padding:2px; font-size:{fontSize}; line-height:1.3; color:#000000;'>
     <div style='text-align:center;'>
-        {(!string.IsNullOrEmpty(sellerName) ? $"<strong style='font-size:15px;'>{sellerName}</strong><br/>" : "")}
+        {logoHtml}
+        {(!string.IsNullOrEmpty(sellerName) ? $"<strong style='font-size:{titleFontSize};'>{sellerName}</strong><br/>" : "")}
         {(!string.IsNullOrEmpty(sellerAddress) ? $"{sellerAddress}<br/>" : "")}
         {(string.IsNullOrEmpty(sellerGstin) ? "" : $"GSTIN: {sellerGstin} ")}{(string.IsNullOrEmpty(sellerPhone) ? "" : $"| Ph: {sellerPhone}")}{(string.IsNullOrEmpty(sellerGstin) && string.IsNullOrEmpty(sellerPhone) ? "" : "<br/>")}
         {(!string.IsNullOrEmpty(sellerDl) ? $"DL No: {sellerDl}<br/>" : "")}
-        ----------------------------------------<br/>
+        {(!string.IsNullOrEmpty(sellerFssai) ? $"FSSAI: {sellerFssai}<br/>" : "")}
+        {separator}<br/>
         <strong>CASH / POS RECEIPT</strong><br/>
         {(!string.IsNullOrEmpty(invNo) ? $"Bill No: {invNo} | " : "")}{invDate}<br/>
         Mode: {invoice?.PrimaryPaymentMode.ToString() ?? "CASH"}<br/>
-        ----------------------------------------
+        {(!string.IsNullOrEmpty(invoice?.CustomerName) ? $"Cust: {invoice.CustomerName}<br/>" : "")}
+        {(!string.IsNullOrEmpty(custDl) ? $"Cust DL: {custDl}<br/>" : "")}
+        {(!string.IsNullOrEmpty(docName) ? $"Dr: {docName}<br/>" : (!string.IsNullOrEmpty(invoice?.DoctorName) ? $"Dr: {invoice.DoctorName}<br/>" : ""))}
+        {(isAutoParts && !string.IsNullOrWhiteSpace(autoVehicleNo) ? $"Vehicle: {autoVehicleNo}{(!string.IsNullOrWhiteSpace(autoVehicleModel) ? $" ({autoVehicleModel})" : "")}<br/>" : "")}
+        {(isAutoParts && !string.IsNullOrWhiteSpace(autoMechanicName) ? $"Mistri: {autoMechanicName}<br/>" : "")}
+        {separator}
     </div>
-    <table style='width:100%; font-size:10px; margin:4px 0;'>
+    <table style='width:100%; font-size:{tableFontSize}; margin:4px 0;'>
         <thead>
             <tr style='border-bottom:1px dashed #000;'>
                 <th style='text-align:left;'>Item</th>
@@ -4341,7 +6133,7 @@ public class PrintTemplateService : IPrintTemplateService
         <span style='font-size:9px;'>Scan & Pay via any UPI App</span><br/>
     </div>" : "")}
     <div style='text-align:center; margin-top:4px;'>
-        ----------------------------------------<br/>
+        {separator}<br/>
         *** THANK YOU! VISIT AGAIN ***<br/>
         <span style='font-size:9px;'>Computer generated receipt</span>
     </div>
@@ -4351,47 +6143,56 @@ public class PrintTemplateService : IPrintTemplateService
     // ==============================================================================
     // 📊 STATUTORY HSN / SAC TAX BREAKDOWN MATRIX GENERATOR
     // ==============================================================================
-    private static string RenderHsnSummaryTable(SalesInvoice? invoice, string themeColor)
+    private static string RenderHsnSummaryTable(SalesInvoice? invoice, string themeColor, bool isA5 = false)
     {
-        var effectiveColor = "#0f172a";
+        string marginStyle = isA5 ? "margin-top:2px;" : "margin-top:4px;";
+        string titleFont = isA5 ? "font-size:9.5px; font-weight:700; padding:2px 5px;" : "font-size:10px; font-weight:700; padding:2.5px 6px;";
+        string tableFont = isA5 ? "font-size:9.5px; font-weight:600;" : "font-size:10px; font-weight:500;";
+        string cellPadding = isA5 ? "padding:2px 4px;" : "padding:2.5px 4px;";
+
         if (invoice?.Items == null || !invoice.Items.Any())
         {
             return $@"
-            <div style='margin-top:6px; border:1px solid #cbd5e1; border-radius:4px; overflow:hidden;'>
-                <div style='background:#f1f5f9; color:#0f172a; border-bottom:1px solid #cbd5e1; font-weight:bold; font-size:9.5px; padding:3px 6px; text-transform:uppercase;'>
+            <div style='{marginStyle} border:1.5px solid #1e293b; border-radius:3px; overflow:visible; flex-shrink:0; box-sizing:border-box;'>
+                <div style='background:#f1f5f9; color:#0f172a; border-bottom:1.5px solid #1e293b; font-weight:700; {titleFont} text-transform:uppercase;'>
                     Statutory HSN / SAC Tax Summary
                 </div>
-                <table style='width:100%; border-collapse:collapse; font-size:9.5px;'>
+                <table style='width:100%; border-collapse:collapse; {tableFont} color:#0f172a;'>
                     <thead>
-                        <tr style='background:#f8fafc; border-bottom:1px solid #cbd5e1; color:#475569;'>
-                            <th style='padding:3px 4px; text-align:center; border-right:1px solid #cbd5e1;'>HSN/SAC</th>
-                            <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>Taxable Value</th>
-                            <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>CGST</th>
-                            <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>SGST</th>
-                            <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>IGST</th>
-                            <th style='padding:3px 4px; text-align:right;'>Total Tax</th>
+                        <tr style='background:#f8fafc; border-bottom:1.5px solid #1e293b; color:#0f172a; font-weight:700;'>
+                            <th style='{cellPadding} text-align:center; border-right:1px solid #1e293b; font-weight:700;'>HSN/SAC</th>
+                            <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>Taxable Value</th>
+                            <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>CGST</th>
+                            <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>SGST</th>
+                            <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>IGST</th>
+                            <th style='{cellPadding} text-align:right; font-weight:700;'>Total Tax</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr style='border-bottom:1px solid #e2e8f0;'>
-                            <td style='padding:3px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace;'>30042010</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹ 18,500.00</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>6% (₹ 1,110.00)</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>6% (₹ 1,110.00)</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>-</td>
-                            <td style='padding:3px 4px; text-align:right; font-weight:bold;'>₹ 2,220.00</td>
+                        <tr style='border-bottom:1px solid #1e293b;'>
+                            <td style='{cellPadding} text-align:center; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>30042010</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>₹ 18,500.00</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>6% (₹ 1,110.00)</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>6% (₹ 1,110.00)</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>-</td>
+                            <td style='{cellPadding} text-align:right; font-family:monospace; font-weight:700;'>₹ 2,220.00</td>
                         </tr>
-                        <tr style='background:#f8fafc; font-weight:bold;'>
-                            <td style='padding:3px 4px; text-align:center; border-right:1px solid #cbd5e1;'>TOTAL</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹ 18,500.00</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹ 1,110.00</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹ 1,110.00</td>
-                            <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹ 0.00</td>
-                            <td style='padding:3px 4px; text-align:right; color:#0f172a;'>₹ 2,220.00</td>
+                        <tr style='background:#f8fafc; font-weight:700; line-height:1.3;'>
+                            <td style='{cellPadding} text-align:center; border-right:1px solid #1e293b; font-weight:700; vertical-align:middle;'>TOTAL</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹ 18,500.00</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹ 1,110.00</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹ 1,110.00</td>
+                            <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹ 0.00</td>
+                            <td style='{cellPadding} text-align:right; color:#0f172a; font-family:monospace; font-weight:700; vertical-align:middle;'>₹ 2,220.00</td>
                         </tr>
                     </tbody>
                 </table>
             </div>";
+        }
+
+        if (IsNonGstDocument(invoice))
+        {
+            return string.Empty;
         }
 
         var groups = invoice.Items
@@ -4416,46 +6217,46 @@ public class PrintTemplateService : IPrintTemplateService
             sumTotalTax += grpTotalTax;
 
             var halfRate = g.Key.Rate / 2;
-            var cgstDisplay = grpCgst > 0 ? $"{halfRate:N0}% (₹{grpCgst:N2})" : "-";
-            var sgstDisplay = grpSgst > 0 ? $"{halfRate:N0}% (₹{grpSgst:N2})" : "-";
-            var igstDisplay = grpIgst > 0 ? $"{g.Key.Rate:N0}% (₹{grpIgst:N2})" : "-";
+            var cgstDisplay = grpCgst > 0 ? $"{halfRate:0.##}% (₹{grpCgst:N2})" : "-";
+            var sgstDisplay = grpSgst > 0 ? $"{halfRate:0.##}% (₹{grpSgst:N2})" : "-";
+            var igstDisplay = grpIgst > 0 ? $"{g.Key.Rate:0.##}% (₹{grpIgst:N2})" : "-";
 
             rowsSb.Append($@"
-            <tr style='border-bottom:1px solid #e2e8f0;'>
-                <td style='padding:3px 4px; text-align:center; border-right:1px solid #cbd5e1; font-family:monospace;'>{g.Key.Hsn}</td>
-                <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹{grpTaxable:N2}</td>
-                <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>{cgstDisplay}</td>
-                <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>{sgstDisplay}</td>
-                <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>{igstDisplay}</td>
-                <td style='padding:3px 4px; text-align:right; font-weight:bold;'>₹{grpTotalTax:N2}</td>
+            <tr style='border-bottom:1px solid #1e293b; font-size:{(isA5 ? "9.5px" : "10px")};'>
+                <td style='{cellPadding} text-align:center; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>{g.Key.Hsn}</td>
+                <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>₹{grpTaxable:N2}</td>
+                <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>{cgstDisplay}</td>
+                <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>{sgstDisplay}</td>
+                <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:600;'>{igstDisplay}</td>
+                <td style='{cellPadding} text-align:right; font-family:monospace; font-weight:700;'>₹{grpTotalTax:N2}</td>
             </tr>");
         }
 
         return $@"
-        <div style='margin-top:6px; border:1px solid #cbd5e1; border-radius:4px; overflow:hidden;'>
-            <div style='background:#f1f5f9; color:#0f172a; border-bottom:1px solid #cbd5e1; font-weight:bold; font-size:9.5px; padding:3px 6px; text-transform:uppercase;'>
+        <div style='{marginStyle} border:1.5px solid #1e293b; border-radius:3px; overflow:visible; flex-shrink:0; box-sizing:border-box;'>
+            <div style='background:#f1f5f9; color:#0f172a; border-bottom:1.5px solid #1e293b; font-weight:700; {titleFont} text-transform:uppercase;'>
                 Statutory HSN / SAC Tax Summary (Rule 46)
             </div>
-            <table style='width:100%; border-collapse:collapse; font-size:9.5px;'>
+            <table style='width:100%; border-collapse:collapse; {tableFont} color:#0f172a;'>
                 <thead>
-                    <tr style='background:#f8fafc; border-bottom:1px solid #cbd5e1; color:#475569;'>
-                        <th style='padding:3px 4px; text-align:center; border-right:1px solid #cbd5e1;'>HSN/SAC</th>
-                        <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>Taxable Value</th>
-                        <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>CGST</th>
-                        <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>SGST</th>
-                        <th style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>IGST</th>
-                        <th style='padding:3px 4px; text-align:right;'>Total Tax</th>
+                    <tr style='background:#f8fafc; border-bottom:1.5px solid #1e293b; color:#0f172a; font-weight:700;'>
+                        <th style='{cellPadding} text-align:center; border-right:1px solid #1e293b; font-weight:700;'>HSN/SAC</th>
+                        <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>Taxable Value</th>
+                        <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>CGST</th>
+                        <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>SGST</th>
+                        <th style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-weight:700;'>IGST</th>
+                        <th style='{cellPadding} text-align:right; font-weight:700;'>Total Tax</th>
                     </tr>
                 </thead>
                 <tbody>
                     {rowsSb}
-                    <tr style='background:#f8fafc; font-weight:bold;'>
-                        <td style='padding:3px 4px; text-align:center; border-right:1px solid #cbd5e1;'>TOTAL</td>
-                        <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹{sumTaxable:N2}</td>
-                        <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹{sumCgst:N2}</td>
-                        <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹{sumSgst:N2}</td>
-                        <td style='padding:3px 4px; text-align:right; border-right:1px solid #cbd5e1;'>₹{sumIgst:N2}</td>
-                        <td style='padding:3px 4px; text-align:right; color:#0f172a;'>₹{sumTotalTax:N2}</td>
+                    <tr style='background:#f8fafc; font-weight:700; font-size:{(isA5 ? "10px" : "10.5px")}; line-height:1.3;'>
+                        <td style='{cellPadding} text-align:center; border-right:1px solid #1e293b; font-weight:700; vertical-align:middle;'>TOTAL</td>
+                        <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹{sumTaxable:N2}</td>
+                        <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹{sumCgst:N2}</td>
+                        <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹{sumSgst:N2}</td>
+                        <td style='{cellPadding} text-align:right; border-right:1px solid #1e293b; font-family:monospace; font-weight:700; vertical-align:middle;'>₹{sumIgst:N2}</td>
+                        <td style='{cellPadding} text-align:right; color:#0f172a; font-family:monospace; font-weight:700; vertical-align:middle;'>₹{sumTotalTax:N2}</td>
                     </tr>
                 </tbody>
             </table>
@@ -4465,16 +6266,21 @@ public class PrintTemplateService : IPrintTemplateService
     // ==============================================================================
     // ⚙️ HELPERS & SEEDER
     // ==============================================================================
-    private static string RenderTableFillerRow(int columnCount, string borderColor, int itemCount = 0, int baseHeight = 250)
+    private static string RenderTableFillerRow(int columnCount, string borderColor, int itemCount = 0, int baseHeight = 260)
     {
         // Standard Indian Accounting Format (Tally / Marg / Vyapar):
         // Vertical column dividers must extend continuously through empty space to the bottom of the table.
-        int calculatedHeight = Math.Max(30, baseHeight - (itemCount * 26));
-        var sb = new StringBuilder($"<tr style='height:100%; min-height:{calculatedHeight}px; vertical-align:top; page-break-inside:avoid; break-inside:avoid;'>");
+        int remaining = baseHeight - (itemCount * 26);
+        if (remaining < 20 || itemCount >= 8)
+        {
+            return "";
+        }
+        int calculatedHeight = remaining;
+        var sb = new StringBuilder("<tr style='height:100%; vertical-align:top; page-break-inside:avoid; break-inside:avoid;'>");
         for (int i = 0; i < columnCount; i++)
         {
             var borderStyle = (i < columnCount - 1) ? $"border-right:1px solid {borderColor};" : "";
-            sb.Append($"<td style='{borderStyle} height:100%; min-height:{calculatedHeight}px; padding:0;'>&nbsp;</td>");
+            sb.Append($"<td style='{borderStyle} height:100%; padding:0; vertical-align:top;'><div style='min-height:{calculatedHeight}px; height:100%; width:100%;'>&nbsp;</div></td>");
         }
         sb.Append("</tr>");
         return sb.ToString();
@@ -4508,24 +6314,24 @@ public class PrintTemplateService : IPrintTemplateService
                     : "-";
 
                 sb.Append($@"
-<tr style='border-bottom:1px solid #e2e8f0; height:24px;'>
-    <td style='padding:3px; border-right:1px solid #cbd5e1; text-align:center;'>{idx++}</td>
-    <td style='padding:3px 6px; border-right:1px solid #cbd5e1;'>
-        <strong>{it.ItemName}</strong>{ExtractIndustryItemSubline(it)}
-        {(string.IsNullOrEmpty(attrs.pack) ? "" : $" <span style='font-size:9px; color:#64748b;'>({attrs.pack})</span>")}
+<tr style='border-bottom:1px solid #1e293b; height:24px; color:#000000;'>
+    <td style='padding:3px; border-right:1px solid #1e293b; text-align:center; font-weight:600;'>{idx++}</td>
+    <td style='padding:3px 6px; border-right:1px solid #1e293b;'>
+        <strong style='color:#000000;'>{it.ItemName}</strong>{ExtractIndustryItemSubline(it)}
+        {(string.IsNullOrEmpty(attrs.pack) ? "" : $" <span style='font-size:9px; color:#000000; font-weight:600;'>({attrs.pack})</span>")}
     </td>
-    <td style='padding:3px; border-right:1px solid #cbd5e1; text-align:center;'>{it.HsnCode ?? "-"}</td>
-    {(hasPharma ? $"<td style='padding:3px; border-right:1px solid #cbd5e1; text-align:center;'>{batchExp}</td>" : "")}
-    <td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>{it.Quantity:N0}</td>
-    {(hasFree ? $"<td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>{attrs.freeQty:N0}</td>" : "")}
-    {(hasMrp ? $"<td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>₹{it.Mrp:N2}</td>" : "")}
-    {(hasPtr ? $"<td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>{(itemPtr > 0 ? $"₹{itemPtr:N2}" : "-")}</td>" : "")}
-    {(hasPts ? $"<td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>{(itemPts > 0 ? $"₹{itemPts:N2}" : "-")}</td>" : "")}
-    <td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>₹{it.UnitPrice:N2}</td>
-    {(hasDisc ? $"<td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>{it.DiscountPercent:N0}%</td>" : "")}
-    <td style='padding:3px 4px; border-right:1px solid #cbd5e1; text-align:right;'>₹{it.TaxableAmount:N2}</td>
-    <td style='padding:3px; border-right:1px solid #cbd5e1; text-align:right;'>{it.GstRate:N0}%</td>
-    <td style='padding:3px 6px; text-align:right; font-weight:bold;'>₹{it.TotalAmount:N2}</td>
+    <td style='padding:3px; border-right:1px solid #1e293b; text-align:center; font-family:monospace;'>{it.HsnCode ?? "-"}</td>
+    {(hasPharma ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:center; font-weight:600;'>{batchExp}</td>" : "")}
+    <td style='padding:3px; border-right:1px solid #1e293b; text-align:right; font-weight:600;'>{it.Quantity:N0}</td>
+    {(hasFree ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:right; font-weight:600;'>{attrs.freeQty:N0}</td>" : "")}
+    {(hasMrp ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:right;'>₹{it.Mrp:N2}</td>" : "")}
+    {(hasPtr ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:right;'>{(itemPtr > 0 ? $"₹{itemPtr:N2}" : "-")}</td>" : "")}
+    {(hasPts ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:right;'>{(itemPts > 0 ? $"₹{itemPts:N2}" : "-")}</td>" : "")}
+    <td style='padding:3px; border-right:1px solid #1e293b; text-align:right; font-weight:600;'>₹{it.UnitPrice:N2}</td>
+    {(hasDisc ? $"<td style='padding:3px; border-right:1px solid #1e293b; text-align:right;'>{it.DiscountPercent:N0}%</td>" : "")}
+    <td style='padding:3px 4px; border-right:1px solid #1e293b; text-align:right; font-weight:600;'>₹{it.TaxableAmount:N2}</td>
+    <td style='padding:3px; border-right:1px solid #1e293b; text-align:right;'>{it.GstRate:N0}%</td>
+    <td style='padding:3px 6px; text-align:right; font-weight:bold; color:#000000;'>₹{it.TotalAmount:N2}</td>
 </tr>");
             }
             return sb.ToString();
@@ -4568,6 +6374,23 @@ public class PrintTemplateService : IPrintTemplateService
         }
 
         return "";
+    }
+
+    private static string GenerateQrCodeDataUri(string payload, int pixelsPerModule = 4)
+    {
+        if (string.IsNullOrWhiteSpace(payload)) return "";
+        try
+        {
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.M);
+            var qrCode = new PngByteQRCode(qrCodeData);
+            byte[] qrCodeBytes = qrCode.GetGraphic(pixelsPerModule);
+            return $"data:image/png;base64,{Convert.ToBase64String(qrCodeBytes)}";
+        }
+        catch
+        {
+            return $"https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data={Uri.EscapeDataString(payload)}";
+        }
     }
 
     private static (string pack, decimal freeQty, decimal ptr, decimal pts) ExtractItemPharmaAttributes(SalesInvoiceItem item)
@@ -4619,6 +6442,8 @@ public class PrintTemplateService : IPrintTemplateService
             var root = doc.RootElement;
             if (root.TryGetProperty("imeiSerial", out var p1) && !string.IsNullOrWhiteSpace(p1.GetString())) return true;
             if (root.TryGetProperty("imei2", out var p2) && !string.IsNullOrWhiteSpace(p2.GetString())) return true;
+            if (root.TryGetProperty("warrantySerial", out var p3) && !string.IsNullOrWhiteSpace(p3.GetString())) return true;
+            if (root.TryGetProperty("serialNumber", out var p4) && !string.IsNullOrWhiteSpace(p4.GetString())) return true;
         }
         catch {}
         return false;
@@ -4642,6 +6467,17 @@ public class PrintTemplateService : IPrintTemplateService
                 var s2 = p2.GetString()?.Trim();
                 if (!string.IsNullOrWhiteSpace(s2)) parts.Add($"SIM2: {s2}");
             }
+            if (root.TryGetProperty("warrantySerial", out var ws1))
+            {
+                var s = ws1.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(s)) parts.Add($"S/N: {s}");
+            }
+            else if (root.TryGetProperty("serialNumber", out var ser1))
+            {
+                var s = ser1.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(s)) parts.Add($"S/N: {s}");
+            }
+
             if (parts.Count > 0) return string.Join("<br/>", parts);
         }
         catch {}
@@ -4650,12 +6486,70 @@ public class PrintTemplateService : IPrintTemplateService
 
     private static string ExtractIndustryItemSubline(SalesInvoiceItem item)
     {
-        if (string.IsNullOrWhiteSpace(item.AttributesJson) || item.AttributesJson == "{}") return "";
+        string attrJson = !string.IsNullOrWhiteSpace(item.AttributesJson) && item.AttributesJson != "{}"
+            ? item.AttributesJson
+            : (!string.IsNullOrWhiteSpace(item.Item?.AttributesJson) && item.Item.AttributesJson != "{}" ? item.Item.AttributesJson : "");
+
+        if (string.IsNullOrWhiteSpace(attrJson)) return "";
         try
         {
-            using var doc = System.Text.Json.JsonDocument.Parse(item.AttributesJson);
+            using var doc = System.Text.Json.JsonDocument.Parse(attrJson);
             var root = doc.RootElement;
             var parts = new List<string>();
+
+            // Auto Parts: OEM Part Number, Vehicle Fitment, Brand, Position Side, Rack
+            string? oemNo = null;
+            string? vehFit = null;
+            string? autoBrand = null;
+            string? posSide = null;
+            if (root.TryGetProperty("oemPartNumber", out var oemProp) || root.TryGetProperty("OemPartNumber", out oemProp))
+                oemNo = oemProp.GetString()?.Trim();
+            if (string.IsNullOrWhiteSpace(oemNo) && (root.TryGetProperty("oesPartNumber", out var oesProp) || root.TryGetProperty("OesPartNumber", out oesProp)))
+                oemNo = oesProp.GetString()?.Trim();
+            if (root.TryGetProperty("applicableVehicles", out var avProp) || root.TryGetProperty("ApplicableVehicles", out avProp))
+                vehFit = avProp.GetString()?.Trim();
+            if (string.IsNullOrWhiteSpace(vehFit) && (root.TryGetProperty("vehicleFitment", out var vfProp) || root.TryGetProperty("VehicleFitment", out vfProp)))
+                vehFit = vfProp.GetString()?.Trim();
+            if (root.TryGetProperty("brand", out var abProp) || root.TryGetProperty("Brand", out abProp))
+                autoBrand = abProp.GetString()?.Trim();
+            if (string.IsNullOrWhiteSpace(autoBrand) && (root.TryGetProperty("oesBrand", out var obProp) || root.TryGetProperty("OesBrand", out obProp)))
+                autoBrand = obProp.GetString()?.Trim();
+            if (root.TryGetProperty("positionSide", out var psAutoProp) || root.TryGetProperty("PositionSide", out psAutoProp))
+                posSide = psAutoProp.GetString()?.Trim();
+
+            // Fallback to Item master if missing in line item attributes
+            if (item.Item != null && !string.IsNullOrWhiteSpace(item.Item.AttributesJson) && item.Item.AttributesJson != "{}")
+            {
+                try
+                {
+                    using var mDoc = System.Text.Json.JsonDocument.Parse(item.Item.AttributesJson);
+                    if (string.IsNullOrWhiteSpace(oemNo) && (mDoc.RootElement.TryGetProperty("oemPartNumber", out var mOem) || mDoc.RootElement.TryGetProperty("OemPartNumber", out mOem)))
+                        oemNo = mOem.GetString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(oemNo) && (mDoc.RootElement.TryGetProperty("oesPartNumber", out var mOes) || mDoc.RootElement.TryGetProperty("OesPartNumber", out mOes)))
+                        oemNo = mOes.GetString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(vehFit) && (mDoc.RootElement.TryGetProperty("applicableVehicles", out var mAv) || mDoc.RootElement.TryGetProperty("ApplicableVehicles", out mAv)))
+                        vehFit = mAv.GetString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(vehFit) && (mDoc.RootElement.TryGetProperty("vehicleFitment", out var mVf) || mDoc.RootElement.TryGetProperty("VehicleFitment", out mVf)))
+                        vehFit = mVf.GetString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(autoBrand) && (mDoc.RootElement.TryGetProperty("brand", out var mAb) || mDoc.RootElement.TryGetProperty("Brand", out mAb)))
+                        autoBrand = mAb.GetString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(autoBrand) && (mDoc.RootElement.TryGetProperty("oesBrand", out var mOb) || mDoc.RootElement.TryGetProperty("OesBrand", out mOb)))
+                        autoBrand = mOb.GetString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(posSide) && (mDoc.RootElement.TryGetProperty("positionSide", out var mPs) || mDoc.RootElement.TryGetProperty("PositionSide", out mPs)))
+                        posSide = mPs.GetString()?.Trim();
+                }
+                catch {}
+            }
+
+            if (!string.IsNullOrWhiteSpace(oemNo) || !string.IsNullOrWhiteSpace(vehFit))
+            {
+                var apBadges = new List<string>();
+                if (!string.IsNullOrWhiteSpace(vehFit)) apBadges.Add($"🚗 Fitment: <b>{vehFit}</b>");
+                if (!string.IsNullOrWhiteSpace(oemNo)) apBadges.Add($"Part No: <b>{oemNo}</b>");
+                if (!string.IsNullOrWhiteSpace(autoBrand)) apBadges.Add($"Make: {autoBrand}");
+                if (!string.IsNullOrWhiteSpace(posSide) && posSide != "Universal") apBadges.Add($"Side: {posSide}");
+                return $"<div style='margin-top:2px;'><span style='font-size:9px; font-weight:700; color:#0369a1; background:#f0f9ff; border:1px solid #bae6fd; padding:1px 5px; border-radius:3px; display:inline-block;'>{string.Join(" &nbsp;|&nbsp; ", apBadges)}</span></div>";
+            }
 
             // Electronics: Brand, Model Variant & Warranty (IMEI is shown in dedicated column or here)
             if (root.TryGetProperty("brand", out var bProp))
@@ -4709,10 +6603,40 @@ public class PrintTemplateService : IPrintTemplateService
                 else if (decimal.TryParse(twProp.GetString(), out var ptw)) tw = ptw;
                 if (tw > 0) parts.Add($"Wt: {tw:0.##} Kg");
             }
-            if (root.TryGetProperty("contractorName", out var cProp))
+            if (root.TryGetProperty("contractorName", out var cProp) || root.TryGetProperty("ContractorName", out cProp))
             {
                 var c = cProp.GetString()?.Trim();
                 if (!string.IsNullOrWhiteSpace(c)) parts.Add($"Contractor: {c}");
+            }
+
+            // Hardware & Paints: Shade Code, Shade Name, Pack Size, Tinting Surcharge
+            string? shadeCodeVal = null;
+            string? sn = null;
+            string? packSizeVal = null;
+            decimal tc = 0;
+            if (root.TryGetProperty("shadeCode", out var shadeCodeProp) || root.TryGetProperty("ShadeCode", out shadeCodeProp))
+            {
+                shadeCodeVal = shadeCodeProp.GetString()?.Trim();
+                sn = root.TryGetProperty("shadeName", out var snProp) ? snProp.GetString()?.Trim() : (root.TryGetProperty("ShadeName", out var snProp2) ? snProp2.GetString()?.Trim() : "");
+                if (!string.IsNullOrWhiteSpace(shadeCodeVal))
+                {
+                    parts.Add(!string.IsNullOrWhiteSpace(sn) ? $"Shade: {shadeCodeVal} ({sn})" : $"Shade: {shadeCodeVal}");
+                }
+                else if (!string.IsNullOrWhiteSpace(sn))
+                {
+                    parts.Add($"Shade: {sn}");
+                }
+            }
+            if (root.TryGetProperty("packSize", out var psProp) || root.TryGetProperty("PackSize", out psProp))
+            {
+                packSizeVal = psProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(packSizeVal)) parts.Add($"Pack: {packSizeVal}");
+            }
+            if (root.TryGetProperty("tintingCharge", out var tcProp) || root.TryGetProperty("TintingCharge", out tcProp))
+            {
+                if (tcProp.ValueKind == System.Text.Json.JsonValueKind.Number) tc = tcProp.GetDecimal();
+                else if (decimal.TryParse(tcProp.GetString(), out var ptc)) tc = ptc;
+                if (tc > 0) parts.Add($"Tinting: +₹{tc:0.##}");
             }
 
             // Garments: Size, Color, Style
@@ -4780,13 +6704,215 @@ public class PrintTemplateService : IPrintTemplateService
                 return $"<div style='margin-top:2px;'><span style='font-size:9.5px; font-weight:600; color:#9f1239; background:#fff1f2; border:1px solid #fecdd3; padding:1px 5px; border-radius:3px; display:inline-block;'>{string.Join(" &nbsp;|&nbsp; ", gBadges)}</span></div>";
             }
 
+            if (!string.IsNullOrWhiteSpace(shadeCodeVal) || !string.IsNullOrWhiteSpace(sn) || !string.IsNullOrWhiteSpace(packSizeVal) || tc > 0)
+            {
+                var hBadges = new List<string>();
+                if (!string.IsNullOrWhiteSpace(shadeCodeVal))
+                    hBadges.Add($"🎨 Shade: <b>{shadeCodeVal}{(!string.IsNullOrWhiteSpace(sn) ? $" ({sn})" : "")}</b>");
+                else if (!string.IsNullOrWhiteSpace(sn))
+                    hBadges.Add($"🎨 Shade: <b>{sn}</b>");
+                if (!string.IsNullOrWhiteSpace(packSizeVal))
+                    hBadges.Add($"📦 Pack: <b>{packSizeVal}</b>");
+                if (tc > 0)
+                    hBadges.Add($"🖌️ Tinting: <b>+₹{tc:0.##}</b>");
+                return $"<div style='margin-top:2px;'><span style='font-size:9px; font-weight:600; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; padding:1px 5px; border-radius:3px; display:inline-block;'>{string.Join(" &nbsp;|&nbsp; ", hBadges)}</span></div>";
+            }
+
+            // Jewellery: Purity, Gross Wt, Stone Wt, Net Wt, Making Charges, BIS HUID
+            string? jPurity = null;
+            if (root.TryGetProperty("purityKarat", out var pkProp)) jPurity = pkProp.GetString()?.Trim();
+
+            decimal jGross = 0, jStone = 0, jNet = 0, jMaking = 0;
+            if (root.TryGetProperty("grossWeightGrams", out var gwProp))
+            {
+                if (gwProp.ValueKind == System.Text.Json.JsonValueKind.Number) jGross = gwProp.GetDecimal();
+                else if (decimal.TryParse(gwProp.GetString(), out var pgw)) jGross = pgw;
+            }
+            if (root.TryGetProperty("stoneWeightGrams", out var swProp))
+            {
+                if (swProp.ValueKind == System.Text.Json.JsonValueKind.Number) jStone = swProp.GetDecimal();
+                else if (decimal.TryParse(swProp.GetString(), out var psw)) jStone = psw;
+            }
+            if (root.TryGetProperty("netWeightGrams", out var nwProp))
+            {
+                if (nwProp.ValueKind == System.Text.Json.JsonValueKind.Number) jNet = nwProp.GetDecimal();
+                else if (decimal.TryParse(nwProp.GetString(), out var pnw)) jNet = pnw;
+            }
+            if (root.TryGetProperty("makingChargeAmount", out var mcProp))
+            {
+                if (mcProp.ValueKind == System.Text.Json.JsonValueKind.Number) jMaking = mcProp.GetDecimal();
+                else if (decimal.TryParse(mcProp.GetString(), out var pmc)) jMaking = pmc;
+            }
+            string? jHuid = null;
+            if (root.TryGetProperty("huid", out var huidProp)) jHuid = huidProp.GetString()?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(jPurity) || jGross > 0 || !string.IsNullOrWhiteSpace(jHuid))
+            {
+                var jBadges = new List<string>();
+                if (!string.IsNullOrWhiteSpace(jPurity)) jBadges.Add($"✨ Purity: <b>{jPurity}</b>");
+                if (jGross > 0) jBadges.Add($"Gross: <b>{jGross:0.000}g</b>");
+                if (jStone > 0) jBadges.Add($"Stone: <b>{jStone:0.000}g</b>");
+                if (jNet > 0) jBadges.Add($"Net Wt: <b>{jNet:0.000}g</b>");
+                if (jMaking > 0) jBadges.Add($"Making: <b>₹{jMaking:N2}</b>");
+                if (!string.IsNullOrWhiteSpace(jHuid)) jBadges.Add($"🏷️ BIS HUID: <b>{jHuid}</b>");
+                return $"<div style='margin-top:2px;'><span style='font-size:9px; font-weight:600; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:1px 5px; border-radius:3px; display:inline-block;'>{string.Join(" &nbsp;|&nbsp; ", jBadges)}</span></div>";
+            }
+
+            // Mattress & Furniture: Dimensions (LxWxT), Core Material, Warranty, S/N
+            string? hfDimension = null;
+            if (root.TryGetProperty("dimension", out var dimProp) || root.TryGetProperty("Dimension", out dimProp)) hfDimension = dimProp.GetString()?.Trim();
+            else if (root.TryGetProperty("size", out var szProp) || root.TryGetProperty("Size", out szProp)) hfDimension = szProp.GetString()?.Trim();
+
+            string? hfMaterial = null;
+            if (root.TryGetProperty("coreMaterial", out var cmProp) || root.TryGetProperty("CoreMaterial", out cmProp)) hfMaterial = cmProp.GetString()?.Trim();
+            else if (root.TryGetProperty("material", out var matProp) || root.TryGetProperty("Material", out matProp)) hfMaterial = matProp.GetString()?.Trim();
+
+            string? hfWarranty = null;
+            if (root.TryGetProperty("warrantyYears", out var wyProp) || root.TryGetProperty("WarrantyYears", out wyProp)) hfWarranty = wyProp.ToString().Trim();
+            else if (root.TryGetProperty("warranty", out var warrProp) || root.TryGetProperty("Warranty", out warrProp)) hfWarranty = warrProp.GetString()?.Trim();
+
+            string? hfSerial = null;
+            if (root.TryGetProperty("warrantySerial", out var wsProp) || root.TryGetProperty("WarrantySerial", out wsProp)) hfSerial = wsProp.GetString()?.Trim();
+            else if (root.TryGetProperty("serialNumber", out var serProp) || root.TryGetProperty("SerialNumber", out serProp)) hfSerial = serProp.GetString()?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(hfDimension) || !string.IsNullOrWhiteSpace(hfMaterial) || !string.IsNullOrWhiteSpace(hfWarranty) || !string.IsNullOrWhiteSpace(hfSerial))
+            {
+                var hfBadges = new List<string>();
+                if (!string.IsNullOrWhiteSpace(hfDimension)) hfBadges.Add($"🛏️ Size: <b>{hfDimension}</b>");
+                if (!string.IsNullOrWhiteSpace(hfMaterial)) hfBadges.Add($"🧵 <b>{hfMaterial}</b>");
+                if (!string.IsNullOrWhiteSpace(hfWarranty)) hfBadges.Add($"🛡️ Warranty: <b>{hfWarranty}{(hfWarranty.EndsWith("Yrs", StringComparison.OrdinalIgnoreCase) || hfWarranty.EndsWith("Years", StringComparison.OrdinalIgnoreCase) ? "" : " Yrs")}</b>");
+                if (!string.IsNullOrWhiteSpace(hfSerial)) hfBadges.Add($"🏷️ S/N: <b>{hfSerial}</b>");
+                return $"<div style='margin-top:2px;'><span style='font-size:9px; font-weight:600; color:#0369a1; background:#f0f9ff; border:1px solid #bae6fd; padding:1px 5px; border-radius:3px; display:inline-block;'>{string.Join(" &nbsp;|&nbsp; ", hfBadges)}</span></div>";
+            }
+
             if (parts.Count > 0)
             {
-                return $"<div style='font-size:8px; color:#475569; font-weight:normal; margin-top:2px;'>{string.Join(" | ", parts)}</div>";
+                return $"<div style='font-size:9px; color:#1e293b; font-weight:600; margin-top:2px;'>{string.Join(" | ", parts)}</div>";
             }
         }
         catch {}
         return "";
+    }
+
+    private record IndustryProfile(
+        string NormalizedCode,
+        bool IsPharma,
+        bool IsGarments,
+        bool IsHardware,
+        bool IsElectronics,
+        bool IsAutoParts,
+        bool IsFmcg,
+        bool IsServices,
+        bool IsJewellery,
+        bool IsHomeFurnishing = false
+    );
+
+    private static IndustryProfile ResolveIndustryProfile(Tenant? tenant, SalesInvoice? invoice, PrintTemplate t)
+    {
+        var raw = !string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule)
+            ? tenant.ActiveIndustryModule
+            : (!string.IsNullOrWhiteSpace(tenant?.IndustryTypeCode) ? tenant.IndustryTypeCode : "");
+        var normalized = IndustryTypeCodes.Normalize(raw);
+        var upperRaw = raw.ToUpperInvariant();
+
+        bool isGarments = normalized == IndustryTypeCodes.Garments
+            || upperRaw.Contains("GARMENT")
+            || upperRaw.Contains("APPAREL")
+            || upperRaw.Contains("CLOTH")
+            || t.TemplateCode.Contains("APPAREL")
+            || t.TemplateCode.Contains("LIFESTYLE");
+
+        bool isHardware = normalized == IndustryTypeCodes.Hardware
+            || upperRaw.Contains("HARDWARE")
+            || upperRaw.Contains("PAINT");
+
+        bool isElectronics = normalized == IndustryTypeCodes.Electronics
+            || upperRaw.Contains("ELECTRONIC")
+            || upperRaw.Contains("MOBILE")
+            || t.TemplateCode.Contains("ELECTRONICS")
+            || t.TemplateCode.Contains("MOBILE");
+
+        bool isAutoParts = normalized == IndustryTypeCodes.AutoParts
+            || upperRaw.Contains("AUTO")
+            || (tenant?.IndustryTypeCode != null && (tenant.IndustryTypeCode.Equals("AUTOPARTS", StringComparison.OrdinalIgnoreCase) || tenant.IndustryTypeCode.Equals("AUTO_PARTS", StringComparison.OrdinalIgnoreCase)))
+            || (tenant?.ActiveIndustryModule != null && (tenant.ActiveIndustryModule.Equals("autoparts", StringComparison.OrdinalIgnoreCase) || tenant.ActiveIndustryModule.Equals("auto_parts", StringComparison.OrdinalIgnoreCase)))
+            || t.TemplateCode.Contains("AUTOPARTS");
+
+        bool isFmcg = normalized == IndustryTypeCodes.Fmcg
+            || upperRaw.Contains("FMCG")
+            || upperRaw.Contains("GROCERY")
+            || upperRaw.Contains("SUPERMARKET")
+            || t.TemplateCode.Contains("SUPERMARKET")
+            || t.TemplateCode.Contains("GROCERY");
+
+        bool isServices = normalized == IndustryTypeCodes.ServiceSector
+            || upperRaw.Contains("SERVICE")
+            || upperRaw.Contains("CONSULT")
+            || t.TemplateCode.Contains("SERVICES")
+            || t.TemplateCode.Contains("PROFESSIONAL");
+
+        bool isJewellery = normalized == IndustryTypeCodes.Jewellery
+            || upperRaw.Contains("JEWEL")
+            || upperRaw.Contains("GOLD")
+            || (tenant?.IndustryTypeCode != null && tenant.IndustryTypeCode.Equals("JEWELLERY", StringComparison.OrdinalIgnoreCase))
+            || (tenant?.ActiveIndustryModule != null && tenant.ActiveIndustryModule.Equals("jewellery", StringComparison.OrdinalIgnoreCase))
+            || t.TemplateCode.Contains("JEWELLERY");
+
+        bool isPharma = (normalized == IndustryTypeCodes.Pharma
+            || upperRaw.Contains("PHARMA")
+            || upperRaw.Contains("HEALTH")
+            || upperRaw.Contains("CHEMIST")
+            || upperRaw.Contains("MEDICINE")
+            || (!string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber))
+            || t.TemplateCode.Contains("PHARMA")
+            || t.TemplateCode.Contains("CHEMIST")
+            || (!isGarments && !isElectronics && !isAutoParts && !isJewellery && invoice?.Items != null && invoice.Items.Any(i => !string.IsNullOrEmpty(i.BatchNumber) || i.ExpiryDate.HasValue)))
+            && !isJewellery;
+
+                bool isHomeFurnishing = normalized == IndustryTypeCodes.HomeFurnishing
+            || upperRaw.Contains("FURNISH")
+            || upperRaw.Contains("MATTRESS")
+            || upperRaw.Contains("FURNITURE")
+            || t.TemplateCode.Contains("FURNITURE")
+            || t.TemplateCode.Contains("MATTRESS");
+
+        return new IndustryProfile(normalized, isPharma, isGarments, isHardware, isElectronics, isAutoParts, isFmcg, isServices, isJewellery, isHomeFurnishing);
+    }
+
+    private static void ExtractInvoiceDoctorDetails(SalesInvoice? invoice, out string doctorName, out string doctorRegNo, out string patientName, out string patientContact)
+    {
+        doctorName = invoice?.DoctorName?.Trim() ?? "";
+        doctorRegNo = invoice?.DoctorRegistrationNumber?.Trim() ?? "";
+        patientName = "";
+        patientContact = "";
+
+        if (!string.IsNullOrEmpty(invoice?.AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
+                var root = doc.RootElement;
+                if (string.IsNullOrWhiteSpace(doctorName))
+                {
+                    if (root.TryGetProperty("doctorName", out var dn) && !string.IsNullOrWhiteSpace(dn.GetString()))
+                        doctorName = dn.GetString()!.Trim();
+                }
+                if (string.IsNullOrWhiteSpace(doctorRegNo))
+                {
+                    if (root.TryGetProperty("doctorRegNumber", out var drn) && !string.IsNullOrWhiteSpace(drn.GetString()))
+                        doctorRegNo = drn.GetString()!.Trim();
+                    else if (root.TryGetProperty("doctorRegNo", out var drn2) && !string.IsNullOrWhiteSpace(drn2.GetString()))
+                        doctorRegNo = drn2.GetString()!.Trim();
+                }
+                if (root.TryGetProperty("patientName", out var pn) && !string.IsNullOrWhiteSpace(pn.GetString()))
+                    patientName = pn.GetString()!.Trim();
+                if (root.TryGetProperty("patientAddressPhone", out var pap) && !string.IsNullOrWhiteSpace(pap.GetString()))
+                    patientContact = pap.GetString()!.Trim();
+                else if (root.TryGetProperty("patientContact", out var pc) && !string.IsNullOrWhiteSpace(pc.GetString()))
+                    patientContact = pc.GetString()!.Trim();
+            }
+            catch {}
+        }
     }
 
     private static string ExtractInvoiceBuyerDl(SalesInvoice? invoice)
@@ -4805,7 +6931,55 @@ public class PrintTemplateService : IPrintTemplateService
             }
             catch {}
         }
-        return invoice.Party?.DrugLicenseNumber1 ?? "";
+        var partyDl = invoice.Party?.DrugLicenseNumber1;
+        if (string.IsNullOrWhiteSpace(partyDl)) partyDl = invoice.Party?.DrugLicenseNumber2;
+        return partyDl ?? "";
+    }
+
+    private static string ExtractInvoiceBuyerAddress(SalesInvoice? invoice)
+    {
+        if (invoice == null) return "";
+        var addr = !string.IsNullOrWhiteSpace(invoice.BillingAddress) ? invoice.BillingAddress.Trim() : "";
+        if (string.IsNullOrWhiteSpace(addr) || 
+            addr.Equals(invoice.CustomerName?.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            (invoice.Party != null && !string.IsNullOrWhiteSpace(invoice.Party.TradeName) && addr.Equals(invoice.Party.TradeName.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            var defAddr = invoice.Party?.Addresses?.FirstOrDefault(a => !a.IsDeleted && a.IsDefault)
+                       ?? invoice.Party?.Addresses?.FirstOrDefault(a => !a.IsDeleted);
+            if (defAddr != null)
+            {
+                var parts = new[] {
+                    defAddr.AddressLine1,
+                    defAddr.AddressLine2,
+                    defAddr.City,
+                    !string.IsNullOrWhiteSpace(defAddr.State)
+                        ? (!string.IsNullOrWhiteSpace(defAddr.Pincode) ? $"{defAddr.State} - {defAddr.Pincode}" : defAddr.State)
+                        : defAddr.Pincode
+                }.Where(s => !string.IsNullOrWhiteSpace(s));
+                var formatted = string.Join(", ", parts);
+                if (!string.IsNullOrWhiteSpace(formatted)) return formatted;
+            }
+        }
+        return addr;
+    }
+
+    private static string ExtractInvoiceBuyerFssai(SalesInvoice? invoice)
+    {
+        if (invoice == null) return "";
+        if (!string.IsNullOrEmpty(invoice.AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(invoice.AttributesJson);
+                if (doc.RootElement.TryGetProperty("customerFssaiNumber", out var cfssai))
+                {
+                    var val = cfssai.GetString() ?? "";
+                    if (!string.IsNullOrWhiteSpace(val)) return val;
+                }
+            }
+            catch {}
+        }
+        return invoice.Party?.FSSAINumber ?? "";
     }
 
     private static string ExtractInvoiceTradeTier(SalesInvoice? invoice)
@@ -4885,33 +7059,35 @@ public class PrintTemplateService : IPrintTemplateService
         if (IsA5Size(t))
         {
             return @"
-@page { size: 210mm 148mm; margin: 3mm 4mm; }
+@page { size: A4 portrait; margin: 2mm 3mm; }
 @media print {
     html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
-    .invoice-wrapper, .invoice-container, .cbo-invoice-wrap { width: 100% !important; min-height: 138mm !important; height: auto !important; max-height: none !important; box-sizing: border-box !important; }
+    .invoice-wrapper, .invoice-container, .cbo-invoice-wrap, .page-wrapper, .pharma-grid-invoice { width: 100% !important; max-width: 204mm !important; min-height: 140mm !important; height: 142mm !important; max-height: 144mm !important; margin: 0 auto !important; box-sizing: border-box !important; page-break-inside: avoid !important; break-inside: avoid !important; }
 }
 ";
         }
 
-        if (t.PageSize == PageSizeFormat.Thermal_80mm || t.PageSize == PageSizeFormat.Thermal_58mm)
+           if (t.PageSize == PageSizeFormat.Thermal_80mm || t.PageSize == PageSizeFormat.Thermal_58mm)
         {
-            return @"
-@page { size: 80mm auto; margin: 0; }
-@media print {
-    html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; }
-    .thermal-slip { width: 100% !important; max-width: 80mm !important; }
-}
+            var is58 = t.PageSize == PageSizeFormat.Thermal_58mm || t.TemplateCode?.Contains("58MM") == true;
+            var width = is58 ? "58mm" : "80mm";
+            return $@"
+@page {{ size: {width} auto; margin: 0; }}
+@media print {{
+    html, body {{ width: 100% !important; margin: 0 !important; }}
+    .thermal-slip {{ width: 100% !important; max-width: {width} !important; }}
+}}
 ";
         }
 
         return @"
-@page { size: 210mm 297mm; margin: 4mm 5mm; }
+@page { size: 210mm 297mm; margin: 3mm 4mm; }
 @media print {
     html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
-    .invoice-wrapper, .invoice-container, .cbo-invoice-wrap, .enterprise-invoice { 
+    .invoice-wrapper, .invoice-container, .cbo-invoice-wrap, .enterprise-invoice, .page-wrapper, .pharma-grid-invoice { 
         width: 100% !important; 
         height: auto !important; 
-        max-height: 285mm !important; 
+        max-height: 272mm !important; 
         box-sizing: border-box !important; 
         page-break-inside: avoid !important; 
         break-inside: avoid !important; 
@@ -4922,206 +7098,7 @@ public class PrintTemplateService : IPrintTemplateService
 
     private async Task SeedDefaultTemplatesAsync(Guid tenantId, CancellationToken cancellationToken)
     {
-        var defaultTemplates = new List<PrintTemplate>
-        {
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "Enterprise Classic Executive Edition (A4)",
-                TemplateCode = "TPL_ENTERPRISE_PREMIUM_DYNAMIC",
-                PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = false,
-                PrimaryColorHex = "#4338ca",
-                SecondaryColorHex = "#4f46e5",
-                HeaderTitle = "TAX INVOICE",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = false,
-                DeclarationText = ""
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "Tally Prime ERP Classic (A4)",
-                TemplateCode = "TPL_B2B_TALLY",
-                PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = false,
-                PrimaryColorHex = "#000000",
-                SecondaryColorHex = "#334155",
-                HeaderTitle = "TAX INVOICE",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = false,
-                DeclarationText = ""
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "UdyogBill Signature B2B Universal Tax Invoice (A4)",
-                TemplateCode = "TPL_UDYOGBILL_SIGNATURE_B2B",
-                PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = true,
-                PrimaryColorHex = "#1e3a8a",
-                SecondaryColorHex = "#2563eb",
-                HeaderTitle = "TAX INVOICE",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                BankAccountName = null,
-                BankAccountNumber = null,
-                BankIfsc = null,
-                BankName = null,
-                ShowUpiQr = true,
-                UpiId = null,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = false,
-                DeclarationText = ""
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.POSReceipt,
-                TemplateName = "3-inch (80mm) Thermal Cash Memo",
-                TemplateCode = "TPL_POS_THERMAL_80MM",
-                PageSize = PageSizeFormat.Thermal_80mm,
-                IsDefault = false,
-                PrimaryColorHex = "#000000",
-                SecondaryColorHex = "#111827",
-                HeaderTitle = "CASH / POS RECEIPT",
-                ShowBankDetails = false,
-                ShowUpiQr = true,
-                UpiId = null,
-                ShowSavingsCallout = true
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "Pharma & FMCG Classic Tax Invoice (A4 Grid Edition)",
-                TemplateCode = "TPL_PHARMA_PRO_TAX_INVOICE",
-                PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = false,
-                PrimaryColorHex = "#1e40af",
-                SecondaryColorHex = "#2563eb",
-                HeaderTitle = "Tax Invoice",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = true
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.TaxInvoice,
-                TemplateName = "Marg Pharma Classic Half-Page Tax Invoice (A5)",
-                TemplateCode = "TPL_MARG_HALF_PAGE_A5",
-                PageSize = PageSizeFormat.A5_Landscape,
-                IsDefault = false,
-                PrimaryColorHex = "#0284c7",
-                SecondaryColorHex = "#0369a1",
-                HeaderTitle = "TAX INVOICE",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = true
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.POSReceipt,
-                TemplateName = "Pharma Retail Cash Memo (A5 Half-Page Non-GST)",
-                TemplateCode = "TPL_CASH_MEMO_HALF_PAGE_A5",
-                PageSize = PageSizeFormat.A5_Landscape,
-                IsDefault = false,
-                PrimaryColorHex = "#0e7490",
-                SecondaryColorHex = "#0891b2",
-                HeaderTitle = "CASH MEMO",
-                HeaderSubtitle = "Retail Counter Sale Memo",
-                ShowGstin = false,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = true,
-                ShowItemHsn = false,
-                ShowBatchExpiry = true,
-                ShowDeclaration = false
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.PurchaseOrder,
-                TemplateName = "Executive Commercial Purchase Order (A4)",
-                TemplateCode = "TPL_PURCHASE_ORDER_EXECUTIVE",
-                PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = true,
-                PrimaryColorHex = "#1d4ed8",
-                SecondaryColorHex = "#2563eb",
-                HeaderTitle = "PURCHASE ORDER",
-                HeaderSubtitle = "Commercial Procurement Order",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = false,
-                ShowUpiQr = false,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = false,
-                DeclarationText = ""
-            },
-            new()
-            {
-                TenantId = tenantId,
-                DocumentType = PrintDocumentType.CreditNote,
-                TemplateName = "GST Credit Note (A4)",
-                TemplateCode = "TPL_CREDIT_NOTE_STATUTORY",
-                PageSize = PageSizeFormat.A4_Portrait,
-                IsDefault = true,
-                PrimaryColorHex = "#b45309",
-                SecondaryColorHex = "#d97706",
-                HeaderTitle = "GST CREDIT NOTE",
-                HeaderSubtitle = "Original for Recipient",
-                ShowGstin = true,
-                ShowDrugLicense = true,
-                ShowFssai = true,
-                ShowBankDetails = true,
-                ShowUpiQr = false,
-                ShowItemHsn = true,
-                ShowBatchExpiry = true,
-                ShowDeclaration = false,
-                DeclarationText = ""
-            }
-        };
-
-        _context.PrintTemplates.AddRange(defaultTemplates);
-        await _context.SaveChangesAsync(cancellationToken);
+        await EnsureCanonicalTemplatesAsync(tenantId, cancellationToken);
     }
 
     private static string RenderPharmaProTaxInvoiceHtml(PrintTemplate t, SalesInvoice? invoice, Tenant? tenant)
@@ -5140,21 +7117,24 @@ public class PrintTemplateService : IPrintTemplateService
             ? invoice.Branch.GSTIN
             : (!string.IsNullOrWhiteSpace(tenant?.GSTIN) ? tenant.GSTIN : "");
         var sellerDl = !string.IsNullOrWhiteSpace(tenant?.DrugLicenseNumber) ? tenant.DrugLicenseNumber : "";
+        var sellerFssai = !string.IsNullOrWhiteSpace(tenant?.FSSAINumber) ? tenant.FSSAINumber : "";
         var sellerPhone = !string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? tenant.PrimaryPhone : "";
         var logoUrl = !string.IsNullOrEmpty(t.LogoUrl) ? t.LogoUrl : (!string.IsNullOrEmpty(tenant?.LogoUrl) ? tenant.LogoUrl : "");
 
         // Invoice Metadata
         var invNo = invoice?.InvoiceNumber ?? "";
-        var invDate = invoice?.InvoiceDate.ToString("MM/dd/yyyy HH:mm") ?? DateTime.Now.ToString("MM/dd/yyyy HH:mm");
-        var dueDate = invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("MM/dd/yyyy HH:mm") : invDate;
+        var invDate = invoice?.InvoiceDate.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
+        var dueDate = invoice?.DueDate.HasValue == true ? invoice.DueDate.Value.ToString("dd/MM/yyyy") : invDate;
 
         // Customer Details (BILL TO / SHIP TO)
         var custName = !string.IsNullOrWhiteSpace(invoice?.CustomerName) ? invoice.CustomerName : "";
         var custGstin = !string.IsNullOrWhiteSpace(invoice?.CustomerGSTIN) ? invoice.CustomerGSTIN : "";
-        var custAddress = !string.IsNullOrWhiteSpace(invoice?.BillingAddress) ? invoice.BillingAddress : "";
+        var custAddress = ExtractInvoiceBuyerAddress(invoice);
         var shipAddress = !string.IsNullOrWhiteSpace(invoice?.ShippingAddress) ? invoice.ShippingAddress : custAddress;
         var custPhone = !string.IsNullOrWhiteSpace(invoice?.CustomerPhone) && !invoice.CustomerPhone.Contains("9876543210") ? invoice.CustomerPhone : "";
         var custDl = ExtractInvoiceBuyerDl(invoice);
+        ExtractInvoiceDoctorDetails(invoice, out var docName, out var docReg, out _, out _);
+        var custFssai = ExtractInvoiceBuyerFssai(invoice);
 
         // Logistics & Transport Metadata
         var transporter = !string.IsNullOrWhiteSpace(invoice?.TransporterName) ? invoice.TransporterName : "";
@@ -5189,25 +7169,43 @@ public class PrintTemplateService : IPrintTemplateService
             : "";
         bool hasValidBank = t.ShowBankDetails && (!string.IsNullOrWhiteSpace(bankName) || !string.IsNullOrWhiteSpace(bankAcc) || !string.IsNullOrWhiteSpace(bankIfsc));
 
-        // Dynamic Column Detection: Only show columns that actually have values in backend
-        var industry = IndustryTypeCodes.Normalize(!string.IsNullOrWhiteSpace(tenant?.ActiveIndustryModule) ? tenant.ActiveIndustryModule : tenant?.IndustryTypeCode);
-        bool isElectronics = industry == IndustryTypeCodes.Electronics;
-        bool isGarments = industry == IndustryTypeCodes.Garments;
-        bool isHardware = industry == IndustryTypeCodes.Hardware;
+        // Universal Industry Profile
+        var prof = ResolveIndustryProfile(tenant, invoice, t);
+        bool isElectronics = prof.IsElectronics;
+        bool isGarments = prof.IsGarments;
+        bool isHardware = prof.IsHardware;
 
-        bool hasSerial = isElectronics || (invoice?.Items.Any(HasImeiOrSerial) ?? false);
-        bool hasBatch = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)) : true);
-        bool hasExpiry = !isElectronics && !isGarments && !isHardware && (invoice != null ? invoice.Items.Any(i => i.ExpiryDate.HasValue) : true);
-        bool hasPack = invoice != null ? invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)) : true;
-        bool hasFree = invoice != null ? invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0) : false;
-        bool hasMrp = invoice != null ? invoice.Items.Any(i => i.Mrp > 0) : true;
-        bool hasDisc = invoice != null ? invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0) : true;
+        bool hasSerial = (invoice?.Items.Any(HasImeiOrSerial) ?? false) || isElectronics;
+        bool hasBatch = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(i.BatchNumber)));
+        bool hasExpiry = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.ExpiryDate.HasValue));
+        bool hasPack = prof.IsPharma || (invoice != null && invoice.Items.Any(i => !string.IsNullOrWhiteSpace(ExtractItemPharmaAttributes(i).pack)));
+        bool hasFree = prof.IsPharma || (invoice != null && invoice.Items.Any(i => ExtractItemPharmaAttributes(i).freeQty > 0));
+        bool hasMrp = prof.IsPharma || (invoice != null && invoice.Items.Any(i => i.Mrp > 0));
+        bool hasDisc = invoice != null && invoice.Items.Any(i => i.DiscountPercent > 0 || i.DiscountAmount > 0);
+
+        bool isA5 = IsA5Size(t);
+        bool isNonGst = IsNonGstDocument(invoice);
+        var termsCity = !string.IsNullOrWhiteSpace(invoice?.Branch?.City) ? invoice.Branch.City : (!string.IsNullOrWhiteSpace(tenant?.City) ? tenant.City : "DELHI");
+
+        // Public Invoice URL QR for Header
+        var verifyQr = $"https://api.qrserver.com/v1/create-qr-code/?size=95x95&margin=0&data={Uri.EscapeDataString($"https://udyogbill.com/i/{invoice?.Id}")}";
 
         // Line Items & HSN Summary
         var (itemsHtml, hsnRowsHtml, hsnTotalsHtml) = RenderPharmaProItemsAndHsn(
-            invoice, taxable, cgst, sgst, igst, hasPack, hasSerial, hasBatch, hasExpiry, hasFree, hasMrp, hasDisc);
+            invoice, taxable, cgst, sgst, igst, hasPack, hasSerial, hasBatch, hasExpiry, hasFree, hasMrp, hasDisc, isA5);
 
-        var termsCity = !string.IsNullOrWhiteSpace(invoice?.Branch?.City) ? invoice.Branch.City : (!string.IsNullOrWhiteSpace(tenant?.City) ? tenant.City : "DELHI");
+        string pageCss = isA5
+            ? "@page { size: A4 portrait; margin: 2mm 3mm; }"
+            : "@page { size: A4 portrait; margin: 3mm 4mm; }";
+        string wrapperCss = isA5
+            ? "position: relative; width: 100%; max-width: 100%; min-height: 140mm; height: auto; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;"
+            : "position: relative; width: 100%; max-width: 100%; min-height: 280mm; max-height: 285mm; height: 282mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid; break-inside: avoid;";
+
+        var sellerLicenses = new List<string>();
+        if (!string.IsNullOrEmpty(sellerGstin)) sellerLicenses.Add($"GST NUM: <strong>{sellerGstin}</strong>");
+        if (!string.IsNullOrEmpty(sellerDl)) sellerLicenses.Add($"DRUG LICEN: <strong>{sellerDl}</strong>");
+        if (!string.IsNullOrEmpty(sellerFssai)) sellerLicenses.Add($"FSSAI: <strong>{sellerFssai}</strong>");
+        var sellerLicensesHtml = string.Join(" | ", sellerLicenses);
 
         return $@"
 <!DOCTYPE html>
@@ -5216,12 +7214,12 @@ public class PrintTemplateService : IPrintTemplateService
     <meta charset='utf-8' />
     <title>Tax Invoice - {invNo}</title>
     <style>
-        @page {{ size: A4 portrait; margin: 4mm 6mm; }}
-        html, body {{ margin: 0; padding: 0; background: #ffffff; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-        .page-wrapper {{ width: 100%; max-width: 820px; min-height: 284mm; height: 284mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }}
-        .pharma-grid-invoice {{ width: 100%; box-sizing: border-box; font-size: 9.5px; line-height: 1.35; display: flex; flex-direction: column; gap: 7px; }}
-        table {{ border-collapse: collapse; }}
-        th, td {{ box-sizing: border-box; }}
+        {pageCss}
+        html, body {{ margin: 0; padding: 0; width: 100%; min-width: 100%; max-width: 100%; background: #ffffff; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+        .page-wrapper {{ {wrapperCss} }}
+        .pharma-grid-invoice {{ width: 100%; height: 100%; box-sizing: border-box; font-size: {(isA5 ? "9px" : "10px")}; line-height: 1.3; display: flex; flex-direction: column; justify-content: space-between; flex: 1; color: #000000; gap: {(isA5 ? "3px" : "4px")}; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        th, td {{ box-sizing: border-box; color: #000000; }}
     </style>
 </head>
 <body>
@@ -5229,46 +7227,48 @@ public class PrintTemplateService : IPrintTemplateService
     <div class='pharma-grid-invoice'>
 
         <!-- 1. TOP HEADER BOX WITH ORANGE ACCENT BORDER -->
-        <div style='display:flex; justify-content:space-between; align-items:flex-start; padding:10px 14px; border:1.5px solid #d97706; border-radius:2px; background:#ffffff;'>
-            <div style='display:flex; gap:12px; align-items:center; max-width:62%;'>
-                {(!string.IsNullOrEmpty(logoUrl) ? $"<img src='{logoUrl}' alt='Logo' style='max-height:65px; max-width:115px; object-fit:contain;' />" : "")}
+        <div style='display:flex; justify-content:space-between; align-items:flex-start; padding:6px 12px; border:2px solid #c2410c; border-radius:2px; background:#ffffff;'>
+            <div style='display:flex; gap:10px; align-items:center; max-width:62%;'>
+                {(!string.IsNullOrEmpty(logoUrl) ? $"<img src='{logoUrl}' alt='Logo' style='max-height:48px; max-width:105px; object-fit:contain;' />" : "")}
                 <div>
-                    <div style='font-size:16px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;'>{sellerName}</div>
-                    {(!string.IsNullOrEmpty(sellerAddress) ? $"<div style='font-size:9.5px; color:#334155; margin-top:2px;'>{sellerAddress}</div>" : "")}
-                    {(!string.IsNullOrEmpty(sellerPhone) ? $"<div style='font-size:9.5px; color:#334155;'>Mobile: <strong>{sellerPhone}</strong></div>" : "")}
-                    <div style='font-size:9.5px; color:#334155; margin-top:1px;'>
-                        {(!string.IsNullOrEmpty(sellerGstin) ? $"GST NUM: <strong>{sellerGstin}</strong>" : "")}
-                        {(!string.IsNullOrEmpty(sellerDl) ? $" | DRUG LICEN: <strong>{sellerDl}</strong>" : "")}
-                    </div>
+                    <div style='font-size:16px; font-weight:900; color:#000000; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;'>{sellerName}</div>
+                    {(!string.IsNullOrEmpty(sellerAddress) ? $"<div style='font-size:9px; color:#000000; margin-top:2px; font-weight:500;'>{sellerAddress}</div>" : "")}
+                    {(!string.IsNullOrEmpty(sellerPhone) ? $"<div style='font-size:9px; color:#000000;'>Mobile: <strong>{sellerPhone}</strong></div>" : "")}
+                    {(!string.IsNullOrEmpty(sellerLicensesHtml) ? $"<div style='font-size:9px; color:#000000; margin-top:1px; font-weight:600;'>{sellerLicensesHtml}</div>" : "")}
                 </div>
             </div>
 
             <div style='text-align:right; min-width:34%;'>
-                <div style='background: #c2410c; color:#ffffff; font-size:15px; font-weight:800; padding:6px 22px; border-radius:6px; display:inline-block; letter-spacing:0.4px;'>Tax Invoice</div>
-                <div style='font-size:9.5px; margin-top:5px; line-height:1.4;'>
-                    <div>Invoice No. <strong>{invNo}</strong></div>
+                <div style='background: {(isNonGst ? "#ea580c" : "#c2410c")}; color:#ffffff; font-size:13px; font-weight:900; padding:4px 18px; border-radius:4px; display:inline-block; letter-spacing:0.4px;'>{(isNonGst ? "CASH MEMO / ESTIMATE" : "TAX INVOICE")}</div>
+                <div style='font-size:9px; color:#000000; margin-top:4px; line-height:1.35;'>
+                    <div>Invoice No. <strong style='font-size:10px;'>{invNo}</strong></div>
                     <div>Date <strong>{invDate}</strong></div>
                     {(!string.IsNullOrEmpty(dueDate) ? $"<div>Due Date <strong>{dueDate}</strong></div>" : "")}
                 </div>
-                {(!string.IsNullOrEmpty(upiQr) ? $"<div style='margin-top:5px;'><img src='{upiQr}' alt='QR' style='width:68px; height:68px; border:1px solid #cbd5e1;' /></div>" : "")}
+                <div style='margin-top:3px; text-align:right;'>
+                    <img src='{verifyQr}' alt='Scan to View' style='width:52px; height:52px; border:1px solid #1e293b; display:inline-block;' />
+                    <div style='font-size:7px; color:#000000; font-weight:700; text-align:right;'>Scan to Verify</div>
+                </div>
             </div>
         </div>
 
         <!-- 2. BILL TO / SHIP TO BOX -->
-        <div style='display:grid; grid-template-columns: 1fr 1fr; border:1px solid #9ca3af; font-size:9.5px;'>
-            <div style='padding:6px 10px; border-right:1px solid #9ca3af;'>
-                <div style='font-weight:bold; color:#1e293b; text-transform:uppercase; font-size:8.5px; letter-spacing:0.4px;'>BILL TO (RECIPIENT)</div>
-                <div style='font-weight:800; font-size:11px; color:#0f172a; margin-top:2px;'>{custName}</div>
-                <div style='color:#334155; line-height:1.3;'>{custAddress}</div>
+        <div style='display:grid; grid-template-columns: 1fr 1fr; border:1.5px solid #1e293b; font-size:9px; color:#000000;'>
+            <div style='padding:5px 8px; border-right:1.5px solid #1e293b;'>
+                <div style='font-weight:900; color:#000000; text-transform:uppercase; font-size:8.5px; letter-spacing:0.4px; border-bottom:1px solid #1e293b; padding-bottom:2px; margin-bottom:3px;'>BILL TO (BUYER DETAILS)</div>
+                <div style='font-weight:900; font-size:11px; color:#000000;'>{custName}</div>
+                <div style='color:#000000; line-height:1.3; font-weight:500;'>{custAddress}</div>
                 {(!string.IsNullOrEmpty(custPhone) ? $"<div style='margin-top:2px;'>Mobile: <strong>{custPhone}</strong></div>" : "")}
-                {(!string.IsNullOrEmpty(custGstin) ? $"<div>GST: <strong>{custGstin}</strong></div>" : "")}
-                {(!string.IsNullOrEmpty(custDl) ? $"<div>DL NUM- <strong>{custDl}</strong></div>" : "")}
+                {(!string.IsNullOrEmpty(custGstin) ? $"<div>GSTIN: <strong style='font-family:monospace;'>{custGstin}</strong></div>" : "")}
+                {(!string.IsNullOrEmpty(custDl) ? $"<div>D.L. No: <strong style='font-family:monospace;'>{custDl}</strong></div>" : "")}
+                {(!string.IsNullOrEmpty(custFssai) ? $"<div>FSSAI: <strong style='font-family:monospace;'>{custFssai}</strong></div>" : "")}
             </div>
-            <div style='padding:6px 10px;'>
-                <div style='font-weight:bold; color:#1e293b; text-transform:uppercase; font-size:8.5px; letter-spacing:0.4px;'>SHIP TO / DISPATCH</div>
-                <div style='font-weight:700; font-size:10.5px; color:#0f172a; margin-top:2px; line-height:1.3;'>{shipAddress}</div>
+            <div style='padding:5px 8px;'>
+                <div style='font-weight:900; color:#000000; text-transform:uppercase; font-size:8.5px; letter-spacing:0.4px; border-bottom:1px solid #1e293b; padding-bottom:2px; margin-bottom:3px;'>SHIP TO / DESTINATION</div>
+                <div style='font-weight:800; font-size:10.5px; color:#000000;'>{custName}</div>
+                <div style='color:#000000; line-height:1.3; font-weight:500;'>{shipAddress}</div>
                 {(hasLogistics ? $@"
-                <div style='margin-top:4px; font-size:8.5px; color:#475569; line-height:1.3;'>
+                <div style='margin-top:3px; font-size:8.5px; color:#000000; line-height:1.3; border-top:1px dashed #1e293b; padding-top:2px;'>
                     {(!string.IsNullOrEmpty(transporter) ? $"<div>Transporter: <strong>{transporter}</strong></div>" : "")}
                     {(!string.IsNullOrEmpty(vehicleNo) ? $"<div>Vehicle No: <strong>{vehicleNo}</strong></div>" : "")}
                     {(!string.IsNullOrEmpty(lrNo) ? $"<div>LR No: <strong>{lrNo}</strong> {(string.IsNullOrEmpty(lrDate) ? "" : $"Dt: {lrDate}")}</div>" : "")}
@@ -5278,26 +7278,26 @@ public class PrintTemplateService : IPrintTemplateService
         </div>
 
         <!-- 3. PRODUCTS LINE ITEMS GRID TABLE -->
-        <table style='width:100%; border-collapse:collapse; border:1px solid #9ca3af; font-size:9px;'>
+        <table style='width:100%; border-collapse:collapse; border:1.5px solid #1e293b; font-size:9px; color:#000000;'>
             <thead>
-                <tr style='background:#f1f5f9; border-bottom:1px solid #9ca3af; font-weight:bold; color:#0f172a; height:24px;'>
-                    <th style='width:24px; border-right:1px solid #9ca3af; text-align:center;'>S.</th>
-                    <th style='border-right:1px solid #9ca3af; text-align:left; padding:0 4px;'>Product</th>
-                    {(hasPack ? "<th style='width:46px; border-right:1px solid #9ca3af; text-align:center;'>Packing</th>" : "")}
-                    <th style='width:52px; border-right:1px solid #9ca3af; text-align:center;'>HSN/SAC</th>
-                    {(hasSerial ? "<th style='width:80px; border-right:1px solid #9ca3af; text-align:center;'>IMEI / Serial</th>" : "")}
-                    {(hasBatch ? "<th style='width:48px; border-right:1px solid #9ca3af; text-align:center;'>Lot No</th>" : "")}
-                    {(hasExpiry ? "<th style='width:40px; border-right:1px solid #9ca3af; text-align:center;'>Expiry</th>" : "")}
-                    <th style='width:36px; border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>Qty</th>
-                    {(hasFree ? "<th style='width:34px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Free</th>" : "")}
-                    {(hasMrp ? "<th style='width:42px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>MRP</th>" : "")}
-                    <th style='width:34px; border-right:1px solid #9ca3af; text-align:center;'>Unit</th>
-                    <th style='width:44px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Rate</th>
-                    {(hasDisc ? "<th style='width:34px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Disc</th>" : "")}
-                    <th style='width:54px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>Taxable</th>
-                    <th style='width:40px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>CGST %</th>
-                    <th style='width:40px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>SGST %</th>
-                    <th style='width:40px; border-right:1px solid #9ca3af; text-align:right; padding:0 3px;'>IGST %</th>
+                <tr style='background:#f1f5f9; border-bottom:1.5px solid #1e293b; font-weight:900; color:#000000; height:22px;'>
+                    <th style='width:24px; border-right:1px solid #1e293b; text-align:center;'>S.</th>
+                    <th style='border-right:1px solid #1e293b; text-align:left; padding:0 4px;'>Product Description</th>
+                    {(hasPack ? "<th style='width:46px; border-right:1px solid #1e293b; text-align:center;'>Packing</th>" : "")}
+                    <th style='width:52px; border-right:1px solid #1e293b; text-align:center;'>HSN/SAC</th>
+                    {(hasSerial ? "<th style='width:80px; border-right:1px solid #1e293b; text-align:center;'>IMEI / Serial</th>" : "")}
+                    {(hasBatch ? "<th style='width:48px; border-right:1px solid #1e293b; text-align:center;'>Batch</th>" : "")}
+                    {(hasExpiry ? "<th style='width:40px; border-right:1px solid #1e293b; text-align:center;'>Exp</th>" : "")}
+                    <th style='width:36px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>Qty</th>
+                    {(hasFree ? "<th style='width:34px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>Free</th>" : "")}
+                    {(hasMrp ? "<th style='width:42px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>MRP</th>" : "")}
+                    <th style='width:34px; border-right:1px solid #1e293b; text-align:center;'>Unit</th>
+                    <th style='width:44px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>Rate</th>
+                    {(hasDisc ? "<th style='width:34px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>Disc</th>" : "")}
+                    <th style='width:54px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>Taxable</th>
+                    <th style='width:40px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>CGST %</th>
+                    <th style='width:40px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>SGST %</th>
+                    <th style='width:40px; border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>IGST %</th>
                     <th style='width:60px; text-align:right; padding:0 4px;'>Amount</th>
                 </tr>
             </thead>
@@ -5307,9 +7307,9 @@ public class PrintTemplateService : IPrintTemplateService
         </table>
 
         <!-- 4. MIDDLE SECTION: BANK DETAILS + QR + TOTALS TABLE -->
-        <div style='display:flex; justify-content:space-between; align-items:flex-start; padding:6px 0; gap:8px;'>
+        <div style='display:flex; justify-content:space-between; align-items:flex-start; padding:4px 0; gap:8px;'>
             <!-- Left: Bank Details -->
-            <div style='flex:1.2; font-size:9.5px; line-height:1.45; padding-left:2px;'>
+            <div style='flex:1.2; font-size:8.5px; line-height:1.35; padding-left:2px;'>
                 <div style='font-weight:bold; margin-bottom:2px;'>Bank Details:</div>
                 {(!string.IsNullOrEmpty(bankName) ? $"<div><strong>Bank:</strong> {bankName}</div>" : "")}
                 {(!string.IsNullOrEmpty(bankAccountName) ? $"<div><strong>Account Name:</strong> {bankAccountName}</div>" : "")}
@@ -5319,75 +7319,75 @@ public class PrintTemplateService : IPrintTemplateService
             </div>
 
             <!-- Center: UPI QR Code -->
-            <div style='width:130px; text-align:center;'>
+            <div style='width:120px; text-align:center;'>
                 {(!string.IsNullOrEmpty(upiQr) ? $@"
-                <div style='display:inline-block; border:1px solid #9ca3af; padding:4px 6px 4px 6px; background:#ffffff;'>
-                    <img src='{upiQr}' alt='Scan to Pay' style='width:88px; height:88px; display:block; margin:0 auto;' />
-                    <div style='font-size:7.5px; color:#475569; margin-top:2px; white-space:nowrap;'>Scan to Pay (₹{totalAmount:N2})</div>
+                <div style='display:inline-block; border:1px solid #1e293b; padding:3px 5px; background:#ffffff;'>
+                    <img src='{upiQr}' alt='Scan to Pay' style='width:68px; height:68px; display:block; margin:0 auto;' />
+                    <div style='font-size:7px; color:#000000; margin-top:2px; font-weight:700; white-space:nowrap;'>Scan to Pay (₹{totalAmount:N2})</div>
                 </div>
                 " : "")}
             </div>
 
             <!-- Right: Totals Table -->
-            <div style='width:290px;'>
-                <table style='width:100%; border-collapse:collapse; border:1px solid #9ca3af; font-size:10px;'>
-                    <tr style='border-bottom:1px solid #9ca3af;'>
-                        <td style='padding:3px 8px; font-weight:600; border-right:1px solid #9ca3af;'>Subtotal:</td>
-                        <td style='padding:3px 8px; text-align:right; font-weight:bold;'>₹ {taxable:N2}</td>
+            <div style='width:280px;'>
+                <table style='width:100%; border-collapse:collapse; border:1.5px solid #1e293b; font-size:9.5px; color:#000000;'>
+                    <tr style='border-bottom:1px solid #1e293b;'>
+                        <td style='padding:2px 6px; font-weight:700; border-right:1px solid #1e293b;'>Subtotal:</td>
+                        <td style='padding:2px 6px; text-align:right; font-weight:bold;'>₹ {taxable:N2}</td>
                     </tr>
                     {(cgst > 0 ? $@"
-                    <tr style='border-bottom:1px solid #9ca3af;'>
-                        <td style='padding:3px 8px; font-weight:600; border-right:1px solid #9ca3af;'>CGST</td>
-                        <td style='padding:3px 8px; text-align:right;'>(+) ₹ {cgst:N2}</td>
+                    <tr style='border-bottom:1px solid #1e293b;'>
+                        <td style='padding:2px 6px; font-weight:700; border-right:1px solid #1e293b;'>CGST</td>
+                        <td style='padding:2px 6px; text-align:right; font-weight:600;'>(+) ₹ {cgst:N2}</td>
                     </tr>" : "")}
                     {(sgst > 0 ? $@"
-                    <tr style='border-bottom:1px solid #9ca3af;'>
-                        <td style='padding:3px 8px; font-weight:600; border-right:1px solid #9ca3af;'>SGST / UTGST</td>
-                        <td style='padding:3px 8px; text-align:right;'>(+) ₹ {sgst:N2}</td>
+                    <tr style='border-bottom:1px solid #1e293b;'>
+                        <td style='padding:2px 6px; font-weight:700; border-right:1px solid #1e293b;'>SGST / UTGST</td>
+                        <td style='padding:2px 6px; text-align:right; font-weight:600;'>(+) ₹ {sgst:N2}</td>
                     </tr>" : "")}
                     {(igst > 0 ? $@"
-                    <tr style='border-bottom:1px solid #9ca3af;'>
-                        <td style='padding:3px 8px; font-weight:600; border-right:1px solid #9ca3af;'>IGST</td>
-                        <td style='padding:3px 8px; text-align:right;'>(+) ₹ {igst:N2}</td>
+                    <tr style='border-bottom:1px solid #1e293b;'>
+                        <td style='padding:2px 6px; font-weight:700; border-right:1px solid #1e293b;'>IGST</td>
+                        <td style='padding:2px 6px; text-align:right; font-weight:600;'>(+) ₹ {igst:N2}</td>
                     </tr>" : "")}
-                    <tr style='border-bottom:1px solid #9ca3af;'>
-                        <td style='padding:3px 8px; font-weight:bold; border-right:1px solid #9ca3af;'>Total GST</td>
-                        <td style='padding:3px 8px; text-align:right; font-weight:bold;'>(+) ₹ {(cgst + sgst + igst):N2}</td>
+                    <tr style='border-bottom:1px solid #1e293b;'>
+                        <td style='padding:2px 6px; font-weight:bold; border-right:1px solid #1e293b;'>Total GST</td>
+                        <td style='padding:2px 6px; text-align:right; font-weight:bold;'>(+) ₹ {(cgst + sgst + igst):N2}</td>
                     </tr>
-                    <tr style='border-bottom:1px solid #9ca3af;'>
-                        <td style='padding:3px 8px; font-weight:600; border-right:1px solid #9ca3af;'>Round Off:</td>
-                        <td style='padding:3px 8px; text-align:right;'>₹ {roundOff:N2}</td>
+                    <tr style='border-bottom:1px solid #1e293b;'>
+                        <td style='padding:2px 6px; font-weight:700; border-right:1px solid #1e293b;'>Round Off:</td>
+                        <td style='padding:2px 6px; text-align:right;'>₹ {roundOff:N2}</td>
                     </tr>
-                    <tr style='border-bottom:1px solid #9ca3af; font-size:11.5px; font-weight:900; background:#f1f5f9;'>
-                        <td style='padding:4px 8px; border-right:1px solid #9ca3af;'>Total:</td>
-                        <td style='padding:4px 8px; text-align:right;'>₹ {totalAmount:N2}</td>
+                    <tr style='border-bottom:1.5px solid #1e293b; font-size:11px; font-weight:900; background:#f1f5f9;'>
+                        <td style='padding:3px 6px; border-right:1px solid #1e293b;'>Total:</td>
+                        <td style='padding:3px 6px; text-align:right;'>₹ {totalAmount:N2}</td>
                     </tr>
-                    <tr style='border-bottom:1px solid #9ca3af; background:#f0fdf4;'>
-                        <td style='padding:3px 8px; border-right:1px solid #9ca3af; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
-                        <td style='padding:3px 8px; text-align:right; font-weight:bold; color:#16a34a;'>₹ {paidAmount:N2}</td>
+                    <tr style='border-bottom:1px solid #1e293b; background:#f0fdf4;'>
+                        <td style='padding:2px 6px; border-right:1px solid #1e293b; color:#16a34a; font-weight:bold;'>Paid Amount:</td>
+                        <td style='padding:2px 6px; text-align:right; font-weight:bold; color:#16a34a;'>₹ {paidAmount:N2}</td>
                     </tr>
-                    <tr style='border-bottom:1px solid #9ca3af; background:{(balanceAmount > 0 ? "#fef2f2" : "#f8fafc")};'>
-                        <td style='padding:3px 8px; border-right:1px solid #9ca3af; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>Due Amount:</td>
-                        <td style='padding:3px 8px; text-align:right; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#475569")};'>₹ {balanceAmount:N2}</td>
+                    <tr style='border-bottom:1px solid #1e293b; background:{(balanceAmount > 0 ? "#fef2f2" : "#ffffff")};'>
+                        <td style='padding:2px 6px; border-right:1px solid #1e293b; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#000000")};'>Due Amount:</td>
+                        <td style='padding:2px 6px; text-align:right; font-weight:900; color:{(balanceAmount > 0 ? "#dc2626" : "#000000")};'>₹ {balanceAmount:N2}</td>
                     </tr>
                 </table>
-                <div style='font-size:8.5px; text-align:center; padding:3px; color:#475569; font-style:italic;'>({words})</div>
+                <div style='font-size:7.5px; text-align:center; padding:2px; color:#000000; font-weight:600; font-style:italic;'>({words})</div>
             </div>
         </div>
 
         <!-- 5. GST / HSN SUMMARY -->
         <div>
-            <div style='font-size:9.5px; font-weight:bold; color:#0f172a; text-transform:uppercase; margin-bottom:3px;'>GST / HSN SUMMARY</div>
-            <table style='width:100%; border-collapse:collapse; border:1px solid #9ca3af; font-size:9px;'>
+            <div style='font-size:8.5px; font-weight:900; color:#000000; text-transform:uppercase; margin-bottom:2px;'>GST / HSN SUMMARY</div>
+            <table style='width:100%; border-collapse:collapse; border:1.5px solid #1e293b; font-size:8px; color:#000000;'>
                 <thead>
-                    <tr style='background:#f1f5f9; border-bottom:1px solid #9ca3af; font-weight:bold; color:#0f172a;'>
-                        <th style='padding:3px 6px; text-align:center; border-right:1px solid #9ca3af;'>HSN/SAC</th>
-                        <th style='padding:3px 6px; text-align:right; border-right:1px solid #9ca3af;'>Taxable</th>
-                        <th style='padding:3px 6px; text-align:right; border-right:1px solid #9ca3af;'>CGST %</th>
-                        <th style='padding:3px 6px; text-align:right; border-right:1px solid #9ca3af;'>CGST Amt</th>
-                        <th style='padding:3px 6px; text-align:right; border-right:1px solid #9ca3af;'>SGST %</th>
-                        <th style='padding:3px 6px; text-align:right; border-right:1px solid #9ca3af;'>SGST Amt</th>
-                        <th style='padding:3px 6px; text-align:right;'>Total Tax</th>
+                    <tr style='background:#f1f5f9; border-bottom:1.5px solid #1e293b; font-weight:bold; color:#000000;'>
+                        <th style='padding:2px 5px; text-align:center; border-right:1px solid #1e293b;'>HSN/SAC</th>
+                        <th style='padding:2px 5px; text-align:right; border-right:1px solid #1e293b;'>Taxable</th>
+                        <th style='padding:2px 5px; text-align:right; border-right:1px solid #1e293b;'>CGST %</th>
+                        <th style='padding:2px 5px; text-align:right; border-right:1px solid #1e293b;'>CGST Amt</th>
+                        <th style='padding:2px 5px; text-align:right; border-right:1px solid #1e293b;'>SGST %</th>
+                        <th style='padding:2px 5px; text-align:right; border-right:1px solid #1e293b;'>SGST Amt</th>
+                        <th style='padding:2px 5px; text-align:right;'>Total Tax</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -5397,35 +7397,37 @@ public class PrintTemplateService : IPrintTemplateService
             </table>
         </div>
 
-        <!-- 6. TERMS AND CONDITIONS BOX -->
-        <div style='border:1px solid #9ca3af; padding:6px 10px; font-size:8.5px; line-height:1.45; min-height:80px;'>
-            <div style='font-weight:bold; margin-bottom:4px;'>Terms and Conditions:</div>
-            {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div>{t.DeclarationText}</div>" : $@"
-            <ul style='margin:0; padding-left:16px;'>
-                <li><strong>Payment:</strong> Due within 45 days. <strong>18% p.a.</strong> interest applies to overdue amounts.</li>
-                <li><strong>Claims:</strong> Report shortages or damages within <strong>24 hours</strong> of delivery.</li>
-                <li><strong>Returns:</strong> Goods sold are non-returnable except for manufacturing defects or recalls.</li>
-                <li><strong>Storage:</strong> No liability for quality loss due to improper storage after delivery.</li>
-                <li><strong>Regulatory:</strong> Sold under <strong>Drugs & Cosmetics Act</strong>; verify Batch/Expiry upon receipt.</li>
-                <li><strong>Jurisdiction:</strong> Subject to courts in {termsCity} only.</li>
-            </ul>")}
+        <!-- 6. TERMS AND CONDITIONS & AUTHORISED SIGNATORY BOX -->
+        <div style='border:1.5px solid #1e293b; display:grid; grid-template-columns: 2fr 1fr; font-size:8px; line-height:1.3; background:#ffffff; color:#000000;'>
+            <div style='padding:4px 8px; border-right:1.5px solid #1e293b; display:flex; flex-direction:column; justify-content:space-between;'>
+                <div>
+                    <div style='font-weight:bold; margin-bottom:2px;'>Terms and Conditions:</div>
+                    {(!string.IsNullOrWhiteSpace(t.DeclarationText) && t.ShowDeclaration ? $"<div>{t.DeclarationText}</div>" : $@"
+                    <div style='display:grid; grid-template-columns: 1fr 1fr; gap:1px 10px; font-size:7.5px; color:#000000;'>
+                        <div>• <strong>Payment:</strong> Due in 45 days. 18% p.a. interest applies to overdue amounts.</div>
+                        <div>• <strong>Claims:</strong> Report shortages or damages within 24 hours of delivery.</div>
+                        <div>• <strong>Returns:</strong> Goods sold are non-returnable except for manufacturing defects.</div>
+                        <div>• <strong>Storage:</strong> No liability for quality loss due to improper storage after delivery.</div>
+                        <div>• <strong>Regulatory:</strong> Sold under Drugs & Cosmetics Act; verify Batch/Expiry upon receipt.</div>
+                        <div>• <strong>Jurisdiction:</strong> Subject to courts in {termsCity} only.</div>
+                    </div>")}
+                </div>
+                <div style='font-size:7px; color:#000000; font-style:italic; margin-top:3px;'>
+                    We declare that this invoice shows the actual price of goods and particulars are true.
+                </div>
+            </div>
+            <div style='padding:4px 8px; display:flex; flex-direction:column; justify-content:space-between; text-align:right; background:#f8fafc; color:#000000;'>
+                <div style='font-size:8px; color:#000000;'>
+                    For <strong>{sellerLegalName}</strong>
+                </div>
+                <div style='margin-top:28px;'>
+                    <div style='border-top:1.5px solid #1e293b; padding-top:2px; font-weight:bold; color:#000000; font-size:8.5px;'>
+                        Authorised Signatory
+                    </div>
+                </div>
+            </div>
         </div>
 
-    </div>
-
-    <!-- 7. FOOTER SECTION -->
-    <div style='margin-top:auto;'>
-        <div style='border-top:1px dashed #9ca3af; margin-bottom:8px;'></div>
-        <div style='display:flex; justify-content:space-between; align-items:flex-end; font-size:8.5px; color:#475569; padding:0 2px 2px 2px;'>
-            <div>
-                <div>This is a computer generated invoice and does not require signature.</div>
-                <div style='margin-top:2px; font-weight:600;'>https://www.udyogbill.com/sells</div>
-            </div>
-            <div style='text-align:right;'>
-                <div style='font-weight:bold; color:#0f172a;'>Authorised Signatory</div>
-                <div style='font-size:8px; color:#64748b; margin-top:2px;'>1/1</div>
-            </div>
-        </div>
     </div>
 </div>
 </body>
@@ -5434,7 +7436,7 @@ public class PrintTemplateService : IPrintTemplateService
 
     private static (string itemsHtml, string hsnRowsHtml, string hsnTotalsHtml) RenderPharmaProItemsAndHsn(
         SalesInvoice? invoice, decimal taxable, decimal cgst, decimal sgst, decimal igst,
-        bool hasPack, bool hasSerial, bool hasBatch, bool hasExpiry, bool hasFree, bool hasMrp, bool hasDisc)
+        bool hasPack, bool hasSerial, bool hasBatch, bool hasExpiry, bool hasFree, bool hasMrp, bool hasDisc, bool isA5)
     {
         var itemsSb = new StringBuilder();
         var hsnSb = new StringBuilder();
@@ -5467,51 +7469,57 @@ public class PrintTemplateService : IPrintTemplateService
                 }
 
                 itemsSb.Append($@"
-                <tr style='height:24px; border-bottom:1px solid #9ca2af; font-size:9px;'>
-                    <td style='border-right:1px solid #9ca2af; text-align:center;'>{idx++}</td>
-                    <td style='border-right:1px solid #9ca2af; padding:2px 4px; font-weight:bold;'>{it.ItemName}{ExtractIndustryItemSubline(it)}</td>
-                    {(hasPack ? $"<td style='border-right:1px solid #9ca2af; text-align:center;'>{packing}</td>" : "")}
-                    <td style='border-right:1px solid #9ca2af; text-align:center; font-family:monospace;'>{hsn}</td>
-                    {(hasSerial ? $"<td style='border-right:1px solid #9ca2af; text-align:center; font-family:monospace; font-weight:700; color:#c2410c; font-size:8px;'>{ExtractItemImei(it)}</td>" : "")}
-                    {(hasBatch ? $"<td style='border-right:1px solid #9ca2af; text-align:center;'>{lotNo}</td>" : "")}
-                    {(hasExpiry ? $"<td style='border-right:1px solid #9ca2af; text-align:center;'>{expiry}</td>" : "")}
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{it.Quantity:0.00}</td>
-                    {(hasFree ? $"<td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{freeStr}</td>" : "")}
-                    {(hasMrp ? $"<td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{mrpStr}</td>" : "")}
-                    <td style='border-right:1px solid #9ca2af; text-align:center;'>{unitStr}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{it.UnitPrice:0.00}</td>
-                    {(hasDisc ? $"<td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{discStr}</td>" : "")}
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{it.TaxableAmount:N2}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{cgstPct}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{sgstPct}</td>
-                    <td style='border-right:1px solid #9ca2af; text-align:right; padding:0 3px;'>{igstPct}</td>
-                    <td style='text-align:right; padding:0 4px; font-weight:bold;'>{it.TotalAmount:N2}</td>
+                <tr style='height:22px; border-bottom:1px solid #1e293b; font-size:9px; color:#000000;'>
+                    <td style='border-right:1px solid #1e293b; text-align:center; font-weight:bold;'>{idx++}</td>
+                    <td style='border-right:1px solid #1e293b; padding:3px 4px; font-weight:bold; color:#000000;'>{it.ItemName}{ExtractIndustryItemSubline(it)}</td>
+                    {(hasPack ? $"<td style='border-right:1px solid #1e293b; text-align:center; font-weight:bold;'>{packing}</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; text-align:center; font-family:monospace; font-weight:600;'>{hsn}</td>
+                    {(hasSerial ? $"<td style='border-right:1px solid #1e293b; text-align:center; font-family:monospace; font-weight:700; color:#c2410c; font-size:8px;'>{ExtractItemImei(it)}</td>" : "")}
+                    {(hasBatch ? $"<td style='border-right:1px solid #1e293b; text-align:center; font-weight:bold;'>{lotNo}</td>" : "")}
+                    {(hasExpiry ? $"<td style='border-right:1px solid #1e293b; text-align:center; font-weight:bold;'>{expiry}</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px; font-weight:bold;'>{it.Quantity:0.00}</td>
+                    {(hasFree ? $"<td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px; font-weight:bold; color:#c2410c;'>{freeStr}</td>" : "")}
+                    {(hasMrp ? $"<td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>{mrpStr}</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; text-align:center;'>{unitStr}</td>
+                    <td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px; font-weight:600;'>{it.UnitPrice:0.00}</td>
+                    {(hasDisc ? $"<td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>{discStr}</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px; font-weight:bold;'>{it.TaxableAmount:N2}</td>
+                    <td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>{cgstPct}</td>
+                    <td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>{sgstPct}</td>
+                    <td style='border-right:1px solid #1e293b; text-align:right; padding:0 3px;'>{igstPct}</td>
+                    <td style='text-align:right; padding:0 4px; font-weight:bold; color:#000000;'>{it.TotalAmount:N2}</td>
                 </tr>");
             }
 
             // Single expanding filler row with vertical columns ONLY (NO horizontal line)
-            int emptyHeight = Math.Max(70, 480 - (invoice.Items.Count * 25));
-            itemsSb.Append($@"
-            <tr style='height:{emptyHeight}px;'>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                {(hasPack ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                {(hasSerial ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
-                {(hasBatch ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
-                {(hasExpiry ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                {(hasFree ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
-                {(hasMrp ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                {(hasDisc ? "<td style='border-right:1px solid #9ca2af;'>&nbsp;</td>" : "")}
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td>&nbsp;</td>
-            </tr>");
+            int itemCount = invoice.Items.Count;
+            int emptyHeight = isA5
+                ? (140 - (itemCount * 18))
+                : (260 - (itemCount * 24));
+            if (itemCount < (isA5 ? 4 : 7) && emptyHeight >= 20)
+            {
+                itemsSb.Append($@"
+                <tr style='height:100%; min-height:{emptyHeight}px;'>
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    {(hasPack ? $"<td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    {(hasSerial ? $"<td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasBatch ? $"<td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasExpiry ? $"<td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    {(hasFree ? $"<td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>" : "")}
+                    {(hasMrp ? $"<td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    {(hasDisc ? $"<td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>" : "")}
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    <td style='border-right:1px solid #1e293b; height:{emptyHeight}px;'>&nbsp;</td>
+                    <td style='height:{emptyHeight}px;'>&nbsp;</td>
+                </tr>");
+            }
 
             // HSN Aggregation
             var groups = invoice.Items
@@ -5537,25 +7545,25 @@ public class PrintTemplateService : IPrintTemplateService
                 var sgstPct = grpSgst > 0 ? $"{halfRate:0.00}%" : "-";
 
                 hsnSb.Append($@"
-                <tr style='border-bottom:1px solid #9ca2af; font-size:9px;'>
-                    <td style='padding:3px 6px; text-align:center; border-right:1px solid #9ca2af; font-weight:bold;'>{g.Key.Hsn}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{grpTaxable:N2}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{cgstPct}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{grpCgst:N2}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{sgstPct}</td>
-                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{grpSgst:N2}</td>
+                <tr style='border-bottom:1px solid #1e293b; font-size:9px; color:#000000;'>
+                    <td style='padding:3px 6px; text-align:center; border-right:1px solid #1e293b; font-weight:bold;'>{g.Key.Hsn}</td>
+                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b; font-weight:600;'>{grpTaxable:N2}</td>
+                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>{cgstPct}</td>
+                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b; font-weight:600;'>{grpCgst:N2}</td>
+                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>{sgstPct}</td>
+                    <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b; font-weight:600;'>{grpSgst:N2}</td>
                     <td style='padding:3px 6px; text-align:right; font-weight:bold;'>{grpTotal:N2}</td>
                 </tr>");
             }
 
             hsnTotalsHtml = $@"
-            <tr style='font-weight:bold; font-size:9.5px; border-top:1px solid #9ca2af; background:#e4e7eb;'>
-                <td style='padding:3px 6px; text-align:center; border-right:1px solid #9ca2af;'>TOTAL</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{sumTaxable:N2}</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'></td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{sumCgst:N2}</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'></td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>{sumSgst:N2}</td>
+            <tr style='font-weight:bold; font-size:9.5px; border-top:1.5px solid #1e293b; background:#e2e8f0; color:#000000;'>
+                <td style='padding:3px 6px; text-align:center; border-right:1px solid #1e293b;'>TOTAL</td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>{sumTaxable:N2}</td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'></td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>{sumCgst:N2}</td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'></td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>{sumSgst:N2}</td>
                 <td style='padding:3px 6px; text-align:right;'>{sumTotalTax:N2}</td>
             </tr>";
         }
@@ -5563,33 +7571,33 @@ public class PrintTemplateService : IPrintTemplateService
         {
             itemsSb.Append(@"
             <tr style='height:455px;'>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
-                <td style='border-right:1px solid #9ca2af;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
+                <td style='border-right:1px solid #1e293b;'>&nbsp;</td>
                 <td>&nbsp;</td>
             </tr>");
 
             hsnTotalsHtml = @"
-            <tr style='font-weight:bold; font-size:9.5px; border-top:1px solid #9ca2af; background:#e4e7eb;'>
-                <td style='padding:3px 6px; text-align:center; border-right:1px solid #9ca2af;'>TOTAL</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>0.00</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'></td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>0.00</td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'></td>
-                <td style='padding:3px 6px; text-align:right; border-right:1px solid #9ca2af;'>0.00</td>
+            <tr style='font-weight:bold; font-size:9.5px; border-top:1.5px solid #1e293b; background:#e2e8f0; color:#000000;'>
+                <td style='padding:3px 6px; text-align:center; border-right:1px solid #1e293b;'>TOTAL</td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>0.00</td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'></td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>0.00</td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'></td>
+                <td style='padding:3px 6px; text-align:right; border-right:1px solid #1e293b;'>0.00</td>
                 <td style='padding:3px 6px; text-align:right;'>0.00</td>
             </tr>";
         }

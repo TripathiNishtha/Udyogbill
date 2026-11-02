@@ -23,6 +23,7 @@ import {
   Truck,
   Package,
   FileCheck,
+  Scale,
   ChevronDown,
   Copy,
   Share2,
@@ -46,6 +47,9 @@ import { printRawHtml } from "@/lib/print-helper";
 import { GST_STATE_MAP } from "@/lib/gst-helper";
 import { generateInvoicePdfBlob, downloadBlob } from "@/lib/invoice-pdf-helper";
 import { useAddons } from "@/context/addon-context";
+import { accountingService, JournalVoucher } from "@/services/accounting-services";
+import { notifyEntityMutated } from "@/lib/workspace-events";
+import { formatDateDDMMYYYY } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type PrintFormat = "a4" | "compact_a5" | "thermal80" | "thermal58";
@@ -282,8 +286,14 @@ function IssueCreditNoteModal({
     itemId: string;
     itemName: string;
     itemSku: string;
+    batchId?: string;
     batchNumber?: string;
+    billedQuantity: number;
+    freeQuantity: number;
+    totalQuantity: number;
     maxQuantity: number;
+    taxableAmount: number;
+    netRate: number;
     returnQuantity: number;
     unitPrice: number;
     gstRate: number;
@@ -295,47 +305,76 @@ function IssueCreditNoteModal({
 }) {
   if (!open) return null;
 
+  const calculateLine = (it: any) => {
+    if (!it.selected || it.returnQuantity <= 0) {
+      return { lineTaxable: 0, lineTax: 0, lineCredit: 0 };
+    }
+    let lineTaxable = 0;
+    if (it.returnQuantity >= it.totalQuantity) {
+      lineTaxable = it.taxableAmount;
+    } else {
+      lineTaxable = Math.round(it.returnQuantity * it.netRate * 100) / 100;
+    }
+    const lineTax = Math.round((lineTaxable * (it.gstRate / 100)) * 100) / 100;
+    const lineCredit = Math.round((lineTaxable + lineTax) * 100) / 100;
+    return { lineTaxable, lineTax, lineCredit };
+  };
+
   const totalReturnTaxable = items
     .filter((it) => it.selected && it.returnQuantity > 0)
-    .reduce((sum, it) => sum + it.returnQuantity * it.unitPrice, 0);
+    .reduce((sum, it) => sum + calculateLine(it).lineTaxable, 0);
 
   const totalReturnGst = items
     .filter((it) => it.selected && it.returnQuantity > 0)
-    .reduce((sum, it) => sum + (it.returnQuantity * it.unitPrice * it.gstRate) / 100, 0);
+    .reduce((sum, it) => sum + calculateLine(it).lineTax, 0);
 
   const totalCreditAmount = totalReturnTaxable + totalReturnGst;
 
+  const totalPhysicalUnitsRestocked = items
+    .filter((it) => it.selected && it.returnQuantity > 0)
+    .reduce((sum, it) => sum + it.returnQuantity, 0);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl p-6 space-y-4 my-8">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-3xl p-5 sm:p-6 space-y-4 my-6 text-slate-900 animate-in fade-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-orange-100 text-orange-600">
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">Issue GST Credit Note / Sales Return</h3>
-              <p className="text-[11px] text-slate-400">Against Tax Invoice #{invoice.invoiceNumber}</p>
+              <h3 className="text-base font-bold text-slate-900">Issue GST Credit Note / Sales Return</h3>
+              <p className="text-xs text-slate-500">Against Tax Invoice #{invoice.invoiceNumber}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
-            <X className="w-4 h-4" />
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Customer & Invoice Summary */}
-        <div className="grid grid-cols-3 gap-2.5 bg-slate-900 border border-slate-800 rounded-2xl p-3 text-xs">
+        {/* Customer & Invoice Summary Card */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs">
           <div>
-            <span className="text-slate-400 block text-[10px]">Customer:</span>
-            <strong className="text-white truncate block">{invoice.customerName}</strong>
+            <span className="text-slate-500 block text-[11px] font-medium">Customer:</span>
+            <strong className="text-slate-900 font-bold truncate block text-sm">{invoice.customerName || "Walk-in Customer"}</strong>
           </div>
           <div>
-            <span className="text-slate-400 block text-[10px]">Invoice Total:</span>
-            <strong className="text-white font-mono">₹{invoice.totalAmount.toFixed(2)}</strong>
+            <span className="text-slate-500 block text-[11px] font-medium">Invoice Total:</span>
+            <strong className="text-slate-900 font-mono font-bold text-sm">₹{invoice.totalAmount.toFixed(2)}</strong>
           </div>
           <div>
-            <span className="text-slate-400 block text-[10px]">Credit Value:</span>
-            <strong className="text-orange-400 font-mono text-sm">₹{totalCreditAmount.toFixed(2)}</strong>
+            <span className="text-slate-500 block text-[11px] font-medium">Stock Restock:</span>
+            <strong className="text-emerald-700 font-mono font-bold text-sm">
+              {totalPhysicalUnitsRestocked} units
+            </strong>
+          </div>
+          <div>
+            <span className="text-slate-500 block text-[11px] font-medium">Credit Value:</span>
+            <strong className="text-orange-600 font-mono font-black text-base">₹{totalCreditAmount.toFixed(2)}</strong>
           </div>
         </div>
 
@@ -343,11 +382,11 @@ function IssueCreditNoteModal({
           {/* Reason & Restock */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-slate-300 font-semibold block mb-1">Return / Credit Reason *</label>
+              <label className="text-slate-700 font-semibold block mb-1">Return / Credit Reason *</label>
               <select
                 value={returnReason}
                 onChange={(e) => setReturnReason(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500 text-xs"
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium text-xs shadow-sm"
               >
                 <option value="GoodsReturned">Goods Returned by Customer</option>
                 <option value="DamagedInTransit">Defective / Damaged Goods</option>
@@ -358,15 +397,15 @@ function IssueCreditNoteModal({
               </select>
             </div>
 
-            <div className="flex items-center space-x-2 pt-6">
+            <div className="flex items-center space-x-2.5 sm:pt-6">
               <input
                 type="checkbox"
                 id="restock_check"
                 checked={restock}
                 onChange={(e) => setRestock(e.target.checked)}
-                className="w-4 h-4 rounded text-orange-600 bg-slate-900 border-slate-700 focus:ring-orange-500 cursor-pointer"
+                className="w-4 h-4 rounded text-orange-600 border-slate-300 focus:ring-orange-500 cursor-pointer"
               />
-              <label htmlFor="restock_check" className="text-slate-300 font-medium cursor-pointer">
+              <label htmlFor="restock_check" className="text-slate-800 font-semibold cursor-pointer">
                 Restore returned items back into Warehouse Stock
               </label>
             </div>
@@ -374,14 +413,17 @@ function IssueCreditNoteModal({
 
           {/* Line Items Table */}
           <div>
-            <label className="text-slate-300 font-semibold block mb-1.5">
-              Select Invoice Items &amp; Return Quantities:
-            </label>
-            <div className="border border-slate-800 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
-              <table className="w-full text-left border-collapse text-[11px]">
-                <thead className="bg-slate-900 text-slate-400 sticky top-0 border-b border-slate-800">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-slate-800 font-bold text-xs block">
+                Select Invoice Items &amp; Return Quantities (Net Rate Return):
+              </label>
+            </div>
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
                   <tr>
-                    <th className="p-2 w-8 text-center">
+                    <th className="p-2.5 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={items.every((it) => it.selected)}
@@ -389,62 +431,88 @@ function IssueCreditNoteModal({
                           const checked = e.target.checked;
                           setItems((prev) => prev.map((it) => ({ ...it, selected: checked })));
                         }}
-                        className="rounded"
+                        className="rounded cursor-pointer"
                       />
                     </th>
-                    <th className="p-2">Item</th>
-                    <th className="p-2 text-right">Inv Qty</th>
-                    <th className="p-2 text-center w-24">Return Qty</th>
-                    <th className="p-2 text-right">Rate</th>
-                    <th className="p-2 text-right">Credit (₹)</th>
+                    <th className="p-2.5">Item Name</th>
+                    <th className="p-2.5 text-right">Total Qty</th>
+                    <th className="p-2.5 text-center w-28">Return Qty</th>
+                    <th className="p-2.5 text-right">Net Rate (₹)</th>
+                    <th className="p-2.5 text-right">Credit (₹)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 bg-slate-950">
-                  {items.map((it, idx) => (
-                    <tr key={idx} className={it.selected ? "bg-orange-950/20" : ""}>
-                      <td className="p-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={it.selected}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setItems((prev) =>
-                              prev.map((item, i) => (i === idx ? { ...item, selected: checked } : item))
-                            );
-                          }}
-                          className="rounded cursor-pointer"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <div className="font-semibold text-white truncate max-w-[180px]">{it.itemName}</div>
-                        <div className="text-[9.5px] text-slate-500 font-mono">
-                          {it.batchNumber ? `Batch: ${it.batchNumber}` : it.itemSku || "—"}
-                        </div>
-                      </td>
-                      <td className="p-2 text-right font-mono text-slate-300">{it.maxQuantity}</td>
-                      <td className="p-2 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          max={it.maxQuantity}
-                          step="any"
-                          value={it.returnQuantity}
-                          disabled={!it.selected}
-                          onChange={(e) => {
-                            const val = Math.max(0, Math.min(it.maxQuantity, parseFloat(e.target.value) || 0));
-                            setItems((prev) =>
-                              prev.map((item, i) => (i === idx ? { ...item, returnQuantity: val } : item))
-                            );
-                          }}
-                          className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-center disabled:opacity-30 focus:outline-none focus:border-orange-500"
-                        />
-                      </td>
-                      <td className="p-2 text-right font-mono text-slate-300">₹{it.unitPrice.toFixed(2)}</td>
-                      <td className="p-2 text-right font-mono font-bold text-orange-400">
-                        ₹{(it.selected ? it.returnQuantity * it.unitPrice * (1 + it.gstRate / 100) : 0).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {items.map((it, idx) => {
+                    const hasFree = Boolean(it.freeQuantity && it.freeQuantity > 0);
+                    const { lineCredit } = calculateLine(it);
+
+                    return (
+                      <tr key={idx} className={it.selected ? "bg-orange-50/40" : "opacity-60"}>
+                        <td className="p-2.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={it.selected}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setItems((prev) =>
+                                prev.map((item, i) => (i === idx ? { ...item, selected: checked } : item))
+                              );
+                            }}
+                            className="rounded cursor-pointer"
+                          />
+                        </td>
+                        <td className="p-2.5">
+                          <div className="font-bold text-slate-900 text-sm">{it.itemName}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            {it.batchNumber ? `Batch: ${it.batchNumber}` : it.itemSku || "—"}
+                          </div>
+                        </td>
+                        <td className="p-2.5 text-right">
+                          <div className="font-bold text-slate-900 font-mono text-sm">
+                            {it.totalQuantity} <span className="text-[11px] font-normal text-slate-500">Units</span>
+                          </div>
+                          {hasFree && (
+                            <span className="inline-block mt-0.5 px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 rounded font-mono">
+                              ({it.billedQuantity} Billed + {it.freeQuantity} Free)
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2.5 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max={it.totalQuantity}
+                            step="any"
+                            value={it.returnQuantity}
+                            disabled={!it.selected}
+                            onChange={(e) => {
+                              const val = Math.max(0, Math.min(it.totalQuantity, parseFloat(e.target.value) || 0));
+                              setItems((prev) =>
+                                prev.map((item, i) => (i === idx ? { ...item, returnQuantity: val } : item))
+                              );
+                            }}
+                            className="w-20 px-2 py-1.5 bg-white border-2 border-slate-300 focus:border-orange-500 rounded-lg text-slate-900 font-bold font-mono text-center text-sm shadow-sm disabled:bg-slate-100 disabled:opacity-50"
+                          />
+                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                            Max: {it.totalQuantity}
+                          </div>
+                        </td>
+                        <td className="p-2.5 text-right font-mono">
+                          <div className="font-bold text-slate-900 text-sm">₹{it.netRate.toFixed(2)}</div>
+                          {hasFree ? (
+                            <div className="text-[10px] text-emerald-700 font-semibold" title="Net Rate including Free Goods">
+                              Net (₹{it.taxableAmount.toFixed(0)}/{it.totalQuantity})
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-slate-400">Rate + {it.gstRate}% GST</div>
+                          )}
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-black text-orange-600 text-base">
+                          ₹{lineCredit.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -452,13 +520,13 @@ function IssueCreditNoteModal({
 
           {/* Notes */}
           <div>
-            <label className="text-slate-300 font-semibold block mb-1">Narration / Credit Note Remarks</label>
+            <label className="text-slate-700 font-semibold block mb-1">Narration / Credit Note Remarks</label>
             <input
               type="text"
               placeholder="e.g. Sales return received against Invoice and credit note issued to ledger"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500 text-xs"
+              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs shadow-sm font-medium"
             />
           </div>
 
@@ -467,14 +535,14 @@ function IssueCreditNoteModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition border border-slate-300"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || totalCreditAmount <= 0}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition shadow-lg shadow-orange-600/25 disabled:opacity-40"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition shadow-lg shadow-orange-600/25 disabled:opacity-40 text-sm"
             >
               {submitting ? "Issuing Credit Note..." : `Issue Credit Note (₹${totalCreditAmount.toFixed(2)})`}
             </button>
@@ -778,6 +846,130 @@ function generatePaymentReceiptVoucherHtml(
     </div>`;
 }
 
+function parseCashMemoItemAttributes(item: any) {
+  let a: any = {};
+  if (item.attributesJson) {
+    try {
+      a = typeof item.attributesJson === "string" ? JSON.parse(item.attributesJson) : item.attributesJson;
+    } catch {
+      a = {};
+    }
+  }
+
+  const shadeCode = a.shadeCode || item.shadeCode || "";
+  const shadeName = a.shadeName || item.shadeName || "";
+  const packSize = a.packSize || item.packSize || "";
+  const tintingCharge = Number(a.tintingCharge || item.tintingCharge || 0);
+  const contractorName = a.contractorName || item.contractorName || "";
+
+  const length = a.length || item.dimLength || item.length || "";
+  const width = a.width || item.dimWidth || item.width || "";
+  const dimUnit = a.dimensionUnit || item.dimUnit || item.dimensionUnit || "ft";
+  const sqft = Number(a.sqft || item.sqft || 0);
+  const totalWeightKg = Number(a.totalWeightKg || item.totalWeightKg || 0);
+
+  const size = a.size || item.size || "";
+  const color = a.color || item.color || "";
+  const styleCode = a.styleCode || item.styleCode || "";
+
+  const brand = a.brand || item.brand || "";
+  const modelVariant = a.modelVariant || item.modelVariant || "";
+  const warrantyMonths = Number(a.warrantyMonths || item.warrantyMonths || 0);
+  const imeiSerial = a.imeiSerial || item.imeiSerial || "";
+
+  // Home Furnishing & Mattress
+  const dimension = a.dimension || a.size || item.dimension || "";
+  const coreMaterial = a.coreMaterial || a.material || item.coreMaterial || "";
+  const warrantySerial = a.warrantySerial || a.serialNumber || item.warrantySerial || "";
+  const warrantyYears = Number(a.warrantyYears || (a.warrantyMonths ? Math.round(Number(a.warrantyMonths) / 12) : 0) || item.warrantyYears || 0);
+
+  return {
+    dimension,
+    coreMaterial,
+    warrantySerial,
+    warrantyYears,
+    shadeCode,
+    shadeName,
+    packSize,
+    tintingCharge,
+    contractorName,
+    length,
+    width,
+    dimUnit,
+    sqft,
+    totalWeightKg,
+    size,
+    color,
+    styleCode,
+    brand,
+    modelVariant,
+    warrantyMonths,
+    imeiSerial,
+  };
+}
+
+function renderCashMemoItemBadges(attrs: ReturnType<typeof parseCashMemoItemAttributes>) {
+  const badges: string[] = [];
+
+  // Hardware / Paints
+  if (attrs.shadeCode || attrs.shadeName) {
+    const text = attrs.shadeCode && attrs.shadeName
+      ? `${attrs.shadeCode} (${attrs.shadeName})`
+      : (attrs.shadeCode || attrs.shadeName);
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:700;">🎨 Shade: ${text}</span>`);
+  }
+
+  if (attrs.packSize) {
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:700;">📦 Pack: ${attrs.packSize}</span>`);
+  }
+
+  if (attrs.tintingCharge > 0) {
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:700;">🖌️ Tinting: +₹${attrs.tintingCharge.toFixed(2)}</span>`);
+  }
+
+  if (attrs.sqft > 0 || (attrs.length && attrs.width)) {
+    const dimText = attrs.length && attrs.width
+      ? `${attrs.length}×${attrs.width} ${attrs.dimUnit}${attrs.sqft > 0 ? ` (${attrs.sqft.toFixed(2)} Sq.Ft)` : ""}`
+      : `${attrs.sqft.toFixed(2)} Sq.Ft`;
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:600;">📐 ${dimText}</span>`);
+  }
+
+  if (attrs.totalWeightKg > 0) {
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:600;">⚖️ ${attrs.totalWeightKg.toFixed(2)} Kg</span>`);
+  }
+
+  if (attrs.contractorName) {
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:600;">👤 Painter: ${attrs.contractorName}</span>`);
+  }
+
+  // Garments
+  if (attrs.size || attrs.color || attrs.styleCode) {
+    const parts = [
+      attrs.size ? `Size: ${attrs.size}` : "",
+      attrs.color ? `Color: ${attrs.color}` : "",
+      attrs.styleCode ? `Style: ${attrs.styleCode}` : ""
+    ].filter(Boolean);
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#fff1f2; color:#be123c; border:1px solid #fecdd3; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:600;">👕 ${parts.join(" • ")}</span>`);
+  }
+
+  // Electronics
+  if (attrs.brand || attrs.modelVariant) {
+    const bm = [attrs.brand, attrs.modelVariant].filter(Boolean).join(" ");
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:600;">📱 ${bm}</span>`);
+  }
+
+  if (attrs.imeiSerial) {
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#eff6ff; color:#0284c7; border:1px solid #bae6fd; padding:1px 5px; border-radius:3px; font-size:8.5px; font-family:monospace; font-weight:600;">SN/IMEI: ${attrs.imeiSerial}</span>`);
+  }
+
+  if (attrs.warrantyMonths > 0) {
+    badges.push(`<span style="display:inline-flex; align-items:center; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:600;">🛡️ ${attrs.warrantyMonths}M Warranty</span>`);
+  }
+
+  if (badges.length === 0) return "";
+  return `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:3px;">${badges.join("")}</div>`;
+}
+
 function generateCashMemoA5Html(
   invoice: SalesInvoiceDetails,
   profile: TenantDetails | null,
@@ -785,65 +977,73 @@ function generateCashMemoA5Html(
 ): string {
   const sellerName = profile?.tradeName || profile?.businessName || invoice.branchName || "UDYOGBILL";
   const sellerAddress = profile?.addressLine1 ? `${profile.addressLine1}${profile.addressLine2 ? `, ${profile.addressLine2}` : ""}, ${profile.city || ""}, ${profile.state || ""} - ${profile.pincode || ""}` : (invoice.branchAddress || "");
+  const sellerPhone = profile?.primaryPhone && !profile.primaryPhone.includes("9876543210") ? profile.primaryPhone : "";
   const sellerGstin = invoice.branchGstin || profile?.gstin || "";
   const totalGst = invoice.cgstAmount + invoice.sgstAmount + invoice.igstAmount;
 
+  // Attributes detection across all items
+  const itemsWithAttrs = invoice.items.map((item) => ({
+    item,
+    attrs: parseCashMemoItemAttributes(item),
+  }));
+
+  const hasPack = itemsWithAttrs.some((x) => !!x.attrs.packSize || !!x.attrs.size);
+  const hasShade = itemsWithAttrs.some((x) => !!x.attrs.shadeCode || !!x.attrs.shadeName || !!x.attrs.color);
   const hasBatch = invoice.items.some((i) => !!i.batchNumber?.trim());
   const hasExpiry = invoice.items.some((i) => !!i.expiryDate);
   const hasDisc = invoice.items.some((i) => (i.discountPercent || 0) > 0 || (i.discountAmount || 0) > 0);
-  const hasSerial = invoice.items.some((i) => {
-    try {
-      const a = JSON.parse(i.attributesJson || "{}");
-      return !!a.imeiSerial?.trim();
-    } catch {
-      return false;
-    }
-  });
 
-  const rowsHtml = invoice.items.map((item, idx) => {
+  // Check if tagged contractor exists on invoice or any item
+  let taggedContractor = "";
+  try {
+    const invAttrs = typeof invoice.attributesJson === "string" ? JSON.parse(invoice.attributesJson || "{}") : (invoice.attributesJson || {});
+    taggedContractor = invAttrs.contractorName || "";
+  } catch {}
+  if (!taggedContractor) {
+    const found = itemsWithAttrs.find((x) => !!x.attrs.contractorName);
+    if (found) taggedContractor = found.attrs.contractorName;
+  }
+
+  const rowsHtml = itemsWithAttrs.map(({ item, attrs }, idx) => {
     let expStr = "—";
     if (item.expiryDate) {
       const d = new Date(item.expiryDate);
       expStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
     }
 
-    let serialStr = "";
-    if (hasSerial) {
-      try {
-        const a = JSON.parse(item.attributesJson || "{}");
-        if (a.imeiSerial) serialStr = `<div style="font-size:8.5px; font-weight:normal; color:#0284c7;">SN/IMEI: ${a.imeiSerial}</div>`;
-      } catch {}
-    }
+    const badgesHtml = renderCashMemoItemBadges(attrs);
 
     return `
-      <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
-        <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1;">${idx + 1}</td>
-        <td style="padding: 4px 6px; font-weight: 700; border-right: 1px solid #cbd5e1; color: #0f172a;">
-          ${item.itemName}
-          ${serialStr}
+      <tr style="border-bottom: 1px solid #e2e8f0; font-size: 10px; background: ${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
+        <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; color: #475569;">${idx + 1}</td>
+        <td style="padding: 4px 6px; border-right: 1px solid #cbd5e1; color: #0f172a;">
+          <div style="font-weight: 700; font-size: 10.5px;">${item.itemName} ${item.itemSku ? `<span style="font-size:8.5px; font-weight:normal; color:#64748b;">(${item.itemSku})</span>` : ""}</div>
+          ${badgesHtml}
         </td>
-        <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.hsnCode || "—"}</td>
+        ${hasPack ? `<td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 700; color: #0f172a;">${attrs.packSize || attrs.size || "—"}</td>` : ""}
+        ${hasShade ? `<td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-weight: 700; color: #1d4ed8;">${attrs.shadeCode || attrs.color || "—"}</td>` : ""}
+        <td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-size: 9.5px; color: #475569;">${item.hsnCode || "—"}</td>
         ${hasBatch ? `<td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-weight: 600;">${item.batchNumber || "—"}</td>` : ""}
         ${hasExpiry ? `<td style="padding: 4px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace;">${expStr}</td>` : ""}
-        <td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-weight: 700;">${item.quantity} ${item.uomCode || ""}</td>
+        <td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-weight: 700; color: #0f172a;">${item.quantity} ${item.uomCode || ""}</td>
         <td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">₹${item.unitPrice.toFixed(2)}</td>
-        ${hasDisc ? `<td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.discountPercent > 0 ? `${item.discountPercent}%` : "—"}</td>` : ""}
-        <td style="padding: 4px 6px; text-align: right; font-family: monospace; font-weight: 700; color: #0f172a;">₹${item.totalAmount.toFixed(2)}</td>
+        ${hasDisc ? `<td style="padding: 4px 6px; text-align: right; border-right: 1px solid #cbd5e1; font-family: monospace;">${item.discountPercent > 0 ? `${item.discountPercent}%` : (item.discountAmount > 0 ? `₹${item.discountAmount.toFixed(2)}` : "—")}</td>` : ""}
+        <td style="padding: 4px 6px; text-align: right; font-family: monospace; font-weight: 800; color: #0f172a;">₹${item.totalAmount.toFixed(2)}</td>
       </tr>
     `;
   }).join("");
 
   const cancelledBanner = invoice.isCancelled
-    ? `<div style="background-color:#fee2e2; border:2px solid #ef4444; border-radius:4px; padding:6px 10px; margin-bottom:6px; text-align:center; color:#991b1b;">
-        <div style="font-size:12px; font-weight:900; letter-spacing:1px;">&#10006; CANCELLED / VOID MEMO</div>
-        <div style="font-size:9px; font-weight:bold; color:#b91c1c;">${invoice.cancellationReason ? `Reason: ${invoice.cancellationReason}` : "Invoice has been voided"}</div>
+    ? `<div style="background-color:#fee2e2; border:2px solid #ef4444; border-radius:4px; padding:4px 8px; margin-bottom:4px; text-align:center; color:#991b1b;">
+        <div style="font-size:11px; font-weight:900; letter-spacing:1px;">&#10006; CANCELLED / VOID MEMO</div>
+        <div style="font-size:8.5px; font-weight:bold; color:#b91c1c;">${invoice.cancellationReason ? `Reason: ${invoice.cancellationReason}` : "Invoice has been voided"}</div>
       </div>`
     : "";
 
   const creditNoteBanner = !invoice.isCancelled && invoice.hasCreditNote
-    ? `<div style="background-color:#fef3c7; border:2px solid #f59e0b; border-radius:4px; padding:6px 10px; margin-bottom:6px; text-align:center; color:#92400e;">
-        <div style="font-size:11.5px; font-weight:900;">&#9888; CREDIT NOTE ISSUED / GOODS RETURNED</div>
-        <div style="font-size:9px; font-weight:bold; color:#78350f;">CN #: ${invoice.creditNoteNumber || ""} &bull; Return Total: ₹${(invoice.creditNoteAmount || 0).toFixed(2)}</div>
+    ? `<div style="background-color:#fef3c7; border:2px solid #f59e0b; border-radius:4px; padding:4px 8px; margin-bottom:4px; text-align:center; color:#92400e;">
+        <div style="font-size:11px; font-weight:900;">&#9888; CREDIT NOTE ISSUED / GOODS RETURNED</div>
+        <div style="font-size:8.5px; font-weight:bold; color:#78350f;">CN #: ${invoice.creditNoteNumber || ""} &bull; Return Total: ₹${(invoice.creditNoteAmount || 0).toFixed(2)}</div>
       </div>`
     : "";
 
@@ -854,66 +1054,107 @@ function generateCashMemoA5Html(
     : "";
 
   return `
-    <div style="position:relative; font-family:Arial,sans-serif; width:100%; min-height:138mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; background:#ffffff; color:#0f172a; padding:12px 16px; box-sizing:border-box;">
+    <div class="cash-memo-container marg-half-page" style="position:relative; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width:100%; max-width:204mm; max-height:144mm; min-height:140mm; height:142mm; display:flex; flex-direction:column; justify-content:space-between; border:2px solid #0f172a; border-radius:4px; background:#ffffff; color:#0f172a; padding:6px 10px; box-sizing:border-box; page-break-inside:avoid; break-inside:avoid; overflow:hidden; margin:0 auto;">
       ${watermarkHtml}
       <div style="flex-shrink:0;">
         ${cancelledBanner}
         ${creditNoteBanner}
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:4px; margin-bottom:6px;">
-          <div>
-            <div style="font-size:18px; font-weight:900; color:#0f172a; text-transform:uppercase;">${sellerName}</div>
-            <div style="font-size:10px; color:#475569;">${sellerAddress}</div>
-            ${sellerGstin ? `<div style="font-size:9.5px; font-weight:bold;">GSTIN: ${sellerGstin}</div>` : ""}
+        <!-- Top Store Header & Memo Title -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0f172a; padding-bottom:5px; margin-bottom:5px;">
+          <div style="max-width:65%;">
+            <div style="font-size:18px; font-weight:900; color:#0f172a; text-transform:uppercase; letter-spacing:0.3px; line-height:1.15;">${sellerName}</div>
+            <div style="font-size:9.5px; color:#334155; margin-top:1px; line-height:1.25;">${sellerAddress}</div>
+            <div style="font-size:9px; color:#475569; margin-top:2px;">
+              ${sellerPhone ? `<span><strong>Contact:</strong> ${sellerPhone}</span>` : ""}
+              ${sellerGstin ? `<span style="margin-left:8px;"><strong>GSTIN:</strong> <span style="font-family:monospace; font-weight:bold; color:#0f172a;">${sellerGstin}</span></span>` : ""}
+            </div>
           </div>
           <div style="text-align:right;">
-            <div style="background:#0f172a; color:#fff; font-size:13px; font-weight:900; padding:3px 12px; border-radius:3px;">RETAIL CASH MEMO</div>
-            <div style="font-size:10px; font-weight:bold; margin-top:2px;">Memo #: ${invoice.invoiceNumber}</div>
-            <div style="font-size:9.5px; color:#475569;">Date: ${new Date(invoice.invoiceDate).toLocaleDateString("en-IN")}</div>
+            <div style="background:#0f172a; color:#ffffff; font-size:12px; font-weight:900; padding:3px 12px; border-radius:4px; letter-spacing:0.5px; text-transform:uppercase; display:inline-block;">RETAIL CASH MEMO</div>
+            <div style="font-size:10px; font-weight:800; color:#0f172a; margin-top:2px; font-family:monospace;">Memo #: ${invoice.invoiceNumber}</div>
+            <div style="font-size:9px; color:#475569;">Date: <strong>${new Date(invoice.invoiceDate).toLocaleDateString("en-IN")}</strong></div>
           </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; font-size:10.5px; background:#f8fafc; padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px; margin-bottom:6px;">
-          <div>Customer: <strong>${invoice.customerName}</strong> ${invoice.customerPhone ? `| Ph: ${invoice.customerPhone}` : ""}</div>
-          <div>Payment: <strong>Cash / UPI</strong></div>
+        <!-- Customer & Payment Status Bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; background:#f8fafc; padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px; margin-bottom:5px;">
+          <div>
+            <span style="color:#64748b; font-size:9px; text-transform:uppercase; font-weight:600;">Customer:</span>
+            <strong style="color:#0f172a; margin-left:3px;">${invoice.customerName || "Walk-in Customer"}</strong>
+            ${invoice.customerPhone ? `<span style="color:#475569; margin-left:6px;">| Ph: ${invoice.customerPhone}</span>` : ""}
+            ${taggedContractor ? `<span style="margin-left:8px; background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:700;">👷 Painter: ${taggedContractor}</span>` : ""}
+          </div>
+          <div style="text-align:right;">
+            <span style="color:#64748b; font-size:9px; text-transform:uppercase; font-weight:600;">Payment:</span>
+            <strong style="color:#16a34a; margin-left:3px;">Cash / UPI</strong>
+            <span style="margin-left:6px; font-weight:bold; font-size:9px; color:${invoice.balanceAmount > 0 ? '#ea580c' : '#16a34a'};">
+              [${invoice.balanceAmount > 0 ? 'PARTIAL' : 'PAID'}]
+            </span>
+          </div>
         </div>
       </div>
 
-      <div style="flex:1; display:flex; flex-direction:column; margin-bottom:12px;">
-        <table style="width:100%; border-collapse:collapse; font-size:10px; border-bottom:1.5px solid #0f172a;">
-          <thead style="background:#f1f5f9;">
-            <tr style="text-transform:uppercase; font-size:9px; border-bottom:1.5px solid #0f172a;">
-              <th style="padding:4px; width:24px; border-right:1px solid #cbd5e1;">#</th>
-              <th style="padding:4px; text-align:left; border-right:1px solid #cbd5e1;">Item Name</th>
-              <th style="padding:4px; width:65px; text-align:center; border-right:1px solid #cbd5e1;">HSN</th>
-              ${hasBatch ? `<th style="padding:4px; width:65px; text-align:center; border-right:1px solid #cbd5e1;">Batch</th>` : ""}
-              ${hasExpiry ? `<th style="padding:4px; width:50px; text-align:center; border-right:1px solid #cbd5e1;">Exp</th>` : ""}
-              <th style="padding:4px; width:55px; text-align:right; border-right:1px solid #cbd5e1;">Qty</th>
-              <th style="padding:4px; width:60px; text-align:right; border-right:1px solid #cbd5e1;">Rate</th>
-              ${hasDisc ? `<th style="padding:4px; width:45px; text-align:right; border-right:1px solid #cbd5e1;">Disc%</th>` : ""}
-              <th style="padding:4px; width:75px; text-align:right;">Amount</th>
+      <!-- Table Section -->
+      <div style="flex:1; display:flex; flex-direction:column; margin-bottom:6px; min-height:0;">
+        <table style="width:100%; height:100%; flex:1; border-collapse:collapse; font-size:9.5px; border-bottom:1.5px solid #0f172a;">
+          <thead style="background:#0f172a; color:#ffffff;">
+            <tr style="text-transform:uppercase; font-size:9px; height:22px;">
+              <th style="padding:3px 4px; width:22px; border-right:1px solid #334155; text-align:center;">#</th>
+              <th style="padding:3px 6px; text-align:left; border-right:1px solid #334155;">Item Description</th>
+              ${hasPack ? `<th style="padding:3px 4px; width:58px; text-align:center; border-right:1px solid #334155;">Pack / Size</th>` : ""}
+              ${hasShade ? `<th style="padding:3px 4px; width:72px; text-align:center; border-right:1px solid #334155;">Shade / Color</th>` : ""}
+              <th style="padding:3px 4px; width:55px; text-align:center; border-right:1px solid #334155;">HSN</th>
+              ${hasBatch ? `<th style="padding:3px 4px; width:58px; text-align:center; border-right:1px solid #334155;">Batch</th>` : ""}
+              ${hasExpiry ? `<th style="padding:3px 4px; width:45px; text-align:center; border-right:1px solid #334155;">Exp</th>` : ""}
+              <th style="padding:3px 4px; width:50px; text-align:right; border-right:1px solid #334155;">Qty</th>
+              <th style="padding:3px 4px; width:58px; text-align:right; border-right:1px solid #334155;">Rate</th>
+              ${hasDisc ? `<th style="padding:3px 4px; width:42px; text-align:right; border-right:1px solid #334155;">Disc</th>` : ""}
+              <th style="padding:3px 6px; width:72px; text-align:right;">Amount</th>
             </tr>
           </thead>
-          <tbody>${rowsHtml}</tbody>
+          <tbody>
+            ${rowsHtml}
+            <tr style="height:100%; vertical-align:top;">
+              <td style="border-right:1px solid #cbd5e1;">&nbsp;</td>
+              <td style="border-right:1px solid #cbd5e1;">&nbsp;</td>
+              ${hasPack ? `<td style="border-right:1px solid #cbd5e1;">&nbsp;</td>` : ""}
+              ${hasShade ? `<td style="border-right:1px solid #cbd5e1;">&nbsp;</td>` : ""}
+              <td style="border-right:1px solid #cbd5e1;">&nbsp;</td>
+              ${hasBatch ? `<td style="border-right:1px solid #cbd5e1;">&nbsp;</td>` : ""}
+              ${hasExpiry ? `<td style="border-right:1px solid #cbd5e1;">&nbsp;</td>` : ""}
+              <td style="border-right:1px solid #cbd5e1;">&nbsp;</td>
+              <td style="border-right:1px solid #cbd5e1;">&nbsp;</td>
+              ${hasDisc ? `<td style="border-right:1px solid #cbd5e1;">&nbsp;</td>` : ""}
+              <td>&nbsp;</td>
+            </tr>
+          </tbody>
         </table>
       </div>
 
-      <div style="flex-shrink:0; margin-top:auto; padding-top:6px; border-top:1.5px solid #0f172a;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:9px; color:#64748b;">
-            Taxable: ₹${invoice.taxableAmount.toFixed(2)} | GST: ₹${totalGst.toFixed(2)}<br/>
-            Thank you for your visit! Goods once sold are not returnable.
+      <!-- Financial Totals & Signatory Footer -->
+      <div style="flex-shrink:0; margin-top:auto; padding-top:4px; border-top:1.5px solid #0f172a;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+          <div style="font-size:8.5px; color:#475569; max-width:55%;">
+            <div style="font-weight:600; color:#1e293b;">
+              Taxable: ₹${invoice.taxableAmount.toFixed(2)} | GST: ₹${totalGst.toFixed(2)}
+            </div>
+            <div style="margin-top:2px; font-style:italic;">
+              1. Goods once sold are not returnable without original cash memo.<br/>
+              2. Subject to local jurisdiction. Thank you for your business!
+            </div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:16px; font-weight:900; color:#0f172a; font-family:monospace;">
+            <div style="font-size:15px; font-weight:900; color:#0f172a; font-family:monospace; line-height:1.2;">
               NET PAYABLE: ₹${invoice.totalAmount.toFixed(2)}
             </div>
-            <div style="font-size:11px; font-weight:bold; color:#16a34a; font-family:monospace; margin-top:2px;">
-              PAID AMOUNT: ₹${invoice.paidAmount.toFixed(2)}
+            <div style="display:flex; justify-content:flex-end; gap:8px; font-size:9.5px; font-family:monospace; margin-top:1px;">
+              <span style="font-weight:bold; color:#16a34a;">PAID: ₹${invoice.paidAmount.toFixed(2)}</span>
+              ${invoice.balanceAmount > 0 ? `<span style="font-weight:bold; color:#dc2626;">DUE: ₹${invoice.balanceAmount.toFixed(2)}</span>` : `<span style="color:#64748b;">DUE: ₹0.00</span>`}
             </div>
-            <div style="font-size:12px; font-weight:900; color:${invoice.balanceAmount > 0 ? '#dc2626' : '#475569'}; font-family:monospace; margin-top:1px;">
-              DUE AMOUNT: ₹${invoice.balanceAmount.toFixed(2)}
+            <div style="margin-top:6px; border-top:1px solid #94a3b8; padding-top:2px; display:inline-block; min-width:130px; text-align:center;">
+              <div style="font-size:8px; font-weight:700; color:#0f172a;">For ${sellerName}</div>
+              <div style="font-size:7.5px; color:#64748b;">Authorized Signatory</div>
             </div>
-            <div style="font-size:8.5px; color:#64748b; margin-top:1px;">Authorized Signatory</div>
           </div>
         </div>
       </div>
@@ -1068,6 +1309,7 @@ export default function SalesInvoiceDetailsPage({
   const [profile, setProfile] = useState<TenantDetails | null>(null);
   const [upiQr, setUpiQr] = useState<UpiQrPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [printFormat, setPrintFormat] = useState<PrintFormat>("a4");
   const [activeDoc, setActiveDoc] = useState<DocumentType>("invoice");
 
@@ -1078,36 +1320,70 @@ export default function SalesInvoiceDetailsPage({
       localStorage.setItem("udyogbill_default_print_format", fmt);
     }
 
-    // Find a matching template for this page format and switch design accordingly
-    let targetTpl: PrintTemplate | undefined;
+    if (!invoiceId) return;
+
+    let targetTemplateId = selectedTemplateId;
+    let requestedPageSize: number = 1;
+
     if (fmt === "a4") {
-      targetTpl = availableTemplates.find(t => (t.pageSize === 1 || t.pageSize === 2) && t.isDefault)
-        || availableTemplates.find(t => t.pageSize === 1 || t.pageSize === 2);
+      requestedPageSize = 1;
+      const currentTpl = availableTemplates.find(t => t.id === selectedTemplateId);
+      if (currentTpl && (currentTpl.pageSize === 4 || currentTpl.pageSize === 5)) {
+        const defTpl = availableTemplates.find(t => t.pageSize === 1 && t.isDefault)
+          || availableTemplates.find(t => t.pageSize === 1)
+          || availableTemplates.find(t => t.documentType === 1);
+        if (defTpl) {
+          targetTemplateId = defTpl.id;
+          setSelectedTemplateId(defTpl.id);
+        }
+      }
     } else if (fmt === "compact_a5") {
-      targetTpl = availableTemplates.find(t => (t.pageSize === 3 || t.pageSize === 9 || t.pageSize === 10) && t.isDefault)
-        || availableTemplates.find(t => t.pageSize === 3 || t.pageSize === 9 || t.pageSize === 10);
+      requestedPageSize = 10;
+      // Retain the current template design so it renders in A5 view!
+      const currentTpl = availableTemplates.find(t => t.id === selectedTemplateId);
+      if (currentTpl && (currentTpl.pageSize === 4 || currentTpl.pageSize === 5)) {
+        const defTpl = availableTemplates.find(t => t.pageSize === 1 && t.isDefault)
+          || availableTemplates.find(t => t.pageSize === 1)
+          || availableTemplates.find(t => t.documentType === 1);
+        if (defTpl) {
+          targetTemplateId = defTpl.id;
+          setSelectedTemplateId(defTpl.id);
+        }
+      }
     } else if (fmt === "thermal80") {
-      targetTpl = availableTemplates.find(t => t.pageSize === 4 && t.isDefault)
-        || availableTemplates.find(t => t.pageSize === 4);
+      requestedPageSize = 4;
+      const targetTpl = availableTemplates.find(t => (t.pageSize === 4 || t.templateCode?.includes("THERMAL_80")) && t.isDefault)
+        || availableTemplates.find(t => t.pageSize === 4 || t.templateCode?.includes("THERMAL_80"))
+        || availableTemplates.find(t => t.templateCode?.includes("THERMAL"));
+      if (targetTpl) {
+        targetTemplateId = targetTpl.id;
+        setSelectedTemplateId(targetTpl.id);
+      }
     } else if (fmt === "thermal58") {
-      targetTpl = availableTemplates.find(t => t.pageSize === 5 && t.isDefault)
+      requestedPageSize = 5;
+      const targetTpl = availableTemplates.find(t => (t.pageSize === 5 || t.templateCode?.includes("THERMAL_58")) && t.isDefault)
+        || availableTemplates.find(t => t.pageSize === 5 || t.templateCode?.includes("THERMAL_58"))
         || availableTemplates.find(t => t.pageSize === 5);
+      if (targetTpl) {
+        targetTemplateId = targetTpl.id;
+        setSelectedTemplateId(targetTpl.id);
+      }
     }
 
-    if (targetTpl && invoiceId) {
-      setSelectedTemplateId(targetTpl.id);
-      try {
-        const preview = await printTemplateService.renderPreview({
-          invoiceId,
-          templateId: targetTpl.id,
-          documentType: 1,
-        });
-        if (preview?.renderedHtml) {
-          setDynamicInvoiceHtml(preview.renderedHtml);
-        }
-      } catch (err) {
-        console.error("Failed to load template for format " + fmt, err);
+    try {
+      const targetTpl = availableTemplates.find(t => t.id === targetTemplateId);
+      const docType = targetTpl?.documentType || ((fmt === "thermal80" || fmt === "thermal58") ? 2 : 1);
+      const preview = await printTemplateService.renderPreview({
+        invoiceId,
+        templateId: targetTemplateId || undefined,
+        documentType: docType,
+        pageSize: requestedPageSize,
+      });
+      if (preview?.renderedHtml) {
+        setDynamicInvoiceHtml(preview.renderedHtml);
       }
+    } catch (err) {
+      console.error("Failed to load template for format " + fmt, err);
     }
   };
 
@@ -1136,6 +1412,11 @@ export default function SalesInvoiceDetailsPage({
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [whatsAppGuideModalOpen, setWhatsAppGuideModalOpen] = useState(false);
   const [downloadedPdfName, setDownloadedPdfName] = useState("");
+  const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
+  const [whatsAppPhoneInput, setWhatsAppPhoneInput] = useState("");
+  const [savePhoneToInvoice, setSavePhoneToInvoice] = useState(true);
+  const [includeBillLink, setIncludeBillLink] = useState(true);
+  const [savingContact, setSavingContact] = useState(false);
 
   // Credit Note Modal State
   const [creditNoteModalOpen, setCreditNoteModalOpen] = useState(false);
@@ -1144,6 +1425,25 @@ export default function SalesInvoiceDetailsPage({
   const [creditRestock, setCreditRestock] = useState(true);
   const [creditNotes, setCreditNotes] = useState("");
   const [creditItems, setCreditItems] = useState<any[]>([]);
+
+  // Accounting Voucher Drawer State
+  const [voucherModalOpen, setVoucherModalOpen] = useState(false);
+  const [loadingVoucher, setLoadingVoucher] = useState(false);
+  const [linkedVoucher, setLinkedVoucher] = useState<JournalVoucher | null>(null);
+
+  const handleOpenVoucherModal = async () => {
+    if (!invoice) return;
+    setVoucherModalOpen(true);
+    setLoadingVoucher(true);
+    try {
+      const v = await accountingService.getVoucherByReference(invoice.invoiceNumber);
+      setLinkedVoucher(v);
+    } catch (e) {
+      console.error("Failed to load linked voucher", e);
+    } finally {
+      setLoadingVoucher(false);
+    }
+  };
 
   const showToast = (msg: string, type: "success" | "error" | "info" = "success") => {
     setToast({ msg, type });
@@ -1168,6 +1468,7 @@ export default function SalesInvoiceDetailsPage({
         notes: paymentForm.notes.trim() || undefined,
       });
       showToast("Payment recorded successfully!", "success");
+      notifyEntityMutated("ledger", invoice.partyId);
       setRecordPaymentModalOpen(false);
       await loadData();
       setActiveDoc("receipt");
@@ -1189,43 +1490,61 @@ export default function SalesInvoiceDetailsPage({
   const loadData = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const [inv, prof, upi, tpls] = await Promise.all([
         salesService.getInvoiceById(invoiceId),
-        tenantAppService.getBusinessProfile(),
+        tenantAppService.getBusinessProfile().catch(() => null),
         barcodeService.getInvoiceUpiQr(invoiceId).catch(() => null),
         printTemplateService.getTemplates().catch(() => []),
       ]);
       setInvoice(inv);
       setProfile(prof);
       setUpiQr(upi);
-      setAvailableTemplates(tpls || []);
+      const invoiceTemplates = (tpls || []).filter(
+        (t: any) =>
+          t.documentType === 1 ||
+          t.documentType === 2 ||
+          t.pageSize === 4 ||
+          t.pageSize === 5 ||
+          t.templateCode?.includes("THERMAL") ||
+          (!t.documentType && t.templateName?.toLowerCase().includes("invoice"))
+      );
+      setAvailableTemplates(invoiceTemplates);
 
-      const defTpl = (tpls || []).find((t: any) => t.isDefault && t.documentType === 1)
-        || (tpls || []).find((t: any) => t.isDefault)
-        || (tpls || []).find((t: any) => t.documentType === 1)
-        || (tpls || [])[0];
+      const defTpl = invoiceTemplates.find((t: any) => t.isDefault)
+        || invoiceTemplates[0];
 
       if (!selectedTemplateId && defTpl) {
         setSelectedTemplateId(defTpl.id);
       }
 
-      const activeTemplateId = selectedTemplateId || defTpl?.id;
-      const activeTpl = (tpls || []).find((t: any) => t.id === activeTemplateId) || defTpl;
-      if (activeTpl) {
-        setPrintFormat(getFormatFromTemplate(activeTpl));
+      let currentFmt = printFormat;
+      if (typeof window !== "undefined") {
+        const savedFmt = localStorage.getItem("udyogbill_default_print_format") as PrintFormat;
+        if (savedFmt && ["a4", "compact_a5", "thermal80", "thermal58"].includes(savedFmt)) {
+          currentFmt = savedFmt;
+          setPrintFormat(savedFmt);
+        }
       }
+
+      const activeTemplateId = selectedTemplateId || defTpl?.id;
+      const activeTpl = invoiceTemplates.find((t: any) => t.id === activeTemplateId);
+      const requestedPageSize = currentFmt === "compact_a5" ? 10 : (currentFmt === "thermal80" ? 4 : (currentFmt === "thermal58" ? 5 : (activeTpl?.pageSize || 1)));
+      const requestedDocType = activeTpl?.documentType || ((currentFmt === "thermal80" || currentFmt === "thermal58") ? 2 : 1);
 
       const preview = await printTemplateService.renderPreview({
         invoiceId,
         templateId: activeTemplateId || undefined,
-        documentType: 1, // Always TaxInvoice by default, not POS receipt
+        documentType: requestedDocType,
+        pageSize: requestedPageSize,
       }).catch(() => null);
 
       if (preview?.renderedHtml) {
         setDynamicInvoiceHtml(preview.renderedHtml);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load invoice details", err);
+      setLoadError(err?.response?.data?.userMessage || err?.response?.data?.message || err.message || "Failed to load invoice details.");
     } finally {
       setLoading(false);
     }
@@ -1233,20 +1552,51 @@ export default function SalesInvoiceDetailsPage({
 
   const handleTemplateChange = async (tplId: string) => {
     setSelectedTemplateId(tplId);
-    const tpl = availableTemplates.find(t => t.id === tplId);
+    if (!invoiceId) return;
+
+    const tpl = availableTemplates.find((t) => t.id === tplId);
+    let targetFormat: PrintFormat = printFormat;
+    let targetPageSize = printFormat === "compact_a5" ? 10 : (printFormat === "thermal80" ? 4 : (printFormat === "thermal58" ? 5 : 1));
+
     if (tpl) {
-      const fmt = getFormatFromTemplate(tpl);
-      setPrintFormat(fmt);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("udyogbill_default_print_format", fmt);
+      if (tpl.pageSize === 4 || tpl.templateCode?.includes("THERMAL_80")) {
+        targetFormat = "thermal80";
+        targetPageSize = 4;
+        setPrintFormat("thermal80");
+        if (typeof window !== "undefined") {
+          localStorage.setItem("udyogbill_default_print_format", "thermal80");
+        }
+      } else if (tpl.pageSize === 5 || tpl.templateCode?.includes("THERMAL_58")) {
+        targetFormat = "thermal58";
+        targetPageSize = 5;
+        setPrintFormat("thermal58");
+        if (typeof window !== "undefined") {
+          localStorage.setItem("udyogbill_default_print_format", "thermal58");
+        }
+      } else if (tpl.pageSize === 3 || tpl.pageSize === 9 || tpl.pageSize === 10 || tpl.templateCode?.includes("A5") || tpl.templateCode?.includes("HALF_PAGE") || tpl.templateCode?.includes("COMPACT")) {
+        targetFormat = "compact_a5";
+        targetPageSize = 10;
+        setPrintFormat("compact_a5");
+        if (typeof window !== "undefined") {
+          localStorage.setItem("udyogbill_default_print_format", "compact_a5");
+        }
+      } else {
+        targetFormat = "a4";
+        targetPageSize = 1;
+        setPrintFormat("a4");
+        if (typeof window !== "undefined") {
+          localStorage.setItem("udyogbill_default_print_format", "a4");
+        }
       }
     }
-    if (!invoiceId) return;
+
     try {
+      const docType = tpl?.documentType || ((targetFormat === "thermal80" || targetFormat === "thermal58") ? 2 : 1);
       const preview = await printTemplateService.renderPreview({
         invoiceId,
         templateId: tplId || undefined,
-        documentType: 1,
+        documentType: docType,
+        pageSize: targetPageSize,
       });
       if (preview?.renderedHtml) {
         setDynamicInvoiceHtml(preview.renderedHtml);
@@ -1274,25 +1624,28 @@ export default function SalesInvoiceDetailsPage({
   // ── Action Handlers ─────────────────────────────────────────────────────
   const handlePrintCashMemoA5 = async () => {
     if (!invoice) return;
-    try {
-      const preview = await printTemplateService.renderPreview({
-        invoiceId: invoice.id,
-        templateId: selectedTemplateId || undefined,
-        documentType: 2 // Cash Memo
-      });
-      printRawHtml(preview.renderedHtml, `Cash_Memo_${invoice.invoiceNumber}`, "A5 landscape", "4mm");
-    } catch {
-      const html = generateCashMemoA5Html(invoice, profile, upiQr);
-      printRawHtml(html, `Cash_Memo_${invoice.invoiceNumber}`, "A5 landscape", "4mm");
-    }
+    const html = generateCashMemoA5Html(invoice, profile, upiQr);
+    printRawHtml(html, `Cash_Memo_${invoice.invoiceNumber}`, "A5 landscape", "2mm 3mm");
   };
 
   const handlePrint = async () => {
     if (!invoice) return;
     let html = "";
     if (activeDoc === "challan") {
+      try {
+        const preview = await printTemplateService.renderPreview({
+          invoiceId: invoice.id,
+          documentType: 4 // Delivery Challan (CGST Rule 55)
+        });
+        if (preview?.renderedHtml) {
+          printRawHtml(preview.renderedHtml, `Delivery_Challan_${invoice.invoiceNumber}`, "A4 portrait", "4mm 5mm");
+          return;
+        }
+      } catch (err) {
+        console.warn("Backend Delivery Challan preview failed, using fallback", err);
+      }
       html = generateDeliveryChallanHtml(invoice, profile);
-      printRawHtml(html, `Delivery Challan — ${invoice.invoiceNumber}`, "A5 landscape", "4mm");
+      printRawHtml(html, `Delivery Challan — ${invoice.invoiceNumber}`, "A4 portrait", "4mm 5mm");
     } else if (activeDoc === "gatepass") {
       html = generateGatePassHtml(invoice, profile);
       printRawHtml(html, `Gate Pass — ${invoice.invoiceNumber}`, "A5 landscape", "4mm");
@@ -1311,27 +1664,28 @@ export default function SalesInvoiceDetailsPage({
       html = generateProformaInvoiceHtml(invoice, profile, upiQr);
       printRawHtml(html, `Proforma_Invoice_${invoice.invoiceNumber}`, "A4 portrait", "3mm 4mm");
     } else {
-      const activeTpl = availableTemplates.find(t => t.id === selectedTemplateId);
-      const activeFmt = activeTpl ? getFormatFromTemplate(activeTpl) : printFormat;
-
+      const isA5 = printFormat === "compact_a5";
+      const selectedTpl = availableTemplates.find(t => t.id === selectedTemplateId);
+      const docType = selectedTpl?.documentType || ((printFormat === "thermal80" || printFormat === "thermal58") ? 2 : 1);
       try {
         const preview = await printTemplateService.renderPreview({
           invoiceId: invoice.id,
           templateId: selectedTemplateId || undefined,
-          documentType: 1 // Tax Invoice
+          documentType: docType,
+          pageSize: isA5 ? 10 : (printFormat === "thermal80" ? 4 : (printFormat === "thermal58" ? 5 : 1)),
         });
 
-        if (activeFmt === "compact_a5") {
-          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A5 landscape", "3mm 4mm");
-        } else if (activeFmt === "thermal80") {
+        if (isA5 || preview.pageSize === 10 || preview.pageSize === 3 || preview.pageSize === 9) {
+          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A5 landscape", "2mm 3mm");
+        } else if (printFormat === "thermal80" || preview.pageSize === 4) {
           printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "thermal80", "2mm");
-        } else if (activeFmt === "thermal58") {
+        } else if (printFormat === "thermal58" || preview.pageSize === 5) {
           printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "thermal58", "1mm");
         } else {
-          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A4 portrait", "3mm 4mm");
+          printRawHtml(preview.renderedHtml, `Invoice_${invoice.invoiceNumber}`, "A4 portrait", "2.5mm 3.5mm");
         }
       } catch {
-        if (activeFmt === "compact_a5") {
+        if (isA5) {
           await handlePrintCashMemoA5();
         } else {
           window.print();
@@ -1342,18 +1696,37 @@ export default function SalesInvoiceDetailsPage({
 
   const handleOpenCreditNoteModal = () => {
     if (!invoice) return;
-    const initialItems = invoice.items.map((it) => ({
-      itemId: it.itemId,
-      itemName: it.itemName,
-      itemSku: it.itemSku || "",
-      batchId: it.batchId || undefined,
-      batchNumber: it.batchNumber || "",
-      maxQuantity: it.quantity,
-      returnQuantity: it.quantity,
-      unitPrice: it.unitPrice,
-      gstRate: it.gstRate || (it.taxableAmount > 0 ? ((it.cgstAmount + it.sgstAmount + it.igstAmount) / it.taxableAmount) * 100 : 0),
-      selected: true,
-    }));
+    const initialItems = invoice.items.map((it) => {
+      let freeQuantity = 0;
+      if (it.attributesJson) {
+        try {
+          const parsed = typeof it.attributesJson === "string" ? JSON.parse(it.attributesJson) : it.attributesJson;
+          freeQuantity = Number(parsed?.freeQuantity || parsed?.FreeQuantity || 0);
+        } catch (e) {}
+      }
+      const billedQuantity = it.quantity;
+      const totalQuantity = billedQuantity + freeQuantity;
+      const taxableAmount = it.taxableAmount || billedQuantity * it.unitPrice;
+      const netRate = totalQuantity > 0 ? taxableAmount / totalQuantity : it.unitPrice;
+
+      return {
+        itemId: it.itemId,
+        itemName: it.itemName,
+        itemSku: it.itemSku || "",
+        batchId: it.batchId || undefined,
+        batchNumber: it.batchNumber || "",
+        billedQuantity,
+        freeQuantity,
+        totalQuantity,
+        maxQuantity: totalQuantity,
+        returnQuantity: totalQuantity,
+        unitPrice: it.unitPrice,
+        taxableAmount,
+        netRate,
+        gstRate: it.gstRate || (taxableAmount > 0 ? ((it.cgstAmount + it.sgstAmount + it.igstAmount) / taxableAmount) * 100 : 0),
+        selected: true,
+      };
+    });
     setCreditItems(initialItems);
     setCreditReturnReason("GoodsReturned");
     setCreditRestock(true);
@@ -1389,12 +1762,14 @@ export default function SalesInvoiceDetailsPage({
           batchId: l.batchId,
           batchNumber: l.batchNumber || undefined,
           returnQuantity: l.returnQuantity,
-          unitPrice: l.unitPrice,
+          unitPrice: l.netRate,
           gstRate: l.gstRate,
         })),
       });
 
       showToast("Credit Note & Sales Return issued successfully! Opening Credit Note register...", "success");
+      if (creditRestock) notifyEntityMutated("stock");
+      notifyEntityMutated("ledger", invoice.partyId);
       setCreditNoteModalOpen(false);
       setTimeout(() => {
         router.push("/app/sales/returns");
@@ -1438,66 +1813,123 @@ export default function SalesInvoiceDetailsPage({
     }
   };
 
-  const handleSendWhatsApp = async () => {
-    if (!invoice || generatingPdf) return;
-    const merchantName = profile?.tradeName || profile?.businessName || "UdyogBill";
-    const upiId = (profile as any)?.upiId || profile?.bankAccountNumber ? `${(profile as any)?.upiId || "merchant@upi"}` : "";
-    const upiDeepLink = upiId
-      ? `\n\n*Click to Pay via UPI (GPay/PhonePe):*\nupi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${invoice.balanceAmount > 0 ? invoice.balanceAmount.toFixed(2) : invoice.totalAmount.toFixed(2)}&tn=Inv_${invoice.invoiceNumber}`
+  const normalizeWhatsAppNumber = (phone?: string | null): string => {
+    if (!phone) return "";
+    const digits = phone.replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.length === 10) return `91${digits}`;
+    if (digits.length === 11 && digits.startsWith("0")) return `91${digits.slice(1)}`;
+    if (digits.length === 12 && digits.startsWith("91")) return digits;
+    return digits;
+  };
+
+  const buildWhatsAppMessage = (targetPhone?: string, withLink: boolean = includeBillLink) => {
+    if (!invoice) return "";
+    const merchantName = profile?.tradeName || profile?.businessName || invoice?.branchName || "Store";
+    const upiId = profile?.upiId?.trim() || "";
+    const publicInvoiceUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/i/${invoice.id}`
+      : `https://www.udyogbill.com/i/${invoice.id}`;
+    const balanceDue = (invoice.balanceAmount ?? 0) > 0 ? (invoice.balanceAmount ?? 0).toFixed(2) : "0.00";
+    const isPaid = (invoice.balanceAmount ?? 0) <= 0;
+
+    // Items list summary
+    const itemsSummary = (invoice.items || [])
+      .slice(0, 5)
+      .map((it: any) => `• ${it.itemName} (${Number(it.quantity || 1)} ${it.uomCode || "PCS"}) - ₹${Number(it.totalAmount || 0).toFixed(2)}`)
+      .join("\n");
+    const moreCount = (invoice.items?.length || 0) - 5;
+    const itemsBlock = itemsSummary
+      ? `\n\n*Items:*\n${itemsSummary}${moreCount > 0 ? `\n... +${moreCount} more` : ""}`
       : "";
 
-    const rawMsg = `Dear ${invoice.customerName},\n\nYour Tax Invoice *${invoice.invoiceNumber}* for ₹${invoice.totalAmount.toFixed(2)} has been issued by ${merchantName}.\n\nBalance Due: *₹${invoice.balanceAmount.toFixed(2)}*\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Immediate"}${upiDeepLink}\n\nInvoice PDF is attached.\nThank you for your business!\n\n— ${merchantName}`;
-    const msg = encodeURIComponent(rawMsg);
-    const phone = invoice.customerPhone?.replace(/\D/g, "") || "";
-    const waUrl = phone
-      ? `https://wa.me/91${phone}?text=${msg}`
-      : `https://web.whatsapp.com/send?text=${msg}`;
+    const upiDeepLink = upiId && (invoice.balanceAmount ?? 0) > 0
+      ? `\n\n*Pay via UPI (GPay/PhonePe):*\nupi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${balanceDue}&tn=Inv_${invoice.invoiceNumber}`
+      : "";
 
+    const linkBlock = withLink
+      ? `\n\n🔗 *Download PDF Bill:*\n${publicInvoiceUrl}`
+      : "";
+
+    return (
+      `🧾 *${merchantName}*\n` +
+      `*Tax Invoice: ${invoice.invoiceNumber}*\n\n` +
+      `Dear *${invoice.customerName || "Customer"}*,\n` +
+      `Thank you for your visit! Here is your bill summary:\n\n` +
+      `📄 *Invoice No:* ${invoice.invoiceNumber}\n` +
+      `📅 *Date:* ${invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString("en-IN") : "Today"}\n` +
+      `💰 *Total Amount:* ₹${Number(invoice.totalAmount || 0).toFixed(2)}\n` +
+      (isPaid
+        ? `✅ *Status:* PAID (₹${Number(invoice.paidAmount || invoice.totalAmount || 0).toFixed(2)})\n`
+        : `💳 *Paid:* ₹${Number(invoice.paidAmount || 0).toFixed(2)}\n⚠️ *Balance Due:* ₹${balanceDue}\n`) +
+      itemsBlock +
+      linkBlock +
+      `${upiDeepLink}\n\n` +
+      `Thank you!\n— *${merchantName}*`
+    );
+  };
+
+  const handleOpenWhatsAppModal = () => {
+    if (!invoice) return;
+    const raw = invoice.customerPhone || "";
+    const digits = raw.replace(/\D/g, "");
+    const clean10 = digits.length >= 10 ? digits.slice(-10) : digits;
+    setWhatsAppPhoneInput(clean10);
+    setWhatsAppModalOpen(true);
+  };
+
+  const handleSendWhatsAppChat = async (mode: "web" | "app" = "web") => {
+    if (!invoice) return;
+    const cleanDigits = whatsAppPhoneInput.replace(/\D/g, "");
+    if (cleanDigits.length < 10) {
+      showToast("Please enter a valid 10-digit mobile number.", "error");
+      return;
+    }
+
+    const normPhone = normalizeWhatsAppNumber(cleanDigits);
+    const rawMsg = buildWhatsAppMessage(normPhone);
+    const encodedMsg = encodeURIComponent(rawMsg);
+
+    const waWebUrl = `https://api.whatsapp.com/send?phone=${normPhone}&text=${encodedMsg}`;
+    const waAppUrl = `whatsapp://send?phone=${normPhone}&text=${encodedMsg}`;
+
+    // 1. Direct synchronous execution in click event to avoid popup blocker
+    if (mode === "app") {
+      window.location.href = waAppUrl;
+    } else {
+      window.open(waWebUrl, "_blank");
+    }
+
+    // 2. Persist mobile number to invoice in DB if requested
+    const savedPhone = cleanDigits.slice(-10);
+    if (savePhoneToInvoice && savedPhone !== (invoice.customerPhone?.replace(/\D/g, "") || "")) {
+      setSavingContact(true);
+      try {
+        await salesService.updateCustomerContact(invoice.id, {
+          customerPhone: savedPhone
+        });
+        setInvoice(prev => prev ? { ...prev, customerPhone: savedPhone } : prev);
+        showToast("Customer mobile number saved to this bill!", "success");
+      } catch (e) {
+        console.warn("Failed to save customer phone to invoice:", e);
+      } finally {
+        setSavingContact(false);
+      }
+    }
+
+    setWhatsAppModalOpen(false);
+    setWhatsAppGuideModalOpen(true);
+
+    // 3. Auto-download PDF in background
     try {
       setGeneratingPdf(true);
-      showToast("Preparing Invoice PDF for WhatsApp...", "info");
       const result = await getInvoicePdfBlob();
-
       if (result) {
-        // Check if device supports Web Share API with files (Mobile/Tablet Chrome & Safari)
-        if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
-          const pdfFile = new File([result.blob], result.fileName, { type: "application/pdf" });
-          if (navigator.canShare({ files: [pdfFile] })) {
-            try {
-              await navigator.share({
-                title: `Tax Invoice - ${invoice.invoiceNumber}`,
-                text: rawMsg,
-                files: [pdfFile],
-              });
-              showToast("Shared invoice PDF successfully via WhatsApp!", "success");
-              return;
-            } catch (shareErr: any) {
-              // User cancelled share or fallback needed
-              if (shareErr.name === "AbortError") {
-                return;
-              }
-              console.warn("navigator.share failed, falling back to desktop flow:", shareErr);
-            }
-          }
-        }
-
-        // Desktop / Fallback flow:
-        // 1. Auto-download the PDF so it's directly available on user's computer
         downloadBlob(result.blob, result.fileName);
         setDownloadedPdfName(result.fileName);
-
-        // 2. Open WhatsApp Web chat in a new tab
-        window.open(waUrl, "_blank");
-
-        // 3. Open guidance modal instructing user to drag/attach the downloaded PDF
-        setWhatsAppGuideModalOpen(true);
-        showToast("PDF downloaded! WhatsApp Web opened. Attach the PDF file in chat.", "success");
-        return;
       }
-    } catch (err: any) {
-      console.error("Failed to generate PDF for WhatsApp:", err);
-      showToast("PDF generation encountered an issue, opening WhatsApp with details.", "info");
-      window.open(waUrl, "_blank");
+    } catch (e) {
+      console.warn("Background PDF preparation:", e);
     } finally {
       setGeneratingPdf(false);
     }
@@ -1515,18 +1947,29 @@ export default function SalesInvoiceDetailsPage({
 
   const handlePaymentReminder = () => {
     if (!invoice) return;
-    const merchantName = profile?.tradeName || profile?.businessName || "UdyogBill";
-    const upiId = (profile as any)?.upiId || profile?.bankAccountNumber ? `${(profile as any)?.upiId || "merchant@upi"}` : "";
+    const merchantName = profile?.tradeName || profile?.businessName || "Store";
+    const upiId = profile?.upiId?.trim() || "";
+    const balanceDue = invoice.balanceAmount.toFixed(2);
     const upiDeepLink = upiId
-      ? `\n\n*Pay Now via UPI (GPay/PhonePe):*\nupi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${invoice.balanceAmount.toFixed(2)}&tn=Reminder_${invoice.invoiceNumber}`
+      ? `\n\n*Pay Now via UPI (GPay/PhonePe):*\nupi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${balanceDue}&tn=Reminder_${invoice.invoiceNumber}`
       : "";
+    const publicInvoiceUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/i/${invoice.id}`
+      : `https://udyogbill.com/i/${invoice.id}`;
 
     const msg = encodeURIComponent(
-      `Dear ${invoice.customerName},\n\n*PAYMENT REMINDER*\n\nThis is a friendly reminder for your outstanding invoice:\n\nInvoice: *${invoice.invoiceNumber}*\nTotal Amount: ₹${invoice.totalAmount.toFixed(2)}\n*Balance Due: ₹${invoice.balanceAmount.toFixed(2)}*\nDue Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "Please pay immediately"}${upiDeepLink}\n\nPlease arrange payment at the earliest.\n\n— ${merchantName}`
+      `Dear *${invoice.customerName}*,\n\n*PAYMENT REMINDER*\n\nThis is a friendly reminder for your outstanding invoice:\n\n` +
+      `📄 Invoice: *${invoice.invoiceNumber}*\n` +
+      `💰 Total Amount: ₹${invoice.totalAmount.toFixed(2)}\n` +
+      `💳 *Balance Due: ₹${balanceDue}*\n` +
+      (invoice.dueDate ? `📅 Due Date: ${new Date(invoice.dueDate).toLocaleDateString("en-IN")}\n` : "") +
+      `\n🔗 *Digital Bill & Payment Link:*\n${publicInvoiceUrl}` +
+      `${upiDeepLink}\n\n` +
+      `Please arrange payment at the earliest.\n\n— *${merchantName}*`
     );
-    const phone = invoice.customerPhone?.replace(/\D/g, "") || "";
+    const phone = normalizeWhatsAppNumber(invoice.customerPhone);
     const url = phone
-      ? `https://wa.me/91${phone}?text=${msg}`
+      ? `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`
       : `https://web.whatsapp.com/send?text=${msg}`;
     window.open(url, "_blank");
   };
@@ -1542,6 +1985,8 @@ export default function SalesInvoiceDetailsPage({
       setCancelling(true);
       await salesService.cancelInvoice(invoiceId, reason);
       showToast("Invoice cancelled successfully.", "success");
+      notifyEntityMutated("stock");
+      notifyEntityMutated("ledger", invoice?.partyId);
       setCancelModal(false);
       await loadData();
     } catch (err: any) {
@@ -1564,11 +2009,38 @@ export default function SalesInvoiceDetailsPage({
     showToast("Delivery Challan downloaded!", "success");
   };
 
-  if (loading || !invoice) {
+  if (loading) {
     return (
       <div className="p-8 max-w-5xl mx-auto text-center text-slate-400 text-xs">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
         Loading Tax Invoice #{invoiceId}...
+      </div>
+    );
+  }
+
+  if (!invoice) {
+    return (
+      <div className="p-12 max-w-md mx-auto text-center">
+        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-amber-200">
+          <AlertTriangle className="w-6 h-6" />
+        </div>
+        <h3 className="text-sm font-bold text-slate-900 mb-1">Invoice Could Not Be Loaded</h3>
+        <p className="text-xs text-slate-500 mb-4">{loadError || "Invoice data is currently unavailable."}</p>
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => loadData()}
+            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry
+          </button>
+          <button
+            onClick={() => router.push("/app/sales/invoices")}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
+          >
+            Back to Invoices
+          </button>
+        </div>
       </div>
     );
   }
@@ -1622,6 +2094,103 @@ export default function SalesInvoiceDetailsPage({
         onSubmit={handleCreditNoteSubmit}
         onClose={() => setCreditNoteModalOpen(false)}
       />
+      {/* Accounting Voucher Modal */}
+      {isAddonActive("accounting") && voucherModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl p-6 text-slate-900 dark:text-white space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">General Ledger Accounting Entry (JV)</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Double-Entry Posting for Invoice #{invoice.invoiceNumber}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setVoucherModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingVoucher ? (
+              <div className="py-12 text-center text-xs text-slate-400">Loading Journal Voucher...</div>
+            ) : linkedVoucher ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                  <div>
+                    <span className="text-slate-500 block text-[10px] font-bold uppercase">Voucher #</span>
+                    <strong className="font-mono text-indigo-600 dark:text-indigo-400">{linkedVoucher.voucherNumber}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] font-bold uppercase">Voucher Date</span>
+                    <span>{new Date(linkedVoucher.voucherDate).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] font-bold uppercase">Total Amount</span>
+                    <strong className="font-mono text-emerald-600">₹{linkedVoucher.totalDebit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
+                      <tr>
+                        <th className="p-2.5">Ledger Account</th>
+                        <th className="p-2.5 text-right">Debit (Dr)</th>
+                        <th className="p-2.5 text-right">Credit (Cr)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {linkedVoucher.legs.map((leg, i) => (
+                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="p-2.5 font-medium">
+                            <span className="font-bold text-slate-900 dark:text-white">{leg.accountName}</span>
+                            <span className="text-[10px] font-mono text-slate-400 block">{leg.accountCode}</span>
+                          </td>
+                          <td className="p-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {leg.debitAmount > 0 ? `₹${leg.debitAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                          </td>
+                          <td className="p-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                            {leg.creditAmount > 0 ? `₹${leg.creditAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs text-slate-500 font-medium">
+                  <strong>Narration:</strong> {linkedVoucher.narration || "Auto-posted from sales invoice"}
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Link
+                    href="/app/accounting/vouchers"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
+                  >
+                    <span>Open in Accounting Vouchers</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center space-y-2">
+                <p className="text-xs text-slate-500">No linked journal voucher found yet for this invoice.</p>
+                <Link
+                  href="/app/accounting/vouchers"
+                  className="inline-block text-xs font-bold text-indigo-600 hover:underline"
+                >
+                  Create manual JV in Accounting &rarr;
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="px-2 sm:px-4 py-3 sm:py-4 max-w-7xl mx-auto space-y-4">
         {/* ── Back + Status strip ── */}
@@ -1769,11 +2338,21 @@ export default function SalesInvoiceDetailsPage({
                   onChange={(e) => handleTemplateChange(e.target.value)}
                   className="bg-transparent text-xs font-black text-slate-900 dark:text-white outline-none cursor-pointer pr-1"
                 >
-                  {availableTemplates.map((t) => (
-                    <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">
-                      {t.templateName} {t.isDefault ? "(Default)" : ""}
-                    </option>
-                  ))}
+                  {availableTemplates
+                    .filter(
+                      (t) =>
+                        t.documentType === 1 ||
+                        t.documentType === 2 ||
+                        t.pageSize === 4 ||
+                        t.pageSize === 5 ||
+                        t.templateCode?.includes("THERMAL") ||
+                        (!t.documentType && t.templateName?.toLowerCase().includes("invoice"))
+                    )
+                    .map((t) => (
+                      <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">
+                        {t.templateName} {t.isDefault ? "(Default)" : ""}
+                      </option>
+                    ))}
                 </select>
               </div>
             )}
@@ -1790,11 +2369,7 @@ export default function SalesInvoiceDetailsPage({
               <Printer className="w-4 h-4 text-white" />
               <span className="text-white">
                 {activeDoc === "invoice"
-                  ? `Print Invoice (${(() => {
-                      const activeTpl = availableTemplates.find(t => t.id === selectedTemplateId);
-                      const fmt = activeTpl ? getFormatFromTemplate(activeTpl) : printFormat;
-                      return fmt === "a4" ? "A4" : fmt === "compact_a5" ? "A5" : fmt === "thermal80" ? "80mm" : "58mm";
-                    })()})`
+                  ? `Print Invoice (${printFormat === "a4" ? "A4" : printFormat === "compact_a5" ? "A5" : printFormat === "thermal80" ? "80mm" : "58mm"})`
                   : activeDoc === "challan"
                   ? "Print Delivery Challan"
                   : activeDoc === "gatepass"
@@ -1859,11 +2434,11 @@ export default function SalesInvoiceDetailsPage({
 
             {/* 2. SEND ON WHATSAPP */}
             <button
-              onClick={handleSendWhatsApp}
+              onClick={handleOpenWhatsAppModal}
               disabled={generatingPdf}
               style={{ color: "#ffffff" }}
               className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg shadow-emerald-600/30 transition-all cursor-pointer disabled:opacity-60"
-              title="Send Invoice PDF via WhatsApp"
+              title="Send Invoice via WhatsApp"
             >
               {generatingPdf ? (
                 <RefreshCw className="w-4 h-4 text-white animate-spin" />
@@ -1941,6 +2516,19 @@ export default function SalesInvoiceDetailsPage({
               </button>
             )}
 
+            {/* 7.6 VIEW ACCOUNTING VOUCHER (JV) - STRICTLY GATED TO ACCOUNTING ADD-ON SUBSCRIBERS */}
+            {isAddonActive("accounting") && (
+              <button
+                onClick={handleOpenVoucherModal}
+                style={{ color: "#ffffff" }}
+                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                title="View Auto-Posted Double-Entry Journal Voucher (JV)"
+              >
+                <Scale className="w-4 h-4 text-white" />
+                <span className="text-white">Accounting JV</span>
+              </button>
+            )}
+
             {/* 8. MORE (⋯) dropdown */}
             <div className="relative" ref={moreMenuRef}>
               <button
@@ -1954,7 +2542,7 @@ export default function SalesInvoiceDetailsPage({
               </button>
 
               {moreMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 z-40 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-1.5 min-w-[220px] space-y-0.5">
+                <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-1.5 min-w-[220px] space-y-0.5">
                   {/* Edit Invoice */}
                   {!isCancelled && (
                     <button
@@ -1962,9 +2550,9 @@ export default function SalesInvoiceDetailsPage({
                         setMoreMenuOpen(false);
                         router.push(`/app/sales/invoices?editId=${invoice.id}`);
                       }}
-                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                     >
-                      <Edit2 className="w-4 h-4 text-orange-400" />
+                      <Edit2 className="w-4 h-4 text-orange-500 dark:text-orange-400" />
                       <span>Edit Invoice</span>
                     </button>
                   )}
@@ -1983,9 +2571,9 @@ export default function SalesInvoiceDetailsPage({
                         });
                         setRecordPaymentModalOpen(true);
                       }}
-                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                     >
-                      <CreditCard className="w-4 h-4 text-emerald-400" />
+                      <CreditCard className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                       <span>Record Payment</span>
                     </button>
                   )}
@@ -1997,9 +2585,9 @@ export default function SalesInvoiceDetailsPage({
                       setActiveDoc("proforma");
                       showToast("Proforma invoice generated & view activated!", "success");
                     }}
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                   >
-                    <FileText className="w-4 h-4 text-purple-400" />
+                    <FileText className="w-4 h-4 text-purple-500 dark:text-purple-400" />
                     <span>Generate Proforma</span>
                   </button>
 
@@ -2010,14 +2598,14 @@ export default function SalesInvoiceDetailsPage({
                         setMoreMenuOpen(false);
                         handleOpenCreditNoteModal();
                       }}
-                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                     >
-                      <RotateCcw className="w-4 h-4 text-orange-400" />
+                      <RotateCcw className="w-4 h-4 text-orange-500 dark:text-orange-400" />
                       <span>Sales Return (Credit Note)</span>
                     </button>
                   ) : (
-                    <div className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 cursor-not-allowed">
-                      <RotateCcw className="w-4 h-4 text-slate-600" />
+                    <div className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 dark:text-slate-600 cursor-not-allowed text-left">
+                      <RotateCcw className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                       <span>Sales Return (Invoice Cancelled)</span>
                     </div>
                   )}
@@ -2037,36 +2625,36 @@ export default function SalesInvoiceDetailsPage({
                       window.open(`sms:${phone}?body=${smsText}`, "_self");
                       showToast(`SMS link triggered for ${phone}`, "success");
                     }}
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                   >
-                    <Share2 className="w-4 h-4 text-orange-400" />
+                    <Share2 className="w-4 h-4 text-orange-500 dark:text-orange-400" />
                     <span>Send via SMS</span>
                   </button>
 
                   {/* Refresh */}
                   <button
                     onClick={() => { setMoreMenuOpen(false); loadData(); showToast("Invoice data refreshed", "info"); }}
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                   >
-                    <RefreshCw className="w-4 h-4 text-slate-400" />
+                    <RefreshCw className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                     <span>Refresh Invoice</span>
                   </button>
 
                   {/* Divider */}
-                  <div className="border-t border-slate-800 my-1"></div>
+                  <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
 
                   {/* Cancel Invoice */}
                   {!isCancelled ? (
                     <button
                       onClick={() => { setMoreMenuOpen(false); setCancelModal(true); }}
-                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left"
                     >
-                      <Ban className="w-4 h-4" />
+                      <Ban className="w-4 h-4 text-rose-500" />
                       <span>Cancel Invoice</span>
                     </button>
                   ) : (
-                    <div className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500/60 cursor-not-allowed">
-                      <Ban className="w-4 h-4 text-rose-500/40" />
+                    <div className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400/60 dark:text-rose-500/60 cursor-not-allowed text-left">
+                      <Ban className="w-4 h-4 text-rose-400/40 dark:text-rose-500/40" />
                       <span>Invoice Already Cancelled</span>
                     </div>
                   )}
@@ -2174,10 +2762,26 @@ export default function SalesInvoiceDetailsPage({
         {activeDoc === "invoice" && dynamicInvoiceHtml ? (
           <div id="invoice-printable-area" className="bg-white text-slate-900 rounded-none sm:rounded-xl p-3 sm:p-6 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-5xl mx-auto overflow-x-auto">
             <style jsx global>{`
+              @media screen {
+                #invoice-printable-area .invoice-container,
+                #invoice-printable-area .enterprise-invoice,
+                #invoice-printable-area .tally-invoice,
+                #invoice-printable-area .cbo-invoice-wrap,
+                #invoice-printable-area .invoice-wrapper,
+                #invoice-printable-area .page-wrapper {
+                  height: auto !important;
+                  min-height: fit-content !important;
+                  max-height: none !important;
+                }
+                #invoice-printable-area .invoice-container > div,
+                #invoice-printable-area .enterprise-invoice > div {
+                  height: auto !important;
+                }
+              }
               @media print {
                 @page {
-                  size: ${printFormat === "compact_a5" ? "A5 landscape" : "A4 portrait"};
-                  margin: 5mm;
+                  size: ${printFormat === "compact_a5" ? "A5 landscape" : (printFormat === "thermal80" || printFormat === "thermal58" ? "auto" : "A4 portrait")};
+                  margin: ${printFormat === "compact_a5" ? "2mm 3mm" : "3mm 4mm"};
                 }
                 html, body {
                   background: #ffffff !important;
@@ -2190,6 +2794,32 @@ export default function SalesInvoiceDetailsPage({
                 .print\\:hidden, nav, aside, header, button {
                   display: none !important;
                 }
+                #invoice-printable-area {
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                #invoice-printable-area .invoice-container,
+                #invoice-printable-area .enterprise-invoice,
+                #invoice-printable-area .tally-invoice,
+                #invoice-printable-area .cbo-invoice-wrap,
+                #invoice-printable-area .invoice-wrapper,
+                #invoice-printable-area .page-wrapper {
+                  box-sizing: border-box !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 auto !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                  page-break-after: avoid !important;
+                  break-after: avoid !important;
+                  min-height: 280mm !important;
+                  max-height: 285mm !important;
+                  height: 282mm !important;
+                }
               }
             `}</style>
             <div dangerouslySetInnerHTML={{ __html: dynamicInvoiceHtml }} />
@@ -2199,7 +2829,9 @@ export default function SalesInvoiceDetailsPage({
             <div dangerouslySetInnerHTML={{ __html: generateCashMemoA5Html(invoice, profile, upiQr) }} />
           </div>
         ) : activeDoc === "invoice" && printFormat === "a4" && (() => {
-          const invoiceQrString = `GSTIN:${invoice.branchGstin || profile?.gstin || "07ABPCS0239Q1ZN"}|INV:${invoice.invoiceNumber}|DT:${invoice.invoiceDate ? invoice.invoiceDate.split("T")[0] : ""}|VAL:${invoice.totalAmount.toFixed(2)}|TAX:${invoice.taxableAmount.toFixed(2)}|GST:${(invoice.cgstAmount + invoice.sgstAmount + invoice.igstAmount).toFixed(2)}|BUYER:${invoice.customerName || "CASH"}`;
+          const publicInvoiceUrl = typeof window !== "undefined"
+            ? `${window.location.origin}/i/${invoice.id}`
+            : `https://udyogbill.com/i/${invoice.id}`;
           const upiId = profile?.upiId?.trim() || "";
           const hasUpi = upiId.length > 0;
           const upiPaymentUri = hasUpi
@@ -2233,8 +2865,8 @@ export default function SalesInvoiceDetailsPage({
             return inWords(num).trim() + " Only";
           })();
 
-          // Minimum 12 rows to comfortably fill the full A4 portrait page
-          const emptyRowsCount = Math.max(0, 12 - invoice.items.length);
+          // Minimum 16 rows to comfortably fill the full A4 portrait page with zero bottom gap
+          const emptyRowsCount = Math.max(0, 16 - invoice.items.length);
 
           return (
             <div id="invoice-printable-area" className="bg-white text-slate-900 rounded-none sm:rounded-xl p-4 sm:p-8 shadow-xl border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs max-w-4xl mx-auto">
@@ -2243,7 +2875,7 @@ export default function SalesInvoiceDetailsPage({
                 @media print {
                   @page {
                     size: A4 portrait;
-                    margin: 5mm 6mm 5mm 6mm;
+                    margin: 4mm 5mm 4mm 5mm;
                   }
                   html, body {
                     background: #ffffff !important;
@@ -2389,20 +3021,23 @@ export default function SalesInvoiceDetailsPage({
                           <b>Invoice No:</b> <span className="font-mono font-black text-slate-900">{invoice.invoiceNumber}</span>
                         </p>
                         <p>
-                          <b>Date:</b> {new Date(invoice.invoiceDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} 18:50
+                          <b>Date:</b> {formatDateDDMMYYYY(invoice.invoiceDate)}
                         </p>
                         <p>
-                          <b>Due Date:</b> {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : new Date(invoice.invoiceDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} 18:50
+                          <b>Due Date:</b> {formatDateDDMMYYYY(invoice.dueDate || invoice.invoiceDate)}
                         </p>
                       </div>
                     </div>
                     {/* Header Real Invoice QR Code */}
-                    <div className="w-16 h-16 bg-white border border-slate-300 rounded p-0.5 flex items-center justify-center shrink-0 shadow-xs">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(invoiceQrString)}`}
-                        alt="Invoice Verification QR"
-                        className="w-full h-full object-contain"
-                      />
+                    <div className="flex flex-col items-center justify-center shrink-0">
+                      <div className="w-16 h-16 bg-white border border-slate-300 rounded p-0.5 flex items-center justify-center shadow-xs">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(publicInvoiceUrl)}`}
+                          alt="Invoice Verification QR"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tight mt-0.5">Scan to View</span>
                     </div>
                   </div>
                 </div>
@@ -2415,7 +3050,7 @@ export default function SalesInvoiceDetailsPage({
                     </div>
                     <div className="font-bold text-slate-900 text-xs">{invoice.customerName}</div>
                     <div className="text-slate-700 text-[10.5px] leading-tight">
-                      {invoice.billingAddress || "SHOP NO. 2 WATER WORK WAZIRABAD, DELHI, DELHI, INDIA"}
+                      {invoice.billingAddress || ""}
                     </div>
                     {invoice.customerPhone && (
                       <div className="text-slate-800 text-[10.5px]">
@@ -2427,11 +3062,20 @@ export default function SalesInvoiceDetailsPage({
                         <b>GST:</b> {invoice.customerGSTIN}
                       </div>
                     )}
-                    {hasPharma && (invoice as any)?.customerDlNumber && (
-                      <div className="text-slate-900 font-mono text-[10.5px]">
-                        <b>DL NUM:</b> {(invoice as any).customerDlNumber}
-                      </div>
-                    )}
+                    {(() => {
+                      let dl = invoice.customerDlNumber;
+                      if (!dl && invoice.attributesJson) {
+                        try {
+                          const p = JSON.parse(invoice.attributesJson);
+                          if (p.customerDlNumber) dl = p.customerDlNumber;
+                        } catch {}
+                      }
+                      return (hasPharma || dl) && dl ? (
+                        <div className="text-slate-900 font-mono text-[10.5px]">
+                          <b>DL NUM:</b> {dl}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
 
                   <div className="p-2.5 space-y-0.5">
@@ -2504,8 +3148,10 @@ export default function SalesInvoiceDetailsPage({
                       {invoice.items.map((item, idx) => {
                         let itemAttrs: any = {};
                         try {
-                          itemAttrs = JSON.parse(item.attributesJson || "{}");
+                          itemAttrs = typeof item.attributesJson === "string" ? JSON.parse(item.attributesJson || "{}") : (item.attributesJson || {});
                         } catch {}
+                        const parsedAttrs = parseCashMemoItemAttributes(item);
+                        itemAttrs = { ...itemAttrs, ...parsedAttrs };
 
                         let expStr = itemAttrs.expiryFormatted || "";
                         if (!expStr && item.expiryDate) {
@@ -2522,6 +3168,25 @@ export default function SalesInvoiceDetailsPage({
                               <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{idx + 1}</td>
                               <td className="py-1 px-1.5 border-r border-slate-400 font-bold uppercase text-[9.5px]">
                                 {item.itemName}
+                                {(itemAttrs.shadeCode || itemAttrs.shadeName || itemAttrs.packSize || itemAttrs.tintingCharge > 0) && (
+                                  <div className="flex flex-wrap items-center gap-1 pt-0.5 font-normal">
+                                    {(itemAttrs.shadeCode || itemAttrs.shadeName) && (
+                                      <span className="inline-flex items-center px-1 py-0.2 rounded text-[8.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                        🎨 {itemAttrs.shadeCode && itemAttrs.shadeName ? `${itemAttrs.shadeCode} (${itemAttrs.shadeName})` : (itemAttrs.shadeCode || itemAttrs.shadeName)}
+                                      </span>
+                                    )}
+                                    {itemAttrs.packSize && (
+                                      <span className="inline-flex items-center px-1 py-0.2 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        📦 {itemAttrs.packSize}
+                                      </span>
+                                    )}
+                                    {itemAttrs.tintingCharge > 0 && (
+                                      <span className="inline-flex items-center px-1 py-0.2 rounded text-[8.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                        ⚡ +₹{itemAttrs.tintingCharge.toFixed(2)}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </td>
                               <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{packingStr}</td>
                               <td className="py-1 px-1 border-r border-slate-400 text-center font-mono">{item.hsnCode || "—"}</td>
@@ -2586,10 +3251,54 @@ export default function SalesInvoiceDetailsPage({
                                   {itemAttrs.size ? `Size: ${itemAttrs.size}` : ""} {itemAttrs.color ? `| Color: ${itemAttrs.color}` : ""} {itemAttrs.styleCode ? `| Style: ${itemAttrs.styleCode}` : ""}
                                 </span>
                               )}
+                              {(itemAttrs.specNumber || itemAttrs.oemPartNumber || itemAttrs.applicableVehicles) && (
+                                <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                  {itemAttrs.specNumber && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-orange-50 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
+                                      ⚙️ No: {itemAttrs.specNumber}
+                                    </span>
+                                  )}
+                                  {itemAttrs.oemPartNumber && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                      OEM: {itemAttrs.oemPartNumber}
+                                    </span>
+                                  )}
+                                  {itemAttrs.applicableVehicles && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] text-slate-600 dark:text-slate-400">
+                                      🚗 {itemAttrs.applicableVehicles}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                               {(itemAttrs.sqft || itemAttrs.totalWeightKg) && (
                                 <span className="block text-[9.5px] text-slate-600">
                                   {itemAttrs.sqft ? `Dim: ${itemAttrs.length}x${itemAttrs.width} ${itemAttrs.dimensionUnit || "ft"} (${itemAttrs.sqft} Sq.Ft)` : ""} {itemAttrs.totalWeightKg ? `| Wt: ${itemAttrs.totalWeightKg} Kg` : ""}
                                 </span>
+                              )}
+                              {/* Paint & Hardware Badges (Shade, Pack, Tinting, Painter) */}
+                              {(itemAttrs.shadeCode || itemAttrs.shadeName || itemAttrs.packSize || itemAttrs.tintingCharge > 0 || itemAttrs.contractorName) && (
+                                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                  {(itemAttrs.shadeCode || itemAttrs.shadeName) && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                      🎨 Shade: {itemAttrs.shadeCode && itemAttrs.shadeName ? `${itemAttrs.shadeCode} (${itemAttrs.shadeName})` : (itemAttrs.shadeCode || itemAttrs.shadeName)}
+                                    </span>
+                                  )}
+                                  {itemAttrs.packSize && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      📦 Pack: {itemAttrs.packSize}
+                                    </span>
+                                  )}
+                                  {itemAttrs.tintingCharge > 0 && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                      ⚡ Tinting: +₹{itemAttrs.tintingCharge.toFixed(2)}
+                                    </span>
+                                  )}
+                                  {itemAttrs.contractorName && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                      👤 Painter: {itemAttrs.contractorName}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </td>
                             <td className="py-1.5 px-2 border-r border-slate-400 text-center font-mono text-slate-700">
@@ -2812,32 +3521,37 @@ export default function SalesInvoiceDetailsPage({
                   </table>
                 </div>
 
-                {/* 6. Terms and Conditions Box */}
-                <div className="border border-slate-400 p-2.5 text-[10px] text-slate-800 space-y-1">
-                  <div className="font-bold text-slate-900 text-[10.5px]">Terms and Conditions:</div>
-                  <ul className="list-disc pl-4 space-y-0.5 leading-tight">
-                    <li><b>Payment:</b> Due within 45 days. <b>18% p.a.</b> interest applies to overdue amounts.</li>
-                    <li><b>Claims:</b> Report shortages or damages within <b>24 hours</b> of delivery.</li>
-                    <li><b>Returns:</b> Goods sold are non-returnable except for manufacturing defects or recalls.</li>
-                    <li><b>Storage:</b> No liability for quality loss due to improper storage after delivery.</li>
-                    {hasPharma ? (
-                      <li><b>Regulatory:</b> Sold under <b>Drugs & Cosmetics Act</b>; verify Batch/Expiry upon receipt.</li>
-                    ) : (
-                      <li><b>Warranty:</b> Goods once sold are covered under manufacturer warranty terms wherever applicable.</li>
-                    )}
-                    <li><b>Jurisdiction:</b> Subject to courts in DELHI / Local jurisdiction only.</li>
-                  </ul>
-                </div>
-
-                {/* 7. Bottom Footer Note with Dotted Border */}
-                <div className="border-t border-dotted border-slate-400 pt-1.5 space-y-1 text-[9.5px] text-slate-600">
-                  <div className="flex justify-between items-center">
-                    <div>This is a computer generated invoice and does not require signature.</div>
-                    <div className="font-bold text-slate-800">Authorised Signatory</div>
+                {/* 6. Terms & Conditions and Authorised Signatory Footer Box */}
+                <div className="border border-slate-400 grid grid-cols-12 text-[10px] text-slate-800 bg-white">
+                  <div className="col-span-8 p-2.5 border-r border-slate-400 flex flex-col justify-between space-y-1">
+                    <div>
+                      <div className="font-bold text-slate-900 text-[10.5px]">Terms and Conditions:</div>
+                      <ul className="list-disc pl-4 space-y-0.5 leading-tight text-[9.5px]">
+                        <li><b>Payment:</b> Due within 45 days. <b>18% p.a.</b> interest applies to overdue amounts.</li>
+                        <li><b>Claims:</b> Report shortages or damages within <b>24 hours</b> of delivery.</li>
+                        <li><b>Returns:</b> Goods sold are non-returnable except for manufacturing defects or recalls.</li>
+                        <li><b>Storage:</b> No liability for quality loss due to improper storage after delivery.</li>
+                        {hasPharma ? (
+                          <li><b>Regulatory:</b> Sold under <b>Drugs & Cosmetics Act</b>; verify Batch/Expiry upon receipt.</li>
+                        ) : (
+                          <li><b>Warranty:</b> Goods once sold are covered under manufacturer warranty terms wherever applicable.</li>
+                        )}
+                        <li><b>Jurisdiction:</b> Subject to courts in DELHI / Local jurisdiction only.</li>
+                      </ul>
+                    </div>
+                    <div className="text-[9px] text-slate-500 italic pt-1">
+                      This is a computer generated invoice and shows the actual price of goods described.
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center font-mono text-[9px] text-slate-500">
-                    <div>https://www.udyogbill.com/sells</div>
-                    <div>1/1</div>
+                  <div className="col-span-4 p-2.5 flex flex-col justify-between text-right bg-slate-50/40">
+                    <div className="text-[10px] text-slate-700">
+                      For <span className="font-bold text-slate-900 uppercase">{profile?.businessName || "Authorized Signatory"}</span>
+                    </div>
+                    <div className="pt-8">
+                      <div className="border-t border-slate-400 pt-1 font-bold text-slate-900 text-[10.5px]">
+                        Authorised Signatory
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2854,6 +3568,17 @@ export default function SalesInvoiceDetailsPage({
           >
             {/* Header */}
             <div className="text-center space-y-1 border-b border-dashed border-black pb-3 mb-3">
+              {profile?.logoUrl && (
+                <div className="flex justify-center mb-1">
+                  <img
+                    src={profile.logoUrl}
+                    alt="Logo"
+                    className={`object-contain mx-auto ${
+                      printFormat === "thermal58" ? "max-h-8 max-w-[100px]" : "max-h-12 max-w-[140px]"
+                    }`}
+                  />
+                </div>
+              )}
               <div className="font-extrabold text-sm uppercase">{profile?.businessName || "UDYOGBILL"}</div>
               <div className="text-[10px]">{invoice.branchName}</div>
               <div className="text-[9px]">{invoice.branchAddress}</div>
@@ -2947,6 +3672,157 @@ export default function SalesInvoiceDetailsPage({
           </div>
         )}
 
+        {/* ─── WhatsApp Send & Customer Number Modal ─── */}
+        {whatsAppModalOpen && invoice && (
+          <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 text-slate-900 dark:text-white relative">
+              <button
+                onClick={() => setWhatsAppModalOpen(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Modal Header */}
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-300 dark:border-emerald-500/30">
+                  <MessageCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Send Invoice via WhatsApp</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Inv #{invoice.invoiceNumber} • ₹{invoice.totalAmount.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Bill Details Info Banner */}
+              <div className="bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-3.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">Customer Name:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{invoice.customerName || "Walk-in Customer"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">Invoice Amount:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{invoice.totalAmount.toFixed(2)}</span>
+                </div>
+                {invoice.balanceAmount > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600 dark:text-slate-400 font-medium">Balance Due:</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-400">₹{invoice.balanceAmount.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Customer Mobile / WhatsApp Input */}
+              <div className="space-y-2.5">
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Customer WhatsApp / Mobile Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-3 flex items-center space-x-1 text-xs font-bold text-slate-600 dark:text-slate-400 pointer-events-none">
+                    <span>🇮🇳 +91</span>
+                  </div>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={whatsAppPhoneInput}
+                    onChange={(e) => setWhatsAppPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="10-digit mobile number"
+                    autoFocus
+                    className="w-full pl-20 pr-10 py-3 bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm font-bold tracking-wider placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 transition"
+                  />
+                  {whatsAppPhoneInput.replace(/\D/g, "").length === 10 && (
+                    <div className="absolute right-3 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 pt-1">
+                  {/* Save phone to bill checkbox */}
+                  <label className="flex items-center space-x-2 text-xs text-slate-800 dark:text-slate-200 cursor-pointer select-none font-medium">
+                    <input
+                      type="checkbox"
+                      checked={savePhoneToInvoice}
+                      onChange={(e) => setSavePhoneToInvoice(e.target.checked)}
+                      className="rounded border-slate-400 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Save mobile number to this bill</span>
+                  </label>
+
+                  {/* Include Bill Link Checkbox */}
+                  <label className="flex items-center space-x-2 text-xs text-slate-800 dark:text-slate-200 cursor-pointer select-none font-medium">
+                    <input
+                      type="checkbox"
+                      checked={includeBillLink}
+                      onChange={(e) => setIncludeBillLink(e.target.checked)}
+                      className="rounded border-slate-400 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Include digital bill link in message</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Message Preview (Guaranteed 100% High Contrast) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    Message Preview:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = buildWhatsAppMessage(normalizeWhatsAppNumber(whatsAppPhoneInput), includeBillLink);
+                      navigator.clipboard.writeText(msg);
+                      showToast("Message copied to clipboard!", "success");
+                    }}
+                    className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold flex items-center space-x-1 transition cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Text</span>
+                  </button>
+                </div>
+                <div
+                  className="rounded-2xl p-4 text-xs font-mono max-h-48 overflow-y-auto leading-relaxed whitespace-pre-wrap select-all shadow-inner border-2"
+                  style={{
+                    backgroundColor: "#f8fafc",
+                    color: "#0f172a",
+                    borderColor: "#cbd5e1",
+                    fontWeight: 600,
+                  }}
+                >
+                  {buildWhatsAppMessage(normalizeWhatsAppNumber(whatsAppPhoneInput), includeBillLink)}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={whatsAppPhoneInput.replace(/\D/g, "").length < 10 || savingContact}
+                  onClick={() => handleSendWhatsAppChat("web")}
+                  className="w-full sm:flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Send on WhatsApp Web</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={whatsAppPhoneInput.replace(/\D/g, "").length < 10 || savingContact}
+                  onClick={() => handleSendWhatsAppChat("app")}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-400 hover:text-emerald-300 text-xs font-bold border border-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  title="Open WhatsApp Application"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp App</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ─── WhatsApp PDF Sharing Guidance Modal ─── */}
         {whatsAppGuideModalOpen && (
           <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
@@ -2963,8 +3839,8 @@ export default function SalesInvoiceDetailsPage({
                   <MessageCircle className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Invoice PDF Ready for WhatsApp</h3>
-                  <p className="text-xs text-slate-400">PDF download ho chuki hai</p>
+                  <h3 className="text-base font-bold text-white">Invoice PDF Ready</h3>
+                  <p className="text-xs text-slate-400">PDF downloaded to your device</p>
                 </div>
               </div>
 
@@ -2975,10 +3851,10 @@ export default function SalesInvoiceDetailsPage({
                 </div>
                 <div className="text-xs text-slate-300 space-y-2 leading-relaxed">
                   <p>
-                    1. <b>WhatsApp Web</b> naye tab me khul chuka hai.
+                    1. <b>WhatsApp Web</b> opened in a new tab.
                   </p>
                   <p>
-                    2. Browser ke downloads folder se is <b>PDF file ko WhatsApp chat me drag karein</b> ya chat ke <b>📎 (Attach) &gt; 📄 Document</b> option par click karke attach kar dein.
+                    2. You can drag and drop the downloaded PDF from your downloads folder into the chat, or use <b>📎 &gt; Document</b> to attach the file.
                   </p>
                 </div>
               </div>
@@ -2987,14 +3863,15 @@ export default function SalesInvoiceDetailsPage({
                 <button
                   type="button"
                   onClick={() => {
-                    const phone = invoice?.customerPhone?.replace(/\D/g, "") || "";
-                    const rawMsg = `Dear ${invoice?.customerName},\n\nYour Tax Invoice *${invoice?.invoiceNumber}* for ₹${invoice?.totalAmount.toFixed(2)} has been issued.\nInvoice PDF is attached.`;
-                    const waUrl = phone
-                      ? `https://wa.me/91${phone}?text=${encodeURIComponent(rawMsg)}`
+                    const clean = whatsAppPhoneInput || invoice?.customerPhone || "";
+                    const norm = normalizeWhatsAppNumber(clean);
+                    const rawMsg = buildWhatsAppMessage(norm, includeBillLink);
+                    const waUrl = norm
+                      ? `https://api.whatsapp.com/send?phone=${norm}&text=${encodeURIComponent(rawMsg)}`
                       : `https://web.whatsapp.com/send?text=${encodeURIComponent(rawMsg)}`;
                     window.open(waUrl, "_blank");
                   }}
-                  className="w-full sm:flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/30"
+                  className="w-full sm:flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/30 cursor-pointer"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Open WhatsApp Web</span>
@@ -3002,7 +3879,7 @@ export default function SalesInvoiceDetailsPage({
                 <button
                   type="button"
                   onClick={() => handleDownloadPdf()}
-                  className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+                  className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   <span>Download Again</span>
