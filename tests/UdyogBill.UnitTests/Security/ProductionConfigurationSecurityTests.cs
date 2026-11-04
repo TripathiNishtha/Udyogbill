@@ -158,7 +158,7 @@ public class ProductionConfigurationSecurityTests
     }
 
     [Fact]
-    public void Startup_WhenJwtExpiryExceeds60MinutesInProduction_ShouldThrowConfigurationException()
+    public void Startup_WhenJwtExpiryExceeds24HoursInProduction_ShouldThrowConfigurationException()
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -172,7 +172,25 @@ public class ProductionConfigurationSecurityTests
         var act = () => ProductionSecurityConfigurationValidator.ValidateProductionConfiguration(config, _prodEnvMock.Object);
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*'Jwt:ExpiryMinutes' in Production cannot exceed 60 minutes*");
+            .WithMessage("*'Jwt:ExpiryMinutes' in Production cannot exceed 24 hours*");
+    }
+
+    [Fact]
+    public void Startup_WhenJwtExpiryIs12HoursInProduction_ShouldSucceed()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:DefaultConnection"] = "Host=db.prod.aws.internal;Port=5432;Database=udyogbill_prod;Username=app;Password=SuperSecurePassword123!",
+                ["Jwt:SecretKey"] = "A_Very_Strong_And_Cryptographically_Secure_Production_Key_2026_Minimum_256_Bits!",
+                ["Jwt:ExpiryMinutes"] = "720",
+                ["Cors:AllowedOrigins:0"] = "https://app.udyogbill.com"
+            })
+            .Build();
+
+        var act = () => ProductionSecurityConfigurationValidator.ValidateProductionConfiguration(config, _prodEnvMock.Object);
+
+        act.Should().NotThrow();
     }
 
     [Fact]
