@@ -5,7 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using UdyogBill.Persistence.Context;
 
@@ -16,11 +19,18 @@ namespace UdyogBill.Api.Controllers;
 public class SystemReadinessController : BaseApiController
 {
     private readonly AppDbContext _context;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<SystemReadinessController> _logger;
     private static readonly DateTime AppStartTime = DateTime.UtcNow;
 
-    public SystemReadinessController(AppDbContext context)
+    public SystemReadinessController(
+        AppDbContext context,
+        IWebHostEnvironment environment,
+        ILogger<SystemReadinessController> logger)
     {
         _context = context;
+        _environment = environment;
+        _logger = logger;
     }
 
     [HttpGet("readiness")]
@@ -33,11 +43,20 @@ public class SystemReadinessController : BaseApiController
         try
         {
             dbHealthy = await _context.Database.CanConnectAsync(cancellationToken);
+            if (!dbHealthy)
+            {
+                dbError = _environment.IsDevelopment()
+                    ? "Unable to connect to database."
+                    : "Database service is temporarily unavailable.";
+            }
         }
         catch (Exception ex)
         {
             dbHealthy = false;
-            dbError = ex.Message;
+            _logger.LogError(ex, "Database connection check failed during system readiness probe.");
+            dbError = _environment.IsDevelopment()
+                ? ex.Message
+                : "Database service is temporarily unavailable.";
         }
 
         var process = Process.GetCurrentProcess();
@@ -51,7 +70,7 @@ public class SystemReadinessController : BaseApiController
             Database = new
             {
                 IsConnected = dbHealthy,
-                Provider = _context.Database.ProviderName,
+                Provider = dbHealthy ? _context.Database.ProviderName : "PostgreSQL",
                 Error = dbError
             },
             SystemTelemetry = new

@@ -120,10 +120,35 @@ public class PublicMobileConfigController : BaseApiController
             device.AppVersionCode = req.AppVersionCode > 0 ? req.AppVersionCode : device.AppVersionCode;
             device.AppVersionName = req.AppVersionName ?? device.AppVersionName;
             device.LastActiveAt = DateTime.UtcNow;
+            device.IsInstalled = true;
+            device.UninstalledAt = null;
         }
 
         await _db.SaveChangesAsync();
         return Ok(new { success = true, deviceId = device.DeviceId });
+    }
+
+    [HttpPost("devices/heartbeat")]
+    public async Task<IActionResult> RecordHeartbeat([FromBody] DeviceHeartbeatRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.DeviceId))
+        {
+            return BadRequest(new { message = "DeviceId is required." });
+        }
+
+        var cleanId = req.DeviceId.Trim();
+        var device = await _db.MobileDeviceRegistrations.FirstOrDefaultAsync(x => x.DeviceId == cleanId);
+        if (device != null)
+        {
+            device.LastActiveAt = DateTime.UtcNow;
+            device.IsInstalled = true;
+            device.UninstalledAt = null;
+            if (!string.IsNullOrWhiteSpace(req.AppVersionName))
+                device.AppVersionName = req.AppVersionName;
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(new { success = true });
     }
 
     [HttpGet("notifications/latest")]
@@ -138,6 +163,8 @@ public class PublicMobileConfigController : BaseApiController
         return Ok(items);
     }
 }
+
+public record DeviceHeartbeatRequest(string DeviceId, string? AppVersionName);
 
 public record RegisterMobileDeviceRequest(
     string DeviceId,

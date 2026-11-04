@@ -97,7 +97,7 @@ public class InventoryServiceTests
             TaxRate: 12.0m,
             PurchasePrice: 150m,
             SellingPrice: 200m,
-            MRP: 220m,
+            MRP: 250m,
             MinimumStockAlert: 10m,
             TrackBatches: true,
             AttributesJson: "{\"schedule\": \"H1\", \"composition\": \"Amoxicillin 500mg + Clavulanate 125mg\"}",
@@ -174,7 +174,7 @@ public class InventoryServiceTests
             PrimaryUomId: uomBox.Id,
             PurchasePrice: 20m,
             SellingPrice: 30m,
-            MRP: 35m,
+            MRP: 40m,
             InitialStock: 20m,
             InitialWarehouseId: warehouseId
         ));
@@ -223,7 +223,7 @@ public class InventoryServiceTests
             PrimaryUomId: uomBox.Id,
             PurchasePrice: 20m,
             SellingPrice: 30m,
-            MRP: 35m,
+            MRP: 40m,
             InitialStock: 10m,
             InitialWarehouseId: warehouseId
         ));
@@ -283,5 +283,89 @@ public class InventoryServiceTests
         Assert.Single(alerts.Data!);
         Assert.Equal("LOW-STOCK-01", alerts.Data![0].Sku);
         Assert.Equal(5m, alerts.Data![0].CurrentStock);
+    }
+
+    [Fact]
+    public async Task ReceiveStockTransferAsync_PreservesBatchIdentity()
+    {
+        // Arrange
+        var (context, tenantId, sourceWarehouseId, tenantContext, userContext) = SetupInventoryContext();
+        var auditService = new MockAuditService();
+        var service = new InventoryService(context, tenantContext, userContext, auditService);
+
+        var uomBox = await context.UnitsOfMeasure.FirstAsync(u => u.Code == "BOX");
+        var itemRes = await service.CreateItemAsync(new CreateItemRequest(
+            Sku: "BATCH-TEST-01",
+            Name: "Batch Identity Test Item",
+            PrimaryUomId: uomBox.Id,
+            TrackBatches: true,
+            InitialStock: 50m,
+            InitialWarehouseId: sourceWarehouseId
+        ));
+
+        // Create a secondary warehouse
+        var destWarehouse = new TenantWarehouse
+        {
+            TenantId = tenantId,
+            WarehouseCode = "DEST-WH",
+            WarehouseName = "Destination Warehouse",
+            IsActive = true
+        };
+        context.TenantWarehouses.Add(destWarehouse);
+
+        var batchId = Guid.NewGuid();
+        var batch = new ItemBatch
+        {
+            Id = batchId,
+            TenantId = tenantId,
+            ItemId = itemRes.Data,
+            BatchNumber = "BATCH-999",
+            ExpiryDate = DateTime.UtcNow.AddYears(1)
+        };
+        context.ItemBatches.Add(batch);
+
+        // Assign source stock with this BatchId
+        var sourceStock = await context.ItemWarehouseStocks.FirstAsync(s => s.ItemId == itemRes.Data && s.WarehouseId == sourceWarehouseId);
+        sourceStock.BatchId = batchId;
+        await context.SaveChangesAsync();
+
+        // Transfer 20 units with BatchId
+        var trfReq = new CreateStockTransferRequest
+        {
+            SourceWarehouseId = sourceWarehouseId,
+            DestinationWarehouseId = destWarehouse.Id,
+            VehicleNumber = "MH-12-AB-1234",
+            DriverName = "Ramesh",
+            Notes = "Inter-branch transfer",
+            Items = new List<CreateStockTransferItemRequest>
+            {
+                new()
+                {
+                    ItemId = itemRes.Data,
+                    ItemName = "Batch Identity Test Item",
+                    ItemSku = "BATCH-TEST-01",
+                    BatchId = batchId,
+                    BatchNumber = "BATCH-999",
+                    TransferQuantity = 20m
+                }
+            }
+        };
+
+        var createTrfRes = await service.CreateStockTransferAsync(trfReq);
+        Assert.True(createTrfRes.IsSuccess);
+
+        // Act - Receive the transfer
+        var receiveRes = await service.ReceiveStockTransferAsync(createTrfRes.Data);
+        Assert.True(receiveRes.IsSuccess);
+
+        // Assert - Destination warehouse stock must have BatchId preserved!
+        var destStock = await context.ItemWarehouseStocks.FirstOrDefaultAsync(s =>
+            s.ItemId == itemRes.Data &&
+            s.WarehouseId == destWarehouse.Id &&
+            s.BatchId == batchId);
+
+        Assert.NotNull(destStock);
+        Assert.Equal(20m, destStock.CurrentQuantity);
+        Assert.Equal(batchId, destStock.BatchId);
     }
 }

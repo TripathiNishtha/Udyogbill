@@ -298,4 +298,68 @@ public class ReportServiceTests
         result.Data.ContentType.Should().Be("text/csv");
         result.Data.FileName.Should().StartWith("GSTR1_");
     }
+
+    [Fact]
+    public async Task GetGstr1ReportAsync_WithSalesReturn_NetsOffHsnAndRateWiseSummary()
+    {
+        // Arrange
+        var (context, service, tenantId, partyId, branchId) = CreateTestContext();
+        var item = await context.Items.FirstAsync();
+
+        // Add a sales return of 2 units (Taxable 480, CGST 28.8, SGST 28.8)
+        var salesReturn = new SalesReturn
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            BranchId = branchId,
+            PartyId = partyId,
+            CreditNoteNumber = "CN-2627-00001",
+            ReturnDate = DateTimeOffset.UtcNow.AddDays(-2),
+            SubTotal = 480m,
+            TaxAmount = 57.6m,
+            TotalAmount = 537.6m,
+            IsCancelled = false
+        };
+        salesReturn.Items.Add(new SalesReturnItem
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            ItemId = item.Id,
+            Item = item,
+            ItemSku = item.Sku,
+            ItemName = item.Name,
+            ReturnQuantity = 2m,
+            UnitPrice = 240m,
+            GstRate = 12m,
+            CgstRate = 6m,
+            SgstRate = 6m,
+            TaxableAmount = 480m,
+            CgstAmount = 28.8m,
+            SgstAmount = 28.8m,
+            TotalAmount = 537.6m
+        });
+        context.SalesReturns.Add(salesReturn);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetGstr1ReportAsync(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.TotalCreditNotes.Should().Be(1);
+        result.Data.TotalCreditNotesTaxable.Should().Be(480m);
+        result.Data.TotalOutwardTaxable.Should().Be(1920m); // 2400 - 480
+
+        var hsn = result.Data.HsnSummary.Should().ContainSingle(h => h.HSNCode == "3004").Subject;
+        hsn.TotalQuantity.Should().Be(8m); // 10 - 2
+        hsn.TaxableValue.Should().Be(1920m); // 2400 - 480
+        hsn.CgstAmount.Should().Be(115.2m); // 144 - 28.8
+        hsn.SgstAmount.Should().Be(115.2m);
+
+        var rate = result.Data.RateWiseSummary.Should().ContainSingle(r => r.RateSlab == "12%").Subject;
+        rate.TaxableValue.Should().Be(1920m);
+        rate.CgstAmount.Should().Be(115.2m);
+        rate.SgstAmount.Should().Be(115.2m);
+    }
 }

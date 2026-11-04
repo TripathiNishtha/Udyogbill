@@ -11,7 +11,11 @@ public static class IndustryTypeCodes
     public const string Electronics = "ELECTRONICS";
     public const string Garments = "GARMENTS";
     public const string Hardware = "HARDWARE";
+    public const string SweetsBakery = "SWEETS_BAKERY";
     public const string ServiceSector = "SERVICE_SECTOR";
+    public const string AutoParts = "AUTOPARTS";
+    public const string Jewellery = "JEWELLERY";
+    public const string HomeFurnishing = "HOME_FURNISHING";
     public const string Other = "OTHER";
 
     public static readonly IReadOnlyList<string> All = new[]
@@ -21,7 +25,11 @@ public static class IndustryTypeCodes
         Electronics,
         Garments,
         Hardware,
+        SweetsBakery,
         ServiceSector,
+        AutoParts,
+        Jewellery,
+        HomeFurnishing,
         Other
     };
 
@@ -165,7 +173,7 @@ public static class IndustryModuleRegistry
             EnableExpiryTracking: false,
             EnableSerialTracking: false,
             EnableMultiUnitConversion: true,
-            EnableSizeColorMatrix: false,
+            EnableSizeColorMatrix: true,
             EnableRecipeBOM: false,
             EnableScheduleH1DrugTracking: false,
             EnableEWayBill: true,
@@ -177,12 +185,34 @@ public static class IndustryModuleRegistry
             EnableSchemes: false,
             EnableServiceBilling: false
         ),
+        [IndustryTypeCodes.SweetsBakery] = new IndustryModuleDescriptor(
+            Code: IndustryTypeCodes.SweetsBakery,
+            DisplayName: "Sweets, Bakery & Confectionery",
+            Description: "Fresh sweets, cakes, and bakery items with daily batch/freshness tracking, weight-pack variant matrix, weighing scales, and FSSAI compliance",
+            Icon: "cake",
+            DisplayOrder: 6,
+            EnableBatchTracking: true,
+            EnableExpiryTracking: true,
+            EnableSerialTracking: false,
+            EnableMultiUnitConversion: true,
+            EnableSizeColorMatrix: true,
+            EnableRecipeBOM: true,
+            EnableScheduleH1DrugTracking: false,
+            EnableEWayBill: true,
+            EnableEInvoicing: true,
+            EnableImeiTracking: false,
+            EnableWarrantyTracking: false,
+            EnableTradeTiers: true,
+            EnableDimensionEngine: false,
+            EnableSchemes: true,
+            EnableServiceBilling: false
+        ),
         [IndustryTypeCodes.ServiceSector] = new IndustryModuleDescriptor(
             Code: IndustryTypeCodes.ServiceSector,
             DisplayName: "Service Sector & Consulting",
             Description: "Consulting, repairs, and professional services with job sheets and recurring invoicing",
             Icon: "briefcase",
-            DisplayOrder: 6,
+            DisplayOrder: 7,
             EnableBatchTracking: false,
             EnableExpiryTracking: false,
             EnableSerialTracking: false,
@@ -199,12 +229,78 @@ public static class IndustryModuleRegistry
             EnableSchemes: false,
             EnableServiceBilling: true
         ),
+        [IndustryTypeCodes.AutoParts] = new IndustryModuleDescriptor(
+            Code: IndustryTypeCodes.AutoParts,
+            DisplayName: "Automobile Spare Parts & Accessories",
+            Description: "OEM/OES part numbering, vehicle fitment matrix, rack/bin locator, scrap battery exchange, and mechanic commission",
+            Icon: "wrench",
+            DisplayOrder: 8,
+            EnableBatchTracking: false,
+            EnableExpiryTracking: false,
+            EnableSerialTracking: true,
+            EnableMultiUnitConversion: true,
+            EnableSizeColorMatrix: false,
+            EnableRecipeBOM: false,
+            EnableScheduleH1DrugTracking: false,
+            EnableEWayBill: true,
+            EnableEInvoicing: true,
+            EnableImeiTracking: false,
+            EnableWarrantyTracking: true,
+            EnableTradeTiers: true,
+            EnableDimensionEngine: false,
+            EnableSchemes: true,
+            EnableServiceBilling: false
+        ),
+        [IndustryTypeCodes.Jewellery] = new IndustryModuleDescriptor(
+            Code: IndustryTypeCodes.Jewellery,
+            DisplayName: "Jewellery, Gold & Silver",
+            Description: "Gold, Silver, Diamonds & Imitation Jewellery with Daily Board Rates, Karatage Purity, Wastage, Making Charges, BIS HUID, Karigar Ledger & Chit Fund Savings",
+            Icon: "gem",
+            DisplayOrder: 9,
+            EnableBatchTracking: true,
+            EnableExpiryTracking: false,
+            EnableSerialTracking: true,
+            EnableMultiUnitConversion: true,
+            EnableSizeColorMatrix: false,
+            EnableRecipeBOM: false,
+            EnableScheduleH1DrugTracking: false,
+            EnableEWayBill: true,
+            EnableEInvoicing: true,
+            EnableImeiTracking: false,
+            EnableWarrantyTracking: false,
+            EnableTradeTiers: true,
+            EnableDimensionEngine: false,
+            EnableSchemes: true,
+            EnableServiceBilling: false
+        ),
+                [IndustryTypeCodes.HomeFurnishing] = new IndustryModuleDescriptor(
+            Code: IndustryTypeCodes.HomeFurnishing,
+            DisplayName: "Mattress, Furniture & Home Furnishing",
+            Description: "Mattresses, Foam & Furniture with 3D Dimension Matrix (LxWxT), Warranty Serial tracking, Custom Cut Calculator, and Advance Delivery workflow",
+            Icon: "bed",
+            DisplayOrder: 10,
+            EnableBatchTracking: false,
+            EnableExpiryTracking: false,
+            EnableSerialTracking: true,
+            EnableMultiUnitConversion: true,
+            EnableSizeColorMatrix: true,
+            EnableRecipeBOM: true,
+            EnableScheduleH1DrugTracking: false,
+            EnableEWayBill: true,
+            EnableEInvoicing: true,
+            EnableImeiTracking: false,
+            EnableWarrantyTracking: true,
+            EnableTradeTiers: true,
+            EnableDimensionEngine: true,
+            EnableSchemes: true,
+            EnableServiceBilling: true
+        ),
         [IndustryTypeCodes.Other] = new IndustryModuleDescriptor(
             Code: IndustryTypeCodes.Other,
             DisplayName: "General Trading & Retail",
             Description: "Standard retail & wholesale trading with multi-rate GST, POS invoicing, and stock ledger",
             Icon: "globe",
-            DisplayOrder: 7,
+            DisplayOrder: 11,
             EnableBatchTracking: false,
             EnableExpiryTracking: false,
             EnableSerialTracking: false,

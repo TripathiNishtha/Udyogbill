@@ -854,6 +854,7 @@ CREATE TABLE IF NOT EXISTS ""SystemHealthMetrics"" (
 
 CREATE TABLE IF NOT EXISTS ""PaymentGatewayConfigs"" (
     ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""TenantId"" uuid NULL,
     ""Provider"" text NOT NULL DEFAULT 'Razorpay',
     ""KeyId"" text NOT NULL DEFAULT '',
     ""KeySecret"" text NOT NULL DEFAULT '',
@@ -869,6 +870,9 @@ CREATE TABLE IF NOT EXISTS ""PaymentGatewayConfigs"" (
     ""DeletedAtUtc"" timestamp with time zone NULL,
     ""DeletedBy"" uuid NULL
 );
+
+ALTER TABLE IF EXISTS ""PaymentGatewayConfigs"" ADD COLUMN IF NOT EXISTS ""TenantId"" uuid NULL;
+CREATE INDEX IF NOT EXISTS ""IX_PaymentGatewayConfigs_TenantId"" ON ""PaymentGatewayConfigs"" (""TenantId"");
 
 CREATE TABLE IF NOT EXISTS ""SubscriptionInvoices"" (
     ""Id"" uuid NOT NULL PRIMARY KEY,
@@ -1499,6 +1503,46 @@ CREATE TABLE IF NOT EXISTS ""SfaSchemeSlabs"" (
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IsAiAddonActive"" boolean NOT NULL DEFAULT FALSE;",
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansLimit"" integer NOT NULL DEFAULT 500;",
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansUsed"" integer NOT NULL DEFAULT 0;",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""ParentTenantId"" uuid NULL;",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""OwnerUserId"" uuid NULL;",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryTypeCode"" text NOT NULL DEFAULT 'OTHER';",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""ActiveIndustryModule"" text NOT NULL DEFAULT 'OTHER';",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryModuleStatus"" integer NOT NULL DEFAULT 1;",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryActivatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW();",
+                @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""MaxAllowedUsers"" integer NOT NULL DEFAULT 2;",
+                @"ALTER TABLE ""plans"" ADD COLUMN IF NOT EXISTS ""MaxCompanies"" integer NOT NULL DEFAULT 1;",
+                @"CREATE TABLE IF NOT EXISTS ""PlatformCommercialConfigs"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CoreAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 3999,
+                    ""CoreBiennialPrice"" numeric(18, 2) NOT NULL DEFAULT 6999,
+                    ""IncludedUsers"" integer NOT NULL DEFAULT 2,
+                    ""SingleUserAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 799,
+                    ""FiveUserPackAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 2999,
+                    ""AiProAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 1499,
+                    ""AiProMonthlyScanLimit"" integer NOT NULL DEFAULT 500,
+                    ""GstRatePercent"" numeric(5, 2) NOT NULL DEFAULT 18.0,
+                    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+                    ""LastUpdatedByEmail"" text NULL,
+                    ""Notes"" text NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""UpdatedAtUtc"" timestamp with time zone NULL,
+                    ""CreatedBy"" text NULL,
+                    ""UpdatedBy"" text NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" uuid NULL
+                );",
+                @"CREATE TABLE IF NOT EXISTS ""TenantUserMappings"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""TenantId"" uuid NOT NULL,
+                    ""UserId"" uuid NOT NULL,
+                    ""IsOwner"" boolean NOT NULL DEFAULT FALSE,
+                    ""Role"" text NOT NULL DEFAULT 'TenantAdmin',
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW()
+                );",
+                @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_TenantUserMappings_UserId_TenantId"" ON ""TenantUserMappings"" (""UserId"", ""TenantId"");",
+                @"CREATE INDEX IF NOT EXISTS ""IX_tenants_ParentTenantId"" ON ""tenants"" (""ParentTenantId"");",
+                @"CREATE INDEX IF NOT EXISTS ""IX_tenants_OwnerUserId"" ON ""tenants"" (""OwnerUserId"");",
                 // Address & Contact fields
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AddressLine1"" text;",
                 @"ALTER TABLE ""tenants"" ADD COLUMN IF NOT EXISTS ""AddressLine2"" text;",

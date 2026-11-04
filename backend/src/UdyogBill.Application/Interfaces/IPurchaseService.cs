@@ -56,8 +56,10 @@ public interface IPurchaseService
     Task<Result<PurchaseBillDetailsDto>> GetPurchaseBillByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Result<PurchaseBillDetailsDto>> GetPurchaseBillByNumberAsync(string billNumber, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreatePurchaseBillAsync(CreatePurchaseBillRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<Guid>> UpdatePurchaseBillAsync(Guid id, CreatePurchaseBillRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<Guid>> RecordPurchaseBillPaymentAsync(Guid billId, RecordPurchaseBillPaymentRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> CancelPurchaseBillAsync(Guid id, string cancellationReason, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<LastDealHintDto?>> GetLastPurchaseDealAsync(Guid itemId, Guid? partyId = null, CancellationToken cancellationToken = default);
 
     // Purchase Returns (Debit Notes)
     Task<Result<PagedResult<PurchaseReturnDto>>> GetPurchaseReturnsAsync(

@@ -99,7 +99,50 @@ public class SandboxGstService : ISandboxGstService
             return Result<GstLookupResponseDto>.Failure("Sandbox API credentials are not configured.", "NOT_CONFIGURED");
         }
 
-        return await FetchGstinDetailsAsync(profile.SandboxApiKey.Trim(), profile.SandboxApiSecret.Trim(), gstin, cancellationToken);
+        var primaryResult = await FetchGstinDetailsAsync(profile.SandboxApiKey.Trim(), profile.SandboxApiSecret.Trim(), gstin, cancellationToken);
+        if (primaryResult.IsSuccess && primaryResult.Data != null && (!string.IsNullOrEmpty(primaryResult.Data.LegalName) || !string.IsNullOrEmpty(primaryResult.Data.TradeName)))
+        {
+            return primaryResult;
+        }
+
+        // Check if candidate auto-corrections can heal common typos in Indian GSTIN format
+        // Standard: 2 digits (state) + 10 chars (PAN) + 1 char (entity #, usually 1-9) + 'Z' + 1 check char.
+        var candidates = new List<string>();
+        char char13 = gstin[12];
+        char char14 = gstin[13];
+
+        // 1. Typo in 13th character: users type 'T', 'I', 'L', or letters instead of '1' (entity index is 1 in >98% of businesses)
+        if (char13 != '1' && (char13 == 'T' || char13 == 'I' || char13 == 'L' || !char.IsDigit(char13)))
+        {
+            var healed13 = gstin.Substring(0, 12) + "1" + gstin.Substring(13);
+            candidates.Add(healed13);
+        }
+
+        // 2. Typo in 14th character: default is always 'Z' in Indian GSTIN, users sometimes type '2' or 'S'
+        if (char14 != 'Z')
+        {
+            var healed14 = gstin.Substring(0, 13) + "Z" + gstin.Substring(14);
+            candidates.Add(healed14);
+
+            if (char13 != '1')
+            {
+                var healedBoth = gstin.Substring(0, 12) + "1Z" + gstin.Substring(14);
+                candidates.Add(healedBoth);
+            }
+        }
+
+        foreach (var candidate in candidates.Distinct())
+        {
+            _logger.LogInformation("Attempting auto-healed GSTIN candidate '{Candidate}' for entered GSTIN '{Gstin}'", candidate, gstin);
+            var candResult = await FetchGstinDetailsAsync(profile.SandboxApiKey.Trim(), profile.SandboxApiSecret.Trim(), candidate, cancellationToken);
+            if (candResult.IsSuccess && candResult.Data != null && (!string.IsNullOrEmpty(candResult.Data.LegalName) || !string.IsNullOrEmpty(candResult.Data.TradeName)))
+            {
+                _logger.LogInformation("Successfully verified GSTIN using healed candidate '{Candidate}'", candidate);
+                return candResult;
+            }
+        }
+
+        return primaryResult;
     }
 
     public async Task<Result<GstLookupResponseDto>> TestConnectionAsync(TestSandboxGstRequest request, CancellationToken cancellationToken = default)
@@ -264,7 +307,8 @@ public class SandboxGstService : ISandboxGstService
             string tradeName = GetPropString(data, "tradeNam") ?? GetPropString(data, "trade_name") ?? legalName;
             string status = GetPropString(data, "sts") ?? GetPropString(data, "status") ?? "Active";
 
-            string stateCode = gstin.Length >= 2 ? gstin.Substring(0, 2) : "06";
+            string resolvedGstin = GetPropString(data, "gstin") ?? GetPropString(data, "gstinId") ?? gstin;
+            string stateCode = resolvedGstin.Length >= 2 ? resolvedGstin.Substring(0, 2) : "06";
             string state = StateCodeMap.TryGetValue(stateCode, out var mappedState) ? mappedState : "Haryana";
 
             string addressLine1 = string.Empty;
@@ -283,9 +327,20 @@ public class SandboxGstService : ISandboxGstService
                 var dst = GetPropString(addrEl, "dst");
                 var stcd = GetPropString(addrEl, "stcd");
                 
-                if (!string.IsNullOrWhiteSpace(stcd)) state = stcd;
-                city = GetPropString(addrEl, "city") ?? dst ?? string.Empty;
-                pincode = GetPropString(addrEl, "pncd") ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(stcd))
+                {
+                    if (StateCodeMap.TryGetValue(stcd, out var stateFromCode))
+                    {
+                        state = stateFromCode;
+                    }
+                    else
+                    {
+                        state = stcd;
+                    }
+                }
+
+                city = GetPropString(addrEl, "city") ?? dst ?? loc ?? locality ?? string.Empty;
+                pincode = GetPropString(addrEl, "pncd") ?? GetPropString(addrEl, "pincode") ?? string.Empty;
 
                 var addrParts = new List<string>();
                 if (!string.IsNullOrWhiteSpace(flno)) addrParts.Add(flno);
@@ -293,14 +348,28 @@ public class SandboxGstService : ISandboxGstService
                 if (!string.IsNullOrWhiteSpace(bnm)) addrParts.Add(bnm);
                 if (!string.IsNullOrWhiteSpace(st)) addrParts.Add(st);
                 if (!string.IsNullOrWhiteSpace(loc)) addrParts.Add(loc);
-                if (!string.IsNullOrWhiteSpace(locality) && locality != loc) addrParts.Add(locality);
+                if (!string.IsNullOrWhiteSpace(locality) && !string.Equals(locality, loc, StringComparison.OrdinalIgnoreCase)) addrParts.Add(locality);
 
                 addressLine1 = string.Join(", ", addrParts);
             }
 
+            if (string.IsNullOrWhiteSpace(addressLine1))
+            {
+                var fallbackAddr = GetPropString(data, "address") ?? GetPropString(data, "principal_place_of_business");
+                if (!string.IsNullOrWhiteSpace(fallbackAddr)) addressLine1 = fallbackAddr;
+            }
+            if (string.IsNullOrWhiteSpace(city))
+            {
+                city = GetPropString(data, "city") ?? string.Empty;
+            }
+            if (string.IsNullOrWhiteSpace(pincode))
+            {
+                pincode = GetPropString(data, "pincode") ?? GetPropString(data, "pncd") ?? string.Empty;
+            }
+
             var result = new GstLookupResponseDto(
                 Success: true,
-                Gstin: gstin,
+                Gstin: resolvedGstin,
                 LegalName: legalName,
                 TradeName: tradeName,
                 Status: status,

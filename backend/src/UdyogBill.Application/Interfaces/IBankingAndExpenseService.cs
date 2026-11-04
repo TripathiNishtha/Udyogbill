@@ -19,6 +19,7 @@ public interface IBankingAndExpenseService
     // Payment Vouchers (Receipts & Payments)
     Task<Result<PaymentReceiptVoucherDto>> RecordCustomerReceiptAsync(RecordPaymentReceiptRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<PaymentReceiptVoucherDto>> RecordVendorPaymentAsync(RecordVendorPaymentRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<ContraTransferResultDto>> RecordContraTransferAsync(RecordContraTransferRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
 
     // Expense Categories & Vouchers
     Task<Result<IReadOnlyList<ExpenseCategoryDto>>> GetExpenseCategoriesAsync(CancellationToken cancellationToken = default);

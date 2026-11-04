@@ -366,6 +366,11 @@ public class BrokerService : IBrokerService
             return Result<Guid>.Failure("Sales invoice not found.", "NOT_FOUND");
         }
 
+        if (invoice.IsCancelled || invoice.Status == UdyogBill.Domain.Entities.Sales.InvoiceStatus.Cancelled)
+        {
+            return Result<Guid>.Failure("Cannot record commission for a cancelled sales invoice.", "INVOICE_CANCELLED");
+        }
+
         // Avoid duplicate accrual for the same invoice
         var existing = await _context.BrokerCommissionEntries
             .FirstOrDefaultAsync(e => e.TenantId == tenantId && e.SalesInvoiceId == salesInvoiceId && e.BrokerId == brokerId && !e.IsDeleted, cancellationToken);

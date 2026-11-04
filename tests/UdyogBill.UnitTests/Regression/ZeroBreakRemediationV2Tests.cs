@@ -259,11 +259,13 @@ public class ZeroBreakRemediationV2Tests
         Assert.True(billResult.IsSuccess);
         var billId = billResult.Data;
 
-        // Attempt cancellation
+        // Attempt cancellation - with automated payment reversal, this succeeds gracefully without locking user
         var cancelResult = await purchaseService.CancelPurchaseBillAsync(billId, "Vendor dispute");
 
-        Assert.False(cancelResult.IsSuccess);
-        Assert.Equal("CANNOT_CANCEL_BILL_WITH_PAYMENTS_OR_RETURNS", cancelResult.ErrorCode);
+        Assert.True(cancelResult.IsSuccess);
+        var cancelledBill = await context.PurchaseBills.Include(b => b.Payments).FirstAsync(b => b.Id == billId);
+        Assert.True(cancelledBill.IsCancelled);
+        Assert.All(cancelledBill.Payments, p => Assert.True(p.IsDeleted));
     }
 
     [Fact]

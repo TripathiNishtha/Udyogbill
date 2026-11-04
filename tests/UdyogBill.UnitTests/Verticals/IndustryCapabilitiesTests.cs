@@ -280,4 +280,28 @@ public class IndustryCapabilitiesTests
         var cakeStock = await context.ItemWarehouseStocks.FirstAsync(s => s.ItemId == cake.Id && s.WarehouseId == warehouseId);
         Assert.Equal(10, cakeStock.CurrentQuantity);
     }
+
+    [Fact]
+    public void IndustryTypeCodes_Normalize_ShouldNormalizeAutoPartsCorrectly()
+    {
+        Assert.Equal(IndustryTypeCodes.AutoParts, IndustryTypeCodes.Normalize("AUTOPARTS"));
+        Assert.Equal(IndustryTypeCodes.AutoParts, IndustryTypeCodes.Normalize("autoparts"));
+        Assert.Equal(IndustryTypeCodes.AutoParts, IndustryTypeCodes.Normalize("  Autoparts  "));
+    }
+
+    [Fact]
+    public void IndustryModuleRegistry_ShouldContainAutoPartsWithCorrectCapabilities()
+    {
+        var descriptor = IndustryModuleRegistry.GetDescriptor(IndustryTypeCodes.AutoParts);
+
+        Assert.NotNull(descriptor);
+        Assert.Equal(IndustryTypeCodes.AutoParts, descriptor.Code);
+        Assert.Equal("Automobile Spare Parts & Accessories", descriptor.DisplayName);
+        Assert.True(descriptor.EnableSerialTracking);
+        Assert.True(descriptor.EnableWarrantyTracking);
+        Assert.True(descriptor.EnableTradeTiers);
+        Assert.True(descriptor.EnableMultiUnitConversion);
+        Assert.False(descriptor.EnableBatchTracking);
+        Assert.False(descriptor.EnableExpiryTracking);
+    }
 }

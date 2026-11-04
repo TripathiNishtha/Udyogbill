@@ -9,7 +9,7 @@ public record BackupJobDto(
     BackupType BackupType,
     StorageProvider StorageProvider,
     string FileName,
-    string FilePath,
+    string? FilePath,
     long FileSizeBytes,
     string ChecksumSha256,
     BackupStatus Status,

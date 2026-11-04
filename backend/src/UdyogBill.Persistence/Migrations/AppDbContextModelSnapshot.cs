@@ -263,6 +263,64 @@ namespace UdyogBill.Persistence.Migrations
                     b.ToTable("LedgerAccounts");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Accounting.VoucherAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClientIpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("JournalVoucherId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NewSnapshotJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PerformedByName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreviousSnapshotJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VoucherNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VoucherAuditLogs");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Auditing.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -328,6 +386,364 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("TenantId", "TimestampUtc");
 
                     b.ToTable("audit_logs", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.BatteryScrapBuyback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HsnCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OldAhCapacity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OldBatteryBrand")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ScrapCreditAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ScrapWeightKg")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BatteryScrapBuybacks");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.MechanicCommissionLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CommissionAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("InvoiceTotal")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MechanicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("OdometerKm")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("SettledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SettlementPaymentMode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VehicleRegNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MechanicId");
+
+                    b.ToTable("MechanicCommissionLogs");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.MechanicMaster", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("City")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DefaultCommissionPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("FlatCommissionPerPart")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("GarageName")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalCommissionEarned")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TotalCommissionPaid")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MechanicMasters");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.PartCrossReference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InterchangeableNotes")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OemPartNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OesBrand")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OesPartNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("PartCrossReferences");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.ProductFitment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomVehicleString")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FitmentNotes")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PositionSide")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("VehicleMasterId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("VehicleMasterId");
+
+                    b.ToTable("ProductFitments");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.VehicleMaster", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FuelType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Make")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Variant")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VehicleType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("YearEnd")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("YearStart")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VehicleMasters");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Backups.BackupJob", b =>
@@ -961,6 +1377,97 @@ namespace UdyogBill.Persistence.Migrations
                     b.ToTable("AnalyticsConfigs");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.BlogPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CanonicalUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Excerpt")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FeaturedImage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FocusKeyword")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MetaDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MetaKeywords")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MetaTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OgDescription")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OgImage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OgTitle")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ReadingTime")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ViewsCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BlogPosts");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.CMS.Lead", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1002,12 +1509,24 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Gstin")
+                        .HasColumnType("text");
+
                     b.Property<string>("IndustryCode")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("InvoiceCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("LandingPage")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastActiveAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("LastInvoiceAmount")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Message")
                         .IsRequired()
@@ -1232,6 +1751,9 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsInstalled")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("LastActiveAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1247,6 +1769,9 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<string>("TenantId")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("UninstalledAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -1353,6 +1878,82 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("ModuleId");
 
                     b.ToTable("features", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Catalog.GlobalProductCatalog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AttributesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Barcode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("BrandName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CategoryName")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HsnCode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IndustryCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MRP")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ShortDescription")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Barcode")
+                        .IsUnique();
+
+                    b.ToTable("GlobalProductCatalogs", (string)null);
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Catalog.Industry", b =>
@@ -2674,6 +3275,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -3745,6 +4349,725 @@ namespace UdyogBill.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("units_of_measure", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.DailyMetalRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Gold14K_Per10g")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Gold18K_Per10g")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Gold22K_Per10g")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Gold24K_Per10g")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("OldGoldBuyingRate24K_Per1g")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("OldSilverBuyingRate_Per1g")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Platinum950_Per10g")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateOnly>("RateDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Silver925_PerKg")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Silver999_PerKg")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("SourceNote")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DailyMetalRates");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.DiamondGemstoneDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CertNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Clarity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Cut")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("JewelleryItemAttributeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PiecesCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("RatePerCarat")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("StoneType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("WeightCarats")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("WeightCents")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JewelleryItemAttributeId");
+
+                    b.ToTable("DiamondGemstoneDetails");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.GirviLoan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerAadhaarPan")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerAddress")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerMobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("EstimatedMarketValuation")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("GirviNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("GrossWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateOnly>("LoanDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("MonthlyInterestRatePct")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("NetWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PledgedOrnamentsDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PrincipalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateOnly?>("RedeemedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SafeVaultLockerNumber")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalInterestCollected")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TotalPledgedItemsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalPrincipalReturned")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("GirviLoans");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.GoldSavingsInstallment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("InstallmentNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateOnly>("PaymentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PaymentMode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("SchemeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SchemeId");
+
+                    b.ToTable("GoldSavingsInstallments");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.GoldSavingsScheme", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerMobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("InstallmentsPaid")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("JewellerBonusContribution")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateOnly>("MaturityDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("MonthlyAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("RedeemedInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SchemeCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalDeposited")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TotalMonths")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("RedeemedInvoiceId");
+
+                    b.ToTable("GoldSavingsSchemes");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.JewelleryItemAttribute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CertificateNumber")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("GrossWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("HUID")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HallmarkingCenter")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImitationColorFinish")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("JewelleryType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("MakingChargeRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("MakingChargeType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MetalType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("NetWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("PiecesPerBox")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PurityKarat")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PurityPercentage")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("StoneWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("WastageGrams")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("WastagePercentage")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("JewelleryItemAttributes");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.KarigarAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("City")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("LabourBalanceRupees")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PureGoldBalanceGrams")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("PureSilverBalanceGrams")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Speciality")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("KarigarAccounts");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.KarigarTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AllowedWastageWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("IssuePureMetalGrams")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("KarigarId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("LabourAmountPaid")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("LabourCharges")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MetalShortageWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ReceivedFineWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ReceivedGrossWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ReceivedNetWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ReceivedPurityPct")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KarigarId");
+
+                    b.ToTable("KarigarTransactions");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.OldGoldExchangeVoucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BuyingRatePerGram")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerMobile")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerPanAadhaar")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ItemDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("MeltingPurityTunch")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("MetalType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("OldDustStoneWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("OldGrossWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("OldNetWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("PartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PureWeightEquivalent")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TestingMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TotalExchangeValuation")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VoucherNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("PartyId");
+
+                    b.ToTable("OldGoldExchangeVouchers");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Logistics.DeliveryChallan", b =>
@@ -8822,6 +10145,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("CgstAmount")
+                        .HasColumnType("numeric");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -8837,6 +10163,9 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("boolean");
@@ -8862,6 +10191,13 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<string>("ReturnReason")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("ReturnType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("numeric");
@@ -8914,6 +10250,12 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<string>("BatchNumber")
                         .HasColumnType("text");
 
+                    b.Property<decimal>("CgstAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("CgstRate")
+                        .HasColumnType("numeric");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -8927,6 +10269,12 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("GstRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("IgstRate")
                         .HasColumnType("numeric");
 
                     b.Property<bool>("IsDeleted")
@@ -8947,6 +10295,15 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("ReturnQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("SgstRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TaxableAmount")
                         .HasColumnType("numeric");
 
                     b.Property<Guid>("TenantId")
@@ -9239,6 +10596,126 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SavedReportPresets");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.AdvancePayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AllocatedAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PaymentMode")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ReceiptDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartyId");
+
+                    b.ToTable("AdvancePayments");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.AdvancePaymentAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdvancePaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AllocationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("AmountAllocated")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PurchaseBillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdvancePaymentId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("PurchaseBillId");
+
+                    b.ToTable("AdvancePaymentAllocations");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.PosHeldBill", b =>
@@ -10109,8 +11586,23 @@ namespace UdyogBill.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AdjustedInvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdjustedInvoiceNumber")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("CashRefundedAmount")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -10149,6 +11641,19 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<Guid>("PartyId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RefundDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RefundMode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RefundStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RefundTransactionRef")
+                        .HasColumnType("text");
 
                     b.Property<bool>("RestockToWarehouse")
                         .HasColumnType("boolean");
@@ -10207,6 +11712,12 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<string>("BatchNumber")
                         .HasColumnType("text");
 
+                    b.Property<decimal>("CgstAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("CgstRate")
+                        .HasColumnType("numeric");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -10220,6 +11731,12 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("GstRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("IgstRate")
                         .HasColumnType("numeric");
 
                     b.Property<bool>("IsDeleted")
@@ -10241,6 +11758,15 @@ namespace UdyogBill.Persistence.Migrations
 
                     b.Property<Guid>("SalesReturnId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("SgstRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TaxableAmount")
+                        .HasColumnType("numeric");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -10269,6 +11795,520 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("VariantId");
 
                     b.ToTable("SalesReturnItems");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.CompanyProductCatalog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BasePrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DefaultRepIncentivePct")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("MaxPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("MinPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PricingModel")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductCode")
+                        .IsUnique();
+
+                    b.ToTable("company_product_catalog", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.FieldShopVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CurrentSoftware")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCustomProjectLead")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsMockGpsDetected")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVpnDetected")
+                        .HasColumnType("boolean");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset?>("NextFollowupAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OwnerMobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OwnerName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProjectScopeSummary")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ShopCategory")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ShopName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StorefrontImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("TotalQuotedAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VisitOutcome")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerMobile");
+
+                    b.HasIndex("RepId", "CreatedAtUtc");
+
+                    b.ToTable("field_shop_visits", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.FieldShopVisitProduct", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClientInterestLevel")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DealStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("QuotedPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VisitId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("VisitId");
+
+                    b.ToTable("field_shop_visit_products", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.HardwareDeviceRegistry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppVersion")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("ApprovedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DeviceBrand")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceFingerprint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceModel")
+                        .HasColumnType("text");
+
+                    b.Property<int>("FailedTamperAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("InstallationToken")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastKnownIp")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastLoginAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OsVersion")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceFingerprint")
+                        .IsUnique();
+
+                    b.HasIndex("RepId");
+
+                    b.ToTable("hardware_device_registry", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Region")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RepCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ReportingToId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RoleTier")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Zone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Mobile")
+                        .IsUnique();
+
+                    b.HasIndex("RepCode")
+                        .IsUnique();
+
+                    b.HasIndex("ReportingToId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("internal_sales_reps", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.SalesQuotaAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AchievedBillingRev")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("AchievedCustomProjectRev")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("AchievedEcommerceRev")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("AchievedRevenue")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("IndividualTarget")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NewSalesCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RenewalsClosedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RenewalsDueCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TeamRollupTarget")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TotalTarget")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RepId", "Month", "Year")
+                        .IsUnique();
+
+                    b.ToTable("sales_quota_allocations", (string)null);
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.SubscriptionAttributionAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssignedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssignedRepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AttributionMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRenewal")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("PreviousRepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProofDocumentNotes")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("RevenueAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedRepId");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.ToTable("subscription_attribution_audit_log", (string)null);
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.AddOn", b =>
@@ -10323,6 +12363,9 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsHidden")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
@@ -10566,6 +12609,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsPopular")
                         .HasColumnType("boolean");
 
@@ -10573,6 +12619,9 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("MaxBranches")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxCompanies")
                         .HasColumnType("integer");
 
                     b.Property<int>("MaxInvoicesPerMonth")
@@ -10936,6 +12985,74 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PlatformEmailConfigs");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.PlatformLeadPopupConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BadgeText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CtaButtonText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DismissCooldownHours")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("EnableExitIntent")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Heading")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OfferTag")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SubHeading")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TriggerDelaySeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WhatsappNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlatformLeadPopupConfigs");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.PlatformPasswordResetOtp", b =>
@@ -11333,6 +13450,9 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<int>("AiScansUsed")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ApparelSubType")
+                        .HasColumnType("text");
+
                     b.Property<string>("BankAccountNumber")
                         .HasColumnType("text");
 
@@ -11399,6 +13519,9 @@ namespace UdyogBill.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("HardwareSubType")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("IndustryActivatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -11416,6 +13539,9 @@ namespace UdyogBill.Persistence.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsAiAddonActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCompositionScheme")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
@@ -11436,9 +13562,15 @@ namespace UdyogBill.Persistence.Migrations
                     b.Property<int>("MaxAllowedUsers")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PAN")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("ParentTenantId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Pincode")
                         .HasColumnType("text");
@@ -11518,6 +13650,8 @@ namespace UdyogBill.Persistence.Migrations
                     b.HasIndex("IndustryId");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("ParentTenantId");
 
                     b.HasIndex("Status");
 
@@ -11737,6 +13871,38 @@ namespace UdyogBill.Persistence.Migrations
                     b.ToTable("tenant_settings", (string)null);
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Tenants.TenantUserMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsOwner")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UserId", "TenantId")
+                        .IsUnique();
+
+                    b.ToTable("TenantUserMappings", (string)null);
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Tenants.TenantWarehouse", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11827,6 +13993,45 @@ namespace UdyogBill.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.MechanicCommissionLog", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.AutoParts.MechanicMaster", "Mechanic")
+                        .WithMany()
+                        .HasForeignKey("MechanicId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Mechanic");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.PartCrossReference", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.AutoParts.ProductFitment", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.AutoParts.VehicleMaster", "VehicleMaster")
+                        .WithMany()
+                        .HasForeignKey("VehicleMasterId");
+
+                    b.Navigation("Item");
+
+                    b.Navigation("VehicleMaster");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Banking.CashDrawerSession", b =>
@@ -12352,6 +14557,89 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("FromUom");
 
                     b.Navigation("ToUom");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.DiamondGemstoneDetail", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Jewellery.JewelleryItemAttribute", "JewelleryItemAttribute")
+                        .WithMany("DiamondDetails")
+                        .HasForeignKey("JewelleryItemAttributeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JewelleryItemAttribute");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.GirviLoan", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.GoldSavingsInstallment", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Jewellery.GoldSavingsScheme", "Scheme")
+                        .WithMany("Installments")
+                        .HasForeignKey("SchemeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Scheme");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.GoldSavingsScheme", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Sales.SalesInvoice", "RedeemedInvoice")
+                        .WithMany()
+                        .HasForeignKey("RedeemedInvoiceId");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("RedeemedInvoice");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.JewelleryItemAttribute", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Inventory.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.KarigarTransaction", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Jewellery.KarigarAccount", "Karigar")
+                        .WithMany("Transactions")
+                        .HasForeignKey("KarigarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Karigar");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.OldGoldExchangeVoucher", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Sales.SalesInvoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "Party")
+                        .WithMany()
+                        .HasForeignKey("PartyId");
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("Party");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Logistics.DeliveryChallan", b =>
@@ -13359,6 +15647,40 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.AdvancePayment", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Parties.Party", "Party")
+                        .WithMany()
+                        .HasForeignKey("PartyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Party");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.AdvancePaymentAllocation", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Sales.AdvancePayment", "AdvancePayment")
+                        .WithMany("Allocations")
+                        .HasForeignKey("AdvancePaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Sales.SalesInvoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId");
+
+                    b.HasOne("UdyogBill.Domain.Entities.Purchases.PurchaseBill", "PurchaseBill")
+                        .WithMany()
+                        .HasForeignKey("PurchaseBillId");
+
+                    b.Navigation("AdvancePayment");
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("PurchaseBill");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.Quotation", b =>
                 {
                     b.HasOne("UdyogBill.Domain.Entities.Tenants.TenantBranch", "Branch")
@@ -13538,6 +15860,87 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Variant");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.FieldShopVisit", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", "Rep")
+                        .WithMany("Visits")
+                        .HasForeignKey("RepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rep");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.FieldShopVisitProduct", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.SalesForce.CompanyProductCatalog", "Product")
+                        .WithMany("PitchedItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.SalesForce.FieldShopVisit", "Visit")
+                        .WithMany("ProductsPitched")
+                        .HasForeignKey("VisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Visit");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.HardwareDeviceRegistry", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", "Rep")
+                        .WithMany("Devices")
+                        .HasForeignKey("RepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rep");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", "ReportingTo")
+                        .WithMany("Subordinates")
+                        .HasForeignKey("ReportingToId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReportingTo");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.SalesQuotaAllocation", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", "Rep")
+                        .WithMany("QuotaAllocations")
+                        .HasForeignKey("RepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rep");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.SubscriptionAttributionAuditLog", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", "AssignedRep")
+                        .WithMany()
+                        .HasForeignKey("AssignedRepId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedRep");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.CouponRedemption", b =>
                 {
                     b.HasOne("UdyogBill.Domain.Entities.Subscriptions.Coupon", "Coupon")
@@ -13606,7 +16009,14 @@ namespace UdyogBill.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("UdyogBill.Domain.Entities.Tenants.Tenant", "ParentTenant")
+                        .WithMany("ChildCompanies")
+                        .HasForeignKey("ParentTenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Industry");
+
+                    b.Navigation("ParentTenant");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Tenants.TenantBranch", b =>
@@ -13642,6 +16052,25 @@ namespace UdyogBill.Persistence.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Tenants.TenantUserMapping", b =>
+                {
+                    b.HasOne("UdyogBill.Domain.Entities.Tenants.Tenant", "Tenant")
+                        .WithMany("UserMappings")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UdyogBill.Domain.Entities.Identity.User", "User")
+                        .WithMany("TenantMappings")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Tenants.TenantWarehouse", b =>
@@ -13730,6 +16159,8 @@ namespace UdyogBill.Persistence.Migrations
                 {
                     b.Navigation("RefreshTokens");
 
+                    b.Navigation("TenantMappings");
+
                     b.Navigation("UserPermissions");
 
                     b.Navigation("UserRoles");
@@ -13773,6 +16204,21 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("FromConversions");
 
                     b.Navigation("ToConversions");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.GoldSavingsScheme", b =>
+                {
+                    b.Navigation("Installments");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.JewelleryItemAttribute", b =>
+                {
+                    b.Navigation("DiamondDetails");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Jewellery.KarigarAccount", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Logistics.DeliveryChallan", b =>
@@ -13901,6 +16347,11 @@ namespace UdyogBill.Persistence.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.AdvancePayment", b =>
+                {
+                    b.Navigation("Allocations");
+                });
+
             modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.Quotation", b =>
                 {
                     b.Navigation("Items");
@@ -13916,6 +16367,27 @@ namespace UdyogBill.Persistence.Migrations
             modelBuilder.Entity("UdyogBill.Domain.Entities.Sales.SalesReturn", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.CompanyProductCatalog", b =>
+                {
+                    b.Navigation("PitchedItems");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.FieldShopVisit", b =>
+                {
+                    b.Navigation("ProductsPitched");
+                });
+
+            modelBuilder.Entity("UdyogBill.Domain.Entities.SalesForce.InternalSalesRep", b =>
+                {
+                    b.Navigation("Devices");
+
+                    b.Navigation("QuotaAllocations");
+
+                    b.Navigation("Subordinates");
+
+                    b.Navigation("Visits");
                 });
 
             modelBuilder.Entity("UdyogBill.Domain.Entities.Subscriptions.Coupon", b =>
@@ -13939,9 +16411,13 @@ namespace UdyogBill.Persistence.Migrations
                 {
                     b.Navigation("Branches");
 
+                    b.Navigation("ChildCompanies");
+
                     b.Navigation("IndustryConfigs");
 
                     b.Navigation("Settings");
+
+                    b.Navigation("UserMappings");
 
                     b.Navigation("Warehouses");
                 });

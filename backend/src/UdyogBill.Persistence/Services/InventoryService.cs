@@ -605,11 +605,15 @@ public class InventoryService : IInventoryService
                 i.ItemType,
                 i.Category?.Name,
                 i.Brand?.Name,
+                i.CategoryId,
+                i.BrandId,
                 i.PrimaryUomId,
                 i.PrimaryUom.Code,
                 i.PrimaryUom.Symbol,
                 i.HSNCode,
                 i.TaxRate,
+                i.CessRate,
+                i.IsTaxInclusive,
                 i.PurchasePrice,
                 i.SellingPrice,
                 i.MRP,
@@ -808,6 +812,21 @@ public class InventoryService : IInventoryService
             }
 
             effectiveUomId = defaultUom.Id;
+        }
+
+        if (request.MRP > 0)
+        {
+            var effectiveSellingPriceWithTax = request.IsTaxInclusive
+                ? request.SellingPrice
+                : Math.Round(request.SellingPrice + (request.SellingPrice * (request.TaxRate / 100m)), 2, MidpointRounding.AwayFromZero);
+
+            if (effectiveSellingPriceWithTax > request.MRP)
+            {
+                return Result<Guid>.Failure(
+                    $"Retail price including GST (₹{effectiveSellingPriceWithTax:F2}) cannot exceed MRP (₹{request.MRP:F2}). Please adjust the retail price or MRP.",
+                    "RETAIL_PRICE_EXCEEDS_MRP"
+                );
+            }
         }
 
         var item = new Item
@@ -1147,6 +1166,21 @@ public class InventoryService : IInventoryService
             return Result.Failure("Item not found.", "NOT_FOUND");
         }
 
+        if (request.MRP > 0)
+        {
+            var effectiveSellingPriceWithTax = request.IsTaxInclusive
+                ? request.SellingPrice
+                : Math.Round(request.SellingPrice + (request.SellingPrice * (request.TaxRate / 100m)), 2, MidpointRounding.AwayFromZero);
+
+            if (effectiveSellingPriceWithTax > request.MRP)
+            {
+                return Result.Failure(
+                    $"Retail price including GST (₹{effectiveSellingPriceWithTax:F2}) cannot exceed MRP (₹{request.MRP:F2}). Please adjust the retail price or MRP.",
+                    "RETAIL_PRICE_EXCEEDS_MRP"
+                );
+            }
+        }
+
         item.Name = request.Name.Trim();
         item.ShortDescription = request.ShortDescription?.Trim();
         item.Barcode = request.Barcode?.Trim();
@@ -1175,6 +1209,8 @@ public class InventoryService : IInventoryService
         item.TrackInventory = request.ItemType != ItemType.Service && request.TrackInventory;
         item.AttributesJson = request.AttributesJson ?? "{}";
         item.IsActive = request.IsActive;
+        item.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        item.UpdatedBy = _currentUserContext.UserId;
 
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();

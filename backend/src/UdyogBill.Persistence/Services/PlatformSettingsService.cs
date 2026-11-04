@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -305,8 +306,21 @@ public class PlatformSettingsService : IPlatformSettingsService
             return Result.Success();
         }
 
+        // Rate limiting cooldown: Require minimum 60 seconds between OTP requests
+        var recentOtpExists = await _context.PlatformPasswordResetOtps
+            .IgnoreQueryFilters()
+            .AnyAsync(o => o.Email == normalizedEmail && o.CreatedAtUtc > DateTimeOffset.UtcNow.AddSeconds(-60), cancellationToken);
+
+        if (recentOtpExists)
+        {
+            return Result.Failure("Please wait 60 seconds before requesting another OTP.", "RATE_LIMIT_EXCEEDED");
+        }
+
         // Generate 6-digit numeric OTP
         string otpCode = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+
+        // SHA-256 hash OTP code before database persistence to eliminate plaintext credential storage
+        string otpHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
 
         // Expire older unused OTPs for this email
         var olderOtps = await _context.PlatformPasswordResetOtps
@@ -322,14 +336,15 @@ public class PlatformSettingsService : IPlatformSettingsService
         _context.PlatformPasswordResetOtps.Add(new PlatformPasswordResetOtp
         {
             Email = normalizedEmail,
-            OtpCode = otpCode,
+            OtpCode = otpHash,
             ExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(15),
-            IsUsed = false
+            IsUsed = false,
+            FailedAttempts = 0
         });
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Dispatch Email
+        // Dispatch Email with plaintext OTP to user
         await _emailService.SendPasswordResetOtpAsync(user.Email, user.FullName, otpCode, cancellationToken);
 
         _logger.LogInformation("Password reset OTP generated and sent to {Email}", user.Email);
@@ -341,15 +356,60 @@ public class PlatformSettingsService : IPlatformSettingsService
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var otpCode = request.OtpCode.Trim();
 
+        // 1. Fetch latest active OTP for this email
         var otpRecord = await _context.PlatformPasswordResetOtps
             .IgnoreQueryFilters()
-            .Where(o => o.Email == normalizedEmail && o.OtpCode == otpCode && !o.IsUsed && o.ExpiresAtUtc > DateTimeOffset.UtcNow)
+            .Where(o => o.Email == normalizedEmail && !o.IsUsed && o.ExpiresAtUtc > DateTimeOffset.UtcNow)
             .OrderByDescending(o => o.CreatedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (otpRecord == null)
         {
             return Result.Failure("Invalid or expired OTP verification code.", "INVALID_OTP");
+        }
+
+        // 2. Enforce maximum 5 failed attempts limit
+        if (otpRecord.FailedAttempts >= 5)
+        {
+            otpRecord.IsUsed = true;
+            await _context.SaveChangesAsync(cancellationToken);
+            return Result.Failure("Too many failed attempts. This OTP has been invalidated for security. Please request a new OTP.", "OTP_LOCKED");
+        }
+
+        // 3. Constant-time secure OTP validation
+        bool isOtpValid;
+        if (otpRecord.OtpCode.Length == 64)
+        {
+            // SHA-256 hashed OTP comparison
+            var expectedBytes = Encoding.UTF8.GetBytes(otpRecord.OtpCode);
+            var actualHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(otpCode)));
+            var actualBytes = Encoding.UTF8.GetBytes(actualHash);
+            isOtpValid = CryptographicOperations.FixedTimeEquals(expectedBytes, actualBytes);
+        }
+        else
+        {
+            // Backward compatibility with legacy unhashed in-flight OTPs
+            var expectedBytes = Encoding.UTF8.GetBytes(otpRecord.OtpCode);
+            var actualBytes = Encoding.UTF8.GetBytes(otpCode);
+            isOtpValid = expectedBytes.Length == actualBytes.Length && CryptographicOperations.FixedTimeEquals(expectedBytes, actualBytes);
+        }
+
+        if (!isOtpValid)
+        {
+            otpRecord.FailedAttempts++;
+            if (otpRecord.FailedAttempts >= 5)
+            {
+                otpRecord.IsUsed = true;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var remaining = 5 - otpRecord.FailedAttempts;
+            if (remaining <= 0)
+            {
+                return Result.Failure("Too many failed attempts. This OTP has been invalidated for security. Please request a new OTP.", "OTP_LOCKED");
+            }
+
+            return Result.Failure($"Invalid OTP code. {remaining} attempt(s) remaining.", "INVALID_OTP");
         }
 
         var user = await _context.Users
@@ -369,6 +429,19 @@ public class PlatformSettingsService : IPlatformSettingsService
 
         // Mark OTP as used
         otpRecord.IsUsed = true;
+
+        // Revoke all active RefreshTokens across all devices for this user
+        var activeRefreshTokens = await _context.RefreshTokens
+            .IgnoreQueryFilters()
+            .Where(rt => rt.UserId == user.Id && rt.RevokedAtUtc == null)
+            .ToListAsync(cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var rt in activeRefreshTokens)
+        {
+            rt.RevokedAtUtc = now;
+            rt.ReasonRevoked = "Password reset via OTP";
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Password successfully reset for user {Email}", user.Email);

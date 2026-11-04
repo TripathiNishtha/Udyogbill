@@ -70,6 +70,33 @@ public class SalesService : ISalesService
         }
     }
 
+    private async Task AcquirePaymentLockAsync(Guid invoiceId, CancellationToken cancellationToken)
+    {
+        if (_context.Database.IsRelational() && _context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var lockKey = $"inv_pay_{invoiceId}";
+            const int maxRetries = 3;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}))", new object[] { lockKey }, cancellationToken);
+                    return;
+                }
+                catch (Exception ex) when (attempt < maxRetries)
+                {
+                    _logger?.LogWarning(ex, "Transient error acquiring DB advisory lock for invoice payment {InvoiceId} (attempt {Attempt}/{MaxRetries}): {Message}", invoiceId, attempt, maxRetries, ex.Message);
+                    await Task.Delay(attempt * 50, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to acquire DB advisory lock for invoice payment {InvoiceId} after {MaxRetries} attempts: {Message}", invoiceId, maxRetries, ex.Message);
+                    throw new InvalidOperationException($"Invoice payment lock contention for invoice '{invoiceId}'. Please retry the operation.", ex);
+                }
+            }
+        }
+    }
+
     private Guid RequireTenantId()
     {
         var tenantId = _tenantContext.TenantId != Guid.Empty
@@ -2261,19 +2288,24 @@ public class SalesService : ISalesService
 
         var semaphore = _tenantInvoiceSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
         await semaphore.WaitAsync(cancellationToken);
+        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
         try
         {
+            await AcquirePaymentLockAsync(request.InvoiceId, cancellationToken);
+
             var invoice = await _context.SalesInvoices
                 .Include(i => i.Payments)
                 .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Id == request.InvoiceId && !i.IsDeleted, cancellationToken);
 
             if (invoice == null)
             {
+                if (tx != null) await tx.RollbackAsync(cancellationToken);
                 return Result<Guid>.Failure("Invoice not found.", "NOT_FOUND");
             }
 
             if (invoice.IsCancelled)
             {
+                if (tx != null) await tx.RollbackAsync(cancellationToken);
                 return Result<Guid>.Failure("Cannot accept payment for cancelled invoice.", "INVOICE_CANCELLED");
             }
 
@@ -2283,12 +2315,14 @@ public class SalesService : ISalesService
                     !p.IsDeleted && string.Equals(p.TransactionReference, request.TransactionReference.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (existingPayment != null)
                 {
+                    if (tx != null) await tx.RollbackAsync(cancellationToken);
                     return Result<Guid>.Success(existingPayment.Id);
                 }
             }
 
             if (invoice.PaymentStatus == PaymentStatus.FullyPaid || invoice.Status == InvoiceStatus.Paid || invoice.BalanceAmount <= 0)
             {
+                if (tx != null) await tx.RollbackAsync(cancellationToken);
                 return Result<Guid>.Failure("Invoice is already fully paid.", "ALREADY_PAID");
             }
 
@@ -2346,6 +2380,11 @@ public class SalesService : ISalesService
             await AutoPostPaymentToGeneralLedgerAsync(invoice, payment, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
+            if (tx != null)
+            {
+                await tx.CommitAsync(cancellationToken);
+            }
+
             await _auditService.LogAsync(new AuditLog
             {
                 TenantId = tenantId,
@@ -2360,6 +2399,14 @@ public class SalesService : ISalesService
             }, cancellationToken);
 
             return Result<Guid>.Success(payment.Id);
+        }
+        catch
+        {
+            if (tx != null)
+            {
+                try { await tx.RollbackAsync(cancellationToken); } catch { }
+            }
+            throw;
         }
         finally
         {

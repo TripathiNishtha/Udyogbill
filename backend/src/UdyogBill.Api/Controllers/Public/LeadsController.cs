@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -24,7 +25,7 @@ public class PublicLeadsController : BaseApiController
     }
 
     /// <summary>
-    /// Captures a new marketing lead from the UdyogBill website.
+    /// Captures a marketing or free tool lead with strict deduplication by GSTIN, Mobile, or Firm Name.
     /// No authentication required — this is a public endpoint.
     /// </summary>
     [HttpPost]
@@ -34,17 +35,109 @@ public class PublicLeadsController : BaseApiController
         [FromBody] SubmitLeadRequest request,
         CancellationToken cancellationToken)
     {
-        // Validate mobile is exactly 10 digits
-        if (string.IsNullOrWhiteSpace(request.Mobile) ||
-            request.Mobile.Length != 10 ||
-            !request.Mobile.All(char.IsDigit))
+        // 1. Sanitize mobile
+        var rawMobile = request.Mobile ?? string.Empty;
+        var digitsOnly = new string(rawMobile.Where(char.IsDigit).ToArray());
+        var cleanMobile = digitsOnly.Length >= 10 ? digitsOnly.Substring(digitsOnly.Length - 10) : digitsOnly;
+
+        // Allow submission if either mobile is 10 digits OR a valid GSTIN/BusinessName is provided (e.g. from tool)
+        if (cleanMobile.Length != 10 && string.IsNullOrWhiteSpace(request.Gstin) && string.IsNullOrWhiteSpace(request.BusinessName))
         {
-            return BadRequest(new { error = "Mobile number must be exactly 10 digits.", code = "INVALID_MOBILE" });
+            return BadRequest(new { error = "Valid 10-digit mobile number or business details required.", code = "INVALID_MOBILE" });
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest(new { error = "Name is required.", code = "VALIDATION_FAILED" });
+        // 2. Sanitize GSTIN (ignore default dummy test value)
+        var cleanGstin = !string.IsNullOrWhiteSpace(request.Gstin) ? request.Gstin.Trim().ToUpperInvariant() : null;
+        if (cleanGstin == "07AAAAA0000A1Z5" || cleanGstin?.Length < 10)
+        {
+            cleanGstin = null;
+        }
 
+        // 3. Sanitize Firm/Business Name
+        var cleanBusinessName = !string.IsNullOrWhiteSpace(request.BusinessName) ? request.BusinessName.Trim() : null;
+        if (cleanBusinessName != null && (cleanBusinessName.Equals("Your Business Name", StringComparison.OrdinalIgnoreCase) || cleanBusinessName.Length < 2))
+        {
+            cleanBusinessName = null;
+        }
+
+        var contactName = !string.IsNullOrWhiteSpace(request.Name) 
+            ? request.Name.Trim() 
+            : (cleanBusinessName ?? "GST Invoice User");
+
+        // -------------------------------------------------------------
+        // DEDUPLICATION LOOKUP: Prevent duplicate entries
+        // Priority 1: Match GSTIN (if non-empty)
+        // Priority 2: Match Mobile Number (if 10 digits)
+        // Priority 3: Match Firm / Business Name (if non-empty)
+        // -------------------------------------------------------------
+        Lead? existingLead = null;
+
+        if (!string.IsNullOrWhiteSpace(cleanGstin))
+        {
+            existingLead = await _db.Leads.FirstOrDefaultAsync(l => l.Gstin == cleanGstin, cancellationToken);
+        }
+
+        if (existingLead == null && cleanMobile.Length == 10)
+        {
+            existingLead = await _db.Leads.FirstOrDefaultAsync(l => l.Mobile == cleanMobile, cancellationToken);
+        }
+
+        if (existingLead == null && !string.IsNullOrWhiteSpace(cleanBusinessName))
+        {
+            var bnLower = cleanBusinessName.ToLower();
+            existingLead = await _db.Leads.FirstOrDefaultAsync(l => l.BusinessName.ToLower() == bnLower, cancellationToken);
+        }
+
+        if (existingLead != null)
+        {
+            // RECORD ALREADY EXISTS: Update activity and metrics without adding a duplicate!
+            existingLead.InvoiceCount = Math.Max(existingLead.InvoiceCount + 1, 2);
+            existingLead.LastActiveAt = DateTime.UtcNow;
+
+            if (request.InvoiceAmount.HasValue && request.InvoiceAmount.Value > 0)
+            {
+                existingLead.LastInvoiceAmount = request.InvoiceAmount.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(cleanGstin) && string.IsNullOrWhiteSpace(existingLead.Gstin))
+            {
+                existingLead.Gstin = cleanGstin;
+            }
+
+            if (cleanMobile.Length == 10 && (string.IsNullOrWhiteSpace(existingLead.Mobile) || existingLead.Mobile.Length != 10))
+            {
+                existingLead.Mobile = cleanMobile;
+            }
+
+            if (!string.IsNullOrWhiteSpace(cleanBusinessName) && (string.IsNullOrWhiteSpace(existingLead.BusinessName) || existingLead.BusinessName == "Your Business Name"))
+            {
+                existingLead.BusinessName = cleanBusinessName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.City) && string.IsNullOrWhiteSpace(existingLead.City))
+            {
+                existingLead.City = request.City.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.State) && string.IsNullOrWhiteSpace(existingLead.State))
+            {
+                existingLead.State = request.State.Trim();
+            }
+
+            var noteStamp = $"[Invoice Activity: {DateTime.UtcNow:dd-MM-yyyy HH:mm}] Generated bill #{existingLead.InvoiceCount}" +
+                            (request.InvoiceAmount.HasValue && request.InvoiceAmount.Value > 0 ? $" (₹{request.InvoiceAmount.Value:F2})" : "");
+            
+            existingLead.Notes = string.IsNullOrWhiteSpace(existingLead.Notes) 
+                ? noteStamp 
+                : $"{existingLead.Notes}\n{noteStamp}";
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Lead updated successfully.", isDuplicate = true, leadId = existingLead.Id });
+        }
+
+        // -------------------------------------------------------------
+        // NEW LEAD INSERTION
+        // -------------------------------------------------------------
         var industry = !string.IsNullOrWhiteSpace(request.IndustryCode) 
             ? request.IndustryCode.Trim().ToUpperInvariant() 
             : (!string.IsNullOrWhiteSpace(request.BusinessType) ? request.BusinessType.Trim().ToUpperInvariant() : "OTHER");
@@ -52,16 +145,20 @@ public class PublicLeadsController : BaseApiController
         var lead = new Lead
         {
             Id = Guid.NewGuid(),
-            Name = request.Name.Trim(),
-            BusinessName = request.BusinessName?.Trim() ?? string.Empty,
-            Mobile = request.Mobile.Trim(),
+            Name = contactName,
+            BusinessName = cleanBusinessName ?? contactName,
+            Mobile = cleanMobile.Length == 10 ? cleanMobile : string.Empty,
             Email = request.Email?.Trim() ?? string.Empty,
+            Gstin = cleanGstin,
             City = request.City?.Trim() ?? string.Empty,
             State = request.State?.Trim() ?? string.Empty,
             BusinessType = request.BusinessType?.Trim() ?? string.Empty,
             IndustryCode = industry,
             Message = request.Message?.Trim() ?? string.Empty,
-            Source = request.Source?.Trim() ?? string.Empty,
+            Source = request.Source?.Trim() ?? "Website",
+            InvoiceCount = 1,
+            LastInvoiceAmount = request.InvoiceAmount,
+            LastActiveAt = DateTime.UtcNow,
             UtmSource = request.UtmSource?.Trim(),
             UtmMedium = request.UtmMedium?.Trim(),
             UtmCampaign = request.UtmCampaign?.Trim(),
@@ -73,13 +170,15 @@ public class PublicLeadsController : BaseApiController
             ConversionStage = "Lead",
             Status = "New",
             CreatedAt = DateTime.UtcNow,
-            Notes = string.Empty
+            Notes = request.InvoiceAmount.HasValue 
+                ? $"[Invoice Activity: {DateTime.UtcNow:dd-MM-yyyy HH:mm}] Generated first bill (₹{request.InvoiceAmount.Value:F2})"
+                : string.Empty
         };
 
         _db.Leads.Add(lead);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Ok(new { message = "Thank you! We will contact you within 24 hours." });
+        return Ok(new { message = "Thank you! We will contact you within 24 hours.", isDuplicate = false, leadId = lead.Id });
     }
 
     /// <summary>
@@ -100,12 +199,14 @@ public class PublicLeadsController : BaseApiController
     }
 }
 
-/// <summary>Request body for submitting a lead from the marketing website.</summary>
+/// <summary>Request body for submitting a lead or free tool user from the marketing website.</summary>
 public record SubmitLeadRequest(
-    string Name,
+    string? Name,
     string? BusinessName,
-    string Mobile,
+    string? Mobile,
     string? Email,
+    string? Gstin,
+    decimal? InvoiceAmount,
     string? City,
     string? State,
     string? BusinessType,

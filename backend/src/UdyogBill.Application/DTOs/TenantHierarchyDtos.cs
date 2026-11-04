@@ -104,7 +104,8 @@ public record UpdateMyProfileRequest(
     string FullName,
     string? PhoneNumber = null,
     string? CurrentPassword = null,
-    string? NewPassword = null
+    string? NewPassword = null,
+    string? Email = null
 );
 
 public record StaffUserDto(
@@ -203,7 +204,9 @@ public record UpdateBusinessProfileRequest(
     string? SmtpPassword = null,
     string? SmtpFromEmail = null,
     string? SmtpFromName = null,
-    bool? SmtpEnableSsl = null
+    bool? SmtpEnableSsl = null,
+    string? ApparelSubType = null,
+    string? HardwareSubType = null
 );
 
 public record SendTenantTestEmailRequest(
@@ -240,3 +243,19 @@ public record TenantQuotaSummaryDto(
     DateTimeOffset SubscriptionEndsAtUtc,
     bool IsTrial
 );
+
+public class DocumentSeriesItemDto
+{
+    public string Prefix { get; set; } = string.Empty;
+    public int NextNumber { get; set; } = 1;
+    public string Suffix { get; set; } = string.Empty;
+    public int Padding { get; set; } = 4;
+}
+
+public class DocumentSeriesConfigDto
+{
+    public DocumentSeriesItemDto TaxInvoice { get; set; } = new() { Prefix = "INV/", NextNumber = 1, Suffix = "", Padding = 4 };
+    public DocumentSeriesItemDto CashMemo { get; set; } = new() { Prefix = "CM/", NextNumber = 1, Suffix = "", Padding = 4 };
+    public DocumentSeriesItemDto Quotation { get; set; } = new() { Prefix = "QTN/", NextNumber = 1, Suffix = "", Padding = 4 };
+    public DocumentSeriesItemDto Challan { get; set; } = new() { Prefix = "DC/", NextNumber = 1, Suffix = "", Padding = 4 };
+}

@@ -41,6 +41,16 @@ public class P0ReportController : BaseApiController
         return Ok(result);
     }
 
+    [HttpGet("sales/payments")]
+    [ProducesResponseType(typeof(SalesPaymentReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSalesPaymentReport(
+        [FromQuery] P0ReportFilterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _reportService.GetSalesPaymentReportAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("purchases/register")]
     [ProducesResponseType(typeof(PurchaseRegisterDetailedReportDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPurchaseRegisterDetailed(
@@ -58,6 +68,16 @@ public class P0ReportController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var result = await _reportService.GetPurchaseSummaryAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("purchases/payments")]
+    [ProducesResponseType(typeof(PurchasePaymentReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPurchasePaymentReport(
+        [FromQuery] P0ReportFilterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _reportService.GetPurchasePaymentReportAsync(request, cancellationToken);
         return Ok(result);
     }
 

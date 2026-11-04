@@ -4,6 +4,7 @@ using UdyogBill.Domain.Entities.Identity;
 using UdyogBill.Domain.Entities.Inventory;
 using UdyogBill.Domain.Entities.Parties;
 using UdyogBill.Domain.Entities.Sales;
+using UdyogBill.Domain.Entities.SalesForce;
 using UdyogBill.Domain.Entities.Subscriptions;
 using UdyogBill.Domain.Entities.Tenants;
 
@@ -27,6 +28,7 @@ public interface ICurrentUserContext
     bool IsSuperAdmin { get; }
     bool IsTenantAdmin { get; }
     Guid? TenantId { get; }
+    Guid? BranchId { get; }
     IReadOnlyList<string> Roles { get; }
     IReadOnlyList<string> Permissions { get; }
     bool HasPermission(string permission);
@@ -36,6 +38,7 @@ public interface ICurrentUserContext
 public interface IAppDbContext
 {
     IQueryable<Tenant> Tenants { get; }
+    IQueryable<TenantUserMapping> TenantUserMappings { get; }
     IQueryable<TenantIndustryConfig> TenantIndustryConfigs { get; }
     IQueryable<TenantBranch> TenantBranches { get; }
     IQueryable<TenantWarehouse> TenantWarehouses { get; }
@@ -53,6 +56,7 @@ public interface IAppDbContext
     IQueryable<IndustryFeature> IndustryFeatures { get; }
     IQueryable<SubFeature> SubFeatures { get; }
     IQueryable<Permission> Permissions { get; }
+    IQueryable<GlobalProductCatalog> GlobalProductCatalogs { get; }
     IQueryable<Plan> Plans { get; }
     IQueryable<PlanEntitlement> PlanEntitlements { get; }
     IQueryable<TenantSubscription> TenantSubscriptions { get; }
@@ -66,6 +70,8 @@ public interface IAppDbContext
     IQueryable<PlatformPasswordResetOtp> PlatformPasswordResetOtps { get; }
     IQueryable<PlatformLeadPopupConfig> PlatformLeadPopupConfigs { get; }
     IQueryable<AuditLog> AuditLogs { get; }
+    IQueryable<TenantDeviceSession> TenantDeviceSessions { get; }
+    IQueryable<TenantLoginHistory> TenantLoginHistories { get; }
 
     // Inventory Master & Stock Ledger
     IQueryable<Category> Categories { get; }
@@ -89,11 +95,15 @@ public interface IAppDbContext
     // Sales, Quotations & Invoicing
     IQueryable<Quotation> Quotations { get; }
     IQueryable<QuotationItem> QuotationItems { get; }
+    IQueryable<SalesOrder> SalesOrders { get; }
+    IQueryable<SalesOrderItem> SalesOrderItems { get; }
     IQueryable<SalesInvoice> SalesInvoices { get; }
     IQueryable<SalesInvoiceItem> SalesInvoiceItems { get; }
     IQueryable<SalesInvoicePayment> SalesInvoicePayments { get; }
     IQueryable<SalesReturn> SalesReturns { get; }
     IQueryable<SalesReturnItem> SalesReturnItems { get; }
+    IQueryable<AdvancePayment> AdvancePayments { get; }
+    IQueryable<AdvancePaymentAllocation> AdvancePaymentAllocations { get; }
 
     // Purchases & Procurement
     IQueryable<Domain.Entities.Purchases.PurchaseOrder> PurchaseOrders { get; }
@@ -161,6 +171,15 @@ public interface IAppDbContext
     IQueryable<Domain.Entities.Referrals.ReferralProgramConfig> ReferralProgramConfigs { get; }
     IQueryable<Domain.Entities.Referrals.TenantReferralProfile> TenantReferralProfiles { get; }
     IQueryable<Domain.Entities.Referrals.TenantReferralConversion> TenantReferralConversions { get; }
+
+    // Internal Enterprise Sales Force Automation (SFA)
+    IQueryable<InternalSalesRep> InternalSalesReps { get; }
+    IQueryable<HardwareDeviceRegistry> HardwareDeviceRegistries { get; }
+    IQueryable<CompanyProductCatalog> CompanyProductCatalogs { get; }
+    IQueryable<SalesQuotaAllocation> SalesQuotaAllocations { get; }
+    IQueryable<FieldShopVisit> FieldShopVisits { get; }
+    IQueryable<FieldShopVisitProduct> FieldShopVisitProducts { get; }
+    IQueryable<SubscriptionAttributionAuditLog> SubscriptionAttributionAuditLogs { get; }
 
     void Add<TEntity>(TEntity entity) where TEntity : class;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

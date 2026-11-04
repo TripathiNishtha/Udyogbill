@@ -421,7 +421,9 @@ public class Phase44FullErpAuditTests
         Assert.True(cancelRes.IsSuccess);
 
         var updatedParty = await context.Parties.FindAsync(customer.Id);
-        Assert.Equal(0m, updatedParty!.CurrentOutstandingBalance);
+        // Under audited double-entry accounting, cancelling a partially paid invoice credits the full invoice amount (-1180),
+        // leaving the customer with a -400 credit/advance balance (store owes customer ₹400).
+        Assert.Equal(-400m, updatedParty!.CurrentOutstandingBalance);
 
         var ledgerEntries = await context.PartyLedgerEntries.Where(l => l.PartyId == customer.Id).ToListAsync();
         var totalDebits = ledgerEntries.Sum(l => l.DebitAmount);

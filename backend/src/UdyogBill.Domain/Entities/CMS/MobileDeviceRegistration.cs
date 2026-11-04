@@ -14,4 +14,6 @@ public class MobileDeviceRegistration
     public string AppVersionName { get; set; } = "1.0.0";
     public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
     public DateTime LastActiveAt { get; set; } = DateTime.UtcNow;
+    public bool IsInstalled { get; set; } = true;
+    public DateTime? UninstalledAt { get; set; }
 }

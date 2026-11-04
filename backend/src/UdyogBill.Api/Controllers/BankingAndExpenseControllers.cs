@@ -11,15 +11,22 @@ using UdyogBill.Shared;
 
 namespace UdyogBill.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "CanManageBankingAndExpense")]
 [Route("api/v1/tenant/banking")]
 public class TenantBankingController : BaseApiController
 {
     private readonly IBankingAndExpenseService _bankingService;
+    private readonly ITenantContext _tenantContext;
+    private readonly ISyncNotificationService _syncNotificationService;
 
-    public TenantBankingController(IBankingAndExpenseService bankingService)
+    public TenantBankingController(
+        IBankingAndExpenseService bankingService,
+        ITenantContext tenantContext,
+        ISyncNotificationService syncNotificationService)
     {
         _bankingService = bankingService;
+        _tenantContext = tenantContext;
+        _syncNotificationService = syncNotificationService;
     }
 
     [HttpGet("accounts")]
@@ -79,6 +86,17 @@ public class TenantBankingController : BaseApiController
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _bankingService.RecordCustomerReceiptAsync(request, ip, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "payment.created", new
+            {
+                voucherId = result.Data?.VoucherId,
+                partyId = request.PartyId,
+                amount = request.Amount,
+                paymentMode = request.PaymentMode.ToString(),
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 
@@ -88,19 +106,55 @@ public class TenantBankingController : BaseApiController
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _bankingService.RecordVendorPaymentAsync(request, ip, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "payment.vendor_paid", new
+            {
+                voucherId = result.Data?.VoucherId,
+                partyId = request.PartyId,
+                amount = request.Amount,
+                paymentMode = request.PaymentMode.ToString(),
+                source = "api"
+            }, cancellationToken);
+        }
+        return HandleResult(result);
+    }
+
+    [HttpPost("contra")]
+    [ProducesResponseType(typeof(ContraTransferResultDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RecordContraTransfer([FromBody] RecordContraTransferRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _bankingService.RecordContraTransferAsync(request, HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "banking.contra_transferred", new
+            {
+                voucherId = result.Data?.VoucherId,
+                transferType = request.TransferType.ToString(),
+                amount = request.Amount,
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanManageBankingAndExpense")]
 [Route("api/v1/tenant/expenses")]
 public class TenantExpensesController : BaseApiController
 {
     private readonly IBankingAndExpenseService _bankingService;
+    private readonly ITenantContext _tenantContext;
+    private readonly ISyncNotificationService _syncNotificationService;
 
-    public TenantExpensesController(IBankingAndExpenseService bankingService)
+    public TenantExpensesController(
+        IBankingAndExpenseService bankingService,
+        ITenantContext tenantContext,
+        ISyncNotificationService syncNotificationService)
     {
         _bankingService = bankingService;
+        _tenantContext = tenantContext;
+        _syncNotificationService = syncNotificationService;
     }
 
     [HttpGet("categories")]
@@ -139,6 +193,16 @@ public class TenantExpensesController : BaseApiController
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _bankingService.CreateExpenseVoucherAsync(request, ip, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "expense.created", new
+            {
+                expenseId = result.Data,
+                amount = request.Amount,
+                categoryId = request.CategoryId,
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 }

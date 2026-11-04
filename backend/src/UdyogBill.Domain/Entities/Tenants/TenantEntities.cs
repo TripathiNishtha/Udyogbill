@@ -19,6 +19,7 @@ public class Tenant : BaseAuditableEntity
     public string? AdminPassword { get; set; }
     public string? GSTIN { get; set; }
     public string? PAN { get; set; }
+    public bool IsCompositionScheme { get; set; } = false;
     public string? DrugLicenseNumber { get; set; } // Specific to Pharma/Medical
     public string? FSSAINumber { get; set; } // Specific to Food/Bakery/FMCG
     public string? UpiId { get; set; } // e.g. "apexpharma@okhdfcbank"
@@ -57,6 +58,8 @@ public class Tenant : BaseAuditableEntity
     // Modular Industry Pack & Entitlements
     public string IndustryTypeCode { get; set; } = IndustryTypeCodes.Other;
     public string ActiveIndustryModule { get; set; } = IndustryTypeCodes.Other;
+    public string? ApparelSubType { get; set; } = "BOTH"; // "GARMENTS", "SHOES", "BOTH"
+    public string? HardwareSubType { get; set; } = "BOTH"; // "PAINTS", "HARDWARE", "BOTH"
     public IndustryModuleStatus IndustryModuleStatus { get; set; } = IndustryModuleStatus.Active;
     public DateTimeOffset IndustryActivatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public int MaxAllowedUsers { get; set; } = 2;
@@ -70,6 +73,13 @@ public class Tenant : BaseAuditableEntity
     public bool IsPharmaSfaActive { get; set; } = false;
     public int MaxAllowedMrUsers { get; set; } = 0;
     public int MaxAllowedManagerUsers { get; set; } = 0;
+
+    // Multi-Company / Multi-Firm Subscription Linkage
+    public Guid? ParentTenantId { get; set; }
+    public Tenant? ParentTenant { get; set; }
+    public Guid? OwnerUserId { get; set; }
+    public ICollection<Tenant> ChildCompanies { get; set; } = new List<Tenant>();
+    public ICollection<TenantUserMapping> UserMappings { get; set; } = new List<TenantUserMapping>();
 
     public ICollection<TenantBranch> Branches { get; set; } = new List<TenantBranch>();
     public ICollection<TenantWarehouse> Warehouses { get; set; } = new List<TenantWarehouse>();

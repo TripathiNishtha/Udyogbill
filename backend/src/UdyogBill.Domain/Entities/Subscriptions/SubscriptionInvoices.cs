@@ -5,6 +5,7 @@ namespace UdyogBill.Domain.Entities.Subscriptions;
 
 public class PaymentGatewayConfig : BaseAuditableEntity
 {
+    public Guid? TenantId { get; set; } // Null for platform-wide/subscription configs, set for tenant-specific gateways
     public string Provider { get; set; } = "Razorpay"; // Default provider
     public string KeyId { get; set; } = string.Empty;
     public string KeySecret { get; set; } = string.Empty;

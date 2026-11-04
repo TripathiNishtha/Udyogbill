@@ -18,7 +18,8 @@ public record AuthUserDto(
     string? IndustryCode,
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions,
-    string? LogoUrl = null
+    string? LogoUrl = null,
+    bool IsReadOnly = false
 );
 
 public record LoginResponse(
@@ -41,12 +42,27 @@ public record RegisterTenantRequest(
     string? GSTIN = null,
     string? DrugLicenseNumber = null,
     string? FSSAINumber = null,
-    string? ReferralCode = null
+    string? ReferralCode = null,
+    string? ApparelSubType = null,
+    string? HardwareSubType = null
 );
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 
 // --- Tenant DTOs ---
+public record ChildCompanySummaryDto(
+    Guid Id,
+    string Code,
+    string BusinessName,
+    string TradeName,
+    string IndustryName,
+    string IndustryCode,
+    TenantStatus Status,
+    string? GSTIN,
+    string? PrimaryPhone,
+    DateTimeOffset CreatedAtUtc
+);
+
 public record TenantDto(
     Guid Id,
     string Code,
@@ -64,8 +80,31 @@ public record TenantDto(
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
     string? LogoUrl = null,
-    string? AdminPassword = null
-);
+    string? AdminPassword = null,
+    IReadOnlyList<ChildCompanySummaryDto>? ChildCompanies = null,
+    int ChildCompanyCount = 0,
+    Guid? ParentTenantId = null,
+    DateTimeOffset? SubscriptionStartDateUtc = null,
+    DateTimeOffset? SubscriptionEndDateUtc = null,
+    string? SubscriptionStatus = null,
+    string? PlanName = null,
+    int? PendingTrialDays = null,
+    bool IsAiAddonActive = false,
+    int AiScansLimit = 500,
+    int AiScansUsed = 0
+)
+{
+    public TenantDto(
+        Guid id, string code, string businessName, string tradeName, Guid industryId,
+        string industryName, string industryCode, TenantStatus status, string adminEmail,
+        string primaryPhone, string? gstin, string timeZone, string currencyCode,
+        bool isActive, DateTimeOffset createdAtUtc, string? logoUrl, string? adminPassword)
+        : this(id, code, businessName, tradeName, industryId, industryName, industryCode,
+               status, adminEmail, primaryPhone, gstin, timeZone, currencyCode, isActive,
+               createdAtUtc, logoUrl, adminPassword, null, 0, null, null, null, null, null, null, false, 500, 0)
+    {
+    }
+}
 
 public record TenantDetailsDto(
     Guid Id,
@@ -109,7 +148,9 @@ public record TenantDetailsDto(
     string? SmtpFromEmail = null,
     string? SmtpFromName = null,
     bool? SmtpEnableSsl = null,
-    string? AdminPassword = null
+    string? AdminPassword = null,
+    string? ApparelSubType = null,
+    string? HardwareSubType = null
 );
 
 public record TenantIndustryConfigDto(
@@ -206,6 +247,7 @@ public record PlanDto(
     BillingCycle BillingCycle,
     decimal Price,
     int TrialDays,
+    int MaxCompanies,
     int MaxUsers,
     int MaxBranches,
     int MaxWarehouses,

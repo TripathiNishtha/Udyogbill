@@ -54,6 +54,7 @@ public abstract class BaseApiController : ControllerBase
         {
             "NOT_FOUND" => NotFound(errResp),
             "UNAUTHORIZED" or "INVALID_CREDENTIALS" => Unauthorized(errResp),
+            "ACCOUNT_LOCKED" => StatusCode(423, errResp),
             "FORBIDDEN" or "TENANT_ISOLATION_BREACH" => StatusCode(403, errResp),
             "EMAIL_ALREADY_EXISTS" or "RESOURCE_CONFLICT" => Conflict(errResp),
             "VALIDATION_FAILED" => BadRequest(errResp),
@@ -74,6 +75,7 @@ public abstract class BaseApiController : ControllerBase
         {
             "NOT_FOUND" => NotFound(errResp),
             "UNAUTHORIZED" => Unauthorized(errResp),
+            "ACCOUNT_LOCKED" => StatusCode(423, errResp),
             "FORBIDDEN" => StatusCode(403, errResp),
             "VALIDATION_FAILED" => BadRequest(errResp),
             _ => BadRequest(errResp)

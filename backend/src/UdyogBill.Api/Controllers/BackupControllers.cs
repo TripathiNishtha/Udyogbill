@@ -5,13 +5,16 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using UdyogBill.Api.Filters;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Shared;
+using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Api.Controllers;
 
 [Authorize]
+[RequirePermission(Permissions.SettingsManage)]
 [Route("api/v1/tenant/backup")]
 public class TenantBackupController : BaseApiController
 {

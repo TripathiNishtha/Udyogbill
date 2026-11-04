@@ -16,10 +16,17 @@ namespace UdyogBill.Api.Controllers;
 public class TenantQuotationsController : BaseApiController
 {
     private readonly IQuotationService _quotationService;
+    private readonly ITenantContext _tenantContext;
+    private readonly ISyncNotificationService _syncNotificationService;
 
-    public TenantQuotationsController(IQuotationService quotationService)
+    public TenantQuotationsController(
+        IQuotationService quotationService,
+        ITenantContext tenantContext,
+        ISyncNotificationService syncNotificationService)
     {
         _quotationService = quotationService;
+        _tenantContext = tenantContext;
+        _syncNotificationService = syncNotificationService;
     }
 
     [HttpGet]
@@ -65,6 +72,36 @@ public class TenantQuotationsController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _quotationService.CreateQuotationAsync(request, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "quotation.created", new
+            {
+                quotationId = result.Data,
+                partyId = request.PartyId,
+                totalAmount = request.Items.Sum(x => x.Quantity * x.UnitPrice),
+                source = "api"
+            }, cancellationToken);
+        }
+        return HandleResult(result);
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateQuotation(Guid id, [FromBody] CreateQuotationRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _quotationService.UpdateQuotationAsync(id, request, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "quotation.updated", new
+            {
+                quotationId = id,
+                partyId = request.PartyId,
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 
@@ -75,6 +112,20 @@ public class TenantQuotationsController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _quotationService.ConvertQuotationToInvoiceAsync(id, request, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "invoice.created", new
+            {
+                invoiceId = result.Data,
+                source = "quotation_converted"
+            }, cancellationToken);
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "quotation.converted", new
+            {
+                quotationId = id,
+                invoiceId = result.Data,
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 
@@ -85,6 +136,14 @@ public class TenantQuotationsController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _quotationService.CancelQuotationAsync(id, request.CancellationReason, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "quotation.cancelled", new
+            {
+                quotationId = id,
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 }

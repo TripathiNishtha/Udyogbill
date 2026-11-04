@@ -8,7 +8,8 @@ using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "CanViewInventory")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/categories")]
 public class TenantCategoriesController : BaseApiController
 {
@@ -66,7 +67,8 @@ public class TenantCategoriesController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanViewInventory")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/brands")]
 public class TenantBrandsController : BaseApiController
 {
@@ -124,7 +126,8 @@ public class TenantBrandsController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanViewInventory")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/units")]
 public class TenantUnitsController : BaseApiController
 {
@@ -188,7 +191,8 @@ public class TenantUnitsController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanViewInventory")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/items")]
 public class TenantItemsController : BaseApiController
 {
@@ -262,6 +266,26 @@ public class TenantItemsController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPost("bulk-delete")]
+    [ProducesResponseType(typeof(BulkDeleteResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkDeleteItems([FromBody] BulkDeleteItemRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _inventoryService.BulkDeleteItemsAsync(request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("bulk-update")]
+    [ProducesResponseType(typeof(BulkUpdateItemsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkUpdateItems([FromBody] BulkUpdateItemsRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _inventoryService.BulkUpdateItemsAsync(request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpGet("{id:guid}/batches")]
     [ProducesResponseType(typeof(IReadOnlyList<ItemBatchDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBatches(Guid id, CancellationToken cancellationToken)
@@ -287,9 +311,20 @@ public class TenantItemsController : BaseApiController
         var result = await _inventoryService.GetItemVariantsAsync(id, cancellationToken);
         return HandleResult(result);
     }
+
+    [HttpPut("{id:guid}/variants")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateVariants(Guid id, [FromBody] UpdateItemVariantsRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _inventoryService.UpdateItemVariantsAsync(id, request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
 }
 
-[Authorize]
+[Authorize(Policy = "CanViewInventory")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/inventory")]
 public class TenantInventoryController : BaseApiController
 {
@@ -298,6 +333,29 @@ public class TenantInventoryController : BaseApiController
     public TenantInventoryController(IInventoryService inventoryService)
     {
         _inventoryService = inventoryService;
+    }
+
+    [HttpPost("bulk-price-update")]
+    [RequirePermission(Permissions.InventoryManage)]
+    [ProducesResponseType(typeof(BulkPriceUpdateResultDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BulkUpdatePrices([FromBody] BulkPriceUpdateRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _inventoryService.BulkUpdatePricesAsync(request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpGet("price-list")]
+    [RequirePermission(Permissions.InventoryView)]
+    [ProducesResponseType(typeof(IReadOnlyList<PriceListRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPriceList(
+        [FromQuery] Guid? categoryId,
+        [FromQuery] Guid? brandId,
+        [FromQuery] string? searchTerm,
+        CancellationToken cancellationToken)
+    {
+        var result = await _inventoryService.GetPriceListAsync(categoryId, brandId, searchTerm, cancellationToken);
+        return HandleResult(result);
     }
 
     [HttpGet("stock")]
@@ -347,7 +405,7 @@ public class TenantInventoryController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanViewInventory")]
 [RequireActiveSubscription]
 [Route("api/v1/tenant/inventory/transfers")]
 public class TenantStockTransfersController : BaseApiController

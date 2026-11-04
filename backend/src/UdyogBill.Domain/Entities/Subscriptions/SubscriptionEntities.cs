@@ -16,6 +16,7 @@ public class Plan : BaseAuditableEntity
     public int TrialDays { get; set; } = 14;
 
     // Plan Limits
+    public int MaxCompanies { get; set; } = 1;
     public int MaxUsers { get; set; } = 5;
     public int MaxBranches { get; set; } = 1;
     public int MaxWarehouses { get; set; } = 1;

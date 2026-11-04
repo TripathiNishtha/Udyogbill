@@ -24,5 +24,6 @@
     <ProjectReference Include="..\..\backend\src\UdyogBill.Infrastructure\UdyogBill.Infrastructure.csproj" />
     <ProjectReference Include="..\..\backend\src\UdyogBill.Persistence\UdyogBill.Persistence.csproj" />
     <ProjectReference Include="..\..\backend\src\UdyogBill.Shared\UdyogBill.Shared.csproj" />
+    <ProjectReference Include="..\..\backend\src\UdyogBill.Api\UdyogBill.Api.csproj" />
   </ItemGroup>
 </Project>

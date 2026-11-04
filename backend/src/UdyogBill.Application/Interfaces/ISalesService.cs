@@ -26,6 +26,8 @@ public interface ISalesService
     Task<Result<Guid>> UpdateInvoiceAsync(Guid invoiceId, CreateSalesInvoiceRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<Guid>> RecordInvoicePaymentAsync(RecordInvoicePaymentRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> CancelInvoiceAsync(Guid invoiceId, CancelInvoiceRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<bool>> UpdateCustomerContactAsync(Guid invoiceId, string? customerPhone, string? customerName = null, string? customerEmail = null, CancellationToken cancellationToken = default);
+    Task<Result<LastDealHintDto?>> GetLastSaleDealAsync(Guid itemId, Guid? partyId = null, CancellationToken cancellationToken = default);
 
     // Sales Returns & Credit Notes
     Task<Result<PagedResult<SalesReturnDto>>> GetSalesReturnsAsync(
@@ -39,4 +41,6 @@ public interface ISalesService
     );
     Task<Result<SalesReturnDto>> GetSalesReturnByIdAsync(Guid returnId, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreateSalesReturnAsync(CreateSalesReturnRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<bool>> SettleSalesReturnCreditAsync(Guid returnId, SettleSalesReturnRequest request, CancellationToken cancellationToken = default);
+    Task<Result<bool>> CancelSalesReturnAsync(Guid returnId, CancelSalesReturnRequest request, CancellationToken cancellationToken = default);
 }

@@ -91,6 +91,21 @@ public class GstHsnSummaryRowDto
     public decimal TotalTax { get; set; }
 }
 
+public class Gstr1CreditNoteRowDto
+{
+    public Guid Id { get; set; }
+    public string CreditNoteNumber { get; set; } = string.Empty;
+    public DateTime ReturnDate { get; set; }
+    public string? OriginalInvoiceNumber { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerGSTIN { get; set; }
+    public string NoteType { get; set; } = "C"; // C = Credit Note
+    public decimal TaxableValue { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal TotalValue { get; set; }
+    public string SupplyType { get; set; } = "B2B"; // B2B (CDNR) or B2C (CDNS)
+}
+
 public class Gstr1ReportDto
 {
     public string TenantName { get; set; } = string.Empty;
@@ -110,6 +125,61 @@ public class Gstr1ReportDto
     public decimal TotalOutwardTax { get; set; }
     public List<GstSummaryRowDto> RateWiseSummary { get; set; } = new();
     public List<GstHsnSummaryRowDto> HsnSummary { get; set; } = new();
+    public List<Gstr1CreditNoteRowDto> CreditNotes { get; set; } = new();
+    public List<Gstr1B2BRecipientDto> B2B { get; set; } = new();
+    public List<Gstr1B2CSItemDto> B2CS { get; set; } = new();
+    public List<Gstr1DocIssueDetailsDto> DocIssue { get; set; } = new();
+}
+
+public class Gstr1B2BItemDetailDto
+{
+    public int Num { get; set; }
+    public decimal Rate { get; set; }
+    public decimal TaxableValue { get; set; }
+    public decimal IgstAmount { get; set; }
+    public decimal CgstAmount { get; set; }
+    public decimal SgstAmount { get; set; }
+    public decimal CessAmount { get; set; }
+}
+
+public class Gstr1B2BInvoiceDto
+{
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public DateTime InvoiceDate { get; set; }
+    public decimal TotalValue { get; set; }
+    public string PlaceOfSupply { get; set; } = string.Empty;
+    public string ReverseCharge { get; set; } = "N";
+    public string InvoiceType { get; set; } = "R";
+    public List<Gstr1B2BItemDetailDto> Items { get; set; } = new();
+}
+
+public class Gstr1B2BRecipientDto
+{
+    public string CustomerGstin { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public List<Gstr1B2BInvoiceDto> Invoices { get; set; } = new();
+}
+
+public class Gstr1B2CSItemDto
+{
+    public string SupplyType { get; set; } = "INTRA"; // INTRA or INTER
+    public string PlaceOfSupply { get; set; } = string.Empty;
+    public decimal Rate { get; set; }
+    public decimal TaxableValue { get; set; }
+    public decimal CgstAmount { get; set; }
+    public decimal SgstAmount { get; set; }
+    public decimal IgstAmount { get; set; }
+    public decimal CessAmount { get; set; }
+}
+
+public class Gstr1DocIssueDetailsDto
+{
+    public int DocNum { get; set; } = 1; // 1 = Invoices for outward supply
+    public string FromSerial { get; set; } = string.Empty;
+    public string ToSerial { get; set; } = string.Empty;
+    public int TotalCount { get; set; }
+    public int CancelledCount { get; set; }
+    public int NetIssuedCount { get; set; }
 }
 
 public class Gstr3bReportDto
@@ -153,4 +223,8 @@ public class SummaryReportDto
     public decimal NetGstPayable { get; set; }
     public decimal GrossProfit { get; set; }
     public decimal NetProfit { get; set; }
+    public decimal TotalSalesReturns { get; set; }
+    public int TotalSalesReturnsCount { get; set; }
+    public decimal TotalExpenses { get; set; }
+    public int TotalExpensesCount { get; set; }
 }

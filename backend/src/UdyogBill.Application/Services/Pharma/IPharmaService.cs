@@ -14,6 +14,7 @@ public interface IPharmaService
     Task<Result<IReadOnlyList<SaltMasterDto>>> GetSaltsAsync(string? search, CancellationToken cancellationToken = default);
     Task<Result<SaltMasterDto>> SaveSaltAsync(SaveSaltMasterRequest request, CancellationToken cancellationToken = default);
     Task<Result<IReadOnlyList<ItemSubstituteDto>>> FindSaltSubstitutesAsync(Guid itemId, CancellationToken cancellationToken = default);
+    Task<Result<IReadOnlyList<ItemSubstituteDto>>> FindSaltSubstitutesByNameAsync(string saltName, CancellationToken cancellationToken = default);
     Task<Result> LinkItemSaltCompositionAsync(LinkItemSaltRequest request, CancellationToken cancellationToken = default);
 
     // Schedule H1 Regulatory Register

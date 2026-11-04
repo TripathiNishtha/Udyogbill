@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Common;
+using UdyogBill.Domain.Entities.Auditing;
+using UdyogBill.Domain.Entities.Identity;
+using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Shared.Exceptions;
 
 namespace UdyogBill.Persistence.Interceptors;
@@ -40,6 +43,13 @@ public class AuditableEntitySaveChangesInterceptor : SaveChangesInterceptor
         var currentTenantId = _tenantContext.TenantId;
         var isSuperAdmin = _tenantContext.IsSuperAdmin || _currentUserContext.IsSuperAdmin;
 
+        // Collect newly added Tenant IDs in this change tracker batch so child entities
+        // (branches, warehouses, industry configs) created alongside a new tenant are permitted.
+        var newlyAddedTenantIds = context.ChangeTracker.Entries<Tenant>()
+            .Where(t => t.State == EntityState.Added)
+            .Select(t => t.Entity.Id)
+            .ToHashSet();
+
         foreach (var entry in context.ChangeTracker.Entries())
         {
             // 1. Multi-Tenant Stamping & Isolation Check
@@ -54,14 +64,23 @@ public class AuditableEntitySaveChangesInterceptor : SaveChangesInterceptor
                             tenantEntity.TenantId = currentTenantId;
                         }
                     }
-                    else if (tenantEntity.TenantId != currentTenantId && !isSuperAdmin && currentTenantId != Guid.Empty)
+                    else if (tenantEntity.TenantId != currentTenantId 
+                             && !isSuperAdmin 
+                             && currentTenantId != Guid.Empty
+                             && !newlyAddedTenantIds.Contains(tenantEntity.TenantId)
+                             && !(entry.Entity is RefreshToken)
+                             && !(entry.Entity is AuditLog))
                     {
                         throw new TenantIsolationViolationException($"Attempted to create entity for foreign tenant {tenantEntity.TenantId}.");
                     }
                 }
                 else if (entry.State == EntityState.Modified || entry.State == EntityState.Deleted)
                 {
-                    if (tenantEntity.TenantId != Guid.Empty && tenantEntity.TenantId != currentTenantId && !isSuperAdmin && currentTenantId != Guid.Empty)
+                    if (tenantEntity.TenantId != Guid.Empty 
+                        && tenantEntity.TenantId != currentTenantId 
+                        && !isSuperAdmin 
+                        && currentTenantId != Guid.Empty
+                        && !(entry.Entity is RefreshToken))
                     {
                         throw new TenantIsolationViolationException($"Unauthorized cross-tenant mutation attempted on entity of tenant {tenantEntity.TenantId}.");
                     }

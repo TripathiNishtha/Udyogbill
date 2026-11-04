@@ -298,11 +298,17 @@ public class PurchaseService : IPurchaseService
         }
 
         var supplier = await _context.Parties
+            .Include(p => p.Addresses)
             .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == request.PartyId && !p.IsDeleted, cancellationToken);
         if (supplier == null)
         {
             return Result<Guid>.Failure("Supplier not found.", "SUPPLIER_NOT_FOUND");
         }
+
+        var defaultAddr = supplier.Addresses.FirstOrDefault(a => a.IsDefault) ?? supplier.Addresses.FirstOrDefault();
+        var supplierFullAddress = defaultAddr != null
+            ? $"{defaultAddr.AddressLine1}{(string.IsNullOrWhiteSpace(defaultAddr.AddressLine2) ? "" : $", {defaultAddr.AddressLine2}")}{(string.IsNullOrWhiteSpace(defaultAddr.City) ? "" : $", {defaultAddr.City}")}{(string.IsNullOrWhiteSpace(defaultAddr.State) ? "" : $", {defaultAddr.State}")}{(string.IsNullOrWhiteSpace(defaultAddr.Pincode) ? "" : $" - {defaultAddr.Pincode}")}"
+            : null;
 
         var orderDate = DateTime.SpecifyKind(request.OrderDate, DateTimeKind.Utc);
         var fyCode = GetFinancialYearCode(orderDate);
@@ -340,7 +346,7 @@ public class PurchaseService : IPurchaseService
             SupplierName = supplier.LegalName,
             SupplierPhone = supplier.Mobile ?? supplier.PrimaryPhone,
             SupplierGSTIN = supplier.GSTIN,
-            SupplierAddress = supplier.Addresses.FirstOrDefault(a => a.IsDefault)?.AddressLine1,
+            SupplierAddress = supplierFullAddress,
             SupplierStateCode = supplierState,
             PlaceOfSupply = branch.State ?? "",
             TaxSupplyType = isIntraState ? TaxSupplyType.IntraState : TaxSupplyType.InterState,
@@ -887,6 +893,10 @@ public class PurchaseService : IPurchaseService
                                         Status = "InStock"
                                     });
                                 }
+                                else if (existingSerial.Status == "InStock" || existingSerial.Status == "Available")
+                                {
+                                    return Result<Guid>.Failure($"Serial/IMEI '{sNum}' is already in stock for item '{item.Name}'. Duplicate inwarding is prohibited.", "DUPLICATE_SERIAL_NUMBER");
+                                }
                                 else
                                 {
                                     existingSerial.Status = "InStock";
@@ -897,7 +907,11 @@ public class PurchaseService : IPurchaseService
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to process IMEI/serial attributes for Item {ItemId}: {Message}", item.Id, ex.Message);
+                    return Result<Guid>.Failure($"Failed to process serial/IMEI attributes for '{item.Name}': {ex.Message}", "SERIAL_PROCESSING_FAILED");
+                }
             }
 
             // If linked to PO item, update received quantity (both paid + free)
@@ -1186,7 +1200,9 @@ public class PurchaseService : IPurchaseService
                 i.IgstAmount,
                 i.CessRate,
                 i.CessAmount,
-                i.TotalAmount
+                i.TotalAmount,
+                i.VariantId,
+                i.AttributesJson
             ))
             .ToList();
 
@@ -1591,17 +1607,49 @@ public class PurchaseService : IPurchaseService
                         batch = await _context.ItemBatches.FirstOrDefaultAsync(b => b.TenantId == tenantId && b.ItemId == bItem.ItemId && b.BatchNumber == bItem.BatchNumber, cancellationToken);
                         if (batch == null)
                         {
+                            decimal batchSaleRate = (reqItem.UpdateMasterRates && reqItem.NewSellingPrice.HasValue && reqItem.NewSellingPrice.Value > 0)
+                                ? reqItem.NewSellingPrice.Value
+                                : (masterItem.SellingPrice > 0 ? masterItem.SellingPrice : bItem.UnitPrice);
+
+                            decimal batchMrp = reqItem.Mrp > 0 ? reqItem.Mrp : masterItem.MRP;
+
+                            decimal batchPtr = (reqItem.UpdateMasterRates && reqItem.NewMinimumSellingPrice.HasValue && reqItem.NewMinimumSellingPrice.Value > 0)
+                                ? reqItem.NewMinimumSellingPrice.Value
+                                : masterItem.MinimumSellingPrice;
+
                             batch = new ItemBatch
                             {
                                 TenantId = tenantId,
                                 ItemId = bItem.ItemId,
                                 BatchNumber = bItem.BatchNumber,
                                 PurchaseRate = bItem.UnitPrice,
-                                SaleRate = bItem.UnitPrice,
+                                SaleRate = batchSaleRate,
+                                MRP = batchMrp,
+                                Ptr = batchPtr,
                                 ExpiryDate = reqItem.ExpiryDate ?? DateTime.UtcNow.AddYears(2)
                             };
                             _context.ItemBatches.Add(batch);
                         }
+                        else if (reqItem.UpdateMasterRates)
+                        {
+                            batch.PurchaseRate = bItem.UnitPrice;
+                            if (reqItem.Mrp > 0) batch.MRP = reqItem.Mrp;
+                            if (reqItem.NewSellingPrice.HasValue && reqItem.NewSellingPrice.Value > 0)
+                                batch.SaleRate = reqItem.NewSellingPrice.Value;
+                            if (reqItem.NewMinimumSellingPrice.HasValue && reqItem.NewMinimumSellingPrice.Value > 0)
+                                batch.Ptr = reqItem.NewMinimumSellingPrice.Value;
+                        }
+                    }
+
+                    if (reqItem.UpdateMasterRates)
+                    {
+                        masterItem.PurchasePrice = bItem.UnitPrice;
+                        if (reqItem.NewSellingPrice.HasValue && reqItem.NewSellingPrice.Value > 0)
+                            masterItem.SellingPrice = reqItem.NewSellingPrice.Value;
+                        if (reqItem.Mrp > 0)
+                            masterItem.MRP = reqItem.Mrp;
+                        if (reqItem.NewMinimumSellingPrice.HasValue && reqItem.NewMinimumSellingPrice.Value > 0)
+                            masterItem.MinimumSellingPrice = reqItem.NewMinimumSellingPrice.Value;
                     }
 
                     var stockQuery = _context.ItemWarehouseStocks
@@ -1707,6 +1755,11 @@ public class PurchaseService : IPurchaseService
                                         Status = "InStock"
                                     });
                                 }
+                                else if (existingSerial.Status == "InStock" || existingSerial.Status == "Available")
+                                {
+                                    if (tx != null) await tx.RollbackAsync(cancellationToken);
+                                    return Result<Guid>.Failure($"Serial/IMEI '{sNum}' is already in stock for item '{masterItem.Name}'. Duplicate inwarding is prohibited.", "DUPLICATE_SERIAL_NUMBER");
+                                }
                                 else
                                 {
                                     existingSerial.Status = "InStock";
@@ -1719,6 +1772,28 @@ public class PurchaseService : IPurchaseService
                 }
             }
 
+            // If linked to PO directly (without prior GRN), update PO received quantities and status
+            if (request.PurchaseOrderId.HasValue && request.PurchaseOrderId.Value != Guid.Empty && (!request.GoodsReceiptNoteId.HasValue || request.GoodsReceiptNoteId.Value == Guid.Empty))
+            {
+                var po = await _context.PurchaseOrders
+                    .Include(p => p.Items)
+                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == request.PurchaseOrderId.Value && !p.IsDeleted, cancellationToken);
+                if (po != null)
+                {
+                    foreach (var bItem in bill.Items)
+                    {
+                        var pItem = po.Items.FirstOrDefault(pi => pi.ItemId == bItem.ItemId);
+                        if (pItem != null)
+                        {
+                            pItem.ReceivedQuantity += bItem.Quantity;
+                        }
+                    }
+                    var isFullyReceived = po.Items.All(pi => pi.RemainingQuantity <= 0);
+                    po.Status = isFullyReceived ? PurchaseOrderStatus.Completed : PurchaseOrderStatus.PartiallyReceived;
+                }
+            }
+
+            await ApplyMasterRateRevisionsAsync(tenantId, request.Items, itemsDict, cancellationToken);
             await AutoPostPurchaseBillToGeneralLedgerAsync(bill, cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -1752,86 +1827,503 @@ public class PurchaseService : IPurchaseService
         return Result<Guid>.Success(bill.Id);
     }
 
+    public async Task<Result<Guid>> UpdatePurchaseBillAsync(Guid id, CreatePurchaseBillRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        if (request.Items == null || request.Items.Count == 0)
+        {
+            return Result<Guid>.Failure("Purchase bill must contain at least one line item.", "EMPTY_ITEMS");
+        }
+
+        var branch = await _context.TenantBranches
+            .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == request.BranchId && !b.IsDeleted, cancellationToken);
+        if (branch == null)
+        {
+            return Result<Guid>.Failure("Branch not found.", "BRANCH_NOT_FOUND");
+        }
+
+        var warehouse = await _context.TenantWarehouses
+            .FirstOrDefaultAsync(w => w.TenantId == tenantId && w.Id == request.WarehouseId && !w.IsDeleted, cancellationToken);
+        if (warehouse == null)
+        {
+            return Result<Guid>.Failure("Warehouse not found.", "WAREHOUSE_NOT_FOUND");
+        }
+
+        var supplier = await _context.Parties
+            .Include(p => p.Addresses)
+            .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == request.PartyId && !p.IsDeleted, cancellationToken);
+        if (supplier == null)
+        {
+            return Result<Guid>.Failure("Supplier not found.", "SUPPLIER_NOT_FOUND");
+        }
+
+        var billDate = DateTime.SpecifyKind(request.BillDate, DateTimeKind.Utc);
+        var branchState = branch.StateCode ?? "27";
+        var supplierState = supplier.StateCode ?? branchState;
+        var isIntraState = string.Equals(branchState, supplierState, StringComparison.OrdinalIgnoreCase);
+
+        var itemIds = request.Items.Select(i => i.ItemId).Distinct().ToList();
+        var itemsDict = await _context.Items
+            .Include(i => i.PrimaryUom)
+            .Where(i => i.TenantId == tenantId && itemIds.Contains(i.Id) && !i.IsDeleted)
+            .ToDictionaryAsync(i => i.Id, cancellationToken);
+
+        var uomIds = request.Items.Select(i => i.UomId).Distinct().ToList();
+        var uomsDict = await _context.UnitsOfMeasure
+            .Where(u => u.TenantId == tenantId && uomIds.Contains(u.Id) && !u.IsDeleted)
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+
+        var lineInputs = new List<UdyogBill.Application.Services.Calculations.LineCalculationInput>();
+        foreach (var reqItem in request.Items)
+        {
+            if (!itemsDict.TryGetValue(reqItem.ItemId, out var itm))
+            {
+                return Result<Guid>.Failure($"Item with ID '{reqItem.ItemId}' not found.", "ITEM_NOT_FOUND");
+            }
+
+            decimal conversion = (itm.SecondaryUomId.HasValue && reqItem.UomId == itm.SecondaryUomId.Value && itm.ConversionRatio.HasValue && itm.ConversionRatio.Value > 0)
+                ? itm.ConversionRatio.Value
+                : 1m;
+
+            lineInputs.Add(new UdyogBill.Application.Services.Calculations.LineCalculationInput(
+                Quantity: reqItem.Quantity,
+                FreeQuantity: reqItem.FreeQuantity,
+                UnitPrice: reqItem.UnitPrice,
+                IsTaxInclusive: itm.IsTaxInclusive,
+                DiscountPercent: reqItem.DiscountPercent,
+                DiscountAmount: reqItem.DiscountAmount,
+                GstRate: itm.TaxRate,
+                CessRate: itm.CessRate,
+                IsIntraState: isIntraState,
+                ConversionRatio: conversion
+            ));
+        }
+
+        var (calculatedLines, totals) = _calculationEngine.CalculateInvoice(
+            lineInputs,
+            invoiceDiscountPercent: 0m,
+            invoiceDiscountAmount: 0m,
+            isIntraState: isIntraState
+        );
+
+        var semaphore = _tenantDocSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+        try
+        {
+            var bill = await _context.PurchaseBills
+                .Include(b => b.Items)
+                .Include(b => b.Payments)
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == id && !b.IsDeleted, cancellationToken);
+
+            if (bill == null)
+            {
+                if (tx != null) await tx.RollbackAsync(cancellationToken);
+                return Result<Guid>.Failure("Purchase bill not found.", "NOT_FOUND");
+            }
+
+            if (bill.IsCancelled)
+            {
+                if (tx != null) await tx.RollbackAsync(cancellationToken);
+                return Result<Guid>.Failure("Cannot edit a cancelled purchase bill.", "BILL_CANCELLED");
+            }
+
+            // 1. Preload stocks for all involved items to prevent concurrency and duplicate rows
+            var prevItemIds = bill.Items.Where(it => !it.IsDeleted).Select(x => x.ItemId).ToList();
+            var newItemIds = request.Items.Select(x => x.ItemId).ToList();
+            var allItemIds = prevItemIds.Concat(newItemIds).Distinct().ToList();
+
+            var prevItemsDict = await _context.Items
+                .Where(it => it.TenantId == tenantId && allItemIds.Contains(it.Id) && !it.IsDeleted)
+                .ToDictionaryAsync(it => it.Id, cancellationToken);
+
+            var warehouseIds = new List<Guid> { bill.WarehouseId, request.WarehouseId }.Distinct().ToList();
+            var existingStocks = await _context.ItemWarehouseStocks
+                .Where(s => s.TenantId == tenantId && allItemIds.Contains(s.ItemId) && warehouseIds.Contains(s.WarehouseId) && !s.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            // Revert previous stock movements & warehouse stock
+            foreach (var prevItem in bill.Items.Where(it => !it.IsDeleted))
+            {
+                if (prevItemsDict.TryGetValue(prevItem.ItemId, out var masterItem) && (masterItem.ItemType == ItemType.Service || !masterItem.TrackInventory))
+                {
+                    continue;
+                }
+
+                var stock = existingStocks.FirstOrDefault(s =>
+                    s.ItemId == prevItem.ItemId &&
+                    s.WarehouseId == bill.WarehouseId &&
+                    ((prevItem.VariantId.HasValue && s.VariantId == prevItem.VariantId.Value) || (!prevItem.VariantId.HasValue && s.VariantId == null)) &&
+                    ((prevItem.BatchId.HasValue && prevItem.BatchId.Value != Guid.Empty && s.BatchId == prevItem.BatchId.Value) || (!prevItem.BatchId.HasValue || prevItem.BatchId.Value == Guid.Empty && s.BatchId == null)));
+
+                if (stock != null)
+                {
+                    stock.CurrentQuantity -= prevItem.Quantity;
+                }
+            }
+
+            // 2. Revert previous supplier outstanding balance
+            var prevSupplier = await _context.Parties
+                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == bill.PartyId && !p.IsDeleted, cancellationToken);
+            if (prevSupplier != null)
+            {
+                prevSupplier.CurrentOutstandingBalance += bill.TotalAmount;
+            }
+
+            // 3. Mark old bill items as soft-deleted (preserving EF Core Change Tracker relationships)
+            var nowUtc = DateTime.UtcNow;
+            foreach (var prevItem in bill.Items.Where(it => !it.IsDeleted))
+            {
+                prevItem.IsDeleted = true;
+                prevItem.DeletedAtUtc = nowUtc;
+                prevItem.DeletedBy = _currentUserContext.UserId;
+            }
+
+            // 4. Update bill headers
+            bill.VendorInvoiceNumber = request.VendorInvoiceNumber;
+            bill.BranchId = request.BranchId;
+            bill.WarehouseId = request.WarehouseId;
+            bill.PartyId = supplier.Id;
+            bill.SupplierName = supplier.LegalName;
+            bill.SupplierGSTIN = supplier.GSTIN;
+            bill.SupplierAddress = supplier.Addresses?.FirstOrDefault(a => a.IsDefault)?.AddressLine1;
+            bill.SupplierStateCode = supplierState;
+            bill.PlaceOfSupply = branch.State ?? "";
+            bill.TaxSupplyType = isIntraState ? TaxSupplyType.IntraState : TaxSupplyType.InterState;
+            bill.BillDate = billDate;
+            bill.DueDate = request.DueDate.HasValue ? DateTime.SpecifyKind(request.DueDate.Value, DateTimeKind.Utc) : null;
+            bill.PrimaryPaymentMode = request.PrimaryPaymentMode;
+            bill.Notes = request.Notes;
+            bill.AttributesJson = request.AttributesJson ?? "{}";
+
+            // 5. Add new items with VariantId
+            var newBillItems = new List<PurchaseBillItem>();
+            for (int i = 0; i < request.Items.Count; i++)
+            {
+                var reqItem = request.Items[i];
+                var item = itemsDict[reqItem.ItemId];
+                var lineCalc = calculatedLines[i];
+
+                string uomCode = "UNIT";
+                if (uomsDict.TryGetValue(reqItem.UomId, out var uom))
+                {
+                    uomCode = uom.Code ?? item.PrimaryUom?.Code ?? "UNIT";
+                }
+                else if (item.PrimaryUom != null)
+                {
+                    uomCode = item.PrimaryUom.Code;
+                }
+
+                decimal conversion = (item.SecondaryUomId.HasValue && reqItem.UomId == item.SecondaryUomId.Value && item.ConversionRatio.HasValue && item.ConversionRatio.Value > 0)
+                    ? item.ConversionRatio.Value
+                    : 1m;
+
+                var attributesDict = new Dictionary<string, object>
+                {
+                    ["freeQuantity"] = reqItem.FreeQuantity,
+                    ["conversionRatio"] = conversion
+                };
+                if (!string.IsNullOrWhiteSpace(reqItem.AttributesJson) && reqItem.AttributesJson != "{}")
+                {
+                    try
+                    {
+                        var parsedAttr = JsonSerializer.Deserialize<Dictionary<string, object>>(reqItem.AttributesJson);
+                        if (parsedAttr != null)
+                        {
+                            foreach (var kvp in parsedAttr) attributesDict[kvp.Key] = kvp.Value;
+                        }
+                    }
+                    catch { }
+                }
+
+                var billItem = new PurchaseBillItem
+                {
+                    TenantId = tenantId,
+                    PurchaseBillId = bill.Id,
+                    PurchaseBill = bill,
+                    ItemId = item.Id,
+                    ItemSku = item.Sku,
+                    ItemName = item.Name,
+                    HsnCode = !string.IsNullOrWhiteSpace(item.HSNCode) ? item.HSNCode : (reqItem.HsnCode ?? ""),
+                    BatchId = reqItem.BatchId,
+                    BatchNumber = reqItem.BatchNumber,
+                    VariantId = reqItem.VariantId,
+                    Quantity = reqItem.Quantity,
+                    FreeQuantity = reqItem.FreeQuantity,
+                    UomId = reqItem.UomId,
+                    UomCode = uomCode,
+                    UnitPrice = reqItem.UnitPrice,
+                    DiscountPercent = reqItem.DiscountPercent,
+                    SchemeDiscountPercent = reqItem.SchemeDiscountPercent,
+                    CashDiscountPercent = reqItem.CashDiscountPercent,
+                    DiscountAmount = lineCalc.ItemDiscountAmount,
+                    TaxableAmount = lineCalc.TaxableAmount,
+                    GstRate = lineCalc.GstRate,
+                    CgstRate = lineCalc.CgstRate,
+                    CgstAmount = lineCalc.CgstAmount,
+                    SgstRate = lineCalc.SgstRate,
+                    SgstAmount = lineCalc.SgstAmount,
+                    IgstRate = lineCalc.IgstRate,
+                    IgstAmount = lineCalc.IgstAmount,
+                    CessRate = lineCalc.CessRate,
+                    CessAmount = lineCalc.CessAmount,
+                    TotalAmount = lineCalc.LineTotalAmount,
+                    AttributesJson = JsonSerializer.Serialize(attributesDict)
+                };
+
+                newBillItems.Add(billItem);
+                bill.Items.Add(billItem);
+                _context.PurchaseBillItems.Add(billItem);
+            }
+
+            bill.SubTotal = totals.SubTotal;
+            bill.DiscountTotal = totals.ItemDiscountTotal + totals.InvoiceDiscountAmount;
+            bill.TaxableAmount = totals.TaxableAmount;
+            bill.CgstAmount = totals.CgstAmount;
+            bill.SgstAmount = totals.SgstAmount;
+            bill.IgstAmount = totals.IgstAmount;
+            bill.CessAmount = totals.CessAmount;
+            bill.RoundOff = totals.RoundOff;
+            bill.TotalAmount = totals.RoundedTotal;
+
+            // Maintain payment status
+            var totalPaidSoFar = bill.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+            bill.PaidAmount = totalPaidSoFar;
+            bill.BalanceAmount = Math.Max(0m, bill.TotalAmount - bill.PaidAmount);
+            bill.PaymentStatus = bill.BalanceAmount <= 0.001m ? PaymentStatus.FullyPaid : (bill.PaidAmount > 0 ? PaymentStatus.PartiallyPaid : PaymentStatus.Unpaid);
+            bill.Status = bill.PaymentStatus == PaymentStatus.FullyPaid ? PurchaseBillStatus.Paid : PurchaseBillStatus.Approved;
+
+            // Apply new supplier balance:
+            supplier.CurrentOutstandingBalance -= bill.TotalAmount;
+
+            // 6. Direct Stock Inward for the updated items with VariantId using in-memory cache
+            for (int i = 0; i < newBillItems.Count; i++)
+            {
+                var bItem = newBillItems[i];
+                var reqItem = request.Items[i];
+                var lineCalc = calculatedLines[i];
+
+                var masterItem = itemsDict[bItem.ItemId];
+                if (masterItem.ItemType == ItemType.Service || !masterItem.TrackInventory)
+                {
+                    continue;
+                }
+
+                ItemBatch? batch = null;
+                if (bItem.BatchId.HasValue && bItem.BatchId.Value != Guid.Empty)
+                {
+                    batch = await _context.ItemBatches.FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == bItem.BatchId.Value, cancellationToken);
+                }
+                else if (!string.IsNullOrWhiteSpace(bItem.BatchNumber))
+                {
+                    batch = await _context.ItemBatches.FirstOrDefaultAsync(b => b.TenantId == tenantId && b.ItemId == bItem.ItemId && b.BatchNumber == bItem.BatchNumber, cancellationToken);
+                    if (batch == null)
+                    {
+                        var masterItm = itemsDict[bItem.ItemId];
+                        decimal batchSaleRate = (reqItem.UpdateMasterRates && reqItem.NewSellingPrice.HasValue && reqItem.NewSellingPrice.Value > 0)
+                            ? reqItem.NewSellingPrice.Value
+                            : (masterItm.SellingPrice > 0 ? masterItm.SellingPrice : bItem.UnitPrice);
+
+                        decimal batchMrp = reqItem.Mrp > 0 ? reqItem.Mrp : masterItm.MRP;
+
+                        decimal batchPtr = (reqItem.UpdateMasterRates && reqItem.NewMinimumSellingPrice.HasValue && reqItem.NewMinimumSellingPrice.Value > 0)
+                            ? reqItem.NewMinimumSellingPrice.Value
+                            : masterItm.MinimumSellingPrice;
+
+                        batch = new ItemBatch
+                        {
+                            TenantId = tenantId,
+                            ItemId = bItem.ItemId,
+                            BatchNumber = bItem.BatchNumber,
+                            PurchaseRate = bItem.UnitPrice,
+                            SaleRate = batchSaleRate,
+                            MRP = batchMrp,
+                            Ptr = batchPtr,
+                            ExpiryDate = reqItem.ExpiryDate ?? DateTime.UtcNow.AddYears(2)
+                        };
+                        _context.ItemBatches.Add(batch);
+                    }
+                    else if (reqItem.UpdateMasterRates)
+                    {
+                        batch.PurchaseRate = bItem.UnitPrice;
+                        if (reqItem.Mrp > 0) batch.MRP = reqItem.Mrp;
+                        if (reqItem.NewSellingPrice.HasValue && reqItem.NewSellingPrice.Value > 0)
+                            batch.SaleRate = reqItem.NewSellingPrice.Value;
+                        if (reqItem.NewMinimumSellingPrice.HasValue && reqItem.NewMinimumSellingPrice.Value > 0)
+                            batch.Ptr = reqItem.NewMinimumSellingPrice.Value;
+                    }
+                }
+
+                var stock = existingStocks.FirstOrDefault(s =>
+                    s.ItemId == bItem.ItemId &&
+                    s.WarehouseId == request.WarehouseId &&
+                    ((reqItem.VariantId.HasValue && s.VariantId == reqItem.VariantId.Value) || (!reqItem.VariantId.HasValue && s.VariantId == null)) &&
+                    ((batch != null && s.BatchId == batch.Id) || (batch == null && s.BatchId == null)));
+
+                var beforeQty = stock?.CurrentQuantity ?? 0m;
+                decimal physicalUnits = lineCalc.TotalPhysicalQuantity;
+
+                if (stock == null)
+                {
+                    stock = new ItemWarehouseStock
+                    {
+                        TenantId = tenantId,
+                        ItemId = bItem.ItemId,
+                        VariantId = reqItem.VariantId,
+                        WarehouseId = request.WarehouseId,
+                        Batch = batch,
+                        CurrentQuantity = physicalUnits
+                    };
+                    _context.ItemWarehouseStocks.Add(stock);
+                    existingStocks.Add(stock);
+                }
+                else
+                {
+                    stock.CurrentQuantity += physicalUnits;
+                }
+
+                _context.StockMovements.Add(new StockMovement
+                {
+                    TenantId = tenantId,
+                    ItemId = bItem.ItemId,
+                    VariantId = reqItem.VariantId,
+                    WarehouseId = request.WarehouseId,
+                    Batch = batch,
+                    MovementType = StockMovementType.PurchaseInward,
+                    Quantity = physicalUnits,
+                    QuantityBefore = beforeQty,
+                    QuantityAfter = stock.CurrentQuantity,
+                    UnitCost = bItem.UnitPrice,
+                    TotalCost = bItem.Quantity * bItem.UnitPrice,
+                    ReferenceDocumentType = "PurchaseBill",
+                    ReferenceDocumentId = bill.Id,
+                    ReferenceDocumentNumber = bill.BillNumber,
+                    Notes = $"Stock adjusted via Purchase Bill update {bill.BillNumber} (Net physical units: {physicalUnits})"
+                });
+            }
+
+            await ApplyMasterRateRevisionsAsync(tenantId, request.Items, itemsDict, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            if (tx != null) await tx.CommitAsync(cancellationToken);
+
+            await _auditService.LogAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                UserId = _currentUserContext.UserId,
+                UserEmail = _currentUserContext.Email,
+                Action = AuditActionType.Update,
+                ActionName = "UpdatePurchaseBill",
+                EntityName = "PurchaseBill",
+                EntityId = bill.Id.ToString(),
+                NewValuesJson = JsonSerializer.Serialize(new { bill.BillNumber, bill.SupplierName, bill.TotalAmount }),
+                IpAddress = ipAddress
+            }, cancellationToken);
+
+            return Result<Guid>.Success(bill.Id);
+        }
+        catch (Exception ex)
+        {
+            if (tx != null) await tx.RollbackAsync(cancellationToken);
+            _logger?.LogError(ex, "Failed to update purchase bill {Id} for tenant {TenantId}: {Message}", id, tenantId, ex.Message);
+            throw;
+        }
+        finally
+        {
+            if (tx != null) await tx.DisposeAsync();
+            semaphore.Release();
+        }
+    }
+
     public async Task<Result<Guid>> RecordPurchaseBillPaymentAsync(Guid billId, RecordPurchaseBillPaymentRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
     {
         var tenantId = RequireTenantId();
 
-        var bill = await _context.PurchaseBills
-            .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == billId && !b.IsDeleted, cancellationToken);
-
-        if (bill == null)
+        var semaphore = _tenantDocSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken);
+        try
         {
-            return Result<Guid>.Failure("Purchase bill not found.", "NOT_FOUND");
-        }
+            var bill = await _context.PurchaseBills
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.Id == billId && !b.IsDeleted, cancellationToken);
 
-        if (bill.BalanceAmount <= 0)
-        {
-            return Result<Guid>.Failure("Purchase bill is already fully paid.", "ALREADY_PAID");
-        }
+            if (bill == null)
+            {
+                return Result<Guid>.Failure("Purchase bill not found.", "NOT_FOUND");
+            }
 
-        var payAmt = Math.Min(request.Amount, bill.BalanceAmount);
-        var payDate = DateTime.SpecifyKind(request.PaymentDate, DateTimeKind.Utc);
+            if (bill.BalanceAmount <= 0)
+            {
+                return Result<Guid>.Failure("Purchase bill is already fully paid.", "ALREADY_PAID");
+            }
 
-        var payment = new PurchaseBillPayment
-        {
-            TenantId = tenantId,
-            PurchaseBillId = bill.Id,
-            PaymentDate = payDate,
-            Amount = payAmt,
-            PaymentMode = request.PaymentMode,
-            TransactionReference = request.TransactionReference,
-            BankName = request.BankName,
-            Notes = request.Notes
-        };
+            var payAmt = Math.Min(request.Amount, bill.BalanceAmount);
+            var payDate = DateTime.SpecifyKind(request.PaymentDate, DateTimeKind.Utc);
 
-        _context.PurchaseBillPayments.Add(payment);
-        bill.PaidAmount += payAmt;
-        bill.BalanceAmount -= payAmt;
-        bill.PaymentStatus = bill.BalanceAmount <= 0 ? PaymentStatus.FullyPaid : PaymentStatus.PartiallyPaid;
-        bill.Status = bill.PaymentStatus == PaymentStatus.FullyPaid ? PurchaseBillStatus.Paid : PurchaseBillStatus.Approved;
-
-        // Supplier Financial Ledger (Debit Disbursement)
-        var supplier = await _context.Parties
-            .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == bill.PartyId && !p.IsDeleted, cancellationToken);
-
-        if (supplier != null)
-        {
-            var debitBal = supplier.CurrentOutstandingBalance + payAmt;
-            supplier.CurrentOutstandingBalance = debitBal;
-
-            var ledger = new PartyLedgerEntry
+            var payment = new PurchaseBillPayment
             {
                 TenantId = tenantId,
-                PartyId = supplier.Id,
-                TransactionDate = payDate,
-                EntryType = PartyLedgerEntryType.VendorPayment,
-                DebitAmount = payAmt,
-                CreditAmount = 0m,
-                RunningBalance = debitBal,
-                ReferenceDocumentType = "VendorPayment",
-                ReferenceDocumentId = bill.Id,
-                ReferenceDocumentNumber = bill.BillNumber,
-                Description = $"Payment disbursed for Bill {bill.BillNumber} ({request.PaymentMode})"
+                PurchaseBillId = bill.Id,
+                PaymentDate = payDate,
+                Amount = payAmt,
+                PaymentMode = request.PaymentMode,
+                TransactionReference = request.TransactionReference,
+                BankName = request.BankName,
+                Notes = request.Notes
             };
-            _context.PartyLedgerEntries.Add(ledger);
+
+            _context.PurchaseBillPayments.Add(payment);
+            bill.PaidAmount += payAmt;
+            bill.BalanceAmount -= payAmt;
+            bill.PaymentStatus = bill.BalanceAmount <= 0 ? PaymentStatus.FullyPaid : PaymentStatus.PartiallyPaid;
+            bill.Status = bill.PaymentStatus == PaymentStatus.FullyPaid ? PurchaseBillStatus.Paid : PurchaseBillStatus.Approved;
+
+            // Supplier Financial Ledger (Debit Disbursement)
+            var supplier = await _context.Parties
+                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == bill.PartyId && !p.IsDeleted, cancellationToken);
+
+            if (supplier != null)
+            {
+                var debitBal = supplier.CurrentOutstandingBalance + payAmt;
+                supplier.CurrentOutstandingBalance = debitBal;
+
+                var ledger = new PartyLedgerEntry
+                {
+                    TenantId = tenantId,
+                    PartyId = supplier.Id,
+                    TransactionDate = payDate,
+                    EntryType = PartyLedgerEntryType.VendorPayment,
+                    DebitAmount = payAmt,
+                    CreditAmount = 0m,
+                    RunningBalance = debitBal,
+                    ReferenceDocumentType = "VendorPayment",
+                    ReferenceDocumentId = bill.Id,
+                    ReferenceDocumentNumber = bill.BillNumber,
+                    Description = $"Payment disbursed for Bill {bill.BillNumber} ({request.PaymentMode})"
+                };
+                _context.PartyLedgerEntries.Add(ledger);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditService.LogAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                UserId = _currentUserContext.UserId,
+                UserEmail = _currentUserContext.Email,
+                Action = AuditActionType.Update,
+                ActionName = "RecordPurchaseBillPayment",
+                EntityName = "PurchaseBillPayment",
+                EntityId = payment.Id.ToString(),
+                NewValuesJson = JsonSerializer.Serialize(new { bill.BillNumber, Amount = payAmt, request.PaymentMode }),
+                IpAddress = ipAddress
+            }, cancellationToken);
+
+            return Result<Guid>.Success(payment.Id);
         }
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        await _auditService.LogAsync(new AuditLog
+        finally
         {
-            TenantId = tenantId,
-            UserId = _currentUserContext.UserId,
-            UserEmail = _currentUserContext.Email,
-            Action = AuditActionType.Update,
-            ActionName = "RecordPurchaseBillPayment",
-            EntityName = "PurchaseBillPayment",
-            EntityId = payment.Id.ToString(),
-            NewValuesJson = JsonSerializer.Serialize(new { bill.BillNumber, Amount = payAmt, request.PaymentMode }),
-            IpAddress = ipAddress
-        }, cancellationToken);
-
-        return Result<Guid>.Success(payment.Id);
+            semaphore.Release();
+        }
     }
 
     public async Task<Result> CancelPurchaseBillAsync(Guid id, string cancellationReason, string? ipAddress = null, CancellationToken cancellationToken = default)
@@ -1840,6 +2332,7 @@ public class PurchaseService : IPurchaseService
 
         var bill = await _context.PurchaseBills
             .Include(b => b.Items)
+            .Include(b => b.Payments)
             .Where(b => b.TenantId == tenantId && b.Id == id && !b.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -1851,11 +2344,6 @@ public class PurchaseService : IPurchaseService
         if (bill.IsCancelled)
         {
             return Result.Failure("Purchase bill is already cancelled.", "ALREADY_CANCELLED");
-        }
-
-        if (bill.PaidAmount > 0)
-        {
-            return Result.Failure("Cannot cancel purchase bill that has recorded payments. Reverse or delete payments first.", "CANNOT_CANCEL_BILL_WITH_PAYMENTS_OR_RETURNS");
         }
 
         var hasActiveDebitNotes = await _context.PurchaseReturns
@@ -1956,13 +2444,64 @@ public class PurchaseService : IPurchaseService
             }
         }
 
-        // Reverse Supplier Ledger (Debit the bill amount back)
+        // Release any inwarded serial numbers / IMEIs for items on this bill
+        foreach (var bItem in bill.Items)
+        {
+            if (!string.IsNullOrWhiteSpace(bItem.AttributesJson))
+            {
+                try
+                {
+                    var itemAttrs = JsonSerializer.Deserialize<Dictionary<string, object>>(bItem.AttributesJson);
+                    if (itemAttrs != null && 
+                        (itemAttrs.TryGetValue("imeiSerial", out var imeiVal) ||
+                         itemAttrs.TryGetValue("serialNumbers", out imeiVal) ||
+                         itemAttrs.TryGetValue("imei", out imeiVal)))
+                    {
+                        var rawImeiStr = imeiVal?.ToString();
+                        if (!string.IsNullOrWhiteSpace(rawImeiStr))
+                        {
+                            var serials = rawImeiStr.Split(new[] { ',', '\n', '\r', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            foreach (var sNum in serials)
+                            {
+                                var serialEntity = await _context.ItemSerialNumbers
+                                    .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.ItemId == bItem.ItemId && s.SerialNumber.ToLower() == sNum.ToLower() && !s.IsDeleted, cancellationToken);
+                                if (serialEntity != null)
+                                {
+                                    serialEntity.Status = "Cancelled";
+                                    serialEntity.IsDeleted = true;
+                                    serialEntity.DeletedAtUtc = DateTimeOffset.UtcNow;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        // If payments were recorded on this bill, auto-reverse them
+        decimal totalPaidToReverse = 0m;
+        if (bill.Payments != null)
+        {
+            foreach (var pmt in bill.Payments.Where(p => !p.IsDeleted))
+            {
+                pmt.IsDeleted = true;
+                pmt.DeletedAtUtc = DateTimeOffset.UtcNow;
+                pmt.Notes = (pmt.Notes ?? "") + $" | Auto-reversed on purchase bill cancellation: {cancellationReason}";
+                totalPaidToReverse += pmt.Amount;
+            }
+        }
+        bill.PaidAmount = 0m;
+        bill.BalanceAmount = 0m;
+
+        // Reverse Supplier Ledger
         var supplier = await _context.Parties
             .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == bill.PartyId && !p.IsDeleted, cancellationToken);
 
         if (supplier != null)
         {
-            var newBal = supplier.CurrentOutstandingBalance + bill.TotalAmount;
+            decimal netReversal = bill.TotalAmount - totalPaidToReverse;
+            var newBal = supplier.CurrentOutstandingBalance + netReversal;
             supplier.CurrentOutstandingBalance = newBal;
 
             var reversal = new PartyLedgerEntry
@@ -1973,13 +2512,32 @@ public class PurchaseService : IPurchaseService
                 EntryType = PartyLedgerEntryType.DebitNote,
                 DebitAmount = bill.TotalAmount,
                 CreditAmount = 0m,
-                RunningBalance = newBal,
+                RunningBalance = supplier.CurrentOutstandingBalance + (totalPaidToReverse > 0 ? totalPaidToReverse : 0m),
                 ReferenceDocumentType = "BillCancellation",
                 ReferenceDocumentId = bill.Id,
                 ReferenceDocumentNumber = bill.BillNumber,
                 Description = $"Purchase Bill cancellation reversal: {cancellationReason}"
             };
             _context.PartyLedgerEntries.Add(reversal);
+
+            if (totalPaidToReverse > 0)
+            {
+                var pmtReversal = new PartyLedgerEntry
+                {
+                    TenantId = tenantId,
+                    PartyId = supplier.Id,
+                    TransactionDate = DateTime.UtcNow,
+                    EntryType = PartyLedgerEntryType.DebitNote,
+                    DebitAmount = 0m,
+                    CreditAmount = totalPaidToReverse,
+                    RunningBalance = newBal,
+                    ReferenceDocumentType = "PaymentReversal",
+                    ReferenceDocumentId = bill.Id,
+                    ReferenceDocumentNumber = bill.BillNumber,
+                    Description = $"Vendor disbursement reversed on bill cancellation: {cancellationReason}"
+                };
+                _context.PartyLedgerEntries.Add(pmtReversal);
+            }
         }
 
         bill.IsCancelled = true;
@@ -2062,6 +2620,7 @@ public class PurchaseService : IPurchaseService
             .Select(r => new PurchaseReturnDto(
                 r.Id,
                 r.DebitNoteNumber,
+                r.ReturnType ?? "GoodsReturn",
                 r.ReturnDate,
                 r.OriginalPurchaseBillId,
                 r.OriginalBillNumber,
@@ -2108,6 +2667,7 @@ public class PurchaseService : IPurchaseService
         var dto = new PurchaseReturnDto(
             r.Id,
             r.DebitNoteNumber,
+            r.ReturnType ?? "GoodsReturn",
             r.ReturnDate,
             r.OriginalPurchaseBillId,
             r.OriginalBillNumber,
@@ -2143,8 +2703,13 @@ public class PurchaseService : IPurchaseService
     {
         var tenantId = RequireTenantId();
 
-        if (request.Items == null || request.Items.Count == 0)
+        bool isSchemeDiscount = string.Equals(request.ReturnType, "SchemeDiscount", StringComparison.OrdinalIgnoreCase);
+
+        if (!isSchemeDiscount && (request.Items == null || request.Items.Count == 0))
             return Result<Guid>.Failure("At least one item must be returned.", "VALIDATION_ERROR");
+
+        if (isSchemeDiscount && request.FinancialAmount <= 0)
+            return Result<Guid>.Failure("Valid scheme / rebate amount is required.", "VALIDATION_ERROR");
 
         PurchaseBill? origBill = null;
         Dictionary<Guid, decimal> priorReturns = new();
@@ -2160,14 +2725,31 @@ public class PurchaseService : IPurchaseService
             if (origBill.IsCancelled)
                 return Result<Guid>.Failure("Cannot create purchase return against a cancelled purchase bill.", "INVALID_OPERATION");
 
-            priorReturns = await _context.PurchaseReturnItems
-                .Where(pri => pri.TenantId == tenantId &&
-                              pri.PurchaseReturn.OriginalPurchaseBillId == origBill.Id &&
-                              !pri.IsDeleted &&
-                              !pri.PurchaseReturn.IsCancelled)
-                .GroupBy(pri => pri.ItemId)
-                .Select(g => new { ItemId = g.Key, TotalReturned = g.Sum(x => x.ReturnQuantity) })
-                .ToDictionaryAsync(x => x.ItemId, x => x.TotalReturned, cancellationToken);
+            if (!isSchemeDiscount)
+            {
+                priorReturns = await _context.PurchaseReturnItems
+                    .Where(pri => pri.TenantId == tenantId &&
+                                  pri.PurchaseReturn.OriginalPurchaseBillId == origBill.Id &&
+                                  !pri.IsDeleted &&
+                                  !pri.PurchaseReturn.IsCancelled)
+                    .GroupBy(pri => pri.ItemId)
+                    .Select(g => new { ItemId = g.Key, TotalReturned = g.Sum(x => x.ReturnQuantity) })
+                    .ToDictionaryAsync(x => x.ItemId, x => x.TotalReturned, cancellationToken);
+            }
+        }
+
+        var branchId = request.BranchId;
+        if (branchId == Guid.Empty)
+        {
+            var defBranch = await _context.TenantBranches.FirstOrDefaultAsync(b => b.TenantId == tenantId && !b.IsDeleted, cancellationToken);
+            if (defBranch != null) branchId = defBranch.Id;
+        }
+
+        var warehouseId = request.WarehouseId;
+        if (warehouseId == Guid.Empty)
+        {
+            var defWarehouse = await _context.TenantWarehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, cancellationToken);
+            if (defWarehouse != null) warehouseId = defWarehouse.Id;
         }
 
         var semaphore = _tenantDocSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
@@ -2196,121 +2778,231 @@ public class PurchaseService : IPurchaseService
 
             decimal subTotal = 0m;
             decimal taxTotal = 0m;
+            decimal totalCgst = 0m;
+            decimal totalSgst = 0m;
+            decimal totalIgst = 0m;
+            bool isIntraState = true;
+            if (origBill != null)
+            {
+                isIntraState = origBill.TaxSupplyType == TaxSupplyType.IntraState;
+            }
+            else if (request.PartyId != Guid.Empty)
+            {
+                var partyStateCode = await _context.Parties
+                    .Where(p => p.TenantId == tenantId && p.Id == request.PartyId)
+                    .Select(p => p.StateCode)
+                    .FirstOrDefaultAsync(cancellationToken);
+                var tenantStateCode = await _context.Tenants
+                    .Where(t => t.Id == tenantId)
+                    .Select(t => t.StateCode)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (!string.IsNullOrWhiteSpace(partyStateCode) && !string.IsNullOrWhiteSpace(tenantStateCode))
+                {
+                    isIntraState = string.Equals(partyStateCode.Trim(), tenantStateCode.Trim(), StringComparison.OrdinalIgnoreCase);
+                }
+            }
 
             purchaseReturn = new PurchaseReturn
             {
                 TenantId = tenantId,
                 DebitNoteNumber = debitNoteNumber,
+                ReturnType = isSchemeDiscount ? "SchemeDiscount" : "GoodsReturn",
                 ReturnDate = DateTimeOffset.UtcNow,
                 OriginalPurchaseBillId = request.OriginalPurchaseBillId,
-                OriginalBillNumber = request.OriginalBillNumber,
+                OriginalBillNumber = isSchemeDiscount && !string.IsNullOrWhiteSpace(request.SchemeReferenceNumber) ? request.SchemeReferenceNumber : request.OriginalBillNumber,
                 PartyId = request.PartyId,
                 SupplierName = request.SupplierName.Trim(),
-                BranchId = request.BranchId,
-                WarehouseId = request.WarehouseId,
+                BranchId = branchId,
+                WarehouseId = warehouseId,
                 ReturnReason = request.ReturnReason,
                 Notes = request.Notes
             };
 
-            var retItemIds = request.Items.Select(x => x.ItemId).Distinct().ToList();
-            var retItemsDict = await _context.Items
-                .Where(it => it.TenantId == tenantId && retItemIds.Contains(it.Id) && !it.IsDeleted)
-                .ToDictionaryAsync(it => it.Id, cancellationToken);
-
-            foreach (var line in request.Items)
+            if (isSchemeDiscount)
             {
-                if (origBill != null)
+                subTotal = Math.Round(request.FinancialAmount, 2);
+                if (request.FinancialGstRate > 0)
                 {
-                    var origItem = origBill.Items.FirstOrDefault(i => i.ItemId == line.ItemId);
-                    if (origItem == null)
+                    if (isIntraState)
                     {
-                        return Result<Guid>.Failure($"Item '{line.ItemName}' was not found on original purchase bill.", "INVALID_LINE_ITEM");
-                    }
-
-                    priorReturns.TryGetValue(line.ItemId, out var alreadyReturned);
-                    if (alreadyReturned + line.ReturnQuantity > origItem.Quantity)
-                    {
-                        return Result<Guid>.Failure($"Cannot return {line.ReturnQuantity} of '{line.ItemName}'. Already returned: {alreadyReturned}, Original billed quantity: {origItem.Quantity}.", "RETURN_QTY_EXCEEDED");
-                    }
-                }
-
-                var lineTaxable = line.ReturnQuantity * line.UnitPrice;
-                var lineTax = lineTaxable * (line.GstRate / 100m);
-                var lineTotal = lineTaxable + lineTax;
-
-                subTotal += lineTaxable;
-                taxTotal += lineTax;
-
-                purchaseReturn.Items.Add(new PurchaseReturnItem
-                {
-                    TenantId = tenantId,
-                    ItemId = line.ItemId,
-                    VariantId = line.VariantId,
-                    ItemName = line.ItemName,
-                    ItemSku = line.ItemSku,
-                    BatchId = line.BatchId,
-                    BatchNumber = line.BatchNumber,
-                    ReturnQuantity = line.ReturnQuantity,
-                    UnitPrice = line.UnitPrice,
-                    GstRate = line.GstRate,
-                    TotalAmount = lineTotal
-                });
-
-                retItemsDict.TryGetValue(line.ItemId, out var retMasterItem);
-                bool isServiceItem = retMasterItem != null && (retMasterItem.ItemType == ItemType.Service || !retMasterItem.TrackInventory);
-
-                if (!isServiceItem)
-                {
-                    // Deplete from Warehouse Stock (matching variant and batch if tracked)
-                    var stockQuery = _context.ItemWarehouseStocks
-                        .Where(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == request.WarehouseId && !s.IsDeleted);
-
-                    if (line.VariantId.HasValue)
-                    {
-                        stockQuery = stockQuery.Where(s => s.VariantId == line.VariantId.Value);
+                        var halfRate = request.FinancialGstRate / 2m;
+                        totalCgst = Math.Round(subTotal * (halfRate / 100m), 2);
+                        totalSgst = Math.Round(subTotal * (halfRate / 100m), 2);
                     }
                     else
                     {
-                        stockQuery = stockQuery.Where(s => s.VariantId == null);
+                        totalIgst = Math.Round(subTotal * (request.FinancialGstRate / 100m), 2);
                     }
+                }
+                taxTotal = totalCgst + totalSgst + totalIgst;
+            }
+            else
+            {
+                var retItemIds = request.Items.Select(x => x.ItemId).Distinct().ToList();
+                var retItemsDict = await _context.Items
+                    .Where(it => it.TenantId == tenantId && retItemIds.Contains(it.Id) && !it.IsDeleted)
+                    .ToDictionaryAsync(it => it.Id, cancellationToken);
 
-                    if (line.BatchId.HasValue && line.BatchId.Value != Guid.Empty)
+                foreach (var line in request.Items)
+                {
+                    decimal effectiveRate = line.UnitPrice;
+                    decimal lineTaxable = 0m;
+
+                    decimal lineConversionRatio = 1m;
+
+                    if (origBill != null)
                     {
-                        stockQuery = stockQuery.Where(s => s.BatchId == line.BatchId.Value);
-                    }
+                        var origItem = origBill.Items.FirstOrDefault(i => i.ItemId == line.ItemId);
+                        if (origItem == null)
+                        {
+                            return Result<Guid>.Failure($"Item '{line.ItemName}' was not found on original purchase bill.", "INVALID_LINE_ITEM");
+                        }
 
-                    var stock = await stockQuery.FirstOrDefaultAsync(cancellationToken);
-                    if (stock == null || stock.CurrentQuantity < line.ReturnQuantity)
+                        if (!string.IsNullOrWhiteSpace(origItem.AttributesJson))
+                        {
+                            try
+                            {
+                                using var doc = System.Text.Json.JsonDocument.Parse(origItem.AttributesJson);
+                                if (doc.RootElement.TryGetProperty("conversionRatio", out var cr)) lineConversionRatio = cr.GetDecimal();
+                            }
+                            catch { }
+                        }
+
+                        var totalDelivered = origItem.Quantity + origItem.FreeQuantity;
+                        priorReturns.TryGetValue(line.ItemId, out var alreadyReturned);
+                        if (alreadyReturned + line.ReturnQuantity > totalDelivered)
+                        {
+                            return Result<Guid>.Failure($"Cannot return {line.ReturnQuantity} of '{line.ItemName}'. Already returned: {alreadyReturned}, Total inwarded quantity: {totalDelivered}.", "RETURN_QTY_EXCEEDED");
+                        }
+
+                        if (totalDelivered > 0)
+                        {
+                            effectiveRate = Math.Round(origItem.TaxableAmount / totalDelivered, 4);
+                            lineTaxable = Math.Round(line.ReturnQuantity * effectiveRate, 2);
+                        }
+                        else
+                        {
+                            effectiveRate = line.UnitPrice > 0 ? line.UnitPrice : origItem.UnitPrice;
+                            lineTaxable = Math.Round(line.ReturnQuantity * effectiveRate, 2);
+                        }
+                    }
+                    else
                     {
-                        return Result<Guid>.Failure($"Insufficient warehouse stock to return item '{line.ItemName}'. Available: {stock?.CurrentQuantity ?? 0m}, Requested: {line.ReturnQuantity}.", "INSUFFICIENT_STOCK");
+                        effectiveRate = line.UnitPrice;
+                        lineTaxable = Math.Round(line.ReturnQuantity * effectiveRate, 2);
                     }
 
-                    decimal beforeQty = stock.CurrentQuantity;
-                    stock.CurrentQuantity -= line.ReturnQuantity;
+                    decimal cgstRate = 0m, cgstAmt = 0m;
+                    decimal sgstRate = 0m, sgstAmt = 0m;
+                    decimal igstRate = 0m, igstAmt = 0m;
 
-                    _context.StockMovements.Add(new StockMovement
+                    if (line.GstRate > 0)
+                    {
+                        if (isIntraState)
+                        {
+                            cgstRate = line.GstRate / 2m;
+                            sgstRate = line.GstRate / 2m;
+                            cgstAmt = Math.Round(lineTaxable * (cgstRate / 100m), 2);
+                            sgstAmt = Math.Round(lineTaxable * (sgstRate / 100m), 2);
+                        }
+                        else
+                        {
+                            igstRate = line.GstRate;
+                            igstAmt = Math.Round(lineTaxable * (igstRate / 100m), 2);
+                        }
+                    }
+
+                    var lineTax = cgstAmt + sgstAmt + igstAmt;
+                    var lineTotal = lineTaxable + lineTax;
+
+                    subTotal += lineTaxable;
+                    taxTotal += lineTax;
+                    totalCgst += cgstAmt;
+                    totalSgst += sgstAmt;
+                    totalIgst += igstAmt;
+
+                    purchaseReturn.Items.Add(new PurchaseReturnItem
                     {
                         TenantId = tenantId,
                         ItemId = line.ItemId,
                         VariantId = line.VariantId,
-                        WarehouseId = request.WarehouseId,
+                        ItemName = line.ItemName,
+                        ItemSku = line.ItemSku,
                         BatchId = line.BatchId,
-                        MovementType = StockMovementType.PurchaseReturn,
-                        Quantity = -line.ReturnQuantity,
-                        QuantityBefore = beforeQty,
-                        QuantityAfter = stock.CurrentQuantity,
-                        UnitCost = line.UnitPrice,
-                        TotalCost = lineTaxable,
-                        ReferenceDocumentType = "DebitNote",
-                        ReferenceDocumentId = purchaseReturn.Id,
-                        ReferenceDocumentNumber = debitNoteNumber,
-                        Notes = $"Stock Outward for Purchase Return {debitNoteNumber}"
+                        BatchNumber = line.BatchNumber,
+                        ReturnQuantity = line.ReturnQuantity,
+                        UnitPrice = effectiveRate,
+                        TaxableAmount = lineTaxable,
+                        GstRate = line.GstRate,
+                        CgstRate = cgstRate,
+                        CgstAmount = cgstAmt,
+                        SgstRate = sgstRate,
+                        SgstAmount = sgstAmt,
+                        IgstRate = igstRate,
+                        IgstAmount = igstAmt,
+                        TotalAmount = lineTotal
                     });
+
+                    retItemsDict.TryGetValue(line.ItemId, out var retMasterItem);
+                    bool isServiceItem = retMasterItem != null && (retMasterItem.ItemType == ItemType.Service || !retMasterItem.TrackInventory);
+
+                    if (!isServiceItem)
+                    {
+                        // Deplete from Warehouse Stock (matching variant and batch if tracked)
+                        var stockQuery = _context.ItemWarehouseStocks
+                            .Where(s => s.TenantId == tenantId && s.ItemId == line.ItemId && s.WarehouseId == warehouseId && !s.IsDeleted);
+
+                        if (line.VariantId.HasValue)
+                        {
+                            stockQuery = stockQuery.Where(s => s.VariantId == line.VariantId.Value);
+                        }
+                        else
+                        {
+                            stockQuery = stockQuery.Where(s => s.VariantId == null);
+                        }
+
+                        if (line.BatchId.HasValue && line.BatchId.Value != Guid.Empty)
+                        {
+                            stockQuery = stockQuery.Where(s => s.BatchId == line.BatchId.Value);
+                        }
+
+                        decimal physicalUnitsToDeplete = line.ReturnQuantity * (lineConversionRatio > 0 ? lineConversionRatio : 1m);
+                        var stock = await stockQuery.FirstOrDefaultAsync(cancellationToken);
+                        if (stock == null || stock.CurrentQuantity < physicalUnitsToDeplete)
+                        {
+                            return Result<Guid>.Failure($"Insufficient warehouse stock to return item '{line.ItemName}'. Available: {stock?.CurrentQuantity ?? 0m}, Requested: {physicalUnitsToDeplete}.", "INSUFFICIENT_STOCK");
+                        }
+
+                        decimal beforeQty = stock.CurrentQuantity;
+                        stock.CurrentQuantity -= physicalUnitsToDeplete;
+
+                        _context.StockMovements.Add(new StockMovement
+                        {
+                            TenantId = tenantId,
+                            ItemId = line.ItemId,
+                            VariantId = line.VariantId,
+                            WarehouseId = warehouseId,
+                            BatchId = line.BatchId,
+                            MovementType = StockMovementType.PurchaseReturn,
+                            Quantity = -physicalUnitsToDeplete,
+                            QuantityBefore = beforeQty,
+                            QuantityAfter = stock.CurrentQuantity,
+                            UnitCost = line.UnitPrice,
+                            TotalCost = lineTaxable,
+                            ReferenceDocumentType = "DebitNote",
+                            ReferenceDocumentId = purchaseReturn.Id,
+                            ReferenceDocumentNumber = debitNoteNumber,
+                            Notes = $"Stock Outward for Purchase Return {debitNoteNumber} (Net Units: {physicalUnitsToDeplete})"
+                        });
+                    }
                 }
             }
 
             purchaseReturn.SubTotal = subTotal;
             purchaseReturn.TaxAmount = taxTotal;
+            purchaseReturn.CgstAmount = totalCgst;
+            purchaseReturn.SgstAmount = totalSgst;
+            purchaseReturn.IgstAmount = totalIgst;
             purchaseReturn.TotalAmount = Math.Round(subTotal + taxTotal, 2);
 
             // Adjust Supplier Ledger
@@ -2335,7 +3027,9 @@ public class PurchaseService : IPurchaseService
                         ReferenceDocumentType = "DebitNote",
                         ReferenceDocumentId = purchaseReturn.Id,
                         ReferenceDocumentNumber = debitNoteNumber,
-                        Description = $"Purchase Return / Debit Note {debitNoteNumber}: {request.ReturnReason}"
+                        Description = isSchemeDiscount
+                            ? $"Company Scheme / Rebate {debitNoteNumber}: {request.ReturnReason} (Ref: {request.SchemeReferenceNumber})"
+                            : $"Purchase Return / Debit Note {debitNoteNumber}: {request.ReturnReason}"
                     });
                 }
             }
@@ -2689,9 +3383,13 @@ public class PurchaseService : IPurchaseService
         {
             var tenantId = purchaseReturn.TenantId;
             var apAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-AP", "Accounts Payable (Sundry Creditors)", "GRP-CL", "Current Liabilities", "Liability", "Credit", cancellationToken);
-            var retAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-PURCHASE-RET", "Purchase Returns & Outward Deductions", "GRP-COGS", "Cost of Goods Sold", "Expense", "Credit", cancellationToken);
 
-            bool isInterState = origBill != null ? origBill.TaxSupplyType == TaxSupplyType.InterState : false;
+            bool isSchemeDiscount = string.Equals(purchaseReturn.ReturnType, "SchemeDiscount", StringComparison.OrdinalIgnoreCase);
+            var creditAccount = isSchemeDiscount
+                ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SCHEME-REBATE", "Company Scheme Rebate & Turnover Discounts", "GRP-INCOME-IND", "Indirect Income", "Income", "Credit", cancellationToken)
+                : await GetOrCreateLedgerAccountAsync(tenantId, "ACC-PURCHASE-RET", "Purchase Returns & Outward Deductions", "GRP-COGS", "Cost of Goods Sold", "Expense", "Credit", cancellationToken);
+
+            bool isInterState = origBill != null ? origBill.TaxSupplyType == TaxSupplyType.InterState : (purchaseReturn.IgstAmount > 0);
             var cgstAccount = (!isInterState && purchaseReturn.TaxAmount > 0) ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-CGST-IN", "Input CGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
             var sgstAccount = (!isInterState && purchaseReturn.TaxAmount > 0) ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-SGST-IN", "Input SGST/UTGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
             var igstAccount = (isInterState && purchaseReturn.TaxAmount > 0) ? await GetOrCreateLedgerAccountAsync(tenantId, "ACC-IGST-IN", "Input IGST Receivable", "GRP-TAX", "Duties & Taxes", "Asset", "Debit", cancellationToken) : null;
@@ -2705,7 +3403,9 @@ public class PurchaseService : IPurchaseService
                 ReferenceNumber = purchaseReturn.DebitNoteNumber,
                 TotalDebit = purchaseReturn.TotalAmount,
                 TotalCredit = purchaseReturn.TotalAmount,
-                Narration = $"Auto-posted Debit Note {purchaseReturn.DebitNoteNumber} for purchase return",
+                Narration = isSchemeDiscount
+                    ? $"Auto-posted Debit Note {purchaseReturn.DebitNoteNumber} for company scheme / rebate"
+                    : $"Auto-posted Debit Note {purchaseReturn.DebitNoteNumber} for purchase return",
                 CreatedByName = "System Auto-Posting"
             };
 
@@ -2716,20 +3416,24 @@ public class PurchaseService : IPurchaseService
                 AccountId = apAccount.Id,
                 DebitAmount = purchaseReturn.TotalAmount,
                 CreditAmount = 0,
-                Narration = $"Debit supplier liability on Debit Note {purchaseReturn.DebitNoteNumber}"
+                Narration = isSchemeDiscount
+                    ? $"Debit supplier liability on Scheme Rebate {purchaseReturn.DebitNoteNumber}"
+                    : $"Debit supplier liability on Debit Note {purchaseReturn.DebitNoteNumber}"
             });
             apAccount.CurrentBalance -= purchaseReturn.TotalAmount;
 
-            // Leg 2: Credit Purchase Return
+            // Leg 2: Credit Account (Purchase Return or Scheme Rebate Income)
             voucher.Legs.Add(new JournalVoucherLeg
             {
                 TenantId = tenantId,
-                AccountId = retAccount.Id,
+                AccountId = creditAccount.Id,
                 DebitAmount = 0,
                 CreditAmount = purchaseReturn.SubTotal,
-                Narration = $"Purchase return credit {purchaseReturn.DebitNoteNumber}"
+                Narration = isSchemeDiscount
+                    ? $"Scheme rebate credit {purchaseReturn.DebitNoteNumber}"
+                    : $"Purchase return credit {purchaseReturn.DebitNoteNumber}"
             });
-            retAccount.CurrentBalance += purchaseReturn.SubTotal;
+            creditAccount.CurrentBalance += purchaseReturn.SubTotal;
 
             // Leg 3: Credit Input GST Reversals
             if (isInterState && igstAccount != null && purchaseReturn.TaxAmount > 0)
@@ -2836,6 +3540,150 @@ public class PurchaseService : IPurchaseService
         _context.LedgerAccounts.Add(acc);
         await _context.SaveChangesAsync(cancellationToken);
         return acc;
+    }
+
+    public async Task<Result<LastDealHintDto?>> GetLastPurchaseDealAsync(Guid itemId, Guid? partyId = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        PurchaseBillItem? lastItem = null;
+        if (partyId.HasValue && partyId.Value != Guid.Empty)
+        {
+            lastItem = await _context.PurchaseBillItems
+                .AsNoTracking()
+                .Include(i => i.PurchaseBill)
+                .Where(i => i.TenantId == tenantId &&
+                            i.ItemId == itemId &&
+                            !i.PurchaseBill.IsCancelled &&
+                            i.PurchaseBill.PartyId == partyId.Value)
+                .OrderByDescending(i => i.PurchaseBill.BillDate)
+                .ThenByDescending(i => i.CreatedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (lastItem == null)
+        {
+            lastItem = await _context.PurchaseBillItems
+                .AsNoTracking()
+                .Include(i => i.PurchaseBill)
+                .Where(i => i.TenantId == tenantId &&
+                            i.ItemId == itemId &&
+                            !i.PurchaseBill.IsCancelled)
+                .OrderByDescending(i => i.PurchaseBill.BillDate)
+                .ThenByDescending(i => i.CreatedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (lastItem == null)
+        {
+            return Result<LastDealHintDto?>.Success(null);
+        }
+
+        decimal mrp = 0m;
+        if (!string.IsNullOrWhiteSpace(lastItem.AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(lastItem.AttributesJson);
+                if (doc.RootElement.TryGetProperty("mrp", out var mrpProp))
+                {
+                    mrp = mrpProp.GetDecimal();
+                }
+            }
+            catch { }
+        }
+
+        string schemeText = "";
+        if (lastItem.FreeQuantity > 0)
+        {
+            schemeText = lastItem.Quantity > 0
+                ? $"{(int)lastItem.Quantity}+{(int)lastItem.FreeQuantity}"
+                : $"+{(int)lastItem.FreeQuantity}";
+        }
+
+        var dto = new LastDealHintDto(
+            UnitPrice: lastItem.UnitPrice,
+            Quantity: lastItem.Quantity,
+            FreeQuantity: lastItem.FreeQuantity,
+            DiscountPercent: lastItem.DiscountPercent,
+            FreeSchemeText: schemeText,
+            Mrp: mrp,
+            Date: lastItem.PurchaseBill?.BillDate,
+            DocumentNumber: lastItem.PurchaseBill?.BillNumber ?? "",
+            PartyName: lastItem.PurchaseBill?.SupplierName ?? ""
+        );
+
+        return Result<LastDealHintDto?>.Success(dto);
+    }
+
+    private async Task ApplyMasterRateRevisionsAsync(
+        Guid tenantId,
+        List<CreatePurchaseBillItemRequest>? requestItems,
+        Dictionary<Guid, Item> itemsDict,
+        CancellationToken cancellationToken)
+    {
+        if (requestItems == null || requestItems.Count == 0) return;
+
+        foreach (var reqItem in requestItems)
+        {
+            if (!reqItem.UpdateMasterRates) continue;
+            if (!itemsDict.TryGetValue(reqItem.ItemId, out var masterItem)) continue;
+
+            // 1. Update master purchase rate and MRP
+            if (reqItem.UnitPrice > 0)
+            {
+                masterItem.PurchasePrice = reqItem.UnitPrice;
+            }
+            if (reqItem.Mrp > 0)
+            {
+                masterItem.MRP = reqItem.Mrp;
+            }
+
+            // 2. Update Retail Rate (SellingPrice)
+            if (reqItem.NewSellingPrice.HasValue && reqItem.NewSellingPrice.Value > 0)
+            {
+                masterItem.SellingPrice = reqItem.NewSellingPrice.Value;
+            }
+
+            // 3. Update Wholesale Rate (MinimumSellingPrice)
+            if (reqItem.NewMinimumSellingPrice.HasValue && reqItem.NewMinimumSellingPrice.Value > 0)
+            {
+                masterItem.MinimumSellingPrice = reqItem.NewMinimumSellingPrice.Value;
+            }
+
+            // 4. If Item has a Variant, sync variant's pricing
+            if (reqItem.VariantId.HasValue && reqItem.VariantId.Value != Guid.Empty)
+            {
+                var variant = await _context.ItemVariants
+                    .FirstOrDefaultAsync(v => v.TenantId == tenantId && v.Id == reqItem.VariantId.Value && !v.IsDeleted, cancellationToken);
+                if (variant != null)
+                {
+                    var vAttrs = new Dictionary<string, object>();
+                    if (!string.IsNullOrWhiteSpace(variant.AttributesJson) && variant.AttributesJson != "{}")
+                    {
+                        try
+                        {
+                            vAttrs = JsonSerializer.Deserialize<Dictionary<string, object>>(variant.AttributesJson) ?? new();
+                        }
+                        catch { }
+                    }
+
+                    if (reqItem.UnitPrice > 0)
+                        vAttrs["purchasePrice"] = reqItem.UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (reqItem.Mrp > 0)
+                        vAttrs["mrp"] = reqItem.Mrp.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (reqItem.NewMinimumSellingPrice.HasValue && reqItem.NewMinimumSellingPrice.Value > 0)
+                        vAttrs["wholesalePrice"] = reqItem.NewMinimumSellingPrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (reqItem.NewSellingPrice.HasValue && reqItem.NewSellingPrice.Value > 0)
+                    {
+                        vAttrs["sellingPrice"] = reqItem.NewSellingPrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        variant.PriceAdjustment = reqItem.NewSellingPrice.Value - masterItem.SellingPrice;
+                    }
+
+                    variant.AttributesJson = JsonSerializer.Serialize(vAttrs);
+                }
+            }
+        }
     }
 
     #endregion

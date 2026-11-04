@@ -20,6 +20,7 @@ public static class Claims
     public const string IsTenantAdmin = "is_tenant_admin";
     public const string IndustryId = "industry_id";
     public const string Permission = "permission";
+    public const string BranchId = "branch_id";
 }
 
 public static class Permissions
@@ -28,6 +29,7 @@ public static class Permissions
     public const string TenantView = "tenant.view";
     public const string TenantManage = "tenant.manage";
     public const string TenantSettings = "tenant.settings";
+    public const string SettingsManage = "tenant.settings";
 
     // User & Role Management
     public const string UsersView = "users.view";

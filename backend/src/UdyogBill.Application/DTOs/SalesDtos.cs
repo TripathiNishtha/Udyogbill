@@ -11,6 +11,7 @@ public record CreateSalesInvoiceItemRequest
     public decimal Quantity { get; set; } = 1m;
     public Guid UomId { get; set; }
     public decimal UnitPrice { get; set; }
+    public bool? IsTaxInclusive { get; set; }
     public decimal DiscountPercent { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal Mrp { get; set; }
@@ -21,11 +22,14 @@ public record CreateSalesInvoiceItemRequest
     public string? HsnCode { get; set; }
     public string? BatchNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }
+    public string? ItemName { get; set; }
+    public string? LineDescription { get; set; }
     public string? AttributesJson { get; set; } = "{}";
 }
 
 public record CreateSalesInvoiceRequest
 {
+    public Guid? Id { get; set; }
     public InvoiceType InvoiceType { get; set; } = InvoiceType.TaxInvoice;
     public Guid BranchId { get; set; }
     public Guid WarehouseId { get; set; }
@@ -47,6 +51,7 @@ public record CreateSalesInvoiceRequest
     public PaymentMode PrimaryPaymentMode { get; set; } = PaymentMode.Cash;
     public decimal PaidAmount { get; set; }
     public string? PaymentReferenceNumber { get; set; }
+    public List<InvoicePaymentSplitDto>? PaymentSplits { get; set; }
     public string? Notes { get; set; }
     public string? TermsAndConditions { get; set; }
     public string? AttributesJson { get; set; } = "{}";
@@ -67,6 +72,15 @@ public record CreateSalesInvoiceRequest
     public Guid? BrokerId { get; set; }
 
     public List<CreateSalesInvoiceItemRequest>? Items { get; set; }
+}
+
+public record InvoicePaymentSplitDto
+{
+    public PaymentMode PaymentMode { get; set; } = PaymentMode.Cash;
+    public decimal Amount { get; set; }
+    public string? TransactionReference { get; set; }
+    public string? Notes { get; set; }
+    public DateTime? PaymentDate { get; set; }
 }
 
 public record RecordInvoicePaymentRequest(
@@ -237,7 +251,10 @@ public record SalesInvoiceDetailsDto(
     DateTimeOffset? CreditNoteDate = null,
     Guid? CreditNoteId = null,
     Guid? BrokerId = null,
-    string? BrokerName = null
+    string? BrokerName = null,
+    string? CustomerDlNumber = null,
+    string? DoctorName = null,
+    string? DoctorRegistrationNumber = null
 );
 
 public record CreateSalesReturnItemRequest
@@ -277,7 +294,14 @@ public record SalesReturnItemDto(
     decimal ReturnQuantity,
     decimal UnitPrice,
     decimal GstRate,
-    decimal TotalAmount
+    decimal TotalAmount,
+    decimal TaxableAmount = 0m,
+    decimal CgstRate = 0m,
+    decimal CgstAmount = 0m,
+    decimal SgstRate = 0m,
+    decimal SgstAmount = 0m,
+    decimal IgstRate = 0m,
+    decimal IgstAmount = 0m
 );
 
 public record SalesReturnDto(
@@ -298,5 +322,32 @@ public record SalesReturnDto(
     string? Notes,
     bool IsCancelled,
     DateTimeOffset CreatedAtUtc,
-    IReadOnlyList<SalesReturnItemDto> Items
+    IReadOnlyList<SalesReturnItemDto> Items,
+    string RefundStatus = "Pending",
+    decimal? CashRefundedAmount = null,
+    string? RefundMode = null,
+    string? RefundTransactionRef = null,
+    DateTime? RefundDate = null,
+    Guid? AdjustedInvoiceId = null,
+    string? AdjustedInvoiceNumber = null,
+    string? CancellationReason = null
+);
+
+public record SettleSalesReturnRequest(
+    string SettleType, // "CashRefund" or "AdjustAgainstInvoice"
+    decimal Amount,
+    string? RefundMode = "Cash", // Cash, UPI, BankTransfer, Cheque
+    string? TransactionRef = null,
+    Guid? AdjustedInvoiceId = null,
+    string? Notes = null
+);
+
+public record CancelSalesReturnRequest(
+    string Reason
+);
+
+public record UpdateCustomerContactRequest(
+    string? CustomerPhone,
+    string? CustomerName = null,
+    string? CustomerEmail = null
 );

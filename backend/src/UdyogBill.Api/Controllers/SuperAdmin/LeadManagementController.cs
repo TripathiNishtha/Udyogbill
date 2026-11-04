@@ -31,6 +31,7 @@ public class LeadManagementController : BaseApiController
         [FromQuery] string? industry = null,
         [FromQuery] string? conversionStage = null,
         [FromQuery] string? search = null,
+        [FromQuery] string? source = null,
         CancellationToken cancellationToken = default)
     {
         if (page < 1) page = 1;
@@ -47,6 +48,12 @@ public class LeadManagementController : BaseApiController
         if (!string.IsNullOrWhiteSpace(conversionStage))
             query = query.Where(l => l.ConversionStage == conversionStage);
 
+        if (!string.IsNullOrWhiteSpace(source))
+        {
+            var src = source.Trim().ToLower();
+            query = query.Where(l => l.Source.ToLower().Contains(src));
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim().ToLower();
@@ -54,14 +61,15 @@ public class LeadManagementController : BaseApiController
                 l.Name.ToLower().Contains(s) || 
                 l.BusinessName.ToLower().Contains(s) || 
                 l.Mobile.Contains(s) || 
-                l.Email.ToLower().Contains(s) ||
-                l.City.ToLower().Contains(s));
+                l.Email.ToLower().Contains(s) || 
+                l.City.ToLower().Contains(s) ||
+                (l.Gstin != null && l.Gstin.ToLower().Contains(s)));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderByDescending(l => l.CreatedAt)
+            .OrderByDescending(l => l.LastActiveAt ?? l.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(l => new LeadDto(
@@ -92,7 +100,11 @@ public class LeadManagementController : BaseApiController
                 l.Status,
                 l.CreatedAt,
                 l.ContactedAt,
-                l.Notes))
+                l.Notes,
+                l.Gstin,
+                l.InvoiceCount,
+                l.LastActiveAt,
+                l.LastInvoiceAmount))
             .ToListAsync(cancellationToken);
 
         var result = PagedResult<LeadDto>.Create(items, page, pageSize, totalCount);
@@ -216,7 +228,11 @@ public record LeadDto(
     string Status,
     DateTime CreatedAt,
     DateTime? ContactedAt,
-    string Notes);
+    string Notes,
+    string? Gstin = null,
+    int InvoiceCount = 1,
+    DateTime? LastActiveAt = null,
+    decimal? LastInvoiceAmount = null);
 
 /// <summary>Request body for updating a lead's status, funnel stage, revenue, and/or notes.</summary>
 public record UpdateLeadStatusRequest(

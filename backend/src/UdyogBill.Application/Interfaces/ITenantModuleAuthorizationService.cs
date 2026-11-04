@@ -19,7 +19,9 @@ public record TenantModuleEntitlementDto(
     int CurrentActiveUsers,
     bool CanCreateMoreUsers,
     IndustryModuleDescriptor Descriptor,
-    bool IsPharmaSfaActive = false
+    bool IsPharmaSfaActive = false,
+    string? ApparelSubType = null,
+    string? HardwareSubType = null
 );
 
 public interface ITenantModuleAuthorizationService

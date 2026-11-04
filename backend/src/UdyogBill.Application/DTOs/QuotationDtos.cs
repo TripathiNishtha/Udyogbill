@@ -70,6 +70,10 @@ public class QuotationItemListDto
     public decimal CessRate { get; set; }
     public decimal CessAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public string? BatchNumber { get; set; }
+    public string? ExpiryDate { get; set; }
+    public decimal? Mrp { get; set; }
+    public string? AttributesJson { get; set; }
 }
 
 public class QuotationListDto
@@ -104,11 +108,40 @@ public class QuotationDetailsDto
     public string QuotationNumber { get; set; } = string.Empty;
     public QuotationStatus Status { get; set; }
 
+    // Subscriber / Company Identity
+    public string CompanyName { get; set; } = string.Empty;
+    public string CompanyTradeName { get; set; } = string.Empty;
+    public string? CompanyLogoUrl { get; set; }
+    public string CompanyGstin { get; set; } = string.Empty;
+    public string CompanyPan { get; set; } = string.Empty;
+    public string CompanyEmail { get; set; } = string.Empty;
+    public string CompanyPhone { get; set; } = string.Empty;
+    public string CompanyWebsite { get; set; } = string.Empty;
+    public string CompanyAddress { get; set; } = string.Empty;
+    public string CompanyCity { get; set; } = string.Empty;
+    public string CompanyState { get; set; } = string.Empty;
+    public string CompanyStateCode { get; set; } = string.Empty;
+    public string CompanyPincode { get; set; } = string.Empty;
+    public string IndustryTypeCode { get; set; } = "OTHER";
+
+    // Bank & Payment Information
+    public string? BankName { get; set; }
+    public string? BankAccountNumber { get; set; }
+    public string? BankIfsc { get; set; }
+    public string? BankBranch { get; set; }
+    public string? UpiId { get; set; }
+
+    // Branch Information
     public Guid BranchId { get; set; }
     public string BranchName { get; set; } = string.Empty;
     public string BranchGstin { get; set; } = string.Empty;
     public string BranchAddress { get; set; } = string.Empty;
+    public string BranchState { get; set; } = string.Empty;
     public string BranchStateCode { get; set; } = string.Empty;
+    public string BranchCity { get; set; } = string.Empty;
+    public string BranchPincode { get; set; } = string.Empty;
+    public string BranchPhone { get; set; } = string.Empty;
+    public string BranchEmail { get; set; } = string.Empty;
 
     public Guid? PartyId { get; set; }
     public string CustomerName { get; set; } = string.Empty;

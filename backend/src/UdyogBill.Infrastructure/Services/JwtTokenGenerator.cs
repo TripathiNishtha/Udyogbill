@@ -21,10 +21,10 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     public string GenerateAccessToken(User user, IReadOnlyList<string> roles, IReadOnlyList<string> permissions, Guid? tenantId, string? tenantCode)
     {
-        var secretKey = _configuration["Jwt:SecretKey"] ?? "UdyogBill_Super_Secure_Secret_Key_Production_Grade_2026_Minimum_256_Bits!";
+        var secretKey = _configuration["Jwt:SecretKey"] ?? "UdyogBill_Development_Fallback_Key_Not_For_Production_Use_256Bits!";
         var issuer = _configuration["Jwt:Issuer"] ?? "UdyogBill.Api";
         var audience = _configuration["Jwt:Audience"] ?? "UdyogBill.Client";
-        var expiryMinutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var minutes) ? minutes : 60;
+        var expiryMinutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var minutes) ? minutes : 15;
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -48,6 +48,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             {
                 claims.Add(new Claim("tenant_code", tenantCode));
             }
+        }
+
+        if (user.BranchId.HasValue && user.BranchId.Value != Guid.Empty)
+        {
+            claims.Add(new Claim(SharedClaims.BranchId, user.BranchId.Value.ToString()));
         }
 
         foreach (var role in roles)
@@ -79,7 +84,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         var randomBytes = RandomNumberGenerator.GetBytes(64);
         var token = Convert.ToBase64String(randomBytes);
         var tokenHash = ComputeSha256Hash(token);
-        var expiryDays = int.TryParse(_configuration["Jwt:RefreshTokenExpiryDays"], out var days) ? days : 30;
+        var expiryDays = int.TryParse(_configuration["Jwt:RefreshTokenExpiryDays"], out var days) ? days : 7;
         var expiresAt = DateTimeOffset.UtcNow.AddDays(expiryDays);
 
         return (token, tokenHash, expiresAt);

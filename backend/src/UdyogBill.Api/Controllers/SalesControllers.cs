@@ -11,16 +11,23 @@ using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "CanCreateInvoice")]
 [RequireActiveSubscription]
 [Route("api/v1/tenant/invoices")]
 public class TenantInvoicesController : BaseApiController
 {
     private readonly ISalesService _salesService;
+    private readonly ITenantContext _tenantContext;
+    private readonly ISyncNotificationService _syncNotificationService;
 
-    public TenantInvoicesController(ISalesService salesService)
+    public TenantInvoicesController(
+        ISalesService salesService,
+        ITenantContext tenantContext,
+        ISyncNotificationService syncNotificationService)
     {
         _salesService = salesService;
+        _tenantContext = tenantContext;
+        _syncNotificationService = syncNotificationService;
     }
 
     [HttpGet]
@@ -64,6 +71,16 @@ public class TenantInvoicesController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _salesService.CreateInvoiceAsync(request, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "invoice.created", new
+            {
+                invoiceId = result.Data,
+                customerName = request.CustomerName,
+                paidAmount = request.PaidAmount,
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 
@@ -75,6 +92,16 @@ public class TenantInvoicesController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _salesService.UpdateInvoiceAsync(id, request, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "invoice.updated", new
+            {
+                invoiceId = id,
+                customerName = request.CustomerName,
+                paidAmount = request.PaidAmount,
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 
@@ -106,6 +133,17 @@ public class TenantInvoicesController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _salesService.RecordInvoicePaymentAsync(request with { InvoiceId = id }, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "payment.created", new
+            {
+                invoiceId = id,
+                paymentId = result.Data,
+                amount = request.Amount,
+                paymentMode = request.PaymentMode.ToString(),
+                source = "api"
+            }, cancellationToken);
+        }
         return HandleResult(result);
     }
 
@@ -117,11 +155,50 @@ public class TenantInvoicesController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _salesService.CancelInvoiceAsync(id, request, ipAddress, cancellationToken);
+        if (result.IsSuccess)
+        {
+            _ = _syncNotificationService.NotifyTenantAsync(_tenantContext.TenantId, "invoice.cancelled", new
+            {
+                invoiceId = id,
+                source = "api"
+            }, cancellationToken);
+        }
+        return HandleResult(result);
+    }
+
+    [HttpPatch("{id:guid}/customer-contact")]
+    [RequirePermission(Permissions.SalesCreate)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCustomerContact(
+        Guid id,
+        [FromBody] UpdateCustomerContactRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _salesService.UpdateCustomerContactAsync(
+            id,
+            request.CustomerPhone,
+            request.CustomerName,
+            request.CustomerEmail,
+            cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpGet("last-deal")]
+    [RequirePermission(Permissions.SalesView)]
+    [ProducesResponseType(typeof(LastDealHintDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLastDeal(
+        [FromQuery] Guid itemId,
+        [FromQuery] Guid? partyId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _salesService.GetLastSaleDealAsync(itemId, partyId, cancellationToken);
         return HandleResult(result);
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanCreateInvoice")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/pos")]
 public class TenantPosController : BaseApiController
 {
@@ -142,13 +219,28 @@ public class TenantPosController : BaseApiController
     [HttpPost("bills")]
     [Idempotent]
     [RequirePermission(Permissions.SalesCreate)]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreatePosBill([FromBody] CreateSalesInvoiceRequest request, CancellationToken cancellationToken)
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _salesService.CreateInvoiceAsync(request with { InvoiceType = InvoiceType.POSBill }, ipAddress, cancellationToken);
-        return HandleResult(result);
+        if (!result.IsSuccess)
+        {
+            return HandleResult(result);
+        }
+
+        var invoice = await _context.SalesInvoices
+            .AsNoTracking()
+            .Where(i => i.Id == result.Data && i.TenantId == _tenantContext.TenantId)
+            .Select(i => new { i.Id, i.InvoiceNumber })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return Ok(new
+        {
+            id = result.Data,
+            invoiceNumber = invoice?.InvoiceNumber ?? string.Empty
+        });
     }
 
     [HttpGet("held-bills")]

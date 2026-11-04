@@ -128,7 +128,7 @@ public class OnboardingService : IOnboardingService
                     : (fullAddressParts.Count > 0 ? string.Join(", ", fullAddressParts) : $"{resolvedState}, India");
 
                 return Result<GstinLookupResponse>.Success(new GstinLookupResponse(
-                    Gstin: cleanGstin,
+                    Gstin: !string.IsNullOrWhiteSpace(data.Gstin) ? data.Gstin : cleanGstin,
                     LegalName: data.LegalName ?? "",
                     TradeName: data.TradeName ?? data.LegalName ?? "",
                     Pan: pan,
@@ -137,33 +137,24 @@ public class OnboardingService : IOnboardingService
                     Address: streetAddress,
                     City: data.City ?? "",
                     Pincode: data.Pincode ?? "",
-                    GstType: data.Status ?? "Regular",
+                    GstType: data.Status ?? "Active",
                     IsActive: string.Equals(data.Status, "Active", StringComparison.OrdinalIgnoreCase),
                     IsComposition: false
                 ));
             }
+            else if (!liveResult.IsSuccess)
+            {
+                return Result<GstinLookupResponse>.Failure(
+                    !string.IsNullOrWhiteSpace(liveResult.ErrorMessage) ? liveResult.ErrorMessage : "GSTIN not found or invalid format on portal.",
+                    liveResult.ErrorCode ?? "LOOKUP_FAILED");
+            }
         }
         catch
         {
-            // Fallback to offline parsing gracefully
+            return Result<GstinLookupResponse>.Failure("Error connecting to GST verification service. Please try again.", "SERVER_ERROR");
         }
 
-        var response = new GstinLookupResponse(
-            Gstin: cleanGstin,
-            LegalName: "",
-            TradeName: "",
-            Pan: pan,
-            State: stateName,
-            StateCode: stateCode,
-            Address: $"{stateName}, India",
-            City: "",
-            Pincode: "",
-            GstType: "Regular",
-            IsActive: true,
-            IsComposition: false
-        );
-
-        return Result<GstinLookupResponse>.Success(response);
+        return Result<GstinLookupResponse>.Failure("GSTIN details could not be verified on the GST portal. Please check the 15-character number.", "GSTIN_NOT_FOUND");
     }
 
     public async Task<Result<SeedIndustryCatalogResult>> SeedIndustryCatalogAsync(SeedIndustryCatalogRequest request, CancellationToken cancellationToken = default)
@@ -258,7 +249,7 @@ public class OnboardingService : IOnboardingService
             HasInvoices: hasInvoices,
             InvoiceCount: invoiceCount,
             HasUpiQr: hasUpiQr,
-            UpiId: tenant?.UpiId ?? (!string.IsNullOrWhiteSpace(tenant?.PrimaryPhone) && !tenant.PrimaryPhone.Contains("9876543210") ? $"{tenant.PrimaryPhone}@upi" : null),
+            UpiId: tenant?.UpiId,
             CompletionPercentage: score,
             IsCompleted: isCompleted
         ));

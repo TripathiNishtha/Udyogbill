@@ -294,4 +294,114 @@ public class PurchaseServiceTests
         var supplier = await context.Parties.FirstOrDefaultAsync(p => p.Id == supplierId);
         supplier!.CurrentOutstandingBalance.Should().Be(-2720m);
     }
+
+    [Fact]
+    public async Task CreatePurchaseBillAsync_WithDuplicateImei_RejectsInwarding()
+    {
+        var (context, service, tenantId, branchId, warehouseId, supplierId, itemId, uomId) = CreateTestContext();
+
+        // 1. Inward first purchase bill with IMEI 990001112223334
+        var billReq1 = new CreatePurchaseBillRequest
+        {
+            VendorInvoiceNumber = "BILL-INV-001",
+            BranchId = branchId,
+            WarehouseId = warehouseId,
+            PartyId = supplierId,
+            BillDate = DateTime.UtcNow,
+            DueDate = DateTime.UtcNow.AddDays(30),
+            PrimaryPaymentMode = PaymentMode.Cash,
+            Items = new List<CreatePurchaseBillItemRequest>
+            {
+                new()
+                {
+                    ItemId = itemId,
+                    Quantity = 1m,
+                    UomId = uomId,
+                    UnitPrice = 15000m,
+                    AttributesJson = "{\"imei\":\"990001112223334\"}"
+                }
+            }
+        };
+
+        var billRes1 = await service.CreatePurchaseBillAsync(billReq1);
+        billRes1.IsSuccess.Should().BeTrue();
+
+        // Check serial exists with InStock status
+        var serial = await context.ItemSerialNumbers.FirstOrDefaultAsync(s => s.SerialNumber == "990001112223334");
+        serial.Should().NotBeNull();
+        serial!.Status.Should().Be("InStock");
+
+        // 2. Attempt to inward second purchase bill with the SAME IMEI
+        var billReq2 = new CreatePurchaseBillRequest
+        {
+            VendorInvoiceNumber = "BILL-INV-002",
+            BranchId = branchId,
+            WarehouseId = warehouseId,
+            PartyId = supplierId,
+            BillDate = DateTime.UtcNow,
+            DueDate = DateTime.UtcNow.AddDays(30),
+            PrimaryPaymentMode = PaymentMode.Cash,
+            Items = new List<CreatePurchaseBillItemRequest>
+            {
+                new()
+                {
+                    ItemId = itemId,
+                    Quantity = 1m,
+                    UomId = uomId,
+                    UnitPrice = 15000m,
+                    AttributesJson = "{\"imei\":\"990001112223334\"}"
+                }
+            }
+        };
+
+        var billRes2 = await service.CreatePurchaseBillAsync(billReq2);
+
+        // Assert - Duplicate IMEI inwarding must be rejected!
+        billRes2.IsSuccess.Should().BeFalse();
+        billRes2.ErrorCode.Should().Be("DUPLICATE_SERIAL_NUMBER");
+        billRes2.ErrorMessage.Should().Contain("Duplicate inwarding is prohibited");
+    }
+
+    [Fact]
+    public async Task CreateGrnAsync_MalformedAttributes_ReturnsFailure_DoesNotSwallowException()
+    {
+        var (context, service, tenantId, branchId, warehouseId, supplierId, itemId, uomId) = CreateTestContext();
+
+        var grnReq = new CreateGrnRequest(
+            PurchaseOrderId: null,
+            BranchId: branchId,
+            WarehouseId: warehouseId,
+            PartyId: supplierId,
+            DeliveryChallanNumber: "CH-001",
+            DeliveryChallanDate: DateTime.UtcNow,
+            ReceivedDate: DateTime.UtcNow,
+            ReceivedBy: "Store Manager",
+            Remarks: "Testing IMEI error handling",
+            Items: new List<ReceiveGrnItemRequest>
+            {
+                new(
+                    PurchaseOrderItemId: null,
+                    ItemId: itemId,
+                    BatchNumber: "B-001",
+                    ManufacturingDate: null,
+                    ExpiryDate: null,
+                    ReceivedQuantity: 1m,
+                    AcceptedQuantity: 1m,
+                    RejectedQuantity: 0m,
+                    UomId: uomId,
+                    UnitCost: 1000m,
+                    ReceivedFreeQuantity: 0m,
+                    AcceptedFreeQuantity: 0m,
+                    RejectionReason: null,
+                    AttributesJson: "{ this is completely invalid JSON :::"
+                )
+            }
+        );
+
+        var result = await service.CreateGrnAsync(grnReq);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("SERIAL_PROCESSING_FAILED");
+        result.ErrorMessage.Should().Contain("Failed to process serial/IMEI attributes");
+    }
 }

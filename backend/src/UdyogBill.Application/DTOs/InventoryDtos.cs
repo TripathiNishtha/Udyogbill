@@ -120,7 +120,10 @@ public record OpeningVariantItemDto(
     string? Barcode = null,
     decimal Quantity = 0m,
     decimal? PriceAdjustment = null,
-    Guid? WarehouseId = null
+    Guid? WarehouseId = null,
+    decimal? PurchasePrice = null,
+    decimal? WholesalePrice = null,
+    decimal? Mrp = null
 );
 
 public record CreateItemRequest(
@@ -187,6 +190,28 @@ public record UpdateItemRequest(
     bool IsActive
 );
 
+public record BulkUpdateItemsRequest(
+    List<Guid> ItemIds,
+    bool? TrackInventory = null,
+    decimal? TaxRate = null,
+    bool? IsTaxInclusive = null,
+    Guid? CategoryId = null,
+    bool ClearCategory = false,
+    Guid? BrandId = null,
+    bool ClearBrand = false,
+    Guid? PrimaryUomId = null,
+    string? HsnCode = null,
+    decimal? MinimumStockAlert = null,
+    bool? TrackBatches = null,
+    bool? TrackSerialNumbers = null,
+    bool? IsActive = null
+);
+
+public record BulkUpdateItemsResultDto(
+    int UpdatedCount,
+    string Message
+);
+
 public record ItemListDto(
     Guid Id,
     Guid TenantId,
@@ -196,11 +221,15 @@ public record ItemListDto(
     ItemType ItemType,
     string? CategoryName,
     string? BrandName,
+    Guid? CategoryId,
+    Guid? BrandId,
     Guid PrimaryUomId,
     string PrimaryUomCode,
     string PrimaryUomSymbol,
     string? HSNCode,
     decimal TaxRate,
+    decimal CessRate,
+    bool IsTaxInclusive,
     decimal PurchasePrice,
     decimal SellingPrice,
     decimal MRP,
@@ -299,7 +328,11 @@ public record ItemVariantDto(
     decimal PriceAdjustment,
     string? Barcode,
     bool IsActive,
-    decimal CurrentStock = 0m
+    decimal CurrentStock = 0m,
+    decimal? PurchasePrice = null,
+    decimal? WholesalePrice = null,
+    decimal? MRP = null,
+    decimal? SellingPrice = null
 );
 
 public record WarehouseStockDto(
@@ -426,4 +459,13 @@ public record StockTransferDto(
     string? Notes,
     DateTimeOffset CreatedAtUtc,
     IReadOnlyList<StockTransferItemDto> Items
+);
+
+public record BulkDeleteItemRequest(
+    List<Guid> ItemIds
+);
+
+public record BulkDeleteResultDto(
+    int DeletedCount,
+    string Message
 );

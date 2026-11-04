@@ -21,6 +21,7 @@ public class User : BaseAuditableEntity, ITenantScopedEntity
     public string FullName { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public string? Designation { get; set; }
+    public Guid? BranchId { get; set; }
 
     public bool IsSuperAdmin { get; set; }
     public bool IsTenantAdmin { get; set; }
@@ -40,6 +41,7 @@ public class User : BaseAuditableEntity, ITenantScopedEntity
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<Tenants.TenantUserMapping> TenantMappings { get; set; } = new List<Tenants.TenantUserMapping>();
 }
 
 public class Role : BaseTenantAuditableEntity

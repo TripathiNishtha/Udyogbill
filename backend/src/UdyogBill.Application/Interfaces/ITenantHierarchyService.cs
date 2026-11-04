@@ -43,4 +43,6 @@ public interface ITenantHierarchyService
     Task<Result<TenantIndustryConfigDto>> GetIndustryConfigAsync(CancellationToken cancellationToken = default);
     Task<Result> UpdateIndustryConfigAsync(UpdateTenantIndustryConfigRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<TenantQuotaSummaryDto>> GetQuotaSummaryAsync(CancellationToken cancellationToken = default);
+    Task<Result<DocumentSeriesConfigDto>> GetDocumentSeriesConfigAsync(CancellationToken cancellationToken = default);
+    Task<Result> UpdateDocumentSeriesConfigAsync(DocumentSeriesConfigDto request, string? ipAddress = null, CancellationToken cancellationToken = default);
 }

@@ -28,6 +28,49 @@ public class PharmaService : IPharmaService
 
     private Guid TenantId => _tenantContext.TenantId;
 
+    public static (decimal Ptr, decimal Pts) DerivePharmaPricing(
+        decimal mrp,
+        decimal gstRate,
+        decimal userPtr = 0,
+        decimal userPts = 0,
+        decimal retailerMargin = 0.20m,
+        decimal stockistMargin = 0.10m)
+    {
+        decimal ptr;
+        if (userPtr > 0)
+        {
+            ptr = userPtr;
+        }
+        else if (mrp > 0)
+        {
+            // Standard commercial back-calculation from inclusive MRP:
+            // PTR = (MRP * (1 - retailerMargin)) / (1 + gstRate/100)
+            var taxDivisor = 1m + (Math.Max(0m, gstRate) / 100m);
+            ptr = Math.Round((mrp * (1m - retailerMargin)) / (taxDivisor > 0 ? taxDivisor : 1m), 2);
+        }
+        else
+        {
+            ptr = 0m;
+        }
+
+        decimal pts;
+        if (userPts > 0)
+        {
+            pts = userPts;
+        }
+        else if (ptr > 0)
+        {
+            // Standard Stockist price: PTS = PTR * (1 - stockistMargin)
+            pts = Math.Round(ptr * (1m - stockistMargin), 2);
+        }
+        else
+        {
+            pts = 0m;
+        }
+
+        return (ptr, pts);
+    }
+
     #region 1. Batch & FEFO Routing
 
     public async Task<Result<IReadOnlyList<PharmaBatchDto>>> GetItemBatchesAsync(
@@ -72,6 +115,9 @@ public class PharmaService : IPharmaService
             var secondaryUom = b.Item?.SecondaryUom?.Symbol ?? "TAB";
             var tabletPrice = Math.Round(b.SaleRate / (packRatio > 0 ? packRatio : 1m), 2);
 
+            var itemTax = b.Item?.TaxRate ?? 12m;
+            var (derivedPtr, derivedPts) = DerivePharmaPricing(b.MRP, itemTax, b.Ptr, b.Pts);
+
             return new PharmaBatchDto(
                 Id: b.Id,
                 ItemId: b.ItemId,
@@ -84,8 +130,8 @@ public class PharmaService : IPharmaService
                 Mrp: b.MRP,
                 PurchaseRate: b.PurchaseRate,
                 SaleRate: b.SaleRate,
-                Ptr: b.Ptr > 0 ? b.Ptr : Math.Round(b.SaleRate * 0.88m, 2),
-                Pts: b.Pts > 0 ? b.Pts : Math.Round(b.SaleRate * 0.80m, 2),
+                Ptr: derivedPtr,
+                Pts: derivedPts,
                 CurrentStock: stock > 0 ? stock : 0,
                 QuarantinedStock: b.QuarantinedStock,
                 RackLocation: b.RackLocation ?? "General Rack",
@@ -115,6 +161,7 @@ public class PharmaService : IPharmaService
             return Result<PharmaBatchDto>.Failure("Item not found.", "NOT_FOUND");
 
         DateTime expiryDate = ParseExpiryDate(request.ExpiryDateMonthYear);
+        var (batchPtr, batchPts) = DerivePharmaPricing(request.Mrp, item.TaxRate, request.Ptr, request.Pts);
 
         ItemBatch batch;
         if (request.Id.HasValue && request.Id.Value != Guid.Empty)
@@ -131,8 +178,8 @@ public class PharmaService : IPharmaService
             batch.MRP = request.Mrp;
             batch.PurchaseRate = request.PurchaseRate;
             batch.SaleRate = request.SaleRate;
-            batch.Ptr = request.Ptr > 0 ? request.Ptr : Math.Round(request.SaleRate * 0.88m, 2);
-            batch.Pts = request.Pts > 0 ? request.Pts : Math.Round(request.SaleRate * 0.80m, 2);
+            batch.Ptr = batchPtr;
+            batch.Pts = batchPts;
             batch.RackLocation = request.RackLocation?.Trim();
             batch.Barcode = request.Barcode?.Trim();
         }
@@ -148,8 +195,8 @@ public class PharmaService : IPharmaService
                 MRP = request.Mrp,
                 PurchaseRate = request.PurchaseRate,
                 SaleRate = request.SaleRate,
-                Ptr = request.Ptr > 0 ? request.Ptr : Math.Round(request.SaleRate * 0.88m, 2),
-                Pts = request.Pts > 0 ? request.Pts : Math.Round(request.SaleRate * 0.80m, 2),
+                Ptr = batchPtr,
+                Pts = batchPts,
                 RackLocation = request.RackLocation?.Trim(),
                 Barcode = request.Barcode?.Trim(),
                 IsActive = true
@@ -296,6 +343,14 @@ public class PharmaService : IPharmaService
         string? search,
         CancellationToken cancellationToken = default)
     {
+        var existingCount = await _context.SaltMasters.CountAsync(s => s.TenantId == TenantId && !s.IsDeleted, cancellationToken);
+        if (existingCount == 0)
+        {
+            var defaultSalts = GetStandardPharmaSalts(TenantId);
+            _context.SaltMasters.AddRange(defaultSalts);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         var query = _context.SaltMasters
             .Where(s => s.TenantId == TenantId && !s.IsDeleted);
 
@@ -444,6 +499,114 @@ public class PharmaService : IPharmaService
                              .ToList();
 
         return Result<IReadOnlyList<ItemSubstituteDto>>.Success(ordered);
+    }
+
+    public async Task<Result<IReadOnlyList<ItemSubstituteDto>>> FindSaltSubstitutesByNameAsync(
+        string saltName,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(saltName))
+            return Result<IReadOnlyList<ItemSubstituteDto>>.Success(new List<ItemSubstituteDto>());
+
+        var term = saltName.Trim().ToLowerInvariant();
+        var keywords = term.Split(new[] { '+', ',', '/', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                           .Where(k => k.Length > 2 && !char.IsDigit(k[0]))
+                           .ToList();
+        if (keywords.Count == 0) keywords.Add(term);
+
+        var candidateItems = await _context.Items
+            .Include(i => i.Brand)
+            .Include(i => i.Batches.Where(b => b.IsActive && b.ExpiryDate >= DateTime.UtcNow.Date))
+                .ThenInclude(b => b.WarehouseStocks)
+            .Where(i => i.TenantId == TenantId && !i.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var matchedItems = candidateItems.Where(i =>
+        {
+            var name = i.Name?.ToLowerInvariant() ?? "";
+            var attrs = i.AttributesJson?.ToLowerInvariant() ?? "";
+            var desc = i.ShortDescription?.ToLowerInvariant() ?? "";
+            return keywords.Any(k => name.Contains(k) || attrs.Contains(k) || desc.Contains(k));
+        }).ToList();
+
+        var results = new List<ItemSubstituteDto>();
+
+        foreach (var it in matchedItems)
+        {
+            var validBatches = it.Batches.OrderBy(b => b.ExpiryDate).ToList();
+            var earliestBatch = validBatches.FirstOrDefault();
+            var totalStock = validBatches.SelectMany(b => b.WarehouseStocks).Sum(ws => ws.CurrentQuantity);
+
+            var pRate = earliestBatch?.PurchaseRate ?? it.PurchasePrice;
+            var sRate = earliestBatch?.SaleRate ?? it.SellingPrice;
+            var mrp = earliestBatch?.MRP ?? it.MRP;
+            var margin = sRate > 0 ? Math.Round(((sRate - pRate) / sRate) * 100, 1) : 0;
+
+            var comp = "Identical Salt Composition";
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(it.AttributesJson))
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(it.AttributesJson);
+                    if (doc.RootElement.TryGetProperty("drugComposition", out var prop))
+                    {
+                        var cVal = prop.GetString();
+                        if (!string.IsNullOrWhiteSpace(cVal)) comp = cVal;
+                    }
+                }
+            }
+            catch {}
+
+            results.Add(new ItemSubstituteDto(
+                ItemId: it.Id,
+                ItemName: it.Name,
+                Sku: it.Sku,
+                Manufacturer: it.Brand?.ManufacturerName ?? it.Brand?.Name ?? "Standard Pharma",
+                SaltComposition: comp,
+                Mrp: mrp,
+                SaleRate: sRate,
+                InStockQuantity: totalStock,
+                EarliestExpiryBatch: earliestBatch?.BatchNumber ?? "N/A",
+                EarliestExpiryDate: earliestBatch?.ExpiryDate.ToString("MM/yy") ?? "N/A",
+                MarginPercent: margin,
+                StorageCondition: "Cool & Dry Place"
+            ));
+        }
+
+        var ordered = results.OrderByDescending(r => r.InStockQuantity > 0)
+                             .ThenByDescending(r => r.MarginPercent)
+                             .ToList();
+
+        return Result<IReadOnlyList<ItemSubstituteDto>>.Success(ordered);
+    }
+
+    private static List<SaltMaster> GetStandardPharmaSalts(Guid tenantId)
+    {
+        return new List<SaltMaster>
+        {
+            new SaltMaster { TenantId = tenantId, SaltName = "Paracetamol 650mg", TherapeuticCategory = "Analgesic & Antipyretic", Description = "Fever, mild to moderate body pain, headache", SideEffectsAlert = "Do not exceed 4g/day. Caution in liver disease.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Amoxicillin + Potassium Clavulanate", TherapeuticCategory = "Broad-Spectrum Antibiotic", Description = "Bacterial infections of chest, ENT, skin, and urinary tract", SideEffectsAlert = "Complete full prescribed course. Take after food.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Pantoprazole 40mg", TherapeuticCategory = "Proton Pump Inhibitor (Antacid)", Description = "Acid reflux, GERD, gastric & peptic ulcer healing", SideEffectsAlert = "Take 30 minutes before morning breakfast.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Azithromycin 500mg", TherapeuticCategory = "Macrolide Antibiotic", Description = "Respiratory tract, sinus and skin bacterial infections", SideEffectsAlert = "Take 1 hour before or 2 hours after meals.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Cefixime 200mg", TherapeuticCategory = "Cephalosporin Antibiotic", Description = "Typhoid fever, pneumonia, urinary tract infections", SideEffectsAlert = "May cause loose stools. Maintain hydration.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Montelukast + Levocetirizine", TherapeuticCategory = "Antiallergic & Bronchodilator", Description = "Allergic rhinitis, seasonal allergies, asthma symptoms", SideEffectsAlert = "May cause mild drowsiness. Best taken at bedtime.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Aceclofenac + Paracetamol", TherapeuticCategory = "NSAID Pain Reliever", Description = "Musculoskeletal pain, joint inflammation, dental pain", SideEffectsAlert = "Always take with or after meals to prevent acidity.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Metformin 500mg", TherapeuticCategory = "Antidiabetic (Biguanide)", Description = "Type 2 Diabetes Mellitus blood glucose regulation", SideEffectsAlert = "Take with meals. Monitor kidney functions periodically.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Telmisartan 40mg", TherapeuticCategory = "Antihypertensive (ARB)", Description = "High blood pressure & cardiovascular protection", SideEffectsAlert = "Monitor BP regularly. Avoid sudden posture change.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Amlodipine 5mg", TherapeuticCategory = "Calcium Channel Blocker", Description = "Hypertension & chronic stable angina", SideEffectsAlert = "May cause mild ankle swelling (pedal edema).", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Atorvastatin 10mg", TherapeuticCategory = "Lipid Lowering Statin", Description = "Hypercholesterolemia & heart attack prevention", SideEffectsAlert = "Report unexplained muscle pain or weakness immediately.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Ibuprofen + Paracetamol", TherapeuticCategory = "Analgesic & Anti-inflammatory", Description = "Dental pain, joint stiffness, sprains and sports injuries", SideEffectsAlert = "Avoid in active peptic ulcer or renal impairment.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Ofloxacin + Ornidazole", TherapeuticCategory = "Antimicrobial & Antiprotozoal", Description = "Infectious bacterial and amoebic diarrhea & dysentery", SideEffectsAlert = "May leave a harmless metallic taste. Avoid alcohol.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Rabeprazole + Domperidone", TherapeuticCategory = "Antacid & Prokinetic", Description = "Severe hyperacidity accompanied by nausea and bloating", SideEffectsAlert = "Take on an empty stomach in the morning.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Cetirizine 10mg", TherapeuticCategory = "Second-Gen Antihistamine", Description = "Sneezing, runny nose, allergic conjunctivitis, skin hives", SideEffectsAlert = "Caution while driving if experiencing mild sedation.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Dextromethorphan + Chlorpheniramine", TherapeuticCategory = "Cough Suppressant", Description = "Dry, non-productive irritating throat cough", SideEffectsAlert = "Do not use for productive (wet) phlegm cough.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Ondansetron 4mg", TherapeuticCategory = "Antiemetic (5-HT3 Antagonist)", Description = "Chemotherapy, post-op or infectious nausea and vomiting", SideEffectsAlert = "Can cause mild transient headache or constipation.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Diclofenac + Paracetamol", TherapeuticCategory = "NSAID Analgesic", Description = "Acute trauma, orthopedic pain, post-surgical inflammation", SideEffectsAlert = "Do not combine with other NSAID painkillers.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "B-Complex + Zinc + Vitamin C", TherapeuticCategory = "Nutritional Supplement", Description = "Immunity booster, mouth ulcers, recovery after illness", SideEffectsAlert = "Best taken after the main afternoon meal.", IsHabitForming = false },
+            new SaltMaster { TenantId = tenantId, SaltName = "Tramadol + Paracetamol", TherapeuticCategory = "Centrally Acting Opioid Analgesic", Description = "Moderate to severe acute painful conditions", SideEffectsAlert = "Schedule H1 Drug: Record in Statutory Register. High risk of dependence.", IsHabitForming = true },
+            new SaltMaster { TenantId = tenantId, SaltName = "Alprazolam 0.25mg", TherapeuticCategory = "Benzodiazepine Anxiolytic", Description = "Short-term management of acute panic & anxiety", SideEffectsAlert = "Schedule H1 Narcotic: Mandated duplicate register entry. Sedative.", IsHabitForming = true },
+            new SaltMaster { TenantId = tenantId, SaltName = "Clonazepam 0.5mg", TherapeuticCategory = "Anticonvulsant & Anxiolytic", Description = "Seizure control and acute panic disorder", SideEffectsAlert = "Schedule H1 Drug: Strict compliance audit trail required.", IsHabitForming = true }
+        };
     }
 
     public async Task<Result> LinkItemSaltCompositionAsync(
@@ -964,7 +1127,7 @@ public class PharmaService : IPharmaService
             .Include(i => i.Party)
             .Include(i => i.Items)
                 .ThenInclude(it => it.Item)
-            .Where(i => i.TenantId == TenantId && 
+            .Where(i => i.TenantId == TenantId && !i.IsDeleted && !i.IsCancelled && i.Status != Domain.Entities.Sales.InvoiceStatus.Cancelled && 
                        ((i.Party != null && (i.Party.PrimaryPhone == cleanPhone || i.Party.Mobile == cleanPhone)) || 
                         (i.Notes != null && i.Notes.Contains(cleanPhone))))
             .OrderByDescending(i => i.InvoiceDate)

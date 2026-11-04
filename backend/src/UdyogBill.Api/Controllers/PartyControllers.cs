@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UdyogBill.Api.Filters;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
 using UdyogBill.Domain.Entities.Parties;
@@ -7,7 +8,8 @@ using UdyogBill.Shared;
 
 namespace UdyogBill.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "CanCreateInvoice")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/customers")]
 public class TenantCustomersController : BaseApiController
 {
@@ -38,6 +40,14 @@ public class TenantCustomersController : BaseApiController
             outstandingOnly,
             cancellationToken
         );
+        return HandleResult(result);
+    }
+
+    [HttpGet("next-code")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNextCustomerCode(CancellationToken cancellationToken)
+    {
+        var result = await _partyService.GetNextCustomerCodeAsync(cancellationToken);
         return HandleResult(result);
     }
 
@@ -81,7 +91,8 @@ public class TenantCustomersController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanCreateInvoice")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/suppliers")]
 public class TenantSuppliersController : BaseApiController
 {
@@ -112,6 +123,14 @@ public class TenantSuppliersController : BaseApiController
             outstandingOnly,
             cancellationToken
         );
+        return HandleResult(result);
+    }
+
+    [HttpGet("next-code")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNextSupplierCode(CancellationToken cancellationToken)
+    {
+        var result = await _partyService.GetNextSupplierCodeAsync(cancellationToken);
         return HandleResult(result);
     }
 
@@ -154,7 +173,8 @@ public class TenantSuppliersController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanCreateInvoice")]
+[RequireActiveSubscription]
 [Route("api/v1/tenant/parties")]
 public class TenantPartiesController : BaseApiController
 {

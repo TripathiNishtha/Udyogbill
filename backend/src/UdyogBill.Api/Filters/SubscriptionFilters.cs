@@ -63,6 +63,14 @@ public class RequireActiveSubscriptionFilter : IAsyncActionFilter
             return;
         }
 
+        // Bypass subscription checks for subscription upgrade, status, and renewal endpoints
+        var reqPath = context.HttpContext.Request.Path.Value?.ToLowerInvariant() ?? "";
+        if (reqPath.StartsWith("/api/v1/tenant/subscription") || reqPath.StartsWith("/api/v1/tenant/plans") || reqPath.StartsWith("/api/v1/auth"))
+        {
+            await next();
+            return;
+        }
+
         // Allow GET requests if blockReads is false
         if (!_blockReads && HttpMethods.IsGet(context.HttpContext.Request.Method))
         {
@@ -82,7 +90,7 @@ public class RequireActiveSubscriptionFilter : IAsyncActionFilter
                 code = "TENANT_SUSPENDED"
             })
             {
-                StatusCode = StatusCodes.Status402PaymentRequired
+                StatusCode = StatusCodes.Status403Forbidden
             };
             return;
         }
@@ -131,8 +139,9 @@ public class RequireActiveSubscriptionFilter : IAsyncActionFilter
         {
             context.Result = new ObjectResult(new
             {
-                error = "Your subscription has expired or is inactive. Please subscribe or renew your plan to continue.",
-                code = "SUBSCRIPTION_EXPIRED"
+                error = "Your 14-day free trial or subscription has expired. Your account is in Read-Only mode. Please activate a subscription plan to resume billing and transactions.",
+                code = "SUBSCRIPTION_READ_ONLY",
+                isReadOnly = true
             })
             {
                 StatusCode = StatusCodes.Status402PaymentRequired
@@ -252,7 +261,8 @@ public class RequireAddonFilter : IAsyncActionFilter
         bool isExclusivePaidAddon = _addonCode == "ADDON_PHARMA_SFA" || 
                                     _addonCode == "ADDON_AI_PRO" || 
                                     _addonCode == "ADDON_WHATSAPP" || 
-                                    _addonCode == "ADDON_EWAYBILL";
+                                    _addonCode == "ADDON_EWAYBILL" ||
+                                    _addonCode == "ADDON_ACCOUNTING";
 
         if (isExclusivePaidAddon)
         {
@@ -264,6 +274,22 @@ public class RequireAddonFilter : IAsyncActionFilter
             else if (_addonCode == "ADDON_AI_PRO" && tenant?.IsAiAddonActive == true)
             {
                 hasAdminExplicitGrant = true;
+            }
+            else if (_addonCode == "ADDON_ACCOUNTING")
+            {
+                var cfg = await _context.TenantIndustryConfigs.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.TenantId == tenantId);
+                if (cfg != null && !string.IsNullOrWhiteSpace(cfg.ConfigurationJson))
+                {
+                    try
+                    {
+                        var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(cfg.ConfigurationJson);
+                        if (dict != null && dict.TryGetValue("accounting", out var active) && active)
+                        {
+                            hasAdminExplicitGrant = true;
+                        }
+                    }
+                    catch { }
+                }
             }
 
             if (!hasAdminExplicitGrant)

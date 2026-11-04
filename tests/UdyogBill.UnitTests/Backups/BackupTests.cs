@@ -86,7 +86,9 @@ public class BackupTests
         Assert.True(result.Data.FileSizeBytes > 0);
         Assert.False(string.IsNullOrEmpty(result.Data.ChecksumSha256));
         Assert.Equal(BackupStatus.Completed, result.Data.Status);
-        Assert.True(File.Exists(result.Data.FilePath));
+        var jobEntity = await context.BackupJobs.FirstAsync(j => j.Id == result.Data.Id);
+        Assert.True(File.Exists(jobEntity.FilePath));
+        Assert.Null(result.Data.FilePath);
     }
 
     [Fact]

@@ -25,6 +25,9 @@ public interface IP0ReportService
     
     Task<CompanyStockSalesReportDto> GetCompanyStockSalesReportAsync(P0ReportFilterRequest request, CancellationToken cancellationToken = default);
 
+    Task<SalesPaymentReportDto> GetSalesPaymentReportAsync(P0ReportFilterRequest request, CancellationToken cancellationToken = default);
+    Task<PurchasePaymentReportDto> GetPurchasePaymentReportAsync(P0ReportFilterRequest request, CancellationToken cancellationToken = default);
+
     Task<(byte[] FileBytes, string FileName, string ContentType)> ExportReportCsvAsync(string reportType, P0ReportFilterRequest request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SavedReportPreset>> GetSavedPresetsAsync(string? reportCode = null, CancellationToken cancellationToken = default);

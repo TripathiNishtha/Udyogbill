@@ -47,4 +47,14 @@ public class TenantBarcodeController : BaseApiController
         var result = await _barcodeService.GenerateInvoiceUpiQrAsync(invoiceId, cancellationToken);
         return HandleResult(result);
     }
+
+    [HttpGet("lookup/{barcode}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(BarcodeLookupResultDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> LookupBarcode(string barcode, CancellationToken cancellationToken)
+    {
+        var result = await _barcodeService.LookupBarcodeAsync(barcode, cancellationToken);
+        return HandleResult(result);
+    }
+
 }

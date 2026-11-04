@@ -10,7 +10,7 @@ using UdyogBill.Shared;
 
 namespace UdyogBill.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "CanViewReports")]
 [Route("api/v1/tenant/reports")]
 public class TenantReportsController : BaseApiController
 {

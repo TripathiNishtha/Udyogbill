@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UdyogBill.Application.Services.Calculations;
@@ -414,5 +414,50 @@ public class CanonicalCalculationEngineTests
         decimal netSales = 75000m;
         decimal grossProfit = netSales - cogs;
         Assert.Equal(30000m, grossProfit);
+    }
+
+    [Fact]
+    public void Scenario31_ReverseCharge_ComputesTaxesForReporting_ExcludesFromPayableTotal()
+    {
+        // 31. RCM: Under GST Sec 9(3)/9(4), tax is payable by recipient directly to Govt.
+        // Taxable ₹1,000, 18% GST (Intra-state: ₹90 CGST + ₹90 SGST).
+        // Total Payable should be ₹1,000 (Tax excluded from RoundedTotal), but CGST/SGST amounts must be computed for reporting.
+        var line = new LineCalculationInput(10, 0, 100m, false, 0, 0, 18m, 0, true);
+        var (lines, totals) = _engine.CalculateInvoice(
+            new[] { line },
+            invoiceDiscountPercent: 0,
+            invoiceDiscountAmount: 0,
+            isIntraState: true,
+            additionalCharges: 0m,
+            isReverseCharge: true
+        );
+
+        Assert.Equal(1000m, totals.TaxableAmount);
+        Assert.Equal(90m, totals.CgstAmount);
+        Assert.Equal(90m, totals.SgstAmount);
+        Assert.Equal(0m, totals.IgstAmount);
+        Assert.Equal(1000m, totals.RoundedTotal); // NOT 1180
+    }
+
+    [Fact]
+    public void Scenario32_ReverseCharge_WithInterState_ComputesIgst_ExcludesFromPayableTotal()
+    {
+        // 32. RCM Inter-state: Taxable ₹2,000, 18% IGST = ₹360.
+        // Total payable by buyer to seller is ₹2,000. IGST ₹360 is reported for statutory disclosure.
+        var line = new LineCalculationInput(20, 0, 100m, false, 0, 0, 18m, 0, false);
+        var (lines, totals) = _engine.CalculateInvoice(
+            new[] { line },
+            invoiceDiscountPercent: 0,
+            invoiceDiscountAmount: 0,
+            isIntraState: false,
+            additionalCharges: 0m,
+            isReverseCharge: true
+        );
+
+        Assert.Equal(2000m, totals.TaxableAmount);
+        Assert.Equal(360m, totals.IgstAmount);
+        Assert.Equal(0m, totals.CgstAmount);
+        Assert.Equal(0m, totals.SgstAmount);
+        Assert.Equal(2000m, totals.RoundedTotal); // NOT 2360
     }
 }

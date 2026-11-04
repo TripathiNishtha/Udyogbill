@@ -92,7 +92,9 @@ public class TenantModuleAuthorizationService : ITenantModuleAuthorizationServic
             CurrentActiveUsers: activeUsers,
             CanCreateMoreUsers: canCreateMore,
             Descriptor: descriptor,
-            IsPharmaSfaActive: isSfaActive
+            IsPharmaSfaActive: isSfaActive,
+            ApparelSubType: tenant.ApparelSubType,
+            HardwareSubType: tenant.HardwareSubType
         );
     }
 

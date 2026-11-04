@@ -123,7 +123,7 @@ public class TenantWarehousesController : BaseApiController
     }
 }
 
-[Authorize(Roles = $"{Roles.TenantAdmin},{Roles.TenantManager}")]
+[Authorize(Policy = "CanManageUsers")]
 [Route("api/v1/tenant/staff")]
 public class TenantStaffController : BaseApiController
 {
@@ -274,7 +274,7 @@ public class TenantSettingsController : BaseApiController
     }
 
     [HttpPut("profile")]
-    [Authorize(Roles = Roles.TenantAdmin)]
+    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.TenantAdmin}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateBusinessProfileRequest request, CancellationToken cancellationToken)
     {
@@ -284,7 +284,7 @@ public class TenantSettingsController : BaseApiController
     }
 
     [HttpPost("test-email")]
-    [Authorize(Roles = Roles.TenantAdmin)]
+    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.TenantAdmin}")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     public async Task<IActionResult> SendTestEmail([FromBody] SendTenantTestEmailRequest request, CancellationToken cancellationToken)
     {
@@ -301,7 +301,7 @@ public class TenantSettingsController : BaseApiController
     }
 
     [HttpPut("industry-config")]
-    [Authorize(Roles = Roles.TenantAdmin)]
+    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.TenantAdmin}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> UpdateIndustryConfig([FromBody] UpdateTenantIndustryConfigRequest request, CancellationToken cancellationToken)
     {
@@ -315,6 +315,24 @@ public class TenantSettingsController : BaseApiController
     public async Task<IActionResult> GetQuotaSummary(CancellationToken cancellationToken)
     {
         var result = await _hierarchyService.GetQuotaSummaryAsync(cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpGet("document-series")]
+    [ProducesResponseType(typeof(DocumentSeriesConfigDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDocumentSeries(CancellationToken cancellationToken)
+    {
+        var result = await _hierarchyService.GetDocumentSeriesConfigAsync(cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPut("document-series")]
+    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.TenantAdmin}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> UpdateDocumentSeries([FromBody] DocumentSeriesConfigDto request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _hierarchyService.UpdateDocumentSeriesConfigAsync(request, ipAddress, cancellationToken);
         return HandleResult(result);
     }
 }

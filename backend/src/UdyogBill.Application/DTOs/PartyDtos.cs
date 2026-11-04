@@ -88,7 +88,9 @@ public record UpdatePartyRequest(
     bool IsCreditBlocked,
     string? PriceTier,
     string? AttributesJson,
-    bool IsActive
+    bool IsActive,
+    CreatePartyAddressRequest? BillingAddress = null,
+    CreatePartyAddressRequest? ShippingAddress = null
 );
 
 public record PartyListDto(
@@ -111,7 +113,16 @@ public record PartyListDto(
     bool IsCreditBlocked,
     decimal CurrentOutstandingBalance,
     bool IsActive,
-    DateTimeOffset CreatedAtUtc
+    DateTimeOffset CreatedAtUtc,
+    string AttributesJson = "{}",
+    string? DrugLicenseNumber1 = null,
+    string? DrugLicenseNumber2 = null,
+    string? BillingAddressLine1 = null,
+    string? BillingCity = null,
+    string? BillingState = null,
+    string? BillingPincode = null,
+    string? FormattedBillingAddress = null,
+    string? FSSAINumber = null
 );
 
 public record PartyDetailsDto(
@@ -291,5 +302,38 @@ public record BrokerSummaryDto(
     decimal CurrentPayableBalance,
     int TotalInvoicesBrokered
 );
+
+public record CreateAdvancePaymentRequest(
+    Guid PartyId,
+    decimal Amount,
+    string PaymentMode,
+    DateTime ReceiptDate,
+    string? ReferenceNumber = null,
+    string? Notes = null,
+    UdyogBill.Domain.Entities.Sales.AdvancePaymentDirection Direction = UdyogBill.Domain.Entities.Sales.AdvancePaymentDirection.CustomerAdvance
+);
+
+public record AllocateAdvancePaymentRequest(
+    Guid AdvancePaymentId,
+    Guid? InvoiceId,
+    Guid? PurchaseBillId,
+    decimal AmountToAllocate,
+    string? Notes = null
+);
+
+public record AdvancePaymentDto(
+    Guid Id,
+    Guid PartyId,
+    string PartyName,
+    decimal Amount,
+    decimal AllocatedAmount,
+    decimal UnallocatedAmount,
+    string PaymentMode,
+    DateTime ReceiptDate,
+    string? ReferenceNumber,
+    string? Notes,
+    UdyogBill.Domain.Entities.Sales.AdvancePaymentDirection Direction
+);
+
 
 

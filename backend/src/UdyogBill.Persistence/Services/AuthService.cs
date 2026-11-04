@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using UdyogBill.Application.DTOs;
 using UdyogBill.Application.Interfaces;
@@ -40,62 +42,6 @@ public class AuthService : IAuthService
 
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await _context.Database.ExecuteSqlRawAsync(@"
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IsAiAddonActive"" boolean NOT NULL DEFAULT FALSE;
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansLimit"" integer NOT NULL DEFAULT 500;
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""AiScansUsed"" integer NOT NULL DEFAULT 0;
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryTypeCode"" text NOT NULL DEFAULT 'OTHER';
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""ActiveIndustryModule"" text NOT NULL DEFAULT 'OTHER';
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryModuleStatus"" integer NOT NULL DEFAULT 1;
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""IndustryActivatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW();
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""MaxAllowedUsers"" integer NOT NULL DEFAULT 2;
-
-                CREATE TABLE IF NOT EXISTS ""PlatformCommercialConfigs"" (
-                    ""Id"" uuid NOT NULL PRIMARY KEY,
-                    ""CoreAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 3999,
-                    ""CoreBiennialPrice"" numeric(18, 2) NOT NULL DEFAULT 6999,
-                    ""IncludedUsers"" integer NOT NULL DEFAULT 2,
-                    ""SingleUserAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 799,
-                    ""FiveUserPackAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 2999,
-                    ""AiProAnnualPrice"" numeric(18, 2) NOT NULL DEFAULT 1499,
-                    ""AiProMonthlyScanLimit"" integer NOT NULL DEFAULT 500,
-                    ""GstRatePercent"" numeric(5, 2) NOT NULL DEFAULT 18.0,
-                    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
-                    ""LastUpdatedByEmail"" text NULL,
-                    ""Notes"" text NULL,
-                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
-                    ""UpdatedAtUtc"" timestamp with time zone NULL,
-                    ""CreatedBy"" text NULL,
-                    ""UpdatedBy"" text NULL,
-                    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE
-                );
-
-                ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedAtUtc"" timestamp with time zone NULL;
-                ALTER TABLE IF EXISTS ""PlatformCommercialConfigs"" ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid NULL;
-
-                -- Multi-Company / Multi-Firm Schema
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""ParentTenantId"" uuid NULL;
-                ALTER TABLE IF EXISTS ""tenants"" ADD COLUMN IF NOT EXISTS ""OwnerUserId"" uuid NULL;
-                ALTER TABLE IF EXISTS ""plans"" ADD COLUMN IF NOT EXISTS ""MaxCompanies"" integer NOT NULL DEFAULT 1;
-
-                CREATE TABLE IF NOT EXISTS ""TenantUserMappings"" (
-                    ""Id"" uuid NOT NULL PRIMARY KEY,
-                    ""TenantId"" uuid NOT NULL,
-                    ""UserId"" uuid NOT NULL,
-                    ""IsOwner"" boolean NOT NULL DEFAULT FALSE,
-                    ""Role"" text NOT NULL DEFAULT 'TenantAdmin',
-                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW()
-                );
-
-                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_TenantUserMappings_UserId_TenantId"" ON ""TenantUserMappings"" (""UserId"", ""TenantId"");
-                CREATE INDEX IF NOT EXISTS ""IX_tenants_ParentTenantId"" ON ""tenants"" (""ParentTenantId"");
-                CREATE INDEX IF NOT EXISTS ""IX_tenants_OwnerUserId"" ON ""tenants"" (""OwnerUserId"");
-            ", cancellationToken);
-        }
-        catch { }
-
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
         // 1. Fetch user (ignoring tenant filter since login occurs prior to tenant context establishment)
@@ -157,44 +103,44 @@ public class AuthService : IAuthService
             return Result<LoginResponse>.Failure("Account is deactivated. Please contact your administrator.", "ACCOUNT_DEACTIVATED");
         }
 
-        // 2. Verify password
-        var isPasswordValid = _passwordHasher.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt);
-        if (!isPasswordValid)
+        if (!user.IsSuperAdmin && user.Tenant != null && (user.Tenant.Status == TenantStatus.Suspended || !user.Tenant.IsActive))
         {
-            var p = request.Password.Trim();
-
-            // Allow login via Tenant's configured AdminPassword if it matches (self-heals the hash automatically)
-            if (user.Tenant != null && !string.IsNullOrWhiteSpace(user.Tenant.AdminPassword) && string.Equals(p, user.Tenant.AdminPassword.Trim()))
-            {
-                isPasswordValid = true;
-                var newHash = _passwordHasher.HashPassword(request.Password, out var newSalt);
-                user.PasswordHash = newHash;
-                user.PasswordSalt = newSalt;
-                user.AccessFailedCount = 0;
-                user.LockoutEndUtc = null;
-            }
-            else if (string.Equals(p, "Udyogbill", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(p, "Password@123", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(p, "demo", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(p, "admin", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(p, "Saurabh@1993", StringComparison.OrdinalIgnoreCase))
-            {
-                isPasswordValid = true;
-                var newHash = _passwordHasher.HashPassword(request.Password, out var newSalt);
-                user.PasswordHash = newHash;
-                user.PasswordSalt = newSalt;
-                user.AccessFailedCount = 0;
-                user.LockoutEndUtc = null;
-            }
+            return Result<LoginResponse>.Failure("Your store account has been suspended by administration. Please contact support@udyogbill.com.", "TENANT_SUSPENDED");
         }
 
+        // Account Lockout check (Do NOT verify password if account is currently locked)
+        if (user.LockoutEnabled && user.LockoutEndUtc.HasValue && user.LockoutEndUtc.Value > DateTimeOffset.UtcNow)
+        {
+            var remainingMinutes = Math.Max(1, (int)Math.Ceiling((user.LockoutEndUtc.Value - DateTimeOffset.UtcNow).TotalMinutes));
+            return Result<LoginResponse>.Failure(
+                $"Account is temporarily locked due to multiple failed login attempts. Please try again after {remainingMinutes} minute(s).",
+                "ACCOUNT_LOCKED"
+            );
+        }
+
+        // 2. Strict PBKDF2 HMAC-SHA512 password verification
+        var isPasswordValid = _passwordHasher.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt);
+
         if (!isPasswordValid)
         {
-            user.AccessFailedCount++;
-            if (user.AccessFailedCount >= 5)
+            if (user.LockoutEndUtc.HasValue && user.LockoutEndUtc.Value <= DateTimeOffset.UtcNow)
+            {
+                // Previous lockout expired; reset failed attempts counter for this new cycle
+                user.AccessFailedCount = 1;
+                user.LockoutEndUtc = null;
+            }
+            else
+            {
+                user.AccessFailedCount++;
+            }
+
+            var isLockedNow = false;
+            if (user.LockoutEnabled && user.AccessFailedCount >= 5)
             {
                 user.LockoutEndUtc = DateTimeOffset.UtcNow.AddMinutes(15);
+                isLockedNow = true;
             }
+
             await _context.SaveChangesAsync(cancellationToken);
 
             await _auditService.LogAsync(new AuditLog
@@ -203,11 +149,19 @@ public class AuthService : IAuthService
                 UserId = user.Id,
                 UserEmail = user.Email,
                 Action = AuditActionType.FailedLogin,
-                ActionName = "FailedLogin",
+                ActionName = isLockedNow ? "AccountLocked" : "FailedLogin",
                 EntityName = "User",
                 EntityId = user.Id.ToString(),
                 IpAddress = ipAddress
             }, cancellationToken);
+
+            if (isLockedNow)
+            {
+                return Result<LoginResponse>.Failure(
+                    "Account has been temporarily locked for 15 minutes due to multiple failed login attempts.",
+                    "ACCOUNT_LOCKED"
+                );
+            }
 
             return Result<LoginResponse>.Failure("Invalid email or password.", "INVALID_CREDENTIALS");
         }
@@ -329,8 +283,93 @@ public class AuthService : IAuthService
 
     public async Task<Result<LoginResponse>> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
     {
-        // Simple and secure refresh token exchange implementation
-        return await Task.FromResult(Result<LoginResponse>.Failure("Token refresh requires active session.", "TOKEN_EXPIRED"));
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            return Result<LoginResponse>.Failure("Refresh token is required.", "INVALID_TOKEN");
+        }
+
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.RefreshToken))).ToLowerInvariant();
+        var existingToken = await _context.RefreshTokens
+            .IgnoreQueryFilters()
+            .Include(rt => rt.User)
+                .ThenInclude(u => u.Tenant)
+            .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash, cancellationToken);
+
+        if (existingToken == null || !existingToken.IsActive)
+        {
+            return Result<LoginResponse>.Failure("Invalid, expired, or revoked refresh token.", "INVALID_TOKEN");
+        }
+
+        var user = existingToken.User;
+        if (user == null || user.IsDeleted || !user.IsActive)
+        {
+            return Result<LoginResponse>.Failure("User account is inactive or disabled.", "ACCOUNT_DISABLED");
+        }
+
+        if (!user.IsSuperAdmin && user.Tenant != null && (user.Tenant.Status == TenantStatus.Suspended || !user.Tenant.IsActive))
+        {
+            return Result<LoginResponse>.Failure("Your store account has been suspended by administration. Please contact support@udyogbill.com.", "TENANT_SUSPENDED");
+        }
+
+        // Token Rotation: Invalidate existing token and issue new pair
+        var (newRefreshToken, newRefreshTokenHash, newExpiresAt) = _jwtTokenGenerator.GenerateRefreshToken(ipAddress);
+        existingToken.RevokedAtUtc = DateTimeOffset.UtcNow;
+        existingToken.RevokedByIp = ipAddress;
+        existingToken.ReplacedByTokenHash = newRefreshTokenHash;
+        existingToken.ReasonRevoked = "Rotated on session refresh";
+
+        var newRefreshTokenEntity = new RefreshToken
+        {
+            TenantId = existingToken.TenantId,
+            UserId = user.Id,
+            TokenHash = newRefreshTokenHash,
+            ExpiresAtUtc = newExpiresAt,
+            CreatedByIp = ipAddress
+        };
+        _context.RefreshTokens.Add(newRefreshTokenEntity);
+
+        // Fetch user roles and permissions
+        var roles = await _context.UserRoles
+            .IgnoreQueryFilters()
+            .Where(ur => ur.UserId == user.Id)
+            .Join(_context.Roles.IgnoreQueryFilters(), ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+            .ToListAsync(cancellationToken);
+
+        var permissions = await _context.UserRoles
+            .IgnoreQueryFilters()
+            .Where(ur => ur.UserId == user.Id)
+            .Join(_context.RolePermissions.IgnoreQueryFilters(), ur => ur.RoleId, rp => rp.RoleId, (ur, rp) => rp.Permission)
+            .Select(p => p.Name)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var newAccessToken = _jwtTokenGenerator.GenerateAccessToken(
+            user,
+            roles,
+            permissions,
+            user.TenantId,
+            user.Tenant?.Code
+        );
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var userDto = new AuthUserDto(
+            user.Id,
+            user.Email,
+            user.FullName,
+            user.IsSuperAdmin,
+            user.IsTenantAdmin,
+            user.TenantId == Guid.Empty ? null : user.TenantId,
+            user.Tenant?.Code,
+            user.Tenant?.BusinessName,
+            user.Tenant?.Industry?.Code,
+            roles,
+            permissions,
+            user.Tenant?.LogoUrl,
+            false
+        );
+
+        return Result<LoginResponse>.Success(new LoginResponse(newAccessToken, newRefreshToken, DateTimeOffset.UtcNow.AddHours(1), userDto));
     }
 
     public async Task<Result<Guid>> RegisterTenantAsync(RegisterTenantRequest request, string? ipAddress = null, CancellationToken cancellationToken = default)
@@ -398,7 +437,7 @@ public class AuthService : IAuthService
             Status = TenantStatus.Trial,
             AdminEmail = normalizedEmail,
             PrimaryPhone = request.PrimaryPhone.Trim(),
-            AdminPassword = request.AdminPassword.Trim(),
+            AdminPassword = null,
             GSTIN = request.GSTIN?.Trim(),
             DrugLicenseNumber = request.DrugLicenseNumber?.Trim(),
             FSSAINumber = request.FSSAINumber?.Trim(),
@@ -552,6 +591,24 @@ public class AuthService : IAuthService
 
     public async Task<Result> RevokeTokenAsync(string refreshToken, string? ipAddress = null, CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(Result.Success());
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return Result.Success();
+        }
+
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken))).ToLowerInvariant();
+        var tokenEntity = await _context.RefreshTokens
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash && !rt.RevokedAtUtc.HasValue, cancellationToken);
+
+        if (tokenEntity != null)
+        {
+            tokenEntity.RevokedAtUtc = DateTimeOffset.UtcNow;
+            tokenEntity.RevokedByIp = ipAddress;
+            tokenEntity.ReasonRevoked = "User explicitly logged out";
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return Result.Success();
     }
 }

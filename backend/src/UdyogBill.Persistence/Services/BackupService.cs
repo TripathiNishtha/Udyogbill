@@ -1,3 +1,4 @@
+﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,18 +26,21 @@ public class BackupService : IBackupService
     private readonly ITenantContext _tenantContext;
     private readonly ICurrentUserContext _currentUserContext;
     private readonly IAuditService _auditService;
+    private readonly IConfiguration? _configuration;
     private static readonly DateTime ProcessStartTimeUtc = DateTime.UtcNow;
 
     public BackupService(
         AppDbContext context,
         ITenantContext tenantContext,
         ICurrentUserContext currentUserContext,
-        IAuditService auditService)
+        IAuditService auditService,
+        IConfiguration? configuration = null)
     {
         _context = context;
         _tenantContext = tenantContext;
         _currentUserContext = currentUserContext;
         _auditService = auditService;
+        _configuration = configuration;
     }
 
     private Guid RequireTenantId()
@@ -416,7 +420,7 @@ public class BackupService : IBackupService
             b.BackupType,
             b.StorageProvider,
             b.FileName,
-            b.FilePath,
+            null, // Sanitized: server physical directory path omitted to prevent path disclosure
             b.FileSizeBytes,
             b.ChecksumSha256,
             b.Status,
@@ -518,16 +522,30 @@ public class BackupService : IBackupService
 
     private static readonly byte[] EncryptionMagic = new byte[] { (byte)'U', (byte)'B', (byte)'E', (byte)'N', (byte)'C', (byte)'1' };
 
-    private static byte[] DeriveKey(Guid tenantId)
+    public byte[] DeriveHardenedKey(Guid tenantId)
+    {
+        var masterKey = _configuration?["Backup:MasterEncryptionKey"]
+            ?? Environment.GetEnvironmentVariable("BACKUP_MASTER_ENCRYPTION_KEY")
+            ?? _configuration?["Jwt:SecretKey"]
+            ?? "UdyogBill_Default_Master_Backup_Vault_Key_2026_Minimum_256_Bits!";
+
+        var ikm = Encoding.UTF8.GetBytes(masterKey);
+        var salt = tenantId.ToByteArray(); // 16 bytes tenant GUID as cryptographic salt
+        var info = Encoding.UTF8.GetBytes("UdyogBill_Backup_Vault_Encryption_V2");
+
+        return HKDF.DeriveKey(HashAlgorithmName.SHA256, ikm, 32, salt, info);
+    }
+
+    public static byte[] DeriveLegacyKey(Guid tenantId)
     {
         using var sha = SHA256.Create();
         var rawKey = Encoding.UTF8.GetBytes($"UdyogBill_Backup_Vault_{tenantId:D}");
         return sha.ComputeHash(rawKey);
     }
 
-    private static byte[] EncryptBackupBytes(byte[] plainBytes, Guid tenantId)
+    private byte[] EncryptBackupBytes(byte[] plainBytes, Guid tenantId)
     {
-        var key = DeriveKey(tenantId);
+        var key = DeriveHardenedKey(tenantId);
         var nonce = new byte[AesGcm.NonceByteSizes.MaxSize]; // 12 bytes
         RandomNumberGenerator.Fill(nonce);
         var tag = new byte[AesGcm.TagByteSizes.MaxSize]; // 16 bytes
@@ -554,11 +572,10 @@ public class BackupService : IBackupService
         return true;
     }
 
-    private static byte[] DecryptBackupBytes(byte[] encryptedData, Guid tenantId)
+    private byte[] DecryptBackupBytes(byte[] encryptedData, Guid tenantId)
     {
         if (!IsEncryptedBackup(encryptedData)) return encryptedData;
 
-        var key = DeriveKey(tenantId);
         var nonceLen = AesGcm.NonceByteSizes.MaxSize;
         var tagLen = AesGcm.TagByteSizes.MaxSize;
         var headerLen = EncryptionMagic.Length;
@@ -574,8 +591,22 @@ public class BackupService : IBackupService
         Array.Copy(encryptedData, headerLen + nonceLen + tagLen, cipherBytes, 0, cipherLen);
 
         var plainBytes = new byte[cipherLen];
-        using var aesGcm = new AesGcm(key, tagLen);
-        aesGcm.Decrypt(nonce, cipherBytes, tag, plainBytes);
-        return plainBytes;
+
+        // 1. First attempt decryption with the hardened HKDF server master key
+        var hardenedKey = DeriveHardenedKey(tenantId);
+        try
+        {
+            using var aesGcm = new AesGcm(hardenedKey, tagLen);
+            aesGcm.Decrypt(nonce, cipherBytes, tag, plainBytes);
+            return plainBytes;
+        }
+        catch (CryptographicException)
+        {
+            // 2. Fallback to legacy key derivation to ensure backwards compatibility for existing backups
+            var legacyKey = DeriveLegacyKey(tenantId);
+            using var legacyAesGcm = new AesGcm(legacyKey, tagLen);
+            legacyAesGcm.Decrypt(nonce, cipherBytes, tag, plainBytes);
+            return plainBytes;
+        }
     }
 }

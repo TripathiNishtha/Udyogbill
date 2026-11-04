@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using UdyogBill.Application.DTOs;
@@ -11,11 +14,19 @@ public class AuthController : BaseApiController
 {
     private readonly IAuthService _authService;
     private readonly IPlatformSettingsService _settingsService;
+    private readonly ISuperAdminService _superAdminService;
+    private readonly ICurrentUserContext _currentUserContext;
 
-    public AuthController(IAuthService authService, IPlatformSettingsService settingsService)
+    public AuthController(
+        IAuthService authService,
+        IPlatformSettingsService settingsService,
+        ISuperAdminService superAdminService,
+        ICurrentUserContext currentUserContext)
     {
         _authService = authService;
         _settingsService = settingsService;
+        _superAdminService = superAdminService;
+        _currentUserContext = currentUserContext;
     }
 
     [HttpPost("login")]
@@ -25,7 +36,94 @@ public class AuthController : BaseApiController
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+
         var result = await _authService.LoginAsync(request, ipAddress, cancellationToken);
+
+        // Security Telemetry Capture
+        if (result.IsSuccess && result.Data?.User?.TenantId.HasValue == true)
+        {
+            var tenantId = result.Data.User.TenantId.Value;
+            var userId = result.Data.User.Id;
+
+            var deviceId = Request.Headers["X-Device-Id"].FirstOrDefault() ?? $"device-{Guid.NewGuid():N}";
+            var brand = Request.Headers["X-Device-Brand"].FirstOrDefault();
+            var model = Request.Headers["X-Device-Model"].FirstOrDefault();
+            var os = Request.Headers["X-Device-OS"].FirstOrDefault();
+            var osVersion = Request.Headers["X-Device-OS-Version"].FirstOrDefault();
+            var appVersion = Request.Headers["X-App-Version"].FirstOrDefault();
+            var connType = Request.Headers["X-Connection-Type"].FirstOrDefault() ?? (userAgent.Contains("Dart") ? "MobileData" : "WiFi");
+            var isDual = Request.Headers["X-Is-Dual-Sim"].FirstOrDefault() == "true";
+            var sim1 = Request.Headers["X-Sim1-Carrier"].FirstOrDefault();
+            var sim2 = Request.Headers["X-Sim2-Carrier"].FirstOrDefault();
+            var simPhone = Request.Headers["X-Sim-Phone"].FirstOrDefault();
+
+            var telemetry = new ClientTelemetryPayload(
+                deviceId,
+                Request.Headers["X-Device-Type"].FirstOrDefault() ?? (userAgent.Contains("Dart") || userAgent.Contains("Mobile") ? "Mobile" : "Desktop"),
+                string.IsNullOrWhiteSpace(brand) ? (userAgent.Contains("Windows") ? "Windows" : (userAgent.Contains("Mac") ? "Apple" : "Unknown Brand")) : brand,
+                string.IsNullOrWhiteSpace(model) ? (userAgent.Contains("Windows") ? "PC" : (userAgent.Contains("Mac") ? "Mac" : "Device")) : model,
+                string.IsNullOrWhiteSpace(os) ? (userAgent.Contains("Windows") ? "Windows" : (userAgent.Contains("Android") ? "Android" : "Web")) : os,
+                osVersion ?? "",
+                appVersion ?? (userAgent.Contains("Dart") ? "Flutter APK" : "Web Portal"),
+                connType,
+                isDual,
+                sim1,
+                sim2,
+                simPhone
+            );
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _superAdminService.RecordLoginAttemptAsync(
+                        tenantId,
+                        userId,
+                        request.Email,
+                        isSuccessful: true,
+                        failureReason: null,
+                        authChannel: userAgent.Contains("Dart") ? "MobileApp" : "WebPortal",
+                        ipAddress: ipAddress,
+                        userAgent: userAgent,
+                        clientTelemetry: telemetry,
+                        cancellationToken: CancellationToken.None
+                    );
+                }
+                catch
+                {
+                    // Non-blocking telemetry
+                }
+            });
+        }
+
+        return HandleResult(result);
+    }
+
+    [HttpPost("telemetry")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RecordTelemetry([FromBody] ClientTelemetryPayload payload, CancellationToken cancellationToken)
+    {
+        var tenantId = _currentUserContext.TenantId;
+        if (!tenantId.HasValue || tenantId.Value == Guid.Empty)
+        {
+            return BadRequest(new { message = "Valid authenticated tenant context required for telemetry ingestion." });
+        }
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+
+        var result = await _superAdminService.RecordClientTelemetryAsync(
+            tenantId.Value,
+            _currentUserContext.UserId,
+            payload,
+            ipAddress,
+            userAgent,
+            cancellationToken
+        );
+
         return HandleResult(result);
     }
 
@@ -49,6 +147,17 @@ public class AuthController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _authService.RefreshTokenAsync(request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest? request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var token = request?.RefreshToken ?? Request.Headers["X-Refresh-Token"].ToString();
+        var result = await _authService.RevokeTokenAsync(token, ipAddress, cancellationToken);
         return HandleResult(result);
     }
 
@@ -76,10 +185,12 @@ public class AuthController : BaseApiController
 public class TenantsController : BaseApiController
 {
     private readonly ITenantService _tenantService;
+    private readonly ITenantHierarchyService _hierarchyService;
 
-    public TenantsController(ITenantService tenantService)
+    public TenantsController(ITenantService tenantService, ITenantHierarchyService hierarchyService)
     {
         _tenantService = tenantService;
+        _hierarchyService = hierarchyService;
     }
 
     [HttpGet("current")]
@@ -87,7 +198,19 @@ public class TenantsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCurrentTenant(CancellationToken cancellationToken)
     {
-        var result = await _tenantService.GetCurrentTenantDetailsAsync(cancellationToken);
+        var result = await _hierarchyService.GetBusinessProfileAsync(cancellationToken);
+        if (result.IsSuccess) return HandleResult(result);
+        var fallback = await _tenantService.GetCurrentTenantDetailsAsync(cancellationToken);
+        return HandleResult(fallback);
+    }
+
+    [HttpPut("current")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> UpdateCurrentTenant([FromBody] UpdateBusinessProfileRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _hierarchyService.UpdateBusinessProfileAsync(request, ipAddress, cancellationToken);
         return HandleResult(result);
     }
 
@@ -187,10 +310,17 @@ public class PlansController : BaseApiController
 public class HealthController : BaseApiController
 {
     private readonly Persistence.Context.AppDbContext _context;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<HealthController> _logger;
 
-    public HealthController(Persistence.Context.AppDbContext context)
+    public HealthController(
+        Persistence.Context.AppDbContext context,
+        IWebHostEnvironment environment,
+        ILogger<HealthController> logger)
     {
         _context = context;
+        _environment = environment;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -204,18 +334,20 @@ public class HealthController : BaseApiController
             {
                 status = canConnect ? "Healthy" : "Degraded",
                 database = canConnect ? "Connected (PostgreSQL)" : "Unavailable",
+                error = canConnect ? null : (_environment.IsDevelopment() ? "Unable to connect to database." : "Database service is temporarily unavailable."),
                 timestampUtc = DateTimeOffset.UtcNow,
                 version = "1.0.0-step1",
-                platform = ".NET 10 / ASP.NET Core 10 Web API"
+                platform = ".NET 9 / ASP.NET Core 9 Web API"
             });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Health check failed to connect to database");
             return Ok(new
             {
-                status = "Starting",
-                database = "Connecting",
-                error = ex.Message,
+                status = "Degraded",
+                database = "Unavailable",
+                error = _environment.IsDevelopment() ? ex.Message : "Database service is temporarily unavailable.",
                 timestampUtc = DateTimeOffset.UtcNow,
                 version = "1.0.0-step1"
             });

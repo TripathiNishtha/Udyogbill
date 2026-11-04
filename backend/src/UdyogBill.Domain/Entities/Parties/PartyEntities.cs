@@ -44,7 +44,8 @@ public enum PartyLedgerEntryType
     VendorPayment = 5,
     CreditNote = 6,
     DebitNote = 7,
-    JournalAdjustment = 8
+    JournalAdjustment = 8,
+    CashRefund = 9
 }
 
 public enum AddressType

@@ -15,6 +15,7 @@ using UdyogBill.Domain.Entities.Reports;
 using UdyogBill.Domain.Entities.Sales;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
+using UdyogBill.Shared;
 
 namespace UdyogBill.Persistence.Services;
 
@@ -70,16 +71,16 @@ public class P0ReportService : IP0ReportService
             .Where(i => i.TenantId == tenantId && !i.IsDeleted && !i.Invoice.IsDeleted && !i.Invoice.IsCancelled)
             .AsNoTracking();
 
-        if (request.FromDate.HasValue)
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: false);
+
+        if (fromUtc.HasValue)
         {
-            var fromUtc = DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc);
-            query = query.Where(i => i.Invoice.InvoiceDate >= fromUtc);
+            query = query.Where(i => i.Invoice.InvoiceDate >= fromUtc.Value);
         }
 
-        if (request.ToDate.HasValue)
+        if (toUtc.HasValue)
         {
-            var toUtc = DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-            query = query.Where(i => i.Invoice.InvoiceDate <= toUtc);
+            query = query.Where(i => i.Invoice.InvoiceDate <= toUtc.Value);
         }
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
@@ -235,16 +236,16 @@ public class P0ReportService : IP0ReportService
             .Where(inv => inv.TenantId == tenantId && !inv.IsDeleted && !inv.IsCancelled)
             .AsNoTracking();
 
-        if (request.FromDate.HasValue)
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: false);
+
+        if (fromUtc.HasValue)
         {
-            var fromUtc = DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc);
-            query = query.Where(inv => inv.InvoiceDate >= fromUtc);
+            query = query.Where(inv => inv.InvoiceDate >= fromUtc.Value);
         }
 
-        if (request.ToDate.HasValue)
+        if (toUtc.HasValue)
         {
-            var toUtc = DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-            query = query.Where(inv => inv.InvoiceDate <= toUtc);
+            query = query.Where(inv => inv.InvoiceDate <= toUtc.Value);
         }
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
@@ -257,6 +258,20 @@ public class P0ReportService : IP0ReportService
             query = query.Where(inv => inv.PartyId == request.PartyId.Value);
 
         var invoices = await query.ToListAsync(cancellationToken);
+
+        var returnsQuery = _context.SalesReturns
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled);
+
+        if (fromUtc.HasValue) returnsQuery = returnsQuery.Where(r => r.ReturnDate >= fromUtc.Value);
+        if (toUtc.HasValue) returnsQuery = returnsQuery.Where(r => r.ReturnDate <= toUtc.Value);
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            returnsQuery = returnsQuery.Where(r => r.BranchId == request.BranchId.Value);
+        if (request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty)
+            returnsQuery = returnsQuery.Where(r => r.WarehouseId == request.WarehouseId.Value);
+        if (request.PartyId.HasValue && request.PartyId.Value != Guid.Empty)
+            returnsQuery = returnsQuery.Where(r => r.PartyId == request.PartyId.Value);
+
+        var salesReturnsList = await returnsQuery.ToListAsync(cancellationToken);
 
         var groupBy = (request.GroupBy ?? "date").ToLowerInvariant();
 
@@ -281,8 +296,22 @@ public class P0ReportService : IP0ReportService
             var invCount = group.Count();
             var totalQtySold = group.Sum(inv => inv.Items.Sum(i => i.Quantity));
             var gross = group.Where(i => i.InvoiceType != InvoiceType.CreditNote).Sum(i => i.TotalAmount);
-            var returns = group.Where(i => i.InvoiceType == InvoiceType.CreditNote).Sum(i => i.TotalAmount);
-            var net = gross - returns;
+
+            var tableReturns = salesReturnsList.Where(r =>
+            {
+                return groupBy switch
+                {
+                    "customer" => r.PartyId.ToString() == group.Key.Item1 || r.CustomerName.Equals(group.Key.Item2, StringComparison.OrdinalIgnoreCase),
+                    "branch" => r.BranchId.ToString() == group.Key.Item1,
+                    "warehouse" => r.WarehouseId.ToString() == group.Key.Item1,
+                    "month" => r.ReturnDate.ToString("yyyy-MM") == group.Key.Item1,
+                    "yearly" => r.ReturnDate.Year.ToString() == group.Key.Item1,
+                    _ => r.ReturnDate.ToString("yyyy-MM-dd") == group.Key.Item1
+                };
+            }).Sum(r => r.TotalAmount);
+
+            var returns = group.Where(i => i.InvoiceType == InvoiceType.CreditNote).Sum(i => i.TotalAmount) + tableReturns;
+            var net = Math.Max(0m, gross - returns);
             var taxable = group.Sum(i => i.TaxableAmount);
             var tax = group.Sum(i => i.CgstAmount + i.SgstAmount + i.IgstAmount + i.CessAmount);
             var discount = group.Sum(i => i.ItemDiscountTotal + i.InvoiceDiscountAmount);
@@ -352,16 +381,16 @@ public class P0ReportService : IP0ReportService
             .Where(i => i.TenantId == tenantId && !i.IsDeleted && !i.PurchaseBill.IsDeleted)
             .AsNoTracking();
 
-        if (request.FromDate.HasValue)
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: false);
+
+        if (fromUtc.HasValue)
         {
-            var fromUtc = DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc);
-            query = query.Where(i => i.PurchaseBill.BillDate >= fromUtc);
+            query = query.Where(i => i.PurchaseBill.BillDate >= fromUtc.Value);
         }
 
-        if (request.ToDate.HasValue)
+        if (toUtc.HasValue)
         {
-            var toUtc = DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-            query = query.Where(i => i.PurchaseBill.BillDate <= toUtc);
+            query = query.Where(i => i.PurchaseBill.BillDate <= toUtc.Value);
         }
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
@@ -486,19 +515,19 @@ public class P0ReportService : IP0ReportService
             .Include(b => b.Warehouse)
             .Include(b => b.Party)
             .Include(b => b.Items)
-            .Where(b => b.TenantId == tenantId && !b.IsDeleted)
+            .Where(b => b.TenantId == tenantId && !b.IsDeleted && !b.IsCancelled && b.Status != PurchaseBillStatus.Cancelled)
             .AsNoTracking();
 
-        if (request.FromDate.HasValue)
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: false);
+
+        if (fromUtc.HasValue)
         {
-            var fromUtc = DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc);
-            query = query.Where(b => b.BillDate >= fromUtc);
+            query = query.Where(b => b.BillDate >= fromUtc.Value);
         }
 
-        if (request.ToDate.HasValue)
+        if (toUtc.HasValue)
         {
-            var toUtc = DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-            query = query.Where(b => b.BillDate <= toUtc);
+            query = query.Where(b => b.BillDate <= toUtc.Value);
         }
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
@@ -601,6 +630,7 @@ public class P0ReportService : IP0ReportService
                 .ThenInclude(itm => itm.Brand)
             .Include(s => s.Warehouse)
             .Include(s => s.Batch)
+            .Include(s => s.Variant)
             .Where(s => s.TenantId == tenantId && !s.IsDeleted && !s.Item.IsDeleted)
             .AsNoTracking();
 
@@ -622,6 +652,8 @@ public class P0ReportService : IP0ReportService
             query = query.Where(s =>
                 s.Item.Name.ToLower().Contains(term) ||
                 s.Item.Sku.ToLower().Contains(term) ||
+                (s.Variant != null && s.Variant.VariantSku.ToLower().Contains(term)) ||
+                (s.Variant != null && s.Variant.VariantName.ToLower().Contains(term)) ||
                 (s.Batch != null && s.Batch.BatchNumber.ToLower().Contains(term)));
         }
 
@@ -645,9 +677,13 @@ public class P0ReportService : IP0ReportService
             else if (minAlert > 0 && current <= minAlert) status = "Low";
             else if (minAlert > 0 && current >= (minAlert * 6m)) status = "Overstock";
 
+            var (sz, col) = ExtractSizeAndColor(s.Variant?.AttributesJson ?? s.Item.AttributesJson);
+            var variantSku = s.Variant?.VariantSku;
+            var variantName = s.Variant?.VariantName;
+
             return new RealTimeStockBalanceItemDto(
                 s.ItemId,
-                s.Item.Sku,
+                !string.IsNullOrWhiteSpace(variantSku) ? variantSku : s.Item.Sku,
                 s.Item.Name,
                 s.Item.Category?.Name ?? "General",
                 s.Item.Brand?.Name ?? "Standard",
@@ -664,7 +700,12 @@ public class P0ReportService : IP0ReportService
                 deficit,
                 costRate,
                 stockVal,
-                status
+                status,
+                s.VariantId,
+                variantSku,
+                variantName,
+                sz,
+                col
             );
         }).ToList();
 
@@ -722,6 +763,7 @@ public class P0ReportService : IP0ReportService
                 .ThenInclude(itm => itm.Brand)
             .Include(s => s.Warehouse)
             .Include(s => s.Batch)
+            .Include(s => s.Variant)
             .Where(s => s.TenantId == tenantId && !s.IsDeleted && !s.Item.IsDeleted)
             .AsNoTracking();
 
@@ -736,16 +778,12 @@ public class P0ReportService : IP0ReportService
 
         var balances = await stockBalancesQuery.ToListAsync(cancellationToken);
 
-        var fromUtc = request.FromDate.HasValue
-            ? DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc)
-            : DateTime.SpecifyKind(DateTime.UtcNow.AddMonths(-1).Date, DateTimeKind.Utc);
-
-        var toUtc = request.ToDate.HasValue
-            ? DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc)
-            : DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: false);
+        var effectiveFromUtc = fromUtc ?? DateTime.UtcNow.AddMonths(-1);
+        var effectiveToUtc = toUtc ?? DateTime.UtcNow;
 
         var movements = await _context.StockMovements
-            .Where(sm => sm.TenantId == tenantId && sm.CreatedAtUtc >= fromUtc && sm.CreatedAtUtc <= toUtc && !sm.IsDeleted)
+            .Where(sm => sm.TenantId == tenantId && sm.CreatedAtUtc >= effectiveFromUtc && sm.CreatedAtUtc <= effectiveToUtc && !sm.IsDeleted)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
@@ -753,7 +791,10 @@ public class P0ReportService : IP0ReportService
 
         foreach (var s in balances)
         {
-            var itemMoves = movements.Where(m => m.ItemId == s.ItemId && m.WarehouseId == s.WarehouseId).ToList();
+            var itemMoves = movements.Where(m => m.ItemId == s.ItemId && 
+                                                 m.WarehouseId == s.WarehouseId &&
+                                                 (!s.VariantId.HasValue || m.VariantId == s.VariantId.Value) &&
+                                                 (!s.BatchId.HasValue || m.BatchId == s.BatchId.Value)).ToList();
 
             var inward = itemMoves.Where(m => m.MovementType == StockMovementType.PurchaseInward || m.MovementType == StockMovementType.TransferIn || m.MovementType == StockMovementType.SalesReturn).Sum(m => m.Quantity);
             var outward = Math.Abs(itemMoves.Where(m => m.MovementType == StockMovementType.SalesOutward || m.MovementType == StockMovementType.TransferOut || m.MovementType == StockMovementType.PurchaseReturn).Sum(m => m.Quantity));
@@ -764,9 +805,13 @@ public class P0ReportService : IP0ReportService
             var costRate = s.Batch != null && s.Batch.PurchaseRate > 0 ? s.Batch.PurchaseRate : s.Item.PurchasePrice;
             var val = closing * costRate;
 
+            var (sz, col) = ExtractSizeAndColor(s.Variant?.AttributesJson ?? s.Item.AttributesJson);
+            var variantSku = s.Variant?.VariantSku;
+            var variantName = s.Variant?.VariantName;
+
             list.Add(new StockValuationItemDto(
                 s.ItemId,
-                s.Item.Sku,
+                !string.IsNullOrWhiteSpace(variantSku) ? variantSku : s.Item.Sku,
                 s.Item.Name,
                 s.Item.Category?.Name ?? "General",
                 s.Item.Brand?.Name ?? "Standard",
@@ -781,7 +826,12 @@ public class P0ReportService : IP0ReportService
                 closing,
                 costRate,
                 val,
-                "WeightedPurchaseCost"
+                "WeightedPurchaseCost",
+                s.VariantId,
+                variantSku,
+                variantName,
+                sz,
+                col
             ));
         }
 
@@ -936,7 +986,7 @@ public class P0ReportService : IP0ReportService
 
         var query = _context.PurchaseBills
             .Include(b => b.Party)
-            .Where(b => b.TenantId == tenantId && !b.IsDeleted && b.BalanceAmount > 0)
+            .Where(b => b.TenantId == tenantId && !b.IsDeleted && !b.IsCancelled && b.Status != PurchaseBillStatus.Cancelled && b.BalanceAmount > 0)
             .AsNoTracking();
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
@@ -1034,17 +1084,15 @@ public class P0ReportService : IP0ReportService
     {
         var tenantId = RequireTenantId();
 
-        var now = DateTime.UtcNow;
-        var fromUtc = request.FromDate.HasValue
-            ? DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc)
-            : DateTime.SpecifyKind(new DateTime(now.Year, now.Month, 1), DateTimeKind.Utc);
-
-        var toUtc = request.ToDate.HasValue
-            ? DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc)
-            : DateTime.SpecifyKind(now, DateTimeKind.Utc);
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: true);
 
         var salesQuery = _context.SalesInvoices
-            .Where(inv => inv.TenantId == tenantId && inv.InvoiceDate >= fromUtc && inv.InvoiceDate <= toUtc && !inv.IsDeleted && !inv.IsCancelled);
+            .Where(inv => inv.TenantId == tenantId && !inv.IsDeleted && !inv.IsCancelled);
+
+        if (fromUtc.HasValue)
+            salesQuery = salesQuery.Where(inv => inv.InvoiceDate >= fromUtc.Value);
+        if (toUtc.HasValue)
+            salesQuery = salesQuery.Where(inv => inv.InvoiceDate <= toUtc.Value);
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
             salesQuery = salesQuery.Where(inv => inv.BranchId == request.BranchId.Value);
@@ -1053,14 +1101,28 @@ public class P0ReportService : IP0ReportService
             .Where(inv => inv.InvoiceType != InvoiceType.CreditNote)
             .SumAsync(inv => (decimal?)inv.TaxableAmount, cancellationToken) ?? 0m;
 
-        var salesReturns = await salesQuery
+        var salesReturnQuery = _context.SalesReturns
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled);
+
+        if (fromUtc.HasValue)
+            salesReturnQuery = salesReturnQuery.Where(r => r.ReturnDate >= fromUtc.Value);
+        if (toUtc.HasValue)
+            salesReturnQuery = salesReturnQuery.Where(r => r.ReturnDate <= toUtc.Value);
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            salesReturnQuery = salesReturnQuery.Where(r => r.BranchId == request.BranchId.Value);
+
+        var salesReturnsFromTable = await salesReturnQuery
+            .SumAsync(r => (decimal?)r.SubTotal, cancellationToken) ?? 0m;
+
+        var salesReturnsFromInvoice = await salesQuery
             .Where(inv => inv.InvoiceType == InvoiceType.CreditNote)
             .SumAsync(inv => (decimal?)inv.TaxableAmount, cancellationToken) ?? 0m;
 
-        var netSales = grossSales - salesReturns;
+        var salesReturns = salesReturnsFromInvoice + salesReturnsFromTable;
+        var netSales = Math.Max(0m, grossSales - salesReturns);
 
         var purchaseQuery = _context.PurchaseBills
-            .Where(b => b.TenantId == tenantId && b.BillDate >= fromUtc && b.BillDate <= toUtc && !b.IsDeleted);
+            .Where(b => b.TenantId == tenantId && b.BillDate >= fromUtc && b.BillDate <= toUtc && !b.IsDeleted && !b.IsCancelled && b.Status != PurchaseBillStatus.Cancelled);
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
             purchaseQuery = purchaseQuery.Where(b => b.BranchId == request.BranchId.Value);
@@ -1068,8 +1130,17 @@ public class P0ReportService : IP0ReportService
         var grossPurchases = await purchaseQuery
             .SumAsync(b => (decimal?)b.TaxableAmount, cancellationToken) ?? 0m;
 
-        var purchaseReturns = 0m;
-        var netPurchases = grossPurchases - purchaseReturns;
+        var prQuery = _context.PurchaseReturns
+            .Where(pr => pr.TenantId == tenantId && !pr.IsDeleted && !pr.IsCancelled);
+        if (fromUtc.HasValue) prQuery = prQuery.Where(pr => pr.ReturnDate >= fromUtc.Value);
+        if (toUtc.HasValue) prQuery = prQuery.Where(pr => pr.ReturnDate <= toUtc.Value);
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            prQuery = prQuery.Where(pr => pr.BranchId == request.BranchId.Value);
+
+        var purchaseReturns = await prQuery
+            .SumAsync(pr => (decimal?)pr.SubTotal, cancellationToken) ?? 0m;
+
+        var netPurchases = Math.Max(0m, grossPurchases - purchaseReturns);
 
         var stockQuery = _context.ItemWarehouseStocks
             .Include(s => s.Item)
@@ -1134,10 +1205,13 @@ public class P0ReportService : IP0ReportService
         var netProfit = grossProfit - totalExpenses + otherIncome;
         var netProfitMargin = netSales > 0 ? Math.Round((netProfit / netSales) * 100m, 2) : 0m;
 
+        var effectiveFrom = fromUtc ?? DateTime.UtcNow;
+        var effectiveTo = toUtc ?? DateTime.UtcNow;
+
         return new TruePnLReportDto(
-            fromUtc,
-            toUtc,
-            request.FinancialYear ?? (fromUtc.Year + "-" + (fromUtc.Year + 1)),
+            effectiveFrom,
+            effectiveTo,
+            request.FinancialYear ?? (effectiveFrom.Year + "-" + (effectiveFrom.Year + 1)),
             grossSales,
             salesReturns,
             netSales,
@@ -1323,24 +1397,51 @@ public class P0ReportService : IP0ReportService
             {
                 var rep = await GetRealTimeStockBalanceAsync(request with { PageSize = 10000 }, cancellationToken);
                 fileName = $"Stock_Balance_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
-                sb.AppendLine("SKU,Item Name,Category,Brand,Warehouse,Batch,Current Stock,Available,Reserved,Min Alert,Cost Rate,Stock Value,Status");
-                foreach (var s in rep.Items)
+                var hasVariants = rep.Items.Any(i => !string.IsNullOrEmpty(i.Size) || !string.IsNullOrEmpty(i.Color) || !string.IsNullOrEmpty(i.VariantSku));
+                if (hasVariants)
                 {
-                    sb.AppendLine(string.Join(",",
-                        EscapeCsv(s.Sku),
-                        EscapeCsv(s.ProductName),
-                        EscapeCsv(s.CategoryName),
-                        EscapeCsv(s.BrandName),
-                        EscapeCsv(s.WarehouseName),
-                        EscapeCsv(s.BatchNumber ?? ""),
-                        s.CurrentStock,
-                        s.AvailableStock,
-                        s.ReservedStock,
-                        s.MinimumAlertStock,
-                        s.CostRate,
-                        s.StockValue,
-                        s.StockStatus
-                    ));
+                    sb.AppendLine("SKU,Item Name,Size,Color,Category,Brand,Warehouse,Current Stock,Available,Reserved,Min Alert,Cost Rate,Stock Value,Status");
+                    foreach (var s in rep.Items)
+                    {
+                        sb.AppendLine(string.Join(",",
+                            EscapeCsv(s.Sku),
+                            EscapeCsv(s.ProductName),
+                            EscapeCsv(s.Size ?? ""),
+                            EscapeCsv(s.Color ?? ""),
+                            EscapeCsv(s.CategoryName),
+                            EscapeCsv(s.BrandName),
+                            EscapeCsv(s.WarehouseName),
+                            s.CurrentStock,
+                            s.AvailableStock,
+                            s.ReservedStock,
+                            s.MinimumAlertStock,
+                            s.CostRate,
+                            s.StockValue,
+                            s.StockStatus
+                        ));
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("SKU,Item Name,Category,Brand,Warehouse,Batch,Current Stock,Available,Reserved,Min Alert,Cost Rate,Stock Value,Status");
+                    foreach (var s in rep.Items)
+                    {
+                        sb.AppendLine(string.Join(",",
+                            EscapeCsv(s.Sku),
+                            EscapeCsv(s.ProductName),
+                            EscapeCsv(s.CategoryName),
+                            EscapeCsv(s.BrandName),
+                            EscapeCsv(s.WarehouseName),
+                            EscapeCsv(s.BatchNumber ?? ""),
+                            s.CurrentStock,
+                            s.AvailableStock,
+                            s.ReservedStock,
+                            s.MinimumAlertStock,
+                            s.CostRate,
+                            s.StockValue,
+                            s.StockStatus
+                        ));
+                    }
                 }
                 break;
             }
@@ -1349,23 +1450,49 @@ public class P0ReportService : IP0ReportService
             {
                 var rep = await GetStockValuationAsync(request with { PageSize = 10000 }, cancellationToken);
                 fileName = $"Stock_Valuation_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
-                sb.AppendLine("SKU,Item Name,Category,Warehouse,Batch,Opening,Inward,Outward,Adjustment,Closing,Cost Rate,Stock Value");
-                foreach (var s in rep.Items)
+                var hasVariants = rep.Items.Any(i => !string.IsNullOrEmpty(i.Size) || !string.IsNullOrEmpty(i.Color) || !string.IsNullOrEmpty(i.VariantSku));
+                if (hasVariants)
                 {
-                    sb.AppendLine(string.Join(",",
-                        EscapeCsv(s.Sku),
-                        EscapeCsv(s.ProductName),
-                        EscapeCsv(s.CategoryName),
-                        EscapeCsv(s.WarehouseName),
-                        EscapeCsv(s.BatchNumber ?? ""),
-                        s.OpeningQuantity,
-                        s.InwardQuantity,
-                        s.OutwardQuantity,
-                        s.AdjustmentQuantity,
-                        s.ClosingQuantity,
-                        s.CostRate,
-                        s.StockValue
-                    ));
+                    sb.AppendLine("SKU,Item Name,Size,Color,Category,Warehouse,Opening,Inward,Outward,Adjustment,Closing,Cost Rate,Stock Value");
+                    foreach (var s in rep.Items)
+                    {
+                        sb.AppendLine(string.Join(",",
+                            EscapeCsv(s.Sku),
+                            EscapeCsv(s.ProductName),
+                            EscapeCsv(s.Size ?? ""),
+                            EscapeCsv(s.Color ?? ""),
+                            EscapeCsv(s.CategoryName),
+                            EscapeCsv(s.WarehouseName),
+                            s.OpeningQuantity,
+                            s.InwardQuantity,
+                            s.OutwardQuantity,
+                            s.AdjustmentQuantity,
+                            s.ClosingQuantity,
+                            s.CostRate,
+                            s.StockValue
+                        ));
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("SKU,Item Name,Category,Warehouse,Batch,Opening,Inward,Outward,Adjustment,Closing,Cost Rate,Stock Value");
+                    foreach (var s in rep.Items)
+                    {
+                        sb.AppendLine(string.Join(",",
+                            EscapeCsv(s.Sku),
+                            EscapeCsv(s.ProductName),
+                            EscapeCsv(s.CategoryName),
+                            EscapeCsv(s.WarehouseName),
+                            EscapeCsv(s.BatchNumber ?? ""),
+                            s.OpeningQuantity,
+                            s.InwardQuantity,
+                            s.OutwardQuantity,
+                            s.AdjustmentQuantity,
+                            s.ClosingQuantity,
+                            s.CostRate,
+                            s.StockValue
+                        ));
+                    }
                 }
                 break;
             }
@@ -1393,6 +1520,62 @@ public class P0ReportService : IP0ReportService
                         s.CurrentStockValue,
                         s.SoldQuantity,
                         s.SaleValue
+                    ));
+                }
+                break;
+            }
+
+            case "sales-payments":
+            {
+                var rep = await GetSalesPaymentReportAsync(request with { PageSize = 10000 }, cancellationToken);
+                fileName = $"Sales_Payment_Report_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                sb.AppendLine("Invoice No,Invoice Date,Customer Name,Phone,GSTIN,Total Sale,Payment Received,Payment Date,Balance Due,Status,Payment Mode,Payment Ref / Cheque No,Notes,Branch");
+                foreach (var i in rep.Items)
+                {
+                    sb.AppendLine(string.Join(",",
+                        EscapeCsv(i.InvoiceNumber),
+                        i.InvoiceDate.ToString("yyyy-MM-dd"),
+                        EscapeCsv(i.CustomerName),
+                        EscapeCsv(i.CustomerPhone ?? ""),
+                        EscapeCsv(i.CustomerGstin ?? ""),
+                        i.TotalAmount,
+                        i.PaidAmount,
+                        i.PaymentDate.HasValue ? i.PaymentDate.Value.ToString("yyyy-MM-dd") : "-",
+                        i.BalanceAmount,
+                        i.PaymentStatus,
+                        i.PrimaryPaymentMode,
+                        EscapeCsv(i.PaymentReferenceNumber ?? ""),
+                        EscapeCsv(i.PaymentNotes ?? ""),
+                        EscapeCsv(i.BranchName)
+                    ));
+                }
+                break;
+            }
+
+            case "purchase-payments":
+            {
+                var rep = await GetPurchasePaymentReportAsync(request with { PageSize = 10000 }, cancellationToken);
+                fileName = $"Purchase_Payment_Report_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                sb.AppendLine("Bill No,Vendor Inv No,Bill Date,Supplier Name,Phone,GSTIN,Total Purchase,Payment Paid,Payment Date,Balance Due,Status,Payment Mode,Payment Ref / Cheque No,Bank,Notes,Branch");
+                foreach (var b in rep.Items)
+                {
+                    sb.AppendLine(string.Join(",",
+                        EscapeCsv(b.BillNumber),
+                        EscapeCsv(b.VendorInvoiceNumber ?? ""),
+                        b.BillDate.ToString("yyyy-MM-dd"),
+                        EscapeCsv(b.SupplierName),
+                        EscapeCsv(b.SupplierPhone ?? ""),
+                        EscapeCsv(b.SupplierGstin ?? ""),
+                        b.TotalAmount,
+                        b.PaidAmount,
+                        b.PaymentDate.HasValue ? b.PaymentDate.Value.ToString("yyyy-MM-dd") : "-",
+                        b.BalanceAmount,
+                        b.PaymentStatus,
+                        b.PrimaryPaymentMode,
+                        EscapeCsv(b.PaymentReferenceNumber ?? ""),
+                        EscapeCsv(b.BankName ?? ""),
+                        EscapeCsv(b.PaymentNotes ?? b.Notes ?? ""),
+                        EscapeCsv(b.BranchName)
                     ));
                 }
                 break;
@@ -1447,13 +1630,9 @@ public class P0ReportService : IP0ReportService
         var tenantId = RequireTenantId();
 
         // 1. Determine Date Range (Defaults to current month if null)
-        var fromUtc = request.FromDate.HasValue
-            ? DateTime.SpecifyKind(request.FromDate.Value.Date, DateTimeKind.Utc)
-            : new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        var toUtc = request.ToDate.HasValue
-            ? DateTime.SpecifyKind(request.ToDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc)
-            : DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: true);
+        var effectiveFromUtc = fromUtc ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var effectiveToUtc = toUtc ?? DateTime.UtcNow;
 
         // 2. Query Items (filtered by BrandId if specified)
         var itemsQuery = _context.Items
@@ -1504,8 +1683,8 @@ public class P0ReportService : IP0ReportService
                           !pbi.IsDeleted &&
                           !pbi.PurchaseBill.IsDeleted &&
                           !pbi.PurchaseBill.IsCancelled &&
-                          pbi.PurchaseBill.BillDate >= fromUtc &&
-                          pbi.PurchaseBill.BillDate <= toUtc &&
+                          pbi.PurchaseBill.BillDate >= effectiveFromUtc &&
+                          pbi.PurchaseBill.BillDate <= effectiveToUtc &&
                           itemIds.Contains(pbi.ItemId));
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
@@ -1528,8 +1707,8 @@ public class P0ReportService : IP0ReportService
                           !sii.IsDeleted &&
                           !sii.Invoice.IsDeleted &&
                           !sii.Invoice.IsCancelled &&
-                          sii.Invoice.InvoiceDate >= fromUtc &&
-                          sii.Invoice.InvoiceDate <= toUtc &&
+                          sii.Invoice.InvoiceDate >= effectiveFromUtc &&
+                          sii.Invoice.InvoiceDate <= effectiveToUtc &&
                           itemIds.Contains(sii.ItemId));
 
         if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
@@ -1602,8 +1781,8 @@ public class P0ReportService : IP0ReportService
             grandSoldQty,
             grandSaleValue,
             rows.Count,
-            fromUtc,
-            toUtc,
+            effectiveFromUtc,
+            effectiveToUtc,
             filterCompanyName
         );
     }
@@ -1677,4 +1856,346 @@ public class P0ReportService : IP0ReportService
     }
 
     #endregion
+
+    #region 12. Dedicated Sale & Purchase Payment Reports
+
+    public async Task<SalesPaymentReportDto> GetSalesPaymentReportAsync(
+        P0ReportFilterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var query = _context.SalesInvoices
+            .Where(i => i.TenantId == tenantId && !i.IsDeleted && !i.IsCancelled && i.Status != InvoiceStatus.Cancelled)
+            .AsNoTracking();
+
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: false);
+        if (fromUtc.HasValue)
+            query = query.Where(i => i.InvoiceDate >= fromUtc.Value);
+        if (toUtc.HasValue)
+            query = query.Where(i => i.InvoiceDate <= toUtc.Value);
+
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            query = query.Where(i => i.BranchId == request.BranchId.Value);
+
+        if (request.PartyId.HasValue && request.PartyId.Value != Guid.Empty)
+            query = query.Where(i => i.PartyId == request.PartyId.Value);
+
+        if (request.PaymentStatus.HasValue)
+            query = query.Where(i => (int)i.PaymentStatus == request.PaymentStatus.Value);
+
+        if (request.PaymentMode.HasValue)
+            query = query.Where(i => (int)i.PrimaryPaymentMode == request.PaymentMode.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var term = request.SearchTerm.Trim().ToLower();
+            query = query.Where(i =>
+                i.InvoiceNumber.ToLower().Contains(term) ||
+                i.CustomerName.ToLower().Contains(term) ||
+                (i.CustomerPhone != null && i.CustomerPhone.Contains(term)) ||
+                (i.CustomerGSTIN != null && i.CustomerGSTIN.ToLower().Contains(term)) ||
+                (i.PaymentReferenceNumber != null && i.PaymentReferenceNumber.ToLower().Contains(term)) ||
+                i.Payments.Any(p => !p.IsDeleted && p.TransactionReference != null && p.TransactionReference.ToLower().Contains(term)));
+        }
+
+        var totalInvoicesCount = await query.CountAsync(cancellationToken);
+        var totalSalesAmount = await query.SumAsync(i => (decimal?)i.TotalAmount, cancellationToken) ?? 0m;
+        var totalCollectedAmount = await query.SumAsync(i => (decimal?)i.PaidAmount, cancellationToken) ?? 0m;
+        var totalOutstandingAmount = await query.SumAsync(i => (decimal?)i.BalanceAmount, cancellationToken) ?? 0m;
+
+        var fullyPaidCount = await query.CountAsync(i => i.PaymentStatus == PaymentStatus.FullyPaid, cancellationToken);
+        var partiallyPaidCount = await query.CountAsync(i => i.PaymentStatus == PaymentStatus.PartiallyPaid, cancellationToken);
+        var unpaidCount = await query.CountAsync(i => i.PaymentStatus == PaymentStatus.Unpaid, cancellationToken);
+
+        var collectionRatio = totalSalesAmount > 0
+            ? Math.Round((totalCollectedAmount / totalSalesAmount) * 100m, 2)
+            : 0m;
+
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Max(1, Math.Min(1000, request.PageSize));
+        var totalPages = (int)Math.Ceiling(totalInvoicesCount / (double)pageSize);
+
+        var rawItems = await query
+            .OrderByDescending(i => i.InvoiceDate)
+            .ThenByDescending(i => i.CreatedAtUtc)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(i => new
+            {
+                i.Id,
+                i.InvoiceNumber,
+                i.InvoiceDate,
+                i.DueDate,
+                i.PartyId,
+                i.CustomerName,
+                i.CustomerPhone,
+                i.CustomerGSTIN,
+                i.TotalAmount,
+                i.PaidAmount,
+                i.BalanceAmount,
+                PaymentStatus = i.PaymentStatus.ToString(),
+                PrimaryPaymentMode = i.PrimaryPaymentMode.ToString(),
+                PaymentReferenceNumber = !string.IsNullOrWhiteSpace(i.PaymentReferenceNumber)
+                    ? i.PaymentReferenceNumber
+                    : i.Payments
+                        .Where(p => !p.IsDeleted && !string.IsNullOrWhiteSpace(p.TransactionReference))
+                        .OrderByDescending(p => p.PaymentDate)
+                        .Select(p => p.TransactionReference)
+                        .FirstOrDefault(),
+                PaymentNotes = i.Payments
+                    .Where(p => !p.IsDeleted && !string.IsNullOrWhiteSpace(p.Notes))
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => p.Notes)
+                    .FirstOrDefault(),
+                i.BranchId,
+                PaymentDate = i.Payments
+                    .Where(p => !p.IsDeleted)
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => (DateTime?)p.PaymentDate)
+                    .FirstOrDefault()
+            })
+            .ToListAsync(cancellationToken);
+
+        var branchIds = rawItems.Select(x => x.BranchId).Where(id => id != Guid.Empty).Distinct().ToList();
+        var branchDict = branchIds.Count > 0
+            ? await _context.TenantBranches
+                .IgnoreQueryFilters()
+                .Where(b => branchIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.BranchName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var items = rawItems.Select(i =>
+        {
+            DateTime? pDate = i.PaymentDate;
+            if (pDate == null && i.PaidAmount > 0)
+            {
+                pDate = i.InvoiceDate;
+            }
+            else if (i.PaidAmount <= 0)
+            {
+                pDate = null;
+            }
+
+            return new SalesPaymentRegisterRowDto(
+                i.Id,
+                i.InvoiceNumber,
+                i.InvoiceDate,
+                i.DueDate,
+                i.PartyId,
+                i.CustomerName,
+                i.CustomerPhone,
+                i.CustomerGSTIN,
+                i.TotalAmount,
+                i.PaidAmount,
+                i.BalanceAmount,
+                i.PaymentStatus,
+                i.PrimaryPaymentMode,
+                i.PaymentReferenceNumber,
+                branchDict.TryGetValue(i.BranchId, out var bName) ? bName : "Main Branch",
+                pDate,
+                i.PaymentNotes
+            );
+        }).ToList();
+
+        return new SalesPaymentReportDto(
+            items,
+            totalInvoicesCount,
+            pageNumber,
+            pageSize,
+            totalPages,
+            totalSalesAmount,
+            totalCollectedAmount,
+            totalOutstandingAmount,
+            collectionRatio,
+            totalInvoicesCount,
+            fullyPaidCount,
+            partiallyPaidCount,
+            unpaidCount
+        );
+    }
+
+    public async Task<PurchasePaymentReportDto> GetPurchasePaymentReportAsync(
+        P0ReportFilterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+
+        var query = _context.PurchaseBills
+            .Where(b => b.TenantId == tenantId && !b.IsDeleted && !b.IsCancelled && b.Status != PurchaseBillStatus.Cancelled)
+            .Include(b => b.Party)
+            .AsNoTracking();
+
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(request.FromDate, request.ToDate, defaultToCurrentMonthIfBothNull: false);
+        if (fromUtc.HasValue)
+            query = query.Where(b => b.BillDate >= fromUtc.Value);
+        if (toUtc.HasValue)
+            query = query.Where(b => b.BillDate <= toUtc.Value);
+
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            query = query.Where(b => b.BranchId == request.BranchId.Value);
+
+        if (request.PartyId.HasValue && request.PartyId.Value != Guid.Empty)
+            query = query.Where(b => b.PartyId == request.PartyId.Value);
+
+        if (request.PaymentStatus.HasValue)
+            query = query.Where(b => (int)b.PaymentStatus == request.PaymentStatus.Value);
+
+        if (request.PaymentMode.HasValue)
+            query = query.Where(b => (int)b.PrimaryPaymentMode == request.PaymentMode.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var term = request.SearchTerm.Trim().ToLower();
+            query = query.Where(b =>
+                b.BillNumber.ToLower().Contains(term) ||
+                (b.VendorInvoiceNumber != null && b.VendorInvoiceNumber.ToLower().Contains(term)) ||
+                b.SupplierName.ToLower().Contains(term) ||
+                (b.SupplierGSTIN != null && b.SupplierGSTIN.ToLower().Contains(term)) ||
+                b.Payments.Any(p => !p.IsDeleted && p.TransactionReference != null && p.TransactionReference.ToLower().Contains(term)));
+        }
+
+        var totalBillsCount = await query.CountAsync(cancellationToken);
+        var totalPurchasesAmount = await query.SumAsync(b => (decimal?)b.TotalAmount, cancellationToken) ?? 0m;
+        var totalPaidAmount = await query.SumAsync(b => (decimal?)b.PaidAmount, cancellationToken) ?? 0m;
+        var totalOutstandingAmount = await query.SumAsync(b => (decimal?)b.BalanceAmount, cancellationToken) ?? 0m;
+
+        var fullyPaidCount = await query.CountAsync(b => b.PaymentStatus == PaymentStatus.FullyPaid, cancellationToken);
+        var partiallyPaidCount = await query.CountAsync(b => b.PaymentStatus == PaymentStatus.PartiallyPaid, cancellationToken);
+        var unpaidCount = await query.CountAsync(b => b.PaymentStatus == PaymentStatus.Unpaid, cancellationToken);
+
+        var paymentRatio = totalPurchasesAmount > 0
+            ? Math.Round((totalPaidAmount / totalPurchasesAmount) * 100m, 2)
+            : 0m;
+
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Max(1, Math.Min(1000, request.PageSize));
+        var totalPages = (int)Math.Ceiling(totalBillsCount / (double)pageSize);
+
+        var rawItems = await query
+            .OrderByDescending(b => b.BillDate)
+            .ThenByDescending(b => b.CreatedAtUtc)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(b => new
+            {
+                b.Id,
+                b.BillNumber,
+                b.VendorInvoiceNumber,
+                b.BillDate,
+                b.DueDate,
+                b.PartyId,
+                b.SupplierName,
+                PartyPhone = b.Party != null ? (b.Party.PrimaryPhone ?? b.Party.Mobile) : null,
+                b.SupplierGSTIN,
+                b.TotalAmount,
+                b.PaidAmount,
+                b.BalanceAmount,
+                PaymentStatus = b.PaymentStatus.ToString(),
+                PrimaryPaymentMode = b.PrimaryPaymentMode.ToString(),
+                PaymentReferenceNumber = b.Payments
+                    .Where(p => !p.IsDeleted && !string.IsNullOrWhiteSpace(p.TransactionReference))
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => p.TransactionReference)
+                    .FirstOrDefault(),
+                BankName = b.Payments
+                    .Where(p => !p.IsDeleted && !string.IsNullOrWhiteSpace(p.BankName))
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => p.BankName)
+                    .FirstOrDefault(),
+                PaymentNotes = b.Payments
+                    .Where(p => !p.IsDeleted && !string.IsNullOrWhiteSpace(p.Notes))
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => p.Notes)
+                    .FirstOrDefault(),
+                b.Notes,
+                b.BranchId,
+                PaymentDate = b.Payments
+                    .Where(p => !p.IsDeleted)
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => (DateTime?)p.PaymentDate)
+                    .FirstOrDefault()
+            })
+            .ToListAsync(cancellationToken);
+
+        var branchIds = rawItems.Select(x => x.BranchId).Where(id => id != Guid.Empty).Distinct().ToList();
+        var branchDict = branchIds.Count > 0
+            ? await _context.TenantBranches
+                .IgnoreQueryFilters()
+                .Where(b => branchIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.BranchName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var items = rawItems.Select(b =>
+        {
+            DateTime? pDate = b.PaymentDate;
+            if (pDate == null && b.PaidAmount > 0)
+            {
+                pDate = b.BillDate;
+            }
+            else if (b.PaidAmount <= 0)
+            {
+                pDate = null;
+            }
+
+            return new PurchasePaymentRegisterRowDto(
+                b.Id,
+                b.BillNumber,
+                b.VendorInvoiceNumber,
+                b.BillDate,
+                b.DueDate,
+                b.PartyId,
+                b.SupplierName,
+                b.PartyPhone,
+                b.SupplierGSTIN,
+                b.TotalAmount,
+                b.PaidAmount,
+                b.BalanceAmount,
+                b.PaymentStatus,
+                b.PrimaryPaymentMode,
+                b.Notes,
+                branchDict.TryGetValue(b.BranchId, out var bName) ? bName : "Main Branch",
+                pDate,
+                b.PaymentReferenceNumber,
+                b.BankName,
+                b.PaymentNotes
+            );
+        }).ToList();
+
+        return new PurchasePaymentReportDto(
+            items,
+            totalBillsCount,
+            pageNumber,
+            pageSize,
+            totalPages,
+            totalPurchasesAmount,
+            totalPaidAmount,
+            totalOutstandingAmount,
+            paymentRatio,
+            totalBillsCount,
+            fullyPaidCount,
+            partiallyPaidCount,
+            unpaidCount
+        );
+    }
+
+    #endregion
+
+    private static (string? size, string? color) ExtractSizeAndColor(string? attributesJson)
+    {
+        if (string.IsNullOrWhiteSpace(attributesJson) || attributesJson == "{}") return (null, null);
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(attributesJson);
+            string? size = null;
+            string? color = null;
+            if (doc.RootElement.TryGetProperty("size", out var sp)) size = sp.GetString()?.Trim();
+            if (doc.RootElement.TryGetProperty("color", out var cp)) color = cp.GetString()?.Trim();
+            return (size, color);
+        }
+        catch
+        {
+            return (null, null);
+        }
+    }
 }

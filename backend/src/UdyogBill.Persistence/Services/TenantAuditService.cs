@@ -38,15 +38,22 @@ public class TenantAuditService : ITenantAuditService
         return tenantId;
     }
 
+    private IQueryable<AuditLog> GetTenantAuditQuery(Guid tenantId)
+    {
+        return _context.AuditLogs
+            .Where(a => a.TenantId == tenantId
+                     && a.ActionName != "SuperAdminImpersonateStore"
+                     && !a.ActionName.StartsWith("SuperAdmin")
+                     && (a.UserEmail == null || (!a.UserEmail.ToLower().Contains("superadmin") && !a.UserEmail.ToLower().Contains("admin@udyogbill.com"))));
+    }
+
     public async Task<Result<PagedResult<AuditLogDto>>> GetTenantAuditLogsAsync(
         TenantAuditQueryRequest request,
         CancellationToken cancellationToken = default)
     {
         var tenantId = RequireTenantId();
 
-        var query = _context.AuditLogs
-            .Where(a => a.TenantId == tenantId)
-            .AsQueryable();
+        var query = GetTenantAuditQuery(tenantId);
 
         if (request.UserId.HasValue && request.UserId.Value != Guid.Empty)
         {
@@ -118,8 +125,7 @@ public class TenantAuditService : ITenantAuditService
     {
         var tenantId = RequireTenantId();
 
-        var logsQuery = _context.AuditLogs
-            .Where(a => a.TenantId == tenantId);
+        var logsQuery = GetTenantAuditQuery(tenantId);
 
         var totalLogs = await logsQuery.CountAsync(cancellationToken);
 
@@ -189,9 +195,7 @@ public class TenantAuditService : ITenantAuditService
     {
         var tenantId = RequireTenantId();
 
-        var query = _context.AuditLogs
-            .Where(a => a.TenantId == tenantId)
-            .AsQueryable();
+        var query = GetTenantAuditQuery(tenantId);
 
         if (request.UserId.HasValue && request.UserId.Value != Guid.Empty)
             query = query.Where(a => a.UserId == request.UserId.Value);

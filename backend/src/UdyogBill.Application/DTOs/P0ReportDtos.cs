@@ -245,7 +245,12 @@ public record RealTimeStockBalanceItemDto(
     decimal DeficitQuantity,
     decimal CostRate,
     decimal StockValue,
-    string StockStatus // "Available", "Low", "Critical", "Zero", "Negative", "Overstock"
+    string StockStatus, // "Available", "Low", "Critical", "Zero", "Negative", "Overstock"
+    Guid? VariantId = null,
+    string? VariantSku = null,
+    string? VariantName = null,
+    string? Size = null,
+    string? Color = null
 );
 
 public record RealTimeStockBalanceReportDto(
@@ -282,7 +287,12 @@ public record StockValuationItemDto(
     decimal ClosingQuantity,
     decimal CostRate,
     decimal StockValue,
-    string ValuationMethod // "PurchaseCost", "WeightedAverage"
+    string ValuationMethod, // "PurchaseCost", "WeightedAverage"
+    Guid? VariantId = null,
+    string? VariantSku = null,
+    string? VariantName = null,
+    string? Size = null,
+    string? Color = null
 );
 
 public record StockValuationReportDto(
@@ -478,6 +488,85 @@ public record CompanyStockSalesReportDto(
     DateTime FromDate,
     DateTime ToDate,
     string? FilterCompanyName
+);
+
+#endregion
+
+#region 12. Dedicated Sale & Purchase Payment Report DTOs
+
+public record SalesPaymentRegisterRowDto(
+    Guid InvoiceId,
+    string InvoiceNumber,
+    DateTime InvoiceDate,
+    DateTime? DueDate,
+    Guid? PartyId,
+    string CustomerName,
+    string? CustomerPhone,
+    string? CustomerGstin,
+    decimal TotalAmount,
+    decimal PaidAmount,
+    decimal BalanceAmount,
+    string PaymentStatus,
+    string PrimaryPaymentMode,
+    string? PaymentReferenceNumber,
+    string BranchName,
+    DateTime? PaymentDate = null,
+    string? PaymentNotes = null
+);
+
+public record SalesPaymentReportDto(
+    IReadOnlyList<SalesPaymentRegisterRowDto> Items,
+    int TotalCount,
+    int PageNumber,
+    int PageSize,
+    int TotalPages,
+    decimal TotalSalesAmount,
+    decimal TotalCollectedAmount,
+    decimal TotalOutstandingAmount,
+    decimal CollectionRatioPercent,
+    int TotalInvoicesCount,
+    int FullyPaidCount,
+    int PartiallyPaidCount,
+    int UnpaidCount
+);
+
+public record PurchasePaymentRegisterRowDto(
+    Guid BillId,
+    string BillNumber,
+    string? VendorInvoiceNumber,
+    DateTime BillDate,
+    DateTime? DueDate,
+    Guid PartyId,
+    string SupplierName,
+    string? SupplierPhone,
+    string? SupplierGstin,
+    decimal TotalAmount,
+    decimal PaidAmount,
+    decimal BalanceAmount,
+    string PaymentStatus,
+    string PrimaryPaymentMode,
+    string? Notes,
+    string BranchName,
+    DateTime? PaymentDate = null,
+    string? PaymentReferenceNumber = null,
+    string? BankName = null,
+    string? PaymentNotes = null
+);
+
+public record PurchasePaymentReportDto(
+    IReadOnlyList<PurchasePaymentRegisterRowDto> Items,
+    int TotalCount,
+    int PageNumber,
+    int PageSize,
+    int TotalPages,
+    decimal TotalPurchasesAmount,
+    decimal TotalPaidAmount,
+    decimal TotalOutstandingAmount,
+    decimal PaymentRatioPercent,
+    int TotalBillsCount,
+    int FullyPaidCount,
+    int PartiallyPaidCount,
+    int UnpaidCount
 );
 
 #endregion

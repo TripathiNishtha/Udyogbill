@@ -69,13 +69,21 @@ public class PharmaController : BaseApiController
         return HandleResult(result);
     }
 
-    [HttpGet("substitutes/{itemId:guid}")]
+    [HttpGet("substitutes/{query}")]
     public async Task<ActionResult<IReadOnlyList<ItemSubstituteDto>>> FindSubstitutes(
-        Guid itemId,
+        string query,
         CancellationToken cancellationToken = default)
     {
-        var result = await _pharmaService.FindSaltSubstitutesAsync(itemId, cancellationToken);
-        return HandleResult(result);
+        if (Guid.TryParse(query, out var itemId))
+        {
+            var result = await _pharmaService.FindSaltSubstitutesAsync(itemId, cancellationToken);
+            return HandleResult(result);
+        }
+        else
+        {
+            var result = await _pharmaService.FindSaltSubstitutesByNameAsync(Uri.UnescapeDataString(query), cancellationToken);
+            return HandleResult(result);
+        }
     }
 
     [HttpPost("salts/link")]

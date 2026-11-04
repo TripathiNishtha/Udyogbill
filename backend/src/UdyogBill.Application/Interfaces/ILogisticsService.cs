@@ -19,6 +19,7 @@ public interface ILogisticsService
     Task<Result<DeliveryChallanDto>> GetDeliveryChallanByIdAsync(Guid challanId, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreateDeliveryChallanAsync(CreateDeliveryChallanRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreateChallanFromInvoiceAsync(Guid invoiceId, string? vehicleNumber = null, Guid? transporterId = null, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<Guid>> CreateInvoiceFromChallanAsync(Guid challanId, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<DeliveryChallanDto>> UpdateDispatchStatusAsync(Guid challanId, UpdateDispatchStatusRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
 
     // GST E-Way Bill Studio

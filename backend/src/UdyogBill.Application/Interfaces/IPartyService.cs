@@ -20,6 +20,8 @@ public interface IPartyService
 
     Task<Result<PartyDetailsDto>> GetPartyByIdAsync(Guid partyId, CancellationToken cancellationToken = default);
     Task<Result<PartyDetailsDto>> GetPartyByGstinAsync(string gstin, CancellationToken cancellationToken = default);
+    Task<Result<string>> GetNextCustomerCodeAsync(CancellationToken cancellationToken = default);
+    Task<Result<string>> GetNextSupplierCodeAsync(CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreatePartyAsync(CreatePartyRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> UpdatePartyAsync(Guid partyId, UpdatePartyRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> DeletePartyAsync(Guid partyId, string? ipAddress = null, CancellationToken cancellationToken = default);
@@ -40,6 +42,24 @@ public interface IPartyService
     Task<Result<Guid>> RecordPartyPaymentAsync(
         RecordPartyPaymentRequest request,
         string? ipAddress = null,
+        CancellationToken cancellationToken = default
+    );
+
+    // Advance Payment & Invoice Knock-off (Statutory & Ledger Invariant)
+    Task<Result<Guid>> CreateAdvancePaymentAsync(
+        CreateAdvancePaymentRequest request,
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default
+    );
+
+    Task<Result> AllocateAdvancePaymentAsync(
+        AllocateAdvancePaymentRequest request,
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default
+    );
+
+    Task<Result<IReadOnlyList<AdvancePaymentDto>>> GetUnallocatedAdvancesAsync(
+        Guid partyId,
         CancellationToken cancellationToken = default
     );
 }

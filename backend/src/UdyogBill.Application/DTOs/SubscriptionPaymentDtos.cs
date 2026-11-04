@@ -151,5 +151,7 @@ public record TenantSubscriptionStatusSummaryDto(
     int PlanRemainingDays,
     bool IsTrial,
     List<AddonCatalogItemDto> Addons,
-    List<SubscriptionInvoiceDto> RecentInvoices
+    List<SubscriptionInvoiceDto> RecentInvoices,
+    bool IsReadOnly = false,
+    bool IsExpired = false
 );

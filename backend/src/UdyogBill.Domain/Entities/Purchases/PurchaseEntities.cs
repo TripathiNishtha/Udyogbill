@@ -314,6 +314,7 @@ public class PurchaseBillPayment : BaseTenantAuditableEntity
 public class PurchaseReturn : BaseTenantAuditableEntity
 {
     public string DebitNoteNumber { get; set; } = string.Empty;
+    public string ReturnType { get; set; } = "GoodsReturn"; // "GoodsReturn" | "SchemeDiscount"
     public DateTimeOffset ReturnDate { get; set; } = DateTimeOffset.UtcNow;
     public Guid? OriginalPurchaseBillId { get; set; }
     public PurchaseBill? OriginalPurchaseBill { get; set; }
@@ -326,6 +327,9 @@ public class PurchaseReturn : BaseTenantAuditableEntity
     public string ReturnReason { get; set; } = "Defective";
     public decimal SubTotal { get; set; } = 0m;
     public decimal TaxAmount { get; set; } = 0m;
+    public decimal CgstAmount { get; set; } = 0m;
+    public decimal SgstAmount { get; set; } = 0m;
+    public decimal IgstAmount { get; set; } = 0m;
     public decimal TotalAmount { get; set; } = 0m;
     public string? Notes { get; set; }
     public bool IsCancelled { get; set; } = false;
@@ -346,6 +350,13 @@ public class PurchaseReturnItem : BaseTenantAuditableEntity
     public ItemVariant? Variant { get; set; }
     public decimal ReturnQuantity { get; set; } = 0m;
     public decimal UnitPrice { get; set; } = 0m;
+    public decimal TaxableAmount { get; set; } = 0m;
     public decimal GstRate { get; set; } = 0m;
+    public decimal CgstRate { get; set; } = 0m;
+    public decimal CgstAmount { get; set; } = 0m;
+    public decimal SgstRate { get; set; } = 0m;
+    public decimal SgstAmount { get; set; } = 0m;
+    public decimal IgstRate { get; set; } = 0m;
+    public decimal IgstAmount { get; set; } = 0m;
     public decimal TotalAmount { get; set; } = 0m;
 }

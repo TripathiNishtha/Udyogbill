@@ -80,6 +80,8 @@ public class AppDbContext : DbContext, IAppDbContext
 
     // Auditing
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<TenantDeviceSession> TenantDeviceSessions => Set<TenantDeviceSession>();
+    public DbSet<TenantLoginHistory> TenantLoginHistories => Set<TenantLoginHistory>();
 
     // Inventory & Catalog
     public DbSet<Category> Categories => Set<Category>();
@@ -103,6 +105,8 @@ public class AppDbContext : DbContext, IAppDbContext
     // Sales, Quotations & Invoicing
     public DbSet<Quotation> Quotations => Set<Quotation>();
     public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
+    public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
+    public DbSet<SalesOrderItem> SalesOrderItems => Set<SalesOrderItem>();
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
     public DbSet<SalesInvoicePayment> SalesInvoicePayments => Set<SalesInvoicePayment>();
@@ -221,6 +225,24 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Domain.Entities.Accounting.VoucherAuditLog> VoucherAuditLogs => Set<Domain.Entities.Accounting.VoucherAuditLog>();
     public DbSet<Domain.Entities.Accounting.AccountingPeriodLock> AccountingPeriodLocks => Set<Domain.Entities.Accounting.AccountingPeriodLock>();
     public DbSet<Domain.Entities.Accounting.CostCentre> CostCentres => Set<Domain.Entities.Accounting.CostCentre>();
+    public DbSet<Domain.Entities.Accounting.BillReferenceAllocation> BillReferenceAllocations => Set<Domain.Entities.Accounting.BillReferenceAllocation>();
+    public DbSet<Domain.Entities.Accounting.InterestPolicy> InterestPolicies => Set<Domain.Entities.Accounting.InterestPolicy>();
+    public DbSet<Domain.Entities.Accounting.PdcCheque> PdcCheques => Set<Domain.Entities.Accounting.PdcCheque>();
+    public DbSet<Domain.Entities.Accounting.TdsSectionConfig> TdsSectionConfigs => Set<Domain.Entities.Accounting.TdsSectionConfig>();
+    public DbSet<Domain.Entities.Accounting.TdsDeductionRecord> TdsDeductionRecords => Set<Domain.Entities.Accounting.TdsDeductionRecord>();
+    public DbSet<Domain.Entities.Accounting.ForeignCurrencyMaster> ForeignCurrencyMasters => Set<Domain.Entities.Accounting.ForeignCurrencyMaster>();
+    public DbSet<Domain.Entities.Accounting.ForexRevaluationLog> ForexRevaluationLogs => Set<Domain.Entities.Accounting.ForexRevaluationLog>();
+    public DbSet<Domain.Entities.Accounting.VoucherLegCostAllocation> VoucherLegCostAllocations => Set<Domain.Entities.Accounting.VoucherLegCostAllocation>();
+    public DbSet<Domain.Entities.Accounting.FixedAsset> FixedAssets => Set<Domain.Entities.Accounting.FixedAsset>();
+    public DbSet<Domain.Entities.Accounting.AssetDepreciationSchedule> AssetDepreciationSchedules => Set<Domain.Entities.Accounting.AssetDepreciationSchedule>();
+    public DbSet<Domain.Entities.Accounting.BankFeedStatement> BankFeedStatements => Set<Domain.Entities.Accounting.BankFeedStatement>();
+    public DbSet<Domain.Entities.Accounting.BankFeedLine> BankFeedLines => Set<Domain.Entities.Accounting.BankFeedLine>();
+    public DbSet<Domain.Entities.Accounting.BankAutoRule> BankAutoRules => Set<Domain.Entities.Accounting.BankAutoRule>();
+    public DbSet<Domain.Entities.Accounting.ChequeBook> ChequeBooks => Set<Domain.Entities.Accounting.ChequeBook>();
+    public DbSet<Domain.Entities.Accounting.ChequeLeafItem> ChequeLeafItems => Set<Domain.Entities.Accounting.ChequeLeafItem>();
+    public DbSet<Domain.Entities.Accounting.AccountingBudget> AccountingBudgets => Set<Domain.Entities.Accounting.AccountingBudget>();
+    public DbSet<Domain.Entities.Accounting.AccountingBudgetAllocation> AccountingBudgetAllocations => Set<Domain.Entities.Accounting.AccountingBudgetAllocation>();
+    public DbSet<Domain.Entities.Accounting.VoucherMakerChecker> VoucherMakerCheckers => Set<Domain.Entities.Accounting.VoucherMakerChecker>();
 
     // CMS - Marketing Website
     public DbSet<Lead> Leads => Set<Lead>();
@@ -302,6 +324,8 @@ public class AppDbContext : DbContext, IAppDbContext
     IQueryable<PlatformPasswordResetOtp> IAppDbContext.PlatformPasswordResetOtps => PlatformPasswordResetOtps;
     IQueryable<PlatformLeadPopupConfig> IAppDbContext.PlatformLeadPopupConfigs => PlatformLeadPopupConfigs;
     IQueryable<AuditLog> IAppDbContext.AuditLogs => AuditLogs;
+    IQueryable<TenantDeviceSession> IAppDbContext.TenantDeviceSessions => TenantDeviceSessions;
+    IQueryable<TenantLoginHistory> IAppDbContext.TenantLoginHistories => TenantLoginHistories;
 
     // Inventory explicit properties
     IQueryable<Category> IAppDbContext.Categories => Categories;
@@ -325,6 +349,8 @@ public class AppDbContext : DbContext, IAppDbContext
     // Sales explicit properties
     IQueryable<Quotation> IAppDbContext.Quotations => Quotations;
     IQueryable<QuotationItem> IAppDbContext.QuotationItems => QuotationItems;
+    IQueryable<SalesOrder> IAppDbContext.SalesOrders => SalesOrders;
+    IQueryable<SalesOrderItem> IAppDbContext.SalesOrderItems => SalesOrderItems;
     IQueryable<SalesInvoice> IAppDbContext.SalesInvoices => SalesInvoices;
     IQueryable<SalesInvoiceItem> IAppDbContext.SalesInvoiceItems => SalesInvoiceItems;
     IQueryable<SalesInvoicePayment> IAppDbContext.SalesInvoicePayments => SalesInvoicePayments;
@@ -601,56 +627,73 @@ public class AppDbContext : DbContext, IAppDbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<TenantDeviceSession>(b =>
+        {
+            b.ToTable("tenant_device_sessions");
+            b.HasIndex(d => d.TenantId);
+            b.HasIndex(d => d.DeviceId);
+            b.HasIndex(d => d.LastActiveAtUtc);
+        });
+
+        modelBuilder.Entity<TenantLoginHistory>(b =>
+        {
+            b.ToTable("tenant_login_histories");
+            b.HasIndex(l => l.TenantId);
+            b.HasIndex(l => l.LoggedInAtUtc);
+        });
+
         // Configure Global Query Filters for Soft Delete and Multi-Tenancy
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
+            if (entityType.BaseType != null)
+            {
+                continue;
+            }
+
             var clrType = entityType.ClrType;
 
             var isTenantScoped = typeof(ITenantScopedEntity).IsAssignableFrom(clrType) && clrType != typeof(User);
             var isSoftDeletable = typeof(ISoftDeletable).IsAssignableFrom(clrType);
 
-            if (isTenantScoped || isSoftDeletable)
+            if (isTenantScoped && isSoftDeletable)
             {
-                var method = typeof(AppDbContext)
-                    .GetMethod(nameof(ConfigureGlobalFilters), BindingFlags.NonPublic | BindingFlags.Instance)?
-                    .MakeGenericMethod(clrType);
-
-                method?.Invoke(this, new object[] { modelBuilder, isTenantScoped, isSoftDeletable });
+                GetType()
+                    .GetMethod(nameof(ConfigureTenantAndSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)?
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, new object[] { modelBuilder });
+            }
+            else if (isTenantScoped)
+            {
+                GetType()
+                    .GetMethod(nameof(ConfigureTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)?
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, new object[] { modelBuilder });
+            }
+            else if (isSoftDeletable)
+            {
+                GetType()
+                    .GetMethod(nameof(ConfigureSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)?
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, new object[] { modelBuilder });
             }
         }
     }
 
-    private void ConfigureGlobalFilters<TEntity>(ModelBuilder builder, bool isTenantScoped, bool isSoftDeletable) where TEntity : class
+    private void ConfigureTenantAndSoftDeleteFilter<TEntity>(ModelBuilder builder)
+        where TEntity : class, ITenantScopedEntity, ISoftDeletable
     {
-        var parameter = Expression.Parameter(typeof(TEntity), "e");
-        Expression? filterExpression = null;
+        builder.Entity<TEntity>().HasQueryFilter(e => !e.IsDeleted && (IsSuperAdmin || e.TenantId == CurrentTenantId));
+    }
 
-        if (isSoftDeletable)
-        {
-            var isDeletedProp = Expression.Property(parameter, nameof(ISoftDeletable.IsDeleted));
-            var notDeleted = Expression.Equal(isDeletedProp, Expression.Constant(false));
-            filterExpression = notDeleted;
-        }
+    private void ConfigureTenantFilter<TEntity>(ModelBuilder builder)
+        where TEntity : class, ITenantScopedEntity
+    {
+        builder.Entity<TEntity>().HasQueryFilter(e => IsSuperAdmin || e.TenantId == CurrentTenantId);
+    }
 
-        if (isTenantScoped)
-        {
-            var tenantIdProp = Expression.Property(parameter, nameof(ITenantScopedEntity.TenantId));
-            
-            // Expression: (context.IsSuperAdmin || e.TenantId == context.CurrentTenantId)
-            var isSuperAdminExpr = Expression.Property(Expression.Constant(this), nameof(IsSuperAdmin));
-            var currentTenantIdExpr = Expression.Property(Expression.Constant(this), nameof(CurrentTenantId));
-            var tenantMatch = Expression.Equal(tenantIdProp, currentTenantIdExpr);
-            var tenantFilter = Expression.OrElse(isSuperAdminExpr, tenantMatch);
-
-            filterExpression = filterExpression == null 
-                ? tenantFilter 
-                : Expression.AndAlso(filterExpression, tenantFilter);
-        }
-
-        if (filterExpression != null)
-        {
-            var lambda = Expression.Lambda<Func<TEntity, bool>>(filterExpression, parameter);
-            builder.Entity<TEntity>().HasQueryFilter(lambda);
-        }
+    private void ConfigureSoftDeleteFilter<TEntity>(ModelBuilder builder)
+        where TEntity : class, ISoftDeletable
+    {
+        builder.Entity<TEntity>().HasQueryFilter(e => !e.IsDeleted);
     }
 }

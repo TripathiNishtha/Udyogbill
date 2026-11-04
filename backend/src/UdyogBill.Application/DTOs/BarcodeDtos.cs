@@ -64,6 +64,9 @@ public class BarcodeScanResultDto
     public string? Size { get; set; }
     public string? Color { get; set; }
     public List<ItemBatchDto> Batches { get; set; } = new();
+    public Guid? MatchedBatchId { get; set; }
+    public string? MatchedBatchNumber { get; set; }
+    public DateTime? MatchedExpiryDate { get; set; }
 }
 
 public class UpiQrPayloadDto
@@ -73,4 +76,27 @@ public class UpiQrPayloadDto
     public string PayeeName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string TransactionNote { get; set; } = string.Empty;
+}
+
+public class BarcodeLookupResultDto
+{
+    public bool ExistsInStore { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public BarcodeScanResultDto? StoreItem { get; set; }
+    public GlobalCatalogItemDto? MasterCatalogItem { get; set; }
+}
+
+public class GlobalCatalogItemDto
+{
+    public string Barcode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string? BrandName { get; set; }
+    public string? CategoryName { get; set; }
+    public string? HsnCode { get; set; }
+    public decimal TaxRate { get; set; } = 18.0m;
+    public decimal MRP { get; set; }
+    public string UnitCode { get; set; } = "PCS";
+    public string IndustryCode { get; set; } = "FMCG";
+    public string? ShortDescription { get; set; }
+    public string AttributesJson { get; set; } = "{}";
 }

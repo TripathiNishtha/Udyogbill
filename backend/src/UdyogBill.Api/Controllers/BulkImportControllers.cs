@@ -35,6 +35,17 @@ public class TenantBulkImportController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPost("invoices")]
+    [RequirePermission(Permissions.SalesCreate)]
+    [ProducesResponseType(typeof(BulkInvoiceImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportInvoices([FromBody] BulkInvoiceImportRequest request, CancellationToken cancellationToken)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _importService.ImportInvoicesAsync(request, ip, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpPost("parties")]
     [RequirePermission(Permissions.PartiesManage)]
     [ProducesResponseType(typeof(BulkPartyImportResult), StatusCodes.Status200OK)]
@@ -43,6 +54,61 @@ public class TenantBulkImportController : BaseApiController
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _importService.ImportPartiesAsync(request, ip, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("purchases")]
+    [RequirePermission(Permissions.PurchaseCreate)]
+    [ProducesResponseType(typeof(BulkPurchaseImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportPurchases([FromBody] BulkPurchaseImportRequest request, CancellationToken cancellationToken)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _importService.ImportPurchasesAsync(request, ip, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("expenses")]
+    [RequirePermission(Permissions.BankingManage)]
+    [ProducesResponseType(typeof(BulkExpenseImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportExpenses([FromBody] BulkExpenseImportRequest request, CancellationToken cancellationToken)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _importService.ImportExpensesAsync(request, ip, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("ledgers")]
+    [RequirePermission(Permissions.AccountsManage)]
+    [ProducesResponseType(typeof(BulkLedgerImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportLedgers([FromBody] BulkLedgerImportRequest request, CancellationToken cancellationToken)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _importService.ImportLedgersAsync(request, ip, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("sales-returns")]
+    [RequirePermission(Permissions.SalesReturn, Permissions.SalesCreate)]
+    [ProducesResponseType(typeof(BulkSalesReturnImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportSalesReturns([FromBody] BulkSalesReturnImportRequest request, CancellationToken cancellationToken)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _importService.ImportSalesReturnsAsync(request, ip, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("purchase-returns")]
+    [RequirePermission(Permissions.PurchaseReturn, Permissions.PurchaseCreate)]
+    [ProducesResponseType(typeof(BulkPurchaseReturnImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportPurchaseReturns([FromBody] BulkPurchaseReturnImportRequest request, CancellationToken cancellationToken)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _importService.ImportPurchaseReturnsAsync(request, ip, cancellationToken);
         return HandleResult(result);
     }
 

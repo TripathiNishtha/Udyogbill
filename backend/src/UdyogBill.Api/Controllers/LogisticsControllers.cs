@@ -97,6 +97,18 @@ public class TenantLogisticsController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPost("challans/{challanId:guid}/convert-to-invoice")]
+    [RequirePermission(Permissions.SalesCreate)]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateInvoiceFromChallan(
+        Guid challanId,
+        CancellationToken cancellationToken)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _logisticsService.CreateInvoiceFromChallanAsync(challanId, ip, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpPost("challans/{challanId:guid}/status")]
     [RequirePermission(Permissions.LogisticsManage)]
     [ProducesResponseType(typeof(DeliveryChallanDto), StatusCodes.Status200OK)]

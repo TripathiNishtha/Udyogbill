@@ -55,4 +55,22 @@ public class TenantSalesReturnsController : BaseApiController
         var result = await _salesService.CreateSalesReturnAsync(request, ip, cancellationToken);
         return HandleResult(result);
     }
+
+    [HttpPost("{id:guid}/settle")]
+    [RequirePermission(Permissions.SalesReturn, Permissions.SalesCreate)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SettleSalesReturn(Guid id, [FromBody] SettleSalesReturnRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _salesService.SettleSalesReturnCreditAsync(id, request, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    [RequirePermission(Permissions.SalesReturn, Permissions.SalesCreate)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CancelSalesReturn(Guid id, [FromBody] CancelSalesReturnRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _salesService.CancelSalesReturnAsync(id, request, cancellationToken);
+        return HandleResult(result);
+    }
 }

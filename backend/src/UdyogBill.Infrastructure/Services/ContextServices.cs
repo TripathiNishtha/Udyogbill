@@ -59,6 +59,15 @@ public class CurrentUserContext : ICurrentUserContext
         }
     }
 
+    public Guid? BranchId
+    {
+        get
+        {
+            var claim = User?.FindFirst(SharedClaims.BranchId)?.Value ?? User?.FindFirst("branchId")?.Value;
+            return Guid.TryParse(claim, out var id) ? id : null;
+        }
+    }
+
     public IReadOnlyList<string> Roles =>
         User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? new List<string>();
 

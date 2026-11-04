@@ -23,6 +23,10 @@ public class Lead
     public DateTime? TrialStartedAt { get; set; }
     public DateTime? ConvertedPaidAt { get; set; }
     public string Notes { get; set; } = string.Empty;   // admin notes
+    public string? Gstin { get; set; }
+    public int InvoiceCount { get; set; } = 1;
+    public decimal? LastInvoiceAmount { get; set; }
+    public DateTime? LastActiveAt { get; set; }
 
     // Organic & Digital Attribution
     public string? CitySlug { get; set; }

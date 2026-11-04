@@ -19,17 +19,20 @@ public class SuperAdminService : ISuperAdminService
     private readonly ICurrentUserContext _currentUserContext;
     private readonly IAuditService _auditService;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IIpGeolocationService _ipGeolocationService;
 
     public SuperAdminService(
         AppDbContext context,
         ICurrentUserContext currentUserContext,
         IAuditService auditService,
-        IJwtTokenGenerator jwtTokenGenerator)
+        IJwtTokenGenerator jwtTokenGenerator,
+        IIpGeolocationService ipGeolocationService)
     {
         _context = context;
         _currentUserContext = currentUserContext;
         _auditService = auditService;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _ipGeolocationService = ipGeolocationService;
     }
 
     #region Tenant Management
@@ -45,7 +48,9 @@ public class SuperAdminService : ISuperAdminService
         var query = _context.Tenants
             .IgnoreQueryFilters()
             .Include(t => t.Industry)
-            .Where(t => !t.IsDeleted);
+            .Include(t => t.ChildCompanies.Where(c => !c.IsDeleted))
+                .ThenInclude(c => c.Industry)
+            .Where(t => !t.IsDeleted && t.ParentTenantId == null);
 
         if (status.HasValue)
         {
@@ -64,34 +69,160 @@ public class SuperAdminService : ISuperAdminService
                 t.BusinessName.ToLower().Contains(term) ||
                 t.Code.ToLower().Contains(term) ||
                 t.AdminEmail.ToLower().Contains(term) ||
-                t.PrimaryPhone.Contains(term));
+                t.PrimaryPhone.Contains(term) ||
+                t.ChildCompanies.Any(c => !c.IsDeleted && (
+                    c.BusinessName.ToLower().Contains(term) ||
+                    c.Code.ToLower().Contains(term) ||
+                    c.AdminEmail.ToLower().Contains(term) ||
+                    c.PrimaryPhone.Contains(term))));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
+        var tenantsList = await query
             .OrderByDescending(t => t.CreatedAtUtc)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(t => new TenantDto(
-                t.Id,
-                t.Code,
-                t.BusinessName,
-                t.TradeName,
-                t.IndustryId,
-                t.Industry != null ? t.Industry.Name : "General",
-                t.Industry != null ? t.Industry.Code : "GENERAL",
-                t.Status,
-                t.AdminEmail,
-                t.PrimaryPhone,
-                t.GSTIN,
-                t.TimeZone,
-                t.CurrencyCode,
-                t.IsActive,
-                t.CreatedAtUtc,
-                t.LogoUrl,
-                t.AdminPassword
-            ))
             .ToListAsync(cancellationToken);
+
+        var tenantIds = tenantsList.Select(t => t.Id).ToList();
+
+        // Fetch subscriptions for this page of tenants
+        var subscriptions = await _context.TenantSubscriptions
+            .IgnoreQueryFilters()
+            .Include(s => s.Plan)
+            .Where(s => tenantIds.Contains(s.TenantId) && !s.IsDeleted)
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        var subByTenant = subscriptions
+            .GroupBy(s => s.TenantId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var now = DateTimeOffset.UtcNow;
+        var items = new List<TenantDto>();
+
+        foreach (var t in tenantsList)
+        {
+            subByTenant.TryGetValue(t.Id, out var sub);
+
+            string subscriptionStatus = "Trial";
+            string? planName = sub?.Plan?.Name;
+            DateTimeOffset? subStart = sub?.StartsAtUtc;
+            DateTimeOffset? subEnd = sub?.EndsAtUtc;
+            int? pendingTrialDays = null;
+            var effectiveStatus = t.Status;
+
+            if (sub != null)
+            {
+                if (sub.Status == SubscriptionStatus.Active && sub.EndsAtUtc > now)
+                {
+                    subscriptionStatus = "Active";
+                    pendingTrialDays = 0;
+                    if (effectiveStatus != TenantStatus.Suspended) effectiveStatus = TenantStatus.Active;
+                }
+                else if (sub.Status == SubscriptionStatus.Trial || (sub.TrialEndsAtUtc.HasValue && sub.TrialEndsAtUtc.Value > now))
+                {
+                    var trialEnd = sub.TrialEndsAtUtc ?? sub.EndsAtUtc;
+                    if (trialEnd > now)
+                    {
+                        subscriptionStatus = "Trial";
+                        pendingTrialDays = Math.Max(1, (int)Math.Ceiling((trialEnd - now).TotalDays));
+                        if (effectiveStatus != TenantStatus.Suspended) effectiveStatus = TenantStatus.Trial;
+                    }
+                    else
+                    {
+                        subscriptionStatus = "Expired";
+                        pendingTrialDays = 0;
+                        if (effectiveStatus != TenantStatus.Suspended) effectiveStatus = TenantStatus.Expired;
+                    }
+                    subEnd = trialEnd;
+                }
+                else if (sub.Status == SubscriptionStatus.Suspended || effectiveStatus == TenantStatus.Suspended)
+                {
+                    subscriptionStatus = "Suspended";
+                    pendingTrialDays = 0;
+                    effectiveStatus = TenantStatus.Suspended;
+                }
+                else
+                {
+                    subscriptionStatus = sub.EndsAtUtc <= now ? "Expired" : sub.Status.ToString();
+                    pendingTrialDays = 0;
+                    if (sub.EndsAtUtc <= now && effectiveStatus != TenantStatus.Suspended)
+                    {
+                        effectiveStatus = TenantStatus.Expired;
+                    }
+                }
+            }
+            else
+            {
+                var trialEnd = t.CreatedAtUtc.AddDays(14);
+                if (trialEnd > now && effectiveStatus != TenantStatus.Suspended)
+                {
+                    subscriptionStatus = "Trial";
+                    pendingTrialDays = Math.Max(1, (int)Math.Ceiling((trialEnd - now).TotalDays));
+                    subStart = t.CreatedAtUtc;
+                    subEnd = trialEnd;
+                }
+                else
+                {
+                    subscriptionStatus = effectiveStatus == TenantStatus.Active ? "Active" : "Expired";
+                    pendingTrialDays = 0;
+                    subStart = t.CreatedAtUtc;
+                    subEnd = trialEnd;
+                    if (effectiveStatus != TenantStatus.Suspended && effectiveStatus != TenantStatus.Active)
+                    {
+                        effectiveStatus = TenantStatus.Expired;
+                    }
+                }
+            }
+
+            var childSummaries = t.ChildCompanies?
+                .Where(c => !c.IsDeleted)
+                .Select(c => new ChildCompanySummaryDto(
+                    Id: c.Id,
+                    Code: c.Code,
+                    BusinessName: c.BusinessName,
+                    TradeName: c.TradeName ?? "",
+                    IndustryName: c.Industry != null ? c.Industry.Name : "General",
+                    IndustryCode: c.Industry != null ? c.Industry.Code : "GENERAL",
+                    Status: c.Status,
+                    GSTIN: c.GSTIN,
+                    PrimaryPhone: c.PrimaryPhone,
+                    CreatedAtUtc: c.CreatedAtUtc
+                ))
+                .ToList() ?? new List<ChildCompanySummaryDto>();
+
+            items.Add(new TenantDto(
+                Id: t.Id,
+                Code: t.Code,
+                BusinessName: t.BusinessName,
+                TradeName: t.TradeName,
+                IndustryId: t.IndustryId,
+                IndustryName: t.Industry != null ? t.Industry.Name : "General",
+                IndustryCode: t.Industry != null ? t.Industry.Code : "GENERAL",
+                Status: effectiveStatus,
+                AdminEmail: t.AdminEmail,
+                PrimaryPhone: t.PrimaryPhone,
+                GSTIN: t.GSTIN,
+                TimeZone: t.TimeZone,
+                CurrencyCode: t.CurrencyCode,
+                IsActive: t.IsActive,
+                CreatedAtUtc: t.CreatedAtUtc,
+                LogoUrl: t.LogoUrl,
+                AdminPassword: t.AdminPassword,
+                ChildCompanies: childSummaries,
+                ChildCompanyCount: childSummaries.Count,
+                ParentTenantId: t.ParentTenantId,
+                SubscriptionStartDateUtc: subStart,
+                SubscriptionEndDateUtc: subEnd,
+                SubscriptionStatus: subscriptionStatus,
+                PlanName: planName,
+                PendingTrialDays: pendingTrialDays,
+                IsAiAddonActive: false,
+                AiScansLimit: 500,
+                AiScansUsed: 0
+            ));
+        }
 
         return Result<PagedResult<TenantDto>>.Success(PagedResult<TenantDto>.Create(items, pageNumber, pageSize, totalCount));
     }
@@ -1276,6 +1407,7 @@ public class SuperAdminService : ISuperAdminService
                 p.BillingCycle,
                 p.Price,
                 p.TrialDays,
+                p.MaxCompanies,
                 p.MaxUsers,
                 p.MaxBranches,
                 p.MaxWarehouses,
@@ -1467,4 +1599,391 @@ public class SuperAdminService : ISuperAdminService
         // Only if tenant is explicitly Haryana (06) will it match supplierStateCode ("06") and charge CGST+SGST.
         return "";
     }
+
+    #region Multi-Tab Billing & Security Intelligence
+
+    public async Task<Result> ToggleMultiTabBillingAsync(Guid tenantId, bool isEnabled, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId && !t.IsDeleted, cancellationToken);
+        if (tenant == null) return Result.Failure("Tenant not found.", "NOT_FOUND");
+
+        var config = await _context.TenantIndustryConfigs.FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken);
+        if (config == null)
+        {
+            config = new TenantIndustryConfig
+            {
+                TenantId = tenantId,
+                IndustryId = tenant.IndustryId,
+                ConfigurationJson = "{}"
+            };
+            _context.TenantIndustryConfigs.Add(config);
+        }
+
+        var configDict = new Dictionary<string, bool>();
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(config.ConfigurationJson))
+                configDict = JsonSerializer.Deserialize<Dictionary<string, bool>>(config.ConfigurationJson) ?? new();
+        }
+        catch { }
+
+        configDict["multitab"] = isEnabled;
+        configDict["multitab-billing"] = isEnabled;
+        config.ConfigurationJson = JsonSerializer.Serialize(configDict);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditService.LogAsync(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Action = AuditActionType.Update,
+            ActionName = "TENANT_MULTITAB_TOGGLED",
+            EntityName = "Tenant",
+            EntityId = tenantId.ToString(),
+            NewValuesJson = $"Multi-Tab Concurrent Billing set to {(isEnabled ? "ENABLED" : "DISABLED")} for {tenant.BusinessName}",
+            IpAddress = ipAddress,
+            TimestampUtc = DateTimeOffset.UtcNow
+        }, cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result<TenantSecurityAuditSummaryDto>> GetTenantSecurityAuditAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == tenantId && !t.IsDeleted, cancellationToken);
+
+        if (tenant == null)
+        {
+            return Result<TenantSecurityAuditSummaryDto>.Failure("Tenant not found.", "NOT_FOUND");
+        }
+
+        // Active/known devices
+        var devicesList = await _context.TenantDeviceSessions
+            .IgnoreQueryFilters()
+            .Where(d => d.TenantId == tenantId)
+            .OrderByDescending(d => d.LastActiveAtUtc)
+            .ToListAsync(cancellationToken);
+
+        // Recent login attempts
+        var loginsList = await _context.TenantLoginHistories
+            .IgnoreQueryFilters()
+            .Where(l => l.TenantId == tenantId)
+            .OrderByDescending(l => l.LoggedInAtUtc)
+            .Take(30)
+            .ToListAsync(cancellationToken);
+
+        // In-app activity trail from AuditLogs
+        var auditTrail = await _context.AuditLogs
+            .IgnoreQueryFilters()
+            .Where(a => a.TenantId == tenantId)
+            .OrderByDescending(a => a.TimestampUtc)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+
+        var deviceDtos = devicesList.Select(d => new TenantDeviceSessionDto(
+            d.Id,
+            d.DeviceId,
+            d.DeviceType,
+            d.Brand,
+            d.Model,
+            d.OsName,
+            d.OsVersion,
+            d.AppVersion,
+            d.ConnectionType,
+            d.IsDualSim,
+            d.Sim1Carrier,
+            d.Sim2Carrier,
+            d.SimPhoneNumber,
+            d.IpAddress,
+            d.City,
+            d.State,
+            d.Country,
+            d.IspName,
+            d.FirstSeenAtUtc,
+            d.LastActiveAtUtc,
+            d.IsOnline || (DateTimeOffset.UtcNow - d.LastActiveAtUtc).TotalMinutes <= 15,
+            d.UserEmail,
+            d.UserFullName,
+            d.LastActionName
+        )).ToList();
+
+        var loginDtos = loginsList.Select(l => new TenantLoginHistoryDto(
+            l.Id,
+            l.AttemptedIdentifier,
+            l.IsSuccessful,
+            l.FailureReason,
+            l.AuthChannel,
+            l.DeviceSummary,
+            l.IpAddress,
+            l.City,
+            l.State,
+            l.Country,
+            l.IspName,
+            l.ConnectionType,
+            l.LoggedInAtUtc
+        )).ToList();
+
+        var activityDtos = auditTrail.Select(a => new TenantInAppActivityDto(
+            a.Id,
+            !string.IsNullOrWhiteSpace(a.ActionName) ? a.ActionName : a.Action.ToString(),
+            a.EntityName,
+            a.EntityId,
+            a.UserEmail,
+            a.IpAddress,
+            a.UserAgent,
+            a.TimestampUtc
+        )).ToList();
+
+        var primaryCity = deviceDtos.FirstOrDefault(d => !string.IsNullOrEmpty(d.City))?.City 
+            ?? loginDtos.FirstOrDefault(l => !string.IsNullOrEmpty(l.City))?.City 
+            ?? (!string.IsNullOrWhiteSpace(tenant.City) ? tenant.City : "Unknown");
+
+        var primaryNetwork = deviceDtos.FirstOrDefault(d => !string.IsNullOrEmpty(d.ConnectionType))?.ConnectionType 
+            ?? loginDtos.FirstOrDefault(l => !string.IsNullOrEmpty(l.ConnectionType))?.ConnectionType 
+            ?? "WiFi";
+
+        var primaryIsp = deviceDtos.FirstOrDefault(d => !string.IsNullOrEmpty(d.IspName))?.IspName 
+            ?? loginDtos.FirstOrDefault(l => !string.IsNullOrEmpty(l.IspName))?.IspName 
+            ?? "Unknown";
+
+        var onlineCount = deviceDtos.Count(d => d.IsOnline);
+
+        var summary = new TenantSecurityAuditSummaryDto(
+            tenant.Id,
+            tenant.BusinessName,
+            tenant.Code,
+            tenant.AdminEmail,
+            tenant.PrimaryPhone,
+            deviceDtos.Count,
+            onlineCount,
+            primaryCity,
+            primaryNetwork,
+            primaryIsp,
+            deviceDtos,
+            loginDtos,
+            activityDtos
+        );
+
+        return Result<TenantSecurityAuditSummaryDto>.Success(summary);
+    }
+
+    public async Task<Result> RecordClientTelemetryAsync(
+        Guid tenantId,
+        Guid? userId,
+        ClientTelemetryPayload payload,
+        string? ipAddress,
+        string? userAgent,
+        CancellationToken cancellationToken = default)
+    {
+        if (payload == null || string.IsNullOrWhiteSpace(payload.DeviceId))
+        {
+            return Result.Failure("DeviceId cannot be empty.", "VALIDATION_ERROR");
+        }
+
+        var cleanIp = CleanIpAddress(ipAddress);
+        var geo = await _ipGeolocationService.ResolveIpAsync(cleanIp, cancellationToken);
+
+        var existing = await _context.TenantDeviceSessions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(d => d.TenantId == tenantId && d.DeviceId == payload.DeviceId, cancellationToken);
+
+        if (existing != null)
+        {
+            if (!string.IsNullOrWhiteSpace(payload.DeviceType)) existing.DeviceType = payload.DeviceType;
+            if (!string.IsNullOrWhiteSpace(payload.Brand)) existing.Brand = payload.Brand;
+            if (!string.IsNullOrWhiteSpace(payload.Model)) existing.Model = payload.Model;
+            if (!string.IsNullOrWhiteSpace(payload.OsName)) existing.OsName = payload.OsName;
+            if (!string.IsNullOrWhiteSpace(payload.OsVersion)) existing.OsVersion = payload.OsVersion;
+            if (!string.IsNullOrWhiteSpace(payload.AppVersion)) existing.AppVersion = payload.AppVersion;
+            if (!string.IsNullOrWhiteSpace(payload.ConnectionType)) existing.ConnectionType = payload.ConnectionType;
+            existing.IsDualSim = payload.IsDualSim;
+            if (!string.IsNullOrWhiteSpace(payload.Sim1Carrier)) existing.Sim1Carrier = payload.Sim1Carrier;
+            if (!string.IsNullOrWhiteSpace(payload.Sim2Carrier)) existing.Sim2Carrier = payload.Sim2Carrier;
+            if (!string.IsNullOrWhiteSpace(payload.SimPhoneNumber)) existing.SimPhoneNumber = payload.SimPhoneNumber;
+
+            if (!string.IsNullOrWhiteSpace(cleanIp)) existing.IpAddress = cleanIp;
+            if (!string.IsNullOrWhiteSpace(geo.City)) existing.City = geo.City;
+            if (!string.IsNullOrWhiteSpace(geo.State)) existing.State = geo.State;
+            if (!string.IsNullOrWhiteSpace(geo.Country)) existing.Country = geo.Country;
+            if (!string.IsNullOrWhiteSpace(geo.IspName)) existing.IspName = geo.IspName;
+
+            existing.LastActiveAtUtc = DateTimeOffset.UtcNow;
+            existing.IsOnline = true;
+            if (userId.HasValue) existing.UserId = userId.Value;
+        }
+        else
+        {
+            var newSession = new TenantDeviceSession
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                UserId = userId,
+                DeviceId = payload.DeviceId,
+                DeviceType = string.IsNullOrWhiteSpace(payload.DeviceType) ? "Mobile" : payload.DeviceType,
+                Brand = string.IsNullOrWhiteSpace(payload.Brand) ? "Unknown" : payload.Brand,
+                Model = string.IsNullOrWhiteSpace(payload.Model) ? "Unknown" : payload.Model,
+                OsName = string.IsNullOrWhiteSpace(payload.OsName) ? "Unknown" : payload.OsName,
+                OsVersion = payload.OsVersion ?? "",
+                AppVersion = payload.AppVersion ?? "",
+                ConnectionType = string.IsNullOrWhiteSpace(payload.ConnectionType) ? "WiFi" : payload.ConnectionType,
+                IsDualSim = payload.IsDualSim,
+                Sim1Carrier = payload.Sim1Carrier,
+                Sim2Carrier = payload.Sim2Carrier,
+                SimPhoneNumber = payload.SimPhoneNumber,
+                IpAddress = cleanIp ?? "Unknown",
+                City = geo.City,
+                State = geo.State,
+                Country = geo.Country,
+                IspName = geo.IspName,
+                FirstSeenAtUtc = DateTimeOffset.UtcNow,
+                LastActiveAtUtc = DateTimeOffset.UtcNow,
+                IsOnline = true
+            };
+            _context.TenantDeviceSessions.Add(newSession);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    public async Task<Result> RecordLoginAttemptAsync(
+        Guid tenantId,
+        Guid? userId,
+        string attemptedIdentifier,
+        bool isSuccessful,
+        string? failureReason,
+        string authChannel,
+        string? ipAddress,
+        string? userAgent,
+        ClientTelemetryPayload? clientTelemetry = null,
+        CancellationToken cancellationToken = default)
+    {
+        var cleanIp = CleanIpAddress(ipAddress);
+        var geo = await _ipGeolocationService.ResolveIpAsync(cleanIp, cancellationToken);
+
+        string deviceSummary;
+        if (clientTelemetry != null && (!string.IsNullOrWhiteSpace(clientTelemetry.Brand) || !string.IsNullOrWhiteSpace(clientTelemetry.Model)))
+        {
+            deviceSummary = $"{clientTelemetry.Brand} {clientTelemetry.Model} ({clientTelemetry.OsName} {clientTelemetry.OsVersion})".Trim();
+        }
+        else if (!string.IsNullOrWhiteSpace(userAgent))
+        {
+            deviceSummary = SummarizeUserAgent(userAgent);
+        }
+        else
+        {
+            deviceSummary = "Unknown Device";
+        }
+
+        var history = new TenantLoginHistory
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            UserId = userId,
+            AttemptedIdentifier = attemptedIdentifier ?? "Unknown",
+            IsSuccessful = isSuccessful,
+            FailureReason = failureReason,
+            AuthChannel = string.IsNullOrWhiteSpace(authChannel) ? "MobileApp" : authChannel,
+            DeviceSummary = deviceSummary,
+            IpAddress = cleanIp ?? "Unknown",
+            City = geo.City,
+            State = geo.State,
+            Country = geo.Country,
+            IspName = geo.IspName,
+            ConnectionType = clientTelemetry?.ConnectionType ?? "WiFi",
+            LoggedInAtUtc = DateTimeOffset.UtcNow
+        };
+
+        _context.TenantLoginHistories.Add(history);
+
+        if (isSuccessful && clientTelemetry != null && !string.IsNullOrWhiteSpace(clientTelemetry.DeviceId))
+        {
+            var existingSession = await _context.TenantDeviceSessions
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(d => d.TenantId == tenantId && d.DeviceId == clientTelemetry.DeviceId, cancellationToken);
+
+            if (existingSession != null)
+            {
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.Brand)) existingSession.Brand = clientTelemetry.Brand;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.Model)) existingSession.Model = clientTelemetry.Model;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.OsName)) existingSession.OsName = clientTelemetry.OsName;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.OsVersion)) existingSession.OsVersion = clientTelemetry.OsVersion;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.AppVersion)) existingSession.AppVersion = clientTelemetry.AppVersion;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.ConnectionType)) existingSession.ConnectionType = clientTelemetry.ConnectionType;
+                existingSession.IsDualSim = clientTelemetry.IsDualSim;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.Sim1Carrier)) existingSession.Sim1Carrier = clientTelemetry.Sim1Carrier;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.Sim2Carrier)) existingSession.Sim2Carrier = clientTelemetry.Sim2Carrier;
+                if (!string.IsNullOrWhiteSpace(clientTelemetry.SimPhoneNumber)) existingSession.SimPhoneNumber = clientTelemetry.SimPhoneNumber;
+
+                if (!string.IsNullOrWhiteSpace(cleanIp)) existingSession.IpAddress = cleanIp;
+                if (!string.IsNullOrWhiteSpace(geo.City)) existingSession.City = geo.City;
+                if (!string.IsNullOrWhiteSpace(geo.State)) existingSession.State = geo.State;
+                if (!string.IsNullOrWhiteSpace(geo.IspName)) existingSession.IspName = geo.IspName;
+
+                existingSession.LastActiveAtUtc = DateTimeOffset.UtcNow;
+                existingSession.IsOnline = true;
+                if (userId.HasValue) existingSession.UserId = userId.Value;
+            }
+            else
+            {
+                _context.TenantDeviceSessions.Add(new TenantDeviceSession
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    UserId = userId,
+                    DeviceId = clientTelemetry.DeviceId,
+                    DeviceType = string.IsNullOrWhiteSpace(clientTelemetry.DeviceType) ? "Mobile" : clientTelemetry.DeviceType,
+                    Brand = string.IsNullOrWhiteSpace(clientTelemetry.Brand) ? "Unknown" : clientTelemetry.Brand,
+                    Model = string.IsNullOrWhiteSpace(clientTelemetry.Model) ? "Unknown" : clientTelemetry.Model,
+                    OsName = string.IsNullOrWhiteSpace(clientTelemetry.OsName) ? "Unknown" : clientTelemetry.OsName,
+                    OsVersion = clientTelemetry.OsVersion ?? "",
+                    AppVersion = clientTelemetry.AppVersion ?? "",
+                    ConnectionType = string.IsNullOrWhiteSpace(clientTelemetry.ConnectionType) ? "WiFi" : clientTelemetry.ConnectionType,
+                    IsDualSim = clientTelemetry.IsDualSim,
+                    Sim1Carrier = clientTelemetry.Sim1Carrier,
+                    Sim2Carrier = clientTelemetry.Sim2Carrier,
+                    SimPhoneNumber = clientTelemetry.SimPhoneNumber,
+                    IpAddress = cleanIp ?? "Unknown",
+                    City = geo.City,
+                    State = geo.State,
+                    Country = geo.Country,
+                    IspName = geo.IspName,
+                    FirstSeenAtUtc = DateTimeOffset.UtcNow,
+                    LastActiveAtUtc = DateTimeOffset.UtcNow,
+                    IsOnline = true
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    private static string? CleanIpAddress(string? ip)
+    {
+        if (string.IsNullOrWhiteSpace(ip)) return null;
+        if (ip.Contains(','))
+        {
+            var parts = ip.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length > 0) return parts[0];
+        }
+        return ip.Trim();
+    }
+
+    private static string SummarizeUserAgent(string userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent)) return "Unknown";
+        if (userAgent.Contains("Dart/")) return "Flutter Mobile App";
+        if (userAgent.Contains("Android")) return "Android Device";
+        if (userAgent.Contains("iPhone") || userAgent.Contains("iPad")) return "iOS Device";
+        if (userAgent.Contains("Windows")) return "Windows PC";
+        if (userAgent.Contains("Macintosh")) return "macOS";
+        if (userAgent.Contains("Linux")) return "Linux Device";
+        return userAgent.Length > 50 ? userAgent[..50] + "..." : userAgent;
+    }
+
+    #endregion
+
 }

@@ -81,6 +81,37 @@ public record PaymentReceiptVoucherDto(
     decimal PartyBalanceAfter
 );
 
+// --- Contra Transfer DTOs ---
+public enum ContraTransferType
+{
+    BankToBank = 1,
+    CashToBank = 2,
+    BankToCash = 3
+}
+
+public record RecordContraTransferRequest(
+    ContraTransferType TransferType,
+    Guid? SourceBankAccountId,
+    Guid? DestinationBankAccountId,
+    decimal Amount,
+    DateTime TransferDate,
+    string? ReferenceNumber = null,
+    string? Notes = null
+);
+
+public record ContraTransferResultDto(
+    Guid VoucherId,
+    string VoucherNumber,
+    ContraTransferType TransferType,
+    decimal Amount,
+    DateTime TransferDate,
+    string? SourceAccountName,
+    string? DestinationAccountName,
+    decimal? SourceNewBalance,
+    decimal? DestinationNewBalance,
+    string Message
+);
+
 // --- Expense DTOs ---
 public record CreateExpenseCategoryRequest(
     string Code,

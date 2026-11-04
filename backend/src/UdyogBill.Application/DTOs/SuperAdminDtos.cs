@@ -44,7 +44,10 @@ public record SuperAdminTenantDetailsDto(
     int TotalUsers,
     int TotalBranches,
     int TotalWarehouses,
-    string? AdminPassword = null
+    string? AdminPassword = null,
+    bool IsAiAddonActive = false,
+    int AiScansLimit = 500,
+    int AiScansUsed = 0
 );
 
 // --- Super Admin Industry Catalog DTOs ---
@@ -81,6 +84,7 @@ public record CreatePlanRequest(
     decimal Price,
     decimal SetupFee,
     int TrialDays,
+    int MaxCompanies,
     int MaxUsers,
     int MaxBranches,
     int MaxWarehouses,
@@ -98,6 +102,7 @@ public record UpdatePlanRequest(
     decimal Price,
     decimal SetupFee,
     int TrialDays,
+    int MaxCompanies,
     int MaxUsers,
     int MaxBranches,
     int MaxWarehouses,
@@ -177,10 +182,99 @@ public record AssignPackageAndAddOnsRequest(
     bool IsGstInclusive = true,
     string? PaymentMode = "Cash",
     string? PaymentReference = null,
-    bool GenerateInvoice = true
+    bool GenerateInvoice = true,
+    int? ExtraUsers = null,
+    bool IsTrialMode = false,
+    DateTimeOffset? StartDate = null
 );
 
 public record ExtendTenantTrialRequest(
     int ExtensionDays,
     string? Reason = null
+);
+
+// --- Super Admin Tenant Security & Device Intelligence DTOs ---
+public record TenantDeviceSessionDto(
+    Guid Id,
+    string DeviceId,
+    string DeviceType,
+    string Brand,
+    string Model,
+    string OsName,
+    string OsVersion,
+    string AppVersion,
+    string ConnectionType,
+    bool IsDualSim,
+    string? Sim1Carrier,
+    string? Sim2Carrier,
+    string? SimPhoneNumber,
+    string IpAddress,
+    string? City,
+    string? State,
+    string? Country,
+    string? IspName,
+    DateTimeOffset FirstSeenAtUtc,
+    DateTimeOffset LastActiveAtUtc,
+    bool IsOnline,
+    string? UserEmail,
+    string? UserFullName,
+    string? LastActionName
+);
+
+public record TenantLoginHistoryDto(
+    Guid Id,
+    string AttemptedIdentifier,
+    bool IsSuccessful,
+    string? FailureReason,
+    string AuthChannel,
+    string DeviceSummary,
+    string IpAddress,
+    string? City,
+    string? State,
+    string? Country,
+    string? IspName,
+    string? ConnectionType,
+    DateTimeOffset LoggedInAtUtc
+);
+
+public record TenantInAppActivityDto(
+    Guid Id,
+    string ActionName,
+    string EntityName,
+    string? EntityId,
+    string? UserEmail,
+    string? IpAddress,
+    string? UserAgent,
+    DateTimeOffset TimestampUtc
+);
+
+public record TenantSecurityAuditSummaryDto(
+    Guid TenantId,
+    string BusinessName,
+    string TenantCode,
+    string AdminEmail,
+    string PrimaryPhone,
+    int TotalDevicesCount,
+    int OnlineDevicesCount,
+    string? PrimaryCity,
+    string? PrimaryNetworkType,
+    string? PrimaryIsp,
+    IReadOnlyList<TenantDeviceSessionDto> ActiveDevices,
+    IReadOnlyList<TenantLoginHistoryDto> RecentLogins,
+    IReadOnlyList<TenantInAppActivityDto> InAppActivityTrail
+);
+
+public record ClientTelemetryPayload(
+    string DeviceId,
+    string DeviceType,
+    string Brand,
+    string Model,
+    string OsName,
+    string OsVersion,
+    string AppVersion,
+    string ConnectionType,
+    bool IsDualSim,
+    string? Sim1Carrier,
+    string? Sim2Carrier,
+    string? SimPhoneNumber
 );

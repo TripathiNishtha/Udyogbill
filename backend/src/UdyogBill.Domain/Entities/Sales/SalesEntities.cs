@@ -12,7 +12,8 @@ public enum InvoiceType
     ProformaInvoice = 3,   // Proforma Quote
     SalesEstimate = 4,     // Quotation / Estimate
     CreditNote = 5,        // Sales Return / Credit Note
-    DebitNote = 6          // Debit Note
+    DebitNote = 6,         // Debit Note
+    BillOfSupply = 7       // Bill of Supply (Composition dealers / Exempt supplies under Section 31(3)(c))
 }
 
 public enum InvoiceStatus
@@ -22,7 +23,9 @@ public enum InvoiceStatus
     Paid = 3,
     PartiallyPaid = 4,
     Overdue = 5,
-    Cancelled = 6
+    Cancelled = 6,
+    PartiallyReturned = 7,
+    FullyReturned = 8
 }
 
 public enum PaymentMode
@@ -230,6 +233,15 @@ public class SalesReturn : BaseTenantAuditableEntity
     public decimal TotalAmount { get; set; } = 0m;
     public string? Notes { get; set; }
     public bool IsCancelled { get; set; } = false;
+    public string? CancellationReason { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public string RefundStatus { get; set; } = "Pending"; // Pending, CashRefunded, CreditAdjusted, Cancelled
+    public decimal? CashRefundedAmount { get; set; }
+    public string? RefundMode { get; set; } // Cash, UPI, BankTransfer, Cheque
+    public string? RefundTransactionRef { get; set; }
+    public DateTime? RefundDate { get; set; }
+    public Guid? AdjustedInvoiceId { get; set; }
+    public string? AdjustedInvoiceNumber { get; set; }
     public ICollection<SalesReturnItem> Items { get; set; } = new List<SalesReturnItem>();
 }
 
@@ -248,6 +260,13 @@ public class SalesReturnItem : BaseTenantAuditableEntity
     public decimal ReturnQuantity { get; set; } = 0m;
     public decimal UnitPrice { get; set; } = 0m;
     public decimal GstRate { get; set; } = 0m;
+    public decimal TaxableAmount { get; set; } = 0m;
+    public decimal CgstRate { get; set; } = 0m;
+    public decimal CgstAmount { get; set; } = 0m;
+    public decimal SgstRate { get; set; } = 0m;
+    public decimal SgstAmount { get; set; } = 0m;
+    public decimal IgstRate { get; set; } = 0m;
+    public decimal IgstAmount { get; set; } = 0m;
     public decimal TotalAmount { get; set; } = 0m;
 }
 

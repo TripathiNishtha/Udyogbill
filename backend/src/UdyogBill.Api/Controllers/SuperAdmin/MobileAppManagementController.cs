@@ -146,13 +146,34 @@ public class MobileAppManagementController : BaseApiController
     {
         var now = DateTime.UtcNow;
         var today = now.Date;
+        var activeThreshold = now.AddDays(-7);
 
-        var totalRegistered = await _db.MobileDeviceRegistrations.CountAsync();
+        // Auto-mark devices uninstalled/dormant if no heartbeat received for > 7 days
+        var dormantDevices = await _db.MobileDeviceRegistrations
+            .Where(x => x.IsInstalled && x.LastActiveAt < activeThreshold)
+            .ToListAsync();
+
+        if (dormantDevices.Count > 0)
+        {
+            foreach (var d in dormantDevices)
+            {
+                d.IsInstalled = false;
+                d.UninstalledAt = now;
+            }
+            await _db.SaveChangesAsync();
+        }
+
+        // Currently installed devices (Real active fleet)
+        var totalInstalled = await _db.MobileDeviceRegistrations
+            .Where(x => x.IsInstalled)
+            .CountAsync();
+
         var activeToday = await _db.MobileDeviceRegistrations
             .Where(x => x.LastActiveAt >= today)
             .CountAsync();
 
         var osGroups = await _db.MobileDeviceRegistrations
+            .Where(x => x.IsInstalled)
             .GroupBy(x => x.OsVersion)
             .Select(g => new { OsVersion = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
@@ -160,6 +181,7 @@ public class MobileAppManagementController : BaseApiController
             .ToListAsync();
 
         var versionGroups = await _db.MobileDeviceRegistrations
+            .Where(x => x.IsInstalled)
             .GroupBy(x => x.AppVersionName)
             .Select(g => new { AppVersion = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
@@ -173,7 +195,7 @@ public class MobileAppManagementController : BaseApiController
 
         return Ok(new
         {
-            totalRegisteredDevices = totalRegistered,
+            totalRegisteredDevices = totalInstalled,
             activeTodayDevices = activeToday,
             osDistribution = osGroups,
             versionDistribution = versionGroups,

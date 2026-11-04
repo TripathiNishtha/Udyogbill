@@ -42,11 +42,16 @@ public interface IInventoryService
     Task<Result<Guid>> CreateItemAsync(CreateItemRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> UpdateItemAsync(Guid itemId, UpdateItemRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result> DeleteItemAsync(Guid itemId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<BulkDeleteResultDto>> BulkDeleteItemsAsync(BulkDeleteItemRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<BulkUpdateItemsResultDto>> BulkUpdateItemsAsync(BulkUpdateItemsRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
 
     // Batches & Variants
     Task<Result<IReadOnlyList<ItemBatchDto>>> GetItemBatchesAsync(Guid itemId, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreateItemBatchAsync(CreateItemBatchRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<IReadOnlyList<ItemVariantDto>>> GetItemVariantsAsync(Guid itemId, CancellationToken cancellationToken = default);
+    Task<Result> UpdateItemVariantsAsync(Guid itemId, UpdateItemVariantsRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<BulkPriceUpdateResultDto>> BulkUpdatePricesAsync(BulkPriceUpdateRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<IReadOnlyList<PriceListRowDto>>> GetPriceListAsync(Guid? categoryId = null, Guid? brandId = null, string? searchTerm = null, CancellationToken cancellationToken = default);
 
     // Stock Ledger & Adjustments
     Task<Result<IReadOnlyList<WarehouseStockDto>>> GetItemStockBalancesAsync(Guid? itemId = null, Guid? warehouseId = null, CancellationToken cancellationToken = default);

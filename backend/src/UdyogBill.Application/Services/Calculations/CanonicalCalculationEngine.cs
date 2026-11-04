@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,7 +14,8 @@ public record LineCalculationInput(
     decimal GstRate,
     decimal CessRate,
     bool IsIntraState,
-    decimal? ConversionRatio = 1m
+    decimal? ConversionRatio = 1m,
+    decimal SpecificCessPerUnit = 0m
 );
 
 public record LineCalculationResult(
@@ -59,7 +60,8 @@ public interface ICanonicalCalculationEngine
         decimal invoiceDiscountPercent,
         decimal invoiceDiscountAmount,
         bool isIntraState,
-        decimal additionalCharges = 0m
+        decimal additionalCharges = 0m,
+        bool isReverseCharge = false
     );
     decimal CalculateCogs(decimal openingStockValue, decimal purchasesInwardValue, decimal closingStockValue);
     decimal CalculateNetEffectiveReturnRate(decimal originalTaxableAmount, decimal originalPaidQty, decimal originalFreeQty);
@@ -118,7 +120,8 @@ public class CanonicalCalculationEngine : ICanonicalCalculationEngine
             igstAmt = Math.Round(taxable * (igstRate / 100m), 4);
         }
 
-        var cessAmt = input.CessRate > 0 ? Math.Round(taxable * (input.CessRate / 100m), 4) : 0m;
+        var cessAmt = (input.CessRate > 0 ? Math.Round(taxable * (input.CessRate / 100m), 4) : 0m)
+                    + (input.SpecificCessPerUnit > 0 ? Math.Round(qty * input.SpecificCessPerUnit, 4) : 0m);
         var lineTotal = taxable + cgstAmt + sgstAmt + igstAmt + cessAmt;
 
         // BUG-010: Net Effective Rate across all delivered physical units
@@ -154,7 +157,8 @@ public class CanonicalCalculationEngine : ICanonicalCalculationEngine
         decimal invoiceDiscountPercent,
         decimal invoiceDiscountAmount,
         bool isIntraState,
-        decimal additionalCharges = 0m)
+        decimal additionalCharges = 0m,
+        bool isReverseCharge = false)
     {
         if (lines == null || lines.Count == 0)
         {
@@ -242,7 +246,36 @@ public class CanonicalCalculationEngine : ICanonicalCalculationEngine
         var totalIgst = finalLines.Sum(l => l.IgstAmount);
         var totalCess = finalLines.Sum(l => l.CessAmount);
 
-        var grossTotalWithTax = finalTaxableTotal + totalCgst + totalSgst + totalIgst + totalCess + additionalCharges;
+        // Compute tax on additional charges (freight, packaging, delivery, surcharge) using effective supply rate
+        decimal additionalChargeCgst = 0m;
+        decimal additionalChargeSgst = 0m;
+        decimal additionalChargeIgst = 0m;
+
+        if (additionalCharges > 0 && finalTaxableTotal > 0)
+        {
+            if (isIntraState)
+            {
+                var effectiveCgstRate = totalCgst / finalTaxableTotal;
+                var effectiveSgstRate = totalSgst / finalTaxableTotal;
+                additionalChargeCgst = Math.Round(additionalCharges * effectiveCgstRate, 4);
+                additionalChargeSgst = Math.Round(additionalCharges * effectiveSgstRate, 4);
+            }
+            else
+            {
+                var effectiveIgstRate = totalIgst / finalTaxableTotal;
+                additionalChargeIgst = Math.Round(additionalCharges * effectiveIgstRate, 4);
+            }
+        }
+
+        var finalTaxableWithCharges = finalTaxableTotal + additionalCharges;
+        var finalCgstTotal = totalCgst + additionalChargeCgst;
+        var finalSgstTotal = totalSgst + additionalChargeSgst;
+        var finalIgstTotal = totalIgst + additionalChargeIgst;
+
+        // Under Reverse Charge Mechanism, recipient pays tax directly to Government.
+        // Tax amounts are computed and displayed for disclosure, but excluded from invoice payable total.
+        var taxPayableByCustomer = isReverseCharge ? 0m : (finalCgstTotal + finalSgstTotal + finalIgstTotal + totalCess);
+        var grossTotalWithTax = finalTaxableWithCharges + taxPayableByCustomer;
         var roundedTotal = Math.Round(grossTotalWithTax, 0, MidpointRounding.AwayFromZero);
         var roundOff = roundedTotal - grossTotalWithTax;
 
@@ -250,10 +283,10 @@ public class CanonicalCalculationEngine : ICanonicalCalculationEngine
             SubTotal: subTotal,
             ItemDiscountTotal: itemDiscountTotal,
             InvoiceDiscountAmount: effectiveInvDiscount,
-            TaxableAmount: finalTaxableTotal,
-            CgstAmount: totalCgst,
-            SgstAmount: totalSgst,
-            IgstAmount: totalIgst,
+            TaxableAmount: finalTaxableWithCharges,
+            CgstAmount: finalCgstTotal,
+            SgstAmount: finalSgstTotal,
+            IgstAmount: finalIgstTotal,
             CessAmount: totalCess,
             RoundOff: roundOff,
             RoundedTotal: roundedTotal

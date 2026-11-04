@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,6 +18,7 @@ using UdyogBill.Persistence.Context;
 using UdyogBill.Shared;
 using UdyogBill.Shared.Constants;
 using QRCoder;
+using UdyogBill.Application.Services;
 
 namespace UdyogBill.Persistence.Services;
 
@@ -1785,7 +1786,7 @@ public class PrintTemplateService : IPrintTemplateService
                     </div>
                     {(invoice != null ? $@"
                     <div style='border:1px solid #cbd5e1; border-radius:4px; padding:2px; background:#ffffff; text-align:center;'>
-                        <img src='{GenerateQrCodeDataUri($"https://udyogbill.com/i/{invoice.Id}", 4)}' alt='Digital Bill' style='width:{(isA5 ? "38px" : "50px")}; height:{(isA5 ? "38px" : "50px")}; display:block;' />
+                        <img src='{GenerateQrCodeDataUri(InvoiceSignatureHelper.BuildPublicInvoiceUrl("https://udyogbill.com", invoice.Id) ?? $"https://udyogbill.com/i/{invoice.Id}", 4)}' alt='Digital Bill' style='width:{(isA5 ? "38px" : "50px")}; height:{(isA5 ? "38px" : "50px")}; display:block;' />
                         <span style='font-size:7px; font-weight:700; color:#334155; text-transform:uppercase; display:block; margin-top:1px;'>Scan to View</span>
                     </div>" : "")}
                 </div>
@@ -7188,7 +7189,8 @@ private static string RenderMyBillBookInvoiceHtml(PrintTemplate t, SalesInvoice?
         var termsCity = !string.IsNullOrWhiteSpace(invoice?.Branch?.City) ? invoice.Branch.City : (!string.IsNullOrWhiteSpace(tenant?.City) ? tenant.City : "DELHI");
 
         // Public Invoice URL QR for Header
-        var verifyQr = $"https://api.qrserver.com/v1/create-qr-code/?size=95x95&margin=0&data={Uri.EscapeDataString($"https://udyogbill.com/i/{invoice?.Id}")}";
+        var publicInvoiceLink = invoice != null ? InvoiceSignatureHelper.BuildPublicInvoiceUrl("https://udyogbill.com", invoice.Id) : $"https://udyogbill.com/i/{invoice?.Id}";
+        var verifyQr = $"https://api.qrserver.com/v1/create-qr-code/?size=95x95&margin=0&data={Uri.EscapeDataString(publicInvoiceLink)}";
 
         // Line Items & HSN Summary
         var (itemsHtml, hsnRowsHtml, hsnTotalsHtml) = RenderPharmaProItemsAndHsn(

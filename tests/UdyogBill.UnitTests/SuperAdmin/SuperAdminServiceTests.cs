@@ -29,12 +29,13 @@ public class MockCurrentUserContext : ICurrentUserContext
     public string? Email { get; set; } = "admin@udyogbill.com";
     public string? FullName { get; set; } = "Platform Super Admin";
     public Guid? TenantId { get; set; } = null;
+    public Guid? BranchId { get; set; } = null;
     public bool IsAuthenticated { get; set; } = true;
     public bool IsSuperAdmin { get; set; } = true;
     public bool IsTenantAdmin { get; set; } = false;
     public IReadOnlyList<string> Roles { get; set; } = new List<string> { "SuperAdmin" };
     public IReadOnlyList<string> Permissions { get; set; } = new List<string> { "*" };
-    public bool HasPermission(string permission) => true;
+    public bool HasPermission(string permission) => Permissions.Contains("*") || Permissions.Contains(permission);
     public bool HasRole(string role) => Roles.Contains(role);
 }
 
@@ -42,6 +43,12 @@ public class MockJwtTokenGenerator : IJwtTokenGenerator
 {
     public string GenerateAccessToken(User user, IReadOnlyList<string> roles, IReadOnlyList<string> permissions, Guid? tenantId, string? tenantCode) => "mock-jwt-token";
     public (string Token, string TokenHash, DateTimeOffset ExpiresAt) GenerateRefreshToken(string? ipAddress = null) => ("mock-refresh-token", "mock-hash", DateTimeOffset.UtcNow.AddDays(7));
+}
+
+public class MockIpGeolocationService : IIpGeolocationService
+{
+    public Task<GeoLocationResult> ResolveIpAsync(string? ipAddress, CancellationToken cancellationToken = default)
+        => Task.FromResult(new GeoLocationResult { City = "Mumbai", State = "Maharashtra", Country = "IN", IspName = "Mock ISP" });
 }
 
 public class SuperAdminServiceTests
@@ -63,7 +70,7 @@ public class SuperAdminServiceTests
         using var context = CreateDbContext();
         var userContext = new MockCurrentUserContext();
         var auditService = new MockAuditService();
-        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator());
+        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator(), new MockIpGeolocationService());
 
         var industry = new Industry { Id = Guid.NewGuid(), Code = "RETAIL", Name = "Retail" };
         context.Industries.Add(industry);
@@ -105,7 +112,7 @@ public class SuperAdminServiceTests
         using var context = CreateDbContext();
         var userContext = new MockCurrentUserContext();
         var auditService = new MockAuditService();
-        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator());
+        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator(), new MockIpGeolocationService());
 
         // Act
         var request = new CreateIndustryRequest("OPTICAL", "Optical & Eyewear", "Eyewear, optical frames, lens prescriptions", "glasses", 15);
@@ -126,7 +133,7 @@ public class SuperAdminServiceTests
         using var context = CreateDbContext();
         var userContext = new MockCurrentUserContext();
         var auditService = new MockAuditService();
-        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator());
+        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator(), new MockIpGeolocationService());
 
         var existing = new Industry { Id = Guid.NewGuid(), Code = "PHARMA", Name = "Pharmaceuticals" };
         context.Industries.Add(existing);
@@ -148,7 +155,7 @@ public class SuperAdminServiceTests
         using var context = CreateDbContext();
         var userContext = new MockCurrentUserContext();
         var auditService = new MockAuditService();
-        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator());
+        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator(), new MockIpGeolocationService());
 
         var feat1 = Guid.NewGuid();
         var feat2 = Guid.NewGuid();
@@ -162,6 +169,7 @@ public class SuperAdminServiceTests
             14999m,
             0m,
             14,
+            5,
             100,
             25,
             50,
@@ -187,7 +195,7 @@ public class SuperAdminServiceTests
         using var context = CreateDbContext();
         var userContext = new MockCurrentUserContext();
         var auditService = new MockAuditService();
-        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator());
+        var service = new SuperAdminService(context, userContext, auditService, new MockJwtTokenGenerator(), new MockIpGeolocationService());
 
         var ind = new Industry { Id = Guid.NewGuid(), Code = "FMCG", Name = "Fast Moving Consumer Goods" };
         context.Industries.Add(ind);

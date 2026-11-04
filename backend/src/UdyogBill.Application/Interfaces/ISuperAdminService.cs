@@ -36,4 +36,10 @@ public interface ISuperAdminService
     // Platform Telemetry & Audit Logs
     Task<Result<PlatformStatsDto>> GetPlatformStatsAsync(CancellationToken cancellationToken = default);
     Task<Result<PagedResult<AuditLogDto>>> GetAuditLogsAsync(AuditLogQueryRequest request, CancellationToken cancellationToken = default);
+    // Multi-Tab Concurrent Billing Control
+    Task<Result> ToggleMultiTabBillingAsync(Guid tenantId, bool isEnabled, string? ipAddress = null, CancellationToken cancellationToken = default);
+    // Subscriber Device & Security Audit Intelligence
+    Task<Result<TenantSecurityAuditSummaryDto>> GetTenantSecurityAuditAsync(Guid tenantId, CancellationToken cancellationToken = default);
+    Task<Result> RecordClientTelemetryAsync(Guid tenantId, Guid? userId, ClientTelemetryPayload payload, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default);
+    Task<Result> RecordLoginAttemptAsync(Guid tenantId, Guid? userId, string attemptedIdentifier, bool isSuccessful, string? failureReason, string authChannel, string? ipAddress, string? userAgent, ClientTelemetryPayload? clientTelemetry = null, CancellationToken cancellationToken = default);
 }

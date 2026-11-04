@@ -20,8 +20,10 @@ using UdyogBill.Domain.Entities.Purchases;
 using UdyogBill.Domain.Entities.Sales;
 using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Enums;
+using UdyogBill.Api.Filters;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared;
+using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Api.Controllers;
 
@@ -47,8 +49,8 @@ public class AiPurchaseScanResponseDto
 {
     public bool IsQualityAcceptable { get; set; } = true;
     public string? QualityWarning { get; set; }
-    public bool IsAiAddonActive { get; set; } = true;
-    public int ScansRemaining { get; set; } = 499;
+    public bool IsAiAddonActive { get; set; } = false;
+    public int ScansRemaining { get; set; } = 0;
 
     public string? SupplierName { get; set; }
     public string? SupplierGstin { get; set; }
@@ -99,34 +101,60 @@ public class AiPurchaseScannerController : BaseApiController
         var tenant = await _dbContext.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
         if (tenant == null) return NotFound("Tenant not found");
 
+        var activeAddon = await _dbContext.TenantSubscriptionAddOns
+            .IgnoreQueryFilters()
+            .Include(sa => sa.AddOn)
+            .Where(sa => sa.TenantId == tenantId &&
+                         sa.AddOn.Code == "ADDON_AI_PRO" &&
+                         sa.ExpiresAtUtc > DateTimeOffset.UtcNow &&
+                         !sa.IsDeleted)
+            .OrderByDescending(sa => sa.ExpiresAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        bool isAiAddonActive = activeAddon != null || tenant.IsAiAddonActive || (tenant.AiScansLimit > 0 && tenant.AiScansUsed < tenant.AiScansLimit);
+
+        if (tenant.IsAiAddonActive != isAiAddonActive && !tenant.IsAiAddonActive)
+        {
+            tenant.IsAiAddonActive = isAiAddonActive;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        int scanLimit = tenant.AiScansLimit > 0 ? tenant.AiScansLimit : 500;
+        int remaining = isAiAddonActive ? Math.Max(0, scanLimit - tenant.AiScansUsed) : 0;
+
         return Ok(new
         {
-            isAiAddonActive = tenant.IsAiAddonActive,
-            scansLimit = tenant.AiScansLimit,
+            isAiAddonActive,
+            scansLimit = scanLimit,
             scansUsed = tenant.AiScansUsed,
-            scansRemaining = Math.Max(0, tenant.AiScansLimit - tenant.AiScansUsed)
+            scansRemaining = remaining,
+            expiresAtUtc = activeAddon?.ExpiresAtUtc
         });
     }
 
     [HttpPost("activate")]
+    [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.TenantAdmin}")]
     public async Task<IActionResult> ActivateAiAddon(CancellationToken cancellationToken)
     {
         var tenantId = _tenantContext.TenantId;
         var tenant = await _dbContext.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
         if (tenant == null) return NotFound("Tenant not found");
 
-        var hasAiAddon = await _dbContext.TenantSubscriptionAddOns
+        var hasAiAddon = tenant.IsAiAddonActive || (tenant.AiScansLimit > tenant.AiScansUsed) || await _dbContext.TenantSubscriptionAddOns
             .IgnoreQueryFilters()
             .Include(sa => sa.AddOn)
             .AnyAsync(sa => sa.TenantId == tenantId &&
                             sa.AddOn.Code == "ADDON_AI_PRO" &&
-                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow, cancellationToken);
+                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow &&
+                            !sa.IsDeleted, cancellationToken);
 
-        if (!hasAiAddon && tenant.CreatedAtUtc.AddDays(14) < DateTimeOffset.UtcNow)
+        if (!hasAiAddon)
         {
             return StatusCode(StatusCodes.Status402PaymentRequired, new
             {
-                message = "AI Bill Scanner requires an active paid AI Pro Add-on subscription or admin license grant. Please subscribe from the Add-on Store."
+                success = false,
+                code = "AI_ADDON_REQUIRED",
+                message = "AI Bill Scanner requires an active paid AI Pro Add-on subscription. Please subscribe from Settings > Add-ons."
             });
         }
 
@@ -148,21 +176,66 @@ public class AiPurchaseScannerController : BaseApiController
         });
     }
 
+    private const long MaxScanFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+
     [HttpPost("scan-purchase-bill")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequirePermission(Permissions.PurchaseCreate)]
     public async Task<IActionResult> ScanPurchaseBill([FromForm] IFormFile? file, [FromForm] string? rawOcrText, CancellationToken cancellationToken)
     {
+        if (file != null)
+        {
+            if (file.Length > MaxScanFileSizeBytes)
+            {
+                return StatusCode(StatusCodes.Status413PayloadTooLarge, new
+                {
+                    success = false,
+                    code = "FILE_TOO_LARGE",
+                    message = "Uploaded file exceeds maximum allowed limit of 10 MB."
+                });
+            }
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!IsValidFileSignature(file, extension))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    code = "INVALID_FILE_SIGNATURE",
+                    message = "The uploaded file content does not match its declared file extension or contains an unsupported binary structure."
+                });
+            }
+        }
         var tenantId = _tenantContext.TenantId;
         var tenant = await _dbContext.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
         if (tenant == null) return NotFound("Tenant not found");
 
-        if (!tenant.IsAiAddonActive)
+        var hasAiAddon = await _dbContext.TenantSubscriptionAddOns
+            .IgnoreQueryFilters()
+            .Include(sa => sa.AddOn)
+            .AnyAsync(sa => sa.TenantId == tenantId &&
+                            sa.AddOn.Code == "ADDON_AI_PRO" &&
+                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow &&
+                            !sa.IsDeleted, cancellationToken);
+
+        if (!hasAiAddon)
         {
-            return BadRequest(new { message = "AI Pro Add-on is not active on your plan. Please upgrade to unlock AI Bill Scanner." });
+            return StatusCode(StatusCodes.Status402PaymentRequired, new
+            {
+                success = false,
+                code = "AI_ADDON_REQUIRED",
+                message = "AI Bill Scanner requires an active paid AI Pro Add-on subscription. Please subscribe from Settings > Add-ons."
+            });
         }
 
         if (tenant.AiScansUsed >= tenant.AiScansLimit)
         {
-            return BadRequest(new { message = "Monthly AI scan quota reached. Please recharge or upgrade your AI Add-on." });
+            return BadRequest(new
+            {
+                success = false,
+                code = "AI_QUOTA_EXHAUSTED",
+                message = "Monthly AI scan quota reached. Please recharge or upgrade your AI Add-on."
+            });
         }
 
         var response = new AiPurchaseScanResponseDto();
@@ -245,11 +318,30 @@ public class AiPurchaseScannerController : BaseApiController
     }
 
     [HttpPost("direct-import-to-inventory")]
+    [RequirePermission(Permissions.PurchaseCreate)]
     public async Task<IActionResult> DirectImportToInventory([FromBody] DirectImportInventoryRequest request, CancellationToken cancellationToken)
     {
         var tenantId = _tenantContext.TenantId;
         var tenant = await _dbContext.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
         if (tenant == null) return NotFound("Tenant not found");
+
+        var hasAiAddon = tenant.IsAiAddonActive || (tenant.AiScansLimit > tenant.AiScansUsed) || await _dbContext.TenantSubscriptionAddOns
+            .IgnoreQueryFilters()
+            .Include(sa => sa.AddOn)
+            .AnyAsync(sa => sa.TenantId == tenantId &&
+                            sa.AddOn.Code == "ADDON_AI_PRO" &&
+                            sa.ExpiresAtUtc > DateTimeOffset.UtcNow &&
+                            !sa.IsDeleted, cancellationToken);
+
+        if (!hasAiAddon)
+        {
+            return StatusCode(StatusCodes.Status402PaymentRequired, new
+            {
+                success = false,
+                code = "AI_ADDON_REQUIRED",
+                message = "Direct inventory import from AI Bill Scanner requires an active AI Pro Add-on subscription."
+            });
+        }
 
         if (request.Items == null || request.Items.Count == 0)
         {
@@ -777,16 +869,7 @@ public class AiPurchaseScannerController : BaseApiController
 
         if (response.Items.Count == 0)
         {
-            response.SupplierName = "Shree Balaji Traders";
-            response.Items.Add(new AiScannedLineItemDto
-            {
-                ItemName = "General Goods Supply",
-                Quantity = 10,
-                UnitPrice = 120.00m,
-                Mrp = 150.00m,
-                GstRate = 12m,
-                Confidence = 0.90
-            });
+            response.QualityWarning = "⚠️ AI Scanner could not detect clear items from this image. Please ensure good lighting and clear text, or enter items manually.";
         }
     }
 
@@ -797,7 +880,7 @@ public class AiPurchaseScannerController : BaseApiController
         AiPurchaseScanResponseDto response,
         CancellationToken cancellationToken)
     {
-        var prompt = @"Extract all details from this invoice into clean JSON:
+        var prompt = @"Extract all details from this invoice/bill image into clean JSON:
 {
   ""supplierName"": ""vendor company name"",
   ""supplierGstin"": ""15 digit GSTIN"",
@@ -805,7 +888,7 @@ public class AiPurchaseScannerController : BaseApiController
   ""billDate"": ""YYYY-MM-DD"",
   ""items"": [
     {
-      ""itemName"": ""full product/medicine name"",
+      ""itemName"": ""full product/medicine/goods name"",
       ""hsnCode"": ""HSN or SAC"",
       ""batchNumber"": ""batch or lot number"",
       ""expiryDate"": ""MM/YY or YYYY-MM-DD"",
@@ -819,7 +902,8 @@ public class AiPurchaseScannerController : BaseApiController
       ""totalAmount"": 957.60
     }
   ]
-}";
+}
+Return JSON only matching the schema above.";
 
         var requestBody = new
         {
@@ -841,81 +925,153 @@ public class AiPurchaseScannerController : BaseApiController
             }
         };
 
-        var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={apiKey}";
-        var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-
-        var httpResp = await _httpClient.PostAsync(url, jsonContent, cancellationToken);
-        if (!httpResp.IsSuccessStatusCode)
+        var candidateModels = new[]
         {
-            // Try 1.5-flash fallback
-            var fallbackUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={apiKey}";
-            httpResp = await _httpClient.PostAsync(fallbackUrl, jsonContent, cancellationToken);
-            if (!httpResp.IsSuccessStatusCode) return false;
-        }
+            "gemini-flash-lite-latest",
+            "gemini-3.5-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-flash-latest"
+        };
 
-        var responseString = await httpResp.Content.ReadAsStringAsync(cancellationToken);
-        using var doc = JsonDocument.Parse(responseString);
-        var root = doc.RootElement;
+        var jsonPayload = JsonSerializer.Serialize(requestBody);
 
-        if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+        foreach (var model in candidateModels)
         {
-            var firstCand = candidates[0];
-            if (firstCand.TryGetProperty("content", out var candContent) &&
-                candContent.TryGetProperty("parts", out var parts) && parts.GetArrayLength() > 0)
+            try
             {
-                var text = parts[0].GetProperty("text").GetString();
-                if (!string.IsNullOrWhiteSpace(text))
+                var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+                using var jsonContent = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                using var httpResp = await _httpClient.PostAsync(url, jsonContent, cancellationToken);
+                if (!httpResp.IsSuccessStatusCode)
                 {
-                    using var parsedDoc = JsonDocument.Parse(text);
-                    var pRoot = parsedDoc.RootElement;
+                    continue;
+                }
 
-                    if (pRoot.TryGetProperty("supplierName", out var sn)) response.SupplierName = sn.GetString();
-                    if (pRoot.TryGetProperty("supplierGstin", out var sg)) response.SupplierGstin = sg.GetString();
-                    if (pRoot.TryGetProperty("billNumber", out var bn)) response.BillNumber = bn.GetString();
-                    if (pRoot.TryGetProperty("billDate", out var bd)) response.BillDate = bd.GetString();
+                var responseString = await httpResp.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(responseString);
+                var root = doc.RootElement;
 
-                    if (pRoot.TryGetProperty("items", out var itemsElem) && itemsElem.ValueKind == JsonValueKind.Array)
+                if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+                {
+                    var firstCand = candidates[0];
+                    if (firstCand.TryGetProperty("content", out var candContent) &&
+                        candContent.TryGetProperty("parts", out var parts) && parts.GetArrayLength() > 0)
                     {
-                        response.Items.Clear();
-                        foreach (var itemElem in itemsElem.EnumerateArray())
+                        string? jsonText = null;
+                        foreach (var part in parts.EnumerateArray())
                         {
-                            var itemName = itemElem.TryGetProperty("itemName", out var n) ? n.GetString() ?? "" : "";
-                            if (string.IsNullOrWhiteSpace(itemName)) continue;
-
-                            decimal q = itemElem.TryGetProperty("quantity", out var qv) && qv.TryGetDecimal(out var parsedQ) ? parsedQ : 1;
-                            decimal f = itemElem.TryGetProperty("freeQuantity", out var fv) && fv.TryGetDecimal(out var parsedF) ? parsedF : 0;
-                            decimal p = itemElem.TryGetProperty("unitPrice", out var pv) && pv.TryGetDecimal(out var parsedP) ? parsedP : 0;
-                            decimal m = itemElem.TryGetProperty("mrp", out var mv) && mv.TryGetDecimal(out var parsedM) ? parsedM : 0;
-                            decimal d = itemElem.TryGetProperty("discountPercent", out var dv) && dv.TryGetDecimal(out var parsedD) ? parsedD : 0;
-                            decimal g = itemElem.TryGetProperty("gstRate", out var gv) && gv.TryGetDecimal(out var parsedG) ? parsedG : 12;
-                            decimal t = itemElem.TryGetProperty("totalAmount", out var tv) && tv.TryGetDecimal(out var parsedT) ? parsedT : 0;
-
-                            string? hsn = itemElem.TryGetProperty("hsnCode", out var hn) ? hn.GetString() : null;
-                            string? batch = itemElem.TryGetProperty("batchNumber", out var bch) ? bch.GetString() : null;
-                            string? exp = itemElem.TryGetProperty("expiryDate", out var ep) ? ep.GetString() : null;
-
-                            response.Items.Add(new AiScannedLineItemDto
+                            if (part.TryGetProperty("text", out var tProp))
                             {
-                                ItemName = itemName,
-                                HsnCode = hsn,
-                                BatchNumber = batch,
-                                ExpiryDate = exp,
-                                Quantity = q,
-                                FreeQuantity = f,
-                                UnitPrice = p,
-                                Mrp = m,
-                                DiscountPercent = d,
-                                GstRate = g,
-                                TotalAmount = t,
-                                Confidence = 0.99
-                            });
+                                var txt = tProp.GetString();
+                                if (!string.IsNullOrWhiteSpace(txt) && txt.TrimStart().StartsWith("{"))
+                                {
+                                    jsonText = txt;
+                                    break;
+                                }
+                            }
                         }
-                        return response.Items.Count > 0;
+
+                        if (string.IsNullOrWhiteSpace(jsonText))
+                        {
+                            if (parts[0].TryGetProperty("text", out var firstText))
+                            {
+                                jsonText = firstText.GetString();
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(jsonText))
+                        {
+                            using var parsedDoc = JsonDocument.Parse(jsonText);
+                            var pRoot = parsedDoc.RootElement;
+
+                            if (pRoot.TryGetProperty("supplierName", out var sn) && sn.ValueKind == JsonValueKind.String)
+                                response.SupplierName = sn.GetString();
+
+                            if (pRoot.TryGetProperty("supplierGstin", out var sg) && sg.ValueKind == JsonValueKind.String)
+                                response.SupplierGstin = sg.GetString();
+
+                            if (pRoot.TryGetProperty("billNumber", out var bn) && bn.ValueKind == JsonValueKind.String)
+                                response.BillNumber = bn.GetString();
+
+                            if (pRoot.TryGetProperty("billDate", out var bd) && bd.ValueKind == JsonValueKind.String)
+                                response.BillDate = bd.GetString();
+
+                            if (pRoot.TryGetProperty("items", out var itemsElem) && itemsElem.ValueKind == JsonValueKind.Array)
+                            {
+                                response.Items.Clear();
+                                foreach (var itemElem in itemsElem.EnumerateArray())
+                                {
+                                    var itemName = itemElem.TryGetProperty("itemName", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString() ?? "" : "";
+                                    if (string.IsNullOrWhiteSpace(itemName)) continue;
+
+                                    decimal q = itemElem.TryGetProperty("quantity", out var qv) && qv.TryGetDecimal(out var parsedQ) ? parsedQ : 1;
+                                    decimal f = itemElem.TryGetProperty("freeQuantity", out var fv) && fv.TryGetDecimal(out var parsedF) ? parsedF : 0;
+                                    decimal p = itemElem.TryGetProperty("unitPrice", out var pv) && pv.TryGetDecimal(out var parsedP) ? parsedP : 0;
+                                    decimal m = itemElem.TryGetProperty("mrp", out var mv) && mv.TryGetDecimal(out var parsedM) ? parsedM : 0;
+                                    decimal d = itemElem.TryGetProperty("discountPercent", out var dv) && dv.TryGetDecimal(out var parsedD) ? parsedD : 0;
+                                    decimal g = itemElem.TryGetProperty("gstRate", out var gv) && gv.TryGetDecimal(out var parsedG) ? parsedG : 0;
+                                    decimal t = itemElem.TryGetProperty("totalAmount", out var tv) && tv.TryGetDecimal(out var parsedT) ? parsedT : 0;
+
+                                    string? hsn = itemElem.TryGetProperty("hsnCode", out var hn) && hn.ValueKind == JsonValueKind.String ? hn.GetString() : null;
+                                    string? batch = itemElem.TryGetProperty("batchNumber", out var bch) && bch.ValueKind == JsonValueKind.String ? bch.GetString() : null;
+                                    string? exp = itemElem.TryGetProperty("expiryDate", out var ep) && ep.ValueKind == JsonValueKind.String ? ep.GetString() : null;
+
+                                    response.Items.Add(new AiScannedLineItemDto
+                                    {
+                                        ItemName = itemName,
+                                        HsnCode = hsn,
+                                        BatchNumber = batch,
+                                        ExpiryDate = exp,
+                                        Quantity = q,
+                                        FreeQuantity = f,
+                                        UnitPrice = p,
+                                        Mrp = m > 0 ? m : (p > 0 ? Math.Round(p * 1.2m, 2) : 0),
+                                        DiscountPercent = d,
+                                        GstRate = g,
+                                        TotalAmount = t > 0 ? t : Math.Round(q * p, 2),
+                                        Confidence = 0.99
+                                    });
+                                }
+
+                                if (response.Items.Count > 0)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
+            catch
+            {
+                // Try next candidate model
+            }
         }
+
         return false;
     }
-}
 
+    private static bool IsValidFileSignature(IFormFile file, string extension)
+    {
+        if (file == null || file.Length == 0) return false;
+
+        using var stream = file.OpenReadStream();
+        var header = new byte[Math.Min(file.Length, 512)];
+        var bytesRead = stream.Read(header, 0, header.Length);
+
+        return extension switch
+        {
+            ".pdf" => bytesRead >= 4 && header[0] == 0x25 && header[1] == 0x50 && header[2] == 0x44 && header[3] == 0x46, // %PDF
+            ".png" => bytesRead >= 8 && header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47, // PNG
+            ".jpg" or ".jpeg" => bytesRead >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,           // JPEG
+            ".webp" => bytesRead >= 12 && header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x47 && // RIFF
+                                         header[8] == 0x57 && header[9] == 0x45 && header[10] == 0x42 && header[11] == 0x50, // WEBP
+            ".bmp" => bytesRead >= 2 && header[0] == 0x42 && header[1] == 0x4D,                                           // BM
+            ".tiff" => bytesRead >= 4 && ((header[0] == 0x49 && header[1] == 0x49 && header[2] == 0x2A && header[3] == 0x00) ||
+                                          (header[0] == 0x4D && header[1] == 0x4D && header[2] == 0x00 && header[3] == 0x2A)),
+            ".csv" or ".tsv" or ".txt" => !header.Take(bytesRead).Contains((byte)0x00), // Text format should not contain null bytes
+            _ => false
+        };
+    }
+}

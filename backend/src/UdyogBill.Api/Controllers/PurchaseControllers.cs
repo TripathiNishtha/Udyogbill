@@ -9,7 +9,7 @@ using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "CanManagePurchases")]
 [RequireActiveSubscription]
 [Route("api/v1/tenant/purchase/orders")]
 public class TenantPurchaseOrdersController : BaseApiController
@@ -84,7 +84,7 @@ public class TenantPurchaseOrdersController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanManagePurchases")]
 [RequireActiveSubscription]
 [Route("api/v1/tenant/purchase/grn")]
 public class TenantGrnController : BaseApiController
@@ -160,7 +160,7 @@ public class TenantGrnController : BaseApiController
     }
 }
 
-[Authorize]
+[Authorize(Policy = "CanManagePurchases")]
 [RequireActiveSubscription]
 [Route("api/v1/tenant/purchase/bills")]
 public class TenantPurchaseBillsController : BaseApiController
@@ -224,6 +224,17 @@ public class TenantPurchaseBillsController : BaseApiController
         return CreatedAtAction(nameof(GetPurchaseBillById), new { id = result.Data }, result.Data);
     }
 
+    [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.PurchaseCreate)]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdatePurchaseBill(Guid id, [FromBody] CreatePurchaseBillRequest request, CancellationToken cancellationToken)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _purchaseService.UpdatePurchaseBillAsync(id, request, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpPost("{id:guid}/payments")]
     [RequirePermission(Permissions.PurchaseCreate, Permissions.BankingManage)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
@@ -243,6 +254,18 @@ public class TenantPurchaseBillsController : BaseApiController
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var result = await _purchaseService.CancelPurchaseBillAsync(id, request.CancellationReason, ipAddress, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpGet("last-deal")]
+    [RequirePermission(Permissions.PurchaseView)]
+    [ProducesResponseType(typeof(LastDealHintDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLastDeal(
+        [FromQuery] Guid itemId,
+        [FromQuery] Guid? partyId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _purchaseService.GetLastPurchaseDealAsync(itemId, partyId, cancellationToken);
         return HandleResult(result);
     }
 }

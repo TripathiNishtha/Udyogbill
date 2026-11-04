@@ -58,16 +58,16 @@ public class ReportService : IReportService
             query = query.Where(l => l.PartyId == partyId.Value);
         }
 
-        if (fromDate.HasValue)
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(fromDate, toDate, defaultToCurrentMonthIfBothNull: false);
+
+        if (fromUtc.HasValue)
         {
-            var fromUtc = DateTime.SpecifyKind(fromDate.Value.Date, DateTimeKind.Utc);
-            query = query.Where(l => l.TransactionDate >= fromUtc);
+            query = query.Where(l => l.TransactionDate >= fromUtc.Value);
         }
 
-        if (toDate.HasValue)
+        if (toUtc.HasValue)
         {
-            var toUtc = DateTime.SpecifyKind(toDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-            query = query.Where(l => l.TransactionDate <= toUtc);
+            query = query.Where(l => l.TransactionDate <= toUtc.Value);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -183,23 +183,37 @@ public class ReportService : IReportService
     {
         var tenantId = RequireTenantId();
 
-        var effectiveFrom = fromDate ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        var effectiveTo = toDate ?? DateTime.UtcNow.Date;
-
-        var fromUtc = DateTime.SpecifyKind(effectiveFrom.Date, DateTimeKind.Utc);
-        var toUtc = DateTime.SpecifyKind(effectiveTo.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(fromDate, toDate, defaultToCurrentMonthIfBothNull: true);
 
         var salesQuery = _context.SalesInvoices
             .Include(s => s.Items)
-            .Where(s => s.TenantId == tenantId && !s.IsDeleted && s.Status != InvoiceStatus.Cancelled && s.InvoiceDate >= fromUtc && s.InvoiceDate <= toUtc);
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted && !s.IsCancelled && s.Status != InvoiceStatus.Cancelled);
 
         var purchaseQuery = _context.PurchaseBills
-            .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.Status != PurchaseBillStatus.Cancelled && p.BillDate >= fromUtc && p.BillDate <= toUtc);
+            .Where(p => p.TenantId == tenantId && !p.IsDeleted && !p.IsCancelled && p.Status != PurchaseBillStatus.Cancelled);
 
         var returnsQuery = _context.SalesReturns
-            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+            .Include(r => r.Items)
+                .ThenInclude(i => i.Item)
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled);
         var purchaseReturnsQuery = _context.PurchaseReturns
-            .Where(pr => pr.TenantId == tenantId && !pr.IsDeleted && !pr.IsCancelled && pr.ReturnDate >= fromUtc && pr.ReturnDate <= toUtc);
+            .Where(pr => pr.TenantId == tenantId && !pr.IsDeleted && !pr.IsCancelled);
+
+        if (fromUtc.HasValue)
+        {
+            salesQuery = salesQuery.Where(s => s.InvoiceDate >= fromUtc.Value);
+            purchaseQuery = purchaseQuery.Where(p => p.BillDate >= fromUtc.Value);
+            returnsQuery = returnsQuery.Where(r => r.ReturnDate >= fromUtc.Value);
+            purchaseReturnsQuery = purchaseReturnsQuery.Where(pr => pr.ReturnDate >= fromUtc.Value);
+        }
+
+        if (toUtc.HasValue)
+        {
+            salesQuery = salesQuery.Where(s => s.InvoiceDate <= toUtc.Value);
+            purchaseQuery = purchaseQuery.Where(p => p.BillDate <= toUtc.Value);
+            returnsQuery = returnsQuery.Where(r => r.ReturnDate <= toUtc.Value);
+            purchaseReturnsQuery = purchaseReturnsQuery.Where(pr => pr.ReturnDate <= toUtc.Value);
+        }
 
         if (branchId.HasValue)
         {
@@ -222,8 +236,14 @@ public class ReportService : IReportService
         decimal netSales = Math.Max(0m, sales.Sum(s => s.TaxableAmount) - totalSalesReturns);
         decimal totalPurchases = Math.Max(0m, purchases.Sum(p => p.TaxableAmount) - totalPurchaseReturns);
 
-        // BUG-009: AS-2 Compliant COGS Calculation (NetSales - COGS)
-        decimal cogs = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * i.PurchasePrice);
+        // COGS Calculation (Sales Cost minus Returned Goods Cost)
+        decimal outwardCost = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * i.PurchasePrice);
+        decimal returnCost = salesReturns.SelectMany(r => r.Items).Sum(i =>
+        {
+            var cost = i.Item != null && i.Item.PurchasePrice > 0 ? i.Item.PurchasePrice : (i.UnitPrice > 0 ? i.UnitPrice : 0m);
+            return i.ReturnQuantity * cost;
+        });
+        decimal cogs = Math.Max(0m, outwardCost - returnCost);
         if (cogs == 0m && purchases.Count > 0)
         {
             cogs = totalPurchases;
@@ -275,8 +295,8 @@ public class ReportService : IReportService
 
         var report = new PnLReportDto
         {
-            FromDate = effectiveFrom,
-            ToDate = effectiveTo,
+            FromDate = fromDate ?? (fromUtc.HasValue ? fromUtc.Value.Date : DateTime.UtcNow.Date),
+            ToDate = toDate ?? (toUtc.HasValue ? toUtc.Value.Date : DateTime.UtcNow.Date),
             TotalSalesRevenue = grossSales,
             TotalDiscountGiven = totalDiscount,
             NetSalesRevenue = netSales,
@@ -300,106 +320,296 @@ public class ReportService : IReportService
     {
         var tenantId = RequireTenantId();
 
-        var effectiveFrom = fromDate ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        var effectiveTo = toDate ?? DateTime.UtcNow.Date;
-
-        var fromUtc = DateTime.SpecifyKind(effectiveFrom.Date, DateTimeKind.Utc);
-        var toUtc = DateTime.SpecifyKind(effectiveTo.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(fromDate, toDate, defaultToCurrentMonthIfBothNull: true);
 
         var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
 
         var query = _context.SalesInvoices
-            .Where(s => s.TenantId == tenantId && !s.IsDeleted && s.Status != InvoiceStatus.Cancelled && s.InvoiceDate >= fromUtc && s.InvoiceDate <= toUtc)
+            .Where(s => s.TenantId == tenantId 
+                     && !s.IsDeleted 
+                     && !s.IsCancelled 
+                     && s.Status != InvoiceStatus.Cancelled
+                     && s.InvoiceType != InvoiceType.SalesEstimate
+                     && s.InvoiceType != InvoiceType.ProformaInvoice
+                     && !s.InvoiceNumber.StartsWith("CASH-")
+                     && !s.InvoiceNumber.StartsWith("CM/")
+                     && !s.InvoiceNumber.StartsWith("EST-")
+                     && !s.InvoiceNumber.StartsWith("QTN/"))
             .Include(s => s.Items)
                 .ThenInclude(i => i.Item)
             .AsNoTracking();
+
+        if (fromUtc.HasValue)
+        {
+            query = query.Where(s => s.InvoiceDate >= fromUtc.Value);
+        }
+
+        if (toUtc.HasValue)
+        {
+            query = query.Where(s => s.InvoiceDate <= toUtc.Value);
+        }
 
         if (branchId.HasValue)
         {
             query = query.Where(s => s.BranchId == branchId.Value);
         }
 
-        var invoices = await query.ToListAsync(cancellationToken);
+        var rawInvoices = await query.ToListAsync(cancellationToken);
+        var invoices = rawInvoices.Where(s =>
+            !(s.CgstAmount == 0 && s.SgstAmount == 0 && s.IgstAmount == 0 && 
+              string.IsNullOrWhiteSpace(s.CustomerGSTIN) && 
+              !string.IsNullOrEmpty(s.AttributesJson) && 
+              (s.AttributesJson.Contains("\"isNonGst\":true") || s.AttributesJson.Contains("\"billingMode\":\"NON_GST\""))
+            )
+        ).ToList();
 
         var b2bInvoices = invoices.Where(i => !string.IsNullOrWhiteSpace(i.CustomerGSTIN)).ToList();
         var b2cInvoices = invoices.Where(i => string.IsNullOrWhiteSpace(i.CustomerGSTIN)).ToList();
 
-        // Rate Wise Summary
-        var rateGroups = invoices.SelectMany(i => i.Items)
-            .GroupBy(item => item.GstRate)
-            .OrderBy(g => g.Key);
-
-        var rateWise = new List<GstSummaryRowDto>();
-        foreach (var rg in rateGroups)
-        {
-            var taxVal = rg.Sum(i => i.TaxableAmount);
-            var cgst = rg.Sum(i => i.CgstAmount);
-            var sgst = rg.Sum(i => i.SgstAmount);
-            var igst = rg.Sum(i => i.IgstAmount);
-            var totTax = cgst + sgst + igst;
-
-            rateWise.Add(new GstSummaryRowDto
-            {
-                RateSlab = $"{rg.Key}%",
-                TaxableValue = taxVal,
-                CgstAmount = cgst,
-                SgstAmount = sgst,
-                IgstAmount = igst,
-                TotalTax = totTax,
-                TotalValue = taxVal + totTax
-            });
-        }
-
-        // HSN Summary
-        var hsnGroups = invoices.SelectMany(i => i.Items)
-            .GroupBy(item => new { HSN = item.HsnCode ?? item.Item.HSNCode ?? "OTHER", item.GstRate, Uom = item.UomCode ?? "PCS" })
-            .OrderBy(g => g.Key.HSN);
-
-        var hsnSummary = new List<GstHsnSummaryRowDto>();
-        foreach (var hg in hsnGroups)
-        {
-            var taxVal = hg.Sum(i => i.TaxableAmount);
-            var cgst = hg.Sum(i => i.CgstAmount);
-            var sgst = hg.Sum(i => i.SgstAmount);
-            var igst = hg.Sum(i => i.IgstAmount);
-            var desc = hg.First().ItemName ?? hg.First().Item.Name;
-
-            hsnSummary.Add(new GstHsnSummaryRowDto
-            {
-                HSNCode = hg.Key.HSN,
-                Description = desc,
-                UOM = hg.Key.Uom,
-                TotalQuantity = hg.Sum(i => i.Quantity),
-                TaxableValue = taxVal,
-                TaxRate = hg.Key.GstRate,
-                CgstAmount = cgst,
-                SgstAmount = sgst,
-                IgstAmount = igst,
-                TotalTax = cgst + sgst + igst
-            });
-        }
-
         var returnsQuery = _context.SalesReturns
-            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+            .Include(r => r.Party)
+            .Include(r => r.Items)
+                .ThenInclude(i => i.Item)
+                    .ThenInclude(item => item.PrimaryUom)
+            .Where(r => r.TenantId == tenantId 
+                     && !r.IsDeleted 
+                     && !r.IsCancelled
+                     && (string.IsNullOrEmpty(r.OriginalInvoiceNumber) 
+                         || (!r.OriginalInvoiceNumber.StartsWith("CASH-")
+                             && !r.OriginalInvoiceNumber.StartsWith("CM/")
+                             && !r.OriginalInvoiceNumber.StartsWith("EST-")
+                             && !r.OriginalInvoiceNumber.StartsWith("QTN/"))));
+        if (fromUtc.HasValue)
+        {
+            returnsQuery = returnsQuery.Where(r => r.ReturnDate >= fromUtc.Value);
+        }
+        if (toUtc.HasValue)
+        {
+            returnsQuery = returnsQuery.Where(r => r.ReturnDate <= toUtc.Value);
+        }
         if (branchId.HasValue)
         {
             returnsQuery = returnsQuery.Where(r => r.BranchId == branchId.Value);
         }
         var salesReturns = await returnsQuery.ToListAsync(cancellationToken);
+        var returnItems = salesReturns.SelectMany(r => r.Items).ToList();
+
+        // Rate Wise Summary (net of credit notes)
+        var allGstRates = invoices.SelectMany(i => i.Items).Select(i => i.GstRate)
+            .Union(returnItems.Select(r => r.GstRate))
+            .Distinct()
+            .OrderBy(g => g);
+
+        var rateWise = new List<GstSummaryRowDto>();
+        foreach (var rate in allGstRates)
+        {
+            var invItems = invoices.SelectMany(i => i.Items).Where(i => i.GstRate == rate).ToList();
+            var retItems = returnItems.Where(r => r.GstRate == rate).ToList();
+
+            var taxVal = Math.Max(0m, invItems.Sum(i => i.TaxableAmount) - retItems.Sum(r => r.TaxableAmount));
+            var cgst = Math.Max(0m, invItems.Sum(i => i.CgstAmount) - retItems.Sum(r => r.CgstAmount));
+            var sgst = Math.Max(0m, invItems.Sum(i => i.SgstAmount) - retItems.Sum(r => r.SgstAmount));
+            var igst = Math.Max(0m, invItems.Sum(i => i.IgstAmount) - retItems.Sum(r => r.IgstAmount));
+            var totTax = cgst + sgst + igst;
+
+            if (taxVal > 0 || totTax > 0)
+            {
+                rateWise.Add(new GstSummaryRowDto
+                {
+                    RateSlab = $"{rate}%",
+                    TaxableValue = taxVal,
+                    CgstAmount = cgst,
+                    SgstAmount = sgst,
+                    IgstAmount = igst,
+                    TotalTax = totTax,
+                    TotalValue = taxVal + totTax
+                });
+            }
+        }
+
+        // HSN Summary (net of credit notes)
+        var invHsnItems = invoices.SelectMany(i => i.Items)
+            .Select(i => new {
+                Hsn = i.HsnCode ?? i.Item?.HSNCode ?? "OTHER",
+                GstRate = i.GstRate,
+                Uom = i.UomCode ?? i.Item?.PrimaryUom?.Code ?? "PCS",
+                Desc = i.ItemName ?? i.Item?.Name ?? "Item",
+                Qty = i.Quantity,
+                TaxableAmount = i.TaxableAmount,
+                Cgst = i.CgstAmount,
+                Sgst = i.SgstAmount,
+                Igst = i.IgstAmount
+            });
+
+        var retHsnItems = returnItems
+            .Select(r => new {
+                Hsn = r.Item?.HSNCode ?? "OTHER",
+                GstRate = r.GstRate,
+                Uom = r.Item?.PrimaryUom?.Code ?? "PCS",
+                Desc = r.ItemName ?? r.Item?.Name ?? "Item",
+                Qty = r.ReturnQuantity,
+                TaxableAmount = r.TaxableAmount,
+                Cgst = r.CgstAmount,
+                Sgst = r.SgstAmount,
+                Igst = r.IgstAmount
+            });
+
+        var allHsnKeys = invHsnItems.Select(x => new { x.Hsn, x.GstRate })
+            .Union(retHsnItems.Select(x => new { x.Hsn, x.GstRate }))
+            .Distinct()
+            .OrderBy(k => k.Hsn)
+            .ThenBy(k => k.GstRate);
+
+        var hsnSummary = new List<GstHsnSummaryRowDto>();
+        foreach (var key in allHsnKeys)
+        {
+            var invSub = invHsnItems.Where(x => x.Hsn == key.Hsn && x.GstRate == key.GstRate).ToList();
+            var retSub = retHsnItems.Where(x => x.Hsn == key.Hsn && x.GstRate == key.GstRate).ToList();
+
+            var netQty = Math.Max(0m, invSub.Sum(x => x.Qty) - retSub.Sum(x => x.Qty));
+            var netTaxVal = Math.Max(0m, invSub.Sum(x => x.TaxableAmount) - retSub.Sum(x => x.TaxableAmount));
+            var netCgst = Math.Max(0m, invSub.Sum(x => x.Cgst) - retSub.Sum(x => x.Cgst));
+            var netSgst = Math.Max(0m, invSub.Sum(x => x.Sgst) - retSub.Sum(x => x.Sgst));
+            var netIgst = Math.Max(0m, invSub.Sum(x => x.Igst) - retSub.Sum(x => x.Igst));
+            var desc = invSub.FirstOrDefault()?.Desc ?? retSub.FirstOrDefault()?.Desc ?? "Item";
+            var uom = invSub.FirstOrDefault()?.Uom ?? retSub.FirstOrDefault()?.Uom ?? "PCS";
+
+            if (netQty > 0 || netTaxVal > 0)
+            {
+                hsnSummary.Add(new GstHsnSummaryRowDto
+                {
+                    HSNCode = key.Hsn,
+                    Description = desc,
+                    UOM = uom,
+                    TotalQuantity = netQty,
+                    TaxableValue = netTaxVal,
+                    TaxRate = key.GstRate,
+                    CgstAmount = netCgst,
+                    SgstAmount = netSgst,
+                    IgstAmount = netIgst,
+                    TotalTax = netCgst + netSgst + netIgst
+                });
+            }
+        }
 
         var totalCreditNotesCount = salesReturns.Count;
         var totalCreditNotesTaxable = salesReturns.Sum(r => r.SubTotal);
         var totalCreditNotesTax = salesReturns.Sum(r => r.TaxAmount);
 
+        var creditNoteRows = salesReturns.Select(r => new Gstr1CreditNoteRowDto
+        {
+            Id = r.Id,
+            CreditNoteNumber = r.CreditNoteNumber,
+            ReturnDate = r.ReturnDate.DateTime,
+            OriginalInvoiceNumber = r.OriginalInvoiceNumber,
+            CustomerName = r.CustomerName,
+            CustomerGSTIN = r.Party?.GSTIN,
+            NoteType = "C",
+            TaxableValue = r.SubTotal,
+            TaxAmount = r.TaxAmount,
+            TotalValue = r.TotalAmount,
+            SupplyType = !string.IsNullOrWhiteSpace(r.Party?.GSTIN) ? "B2B" : "B2C"
+        }).ToList();
+
         var netOutwardTaxable = Math.Max(0m, invoices.Sum(i => i.TaxableAmount) - totalCreditNotesTaxable);
         var netOutwardTax = Math.Max(0m, invoices.Sum(i => i.CgstAmount + i.SgstAmount + i.IgstAmount + i.CessAmount) - totalCreditNotesTax);
+
+        // Official GSTN B2B grouping by Recipient GSTIN
+        var b2bRecipients = b2bInvoices
+            .GroupBy(inv => (inv.CustomerGSTIN ?? "").Trim().ToUpperInvariant())
+            .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+            .Select(g => new Gstr1B2BRecipientDto
+            {
+                CustomerGstin = g.Key,
+                CustomerName = g.FirstOrDefault()?.CustomerName ?? "Customer",
+                Invoices = g.Select(inv => new Gstr1B2BInvoiceDto
+                {
+                    InvoiceNumber = inv.InvoiceNumber,
+                    InvoiceDate = inv.InvoiceDate,
+                    TotalValue = inv.TotalAmount,
+                    PlaceOfSupply = !string.IsNullOrWhiteSpace(inv.PlaceOfSupply) && inv.PlaceOfSupply.Length >= 2
+                        ? inv.PlaceOfSupply.Substring(0, 2)
+                        : (!string.IsNullOrWhiteSpace(inv.CustomerGSTIN) && inv.CustomerGSTIN.Length >= 2
+                            ? inv.CustomerGSTIN.Substring(0, 2)
+                            : "07"),
+                    ReverseCharge = inv.IsReverseCharge ? "Y" : "N",
+                    InvoiceType = "R",
+                    Items = inv.Items
+                        .GroupBy(it => it.GstRate)
+                        .Select((itg, idx) => new Gstr1B2BItemDetailDto
+                        {
+                            Num = idx + 1,
+                            Rate = itg.Key,
+                            TaxableValue = itg.Sum(it => it.TaxableAmount),
+                            IgstAmount = itg.Sum(it => it.IgstAmount),
+                            CgstAmount = itg.Sum(it => it.CgstAmount),
+                            SgstAmount = itg.Sum(it => it.SgstAmount),
+                            CessAmount = itg.Sum(it => it.CessAmount)
+                        }).ToList()
+                }).ToList()
+            }).ToList();
+
+        // Official GSTN B2CS grouping by POS & GST Rate
+        var tenantPos = !string.IsNullOrWhiteSpace(tenant?.GSTIN) && tenant.GSTIN.Length >= 2 ? tenant.GSTIN.Substring(0, 2) : "07";
+        var b2csRows = b2cInvoices
+            .SelectMany(inv => inv.Items.Select(item => new
+            {
+                Pos = !string.IsNullOrWhiteSpace(inv.PlaceOfSupply) && inv.PlaceOfSupply.Length >= 2
+                    ? inv.PlaceOfSupply.Substring(0, 2)
+                    : tenantPos,
+                item.GstRate,
+                item.TaxableAmount,
+                item.CgstAmount,
+                item.SgstAmount,
+                item.IgstAmount,
+                item.CessAmount
+            }))
+            .GroupBy(x => new { x.Pos, x.GstRate })
+            .Select(g => new Gstr1B2CSItemDto
+            {
+                PlaceOfSupply = g.Key.Pos,
+                Rate = g.Key.GstRate,
+                SupplyType = g.Key.Pos == tenantPos ? "INTRA" : "INTER",
+                TaxableValue = g.Sum(x => x.TaxableAmount),
+                CgstAmount = g.Sum(x => x.CgstAmount),
+                SgstAmount = g.Sum(x => x.SgstAmount),
+                IgstAmount = g.Sum(x => x.IgstAmount),
+                CessAmount = g.Sum(x => x.CessAmount)
+            }).ToList();
+
+        // Table 13 Document Details Summary
+        var docIssueList = new List<Gstr1DocIssueDetailsDto>();
+        if (invoices.Count > 0)
+        {
+            var orderedInvoices = invoices.OrderBy(i => i.InvoiceNumber).ToList();
+            var cancelledCount = await _context.SalesInvoices
+                .CountAsync(s => s.TenantId == tenantId && (s.IsCancelled || s.Status == InvoiceStatus.Cancelled) &&
+                    s.InvoiceType != InvoiceType.SalesEstimate &&
+                    s.InvoiceType != InvoiceType.ProformaInvoice &&
+                    !s.InvoiceNumber.StartsWith("CASH-") &&
+                    !s.InvoiceNumber.StartsWith("CM/") &&
+                    !s.InvoiceNumber.StartsWith("EST-") &&
+                    !s.InvoiceNumber.StartsWith("QTN/") &&
+                    (!fromUtc.HasValue || s.InvoiceDate >= fromUtc.Value) &&
+                    (!toUtc.HasValue || s.InvoiceDate <= toUtc.Value), cancellationToken);
+
+            docIssueList.Add(new Gstr1DocIssueDetailsDto
+            {
+                DocNum = 1,
+                FromSerial = orderedInvoices.First().InvoiceNumber,
+                ToSerial = orderedInvoices.Last().InvoiceNumber,
+                TotalCount = invoices.Count + cancelledCount,
+                CancelledCount = cancelledCount,
+                NetIssuedCount = invoices.Count
+            });
+        }
 
         var report = new Gstr1ReportDto
         {
             TenantName = tenant?.BusinessName ?? "Business Tenant",
             GSTIN = tenant?.GSTIN ?? string.Empty,
-            FromDate = effectiveFrom,
-            ToDate = effectiveTo,
+            FromDate = fromDate ?? (fromUtc.HasValue ? fromUtc.Value.Date : DateTime.UtcNow.Date),
+            ToDate = toDate ?? (toUtc.HasValue ? toUtc.Value.Date : DateTime.UtcNow.Date),
             TotalB2BInvoices = b2bInvoices.Count,
             TotalB2BTaxable = b2bInvoices.Sum(i => i.TaxableAmount),
             TotalB2BTax = b2bInvoices.Sum(i => i.CgstAmount + i.SgstAmount + i.IgstAmount + i.CessAmount),
@@ -412,7 +622,11 @@ public class ReportService : IReportService
             TotalOutwardTaxable = netOutwardTaxable,
             TotalOutwardTax = netOutwardTax,
             RateWiseSummary = rateWise,
-            HsnSummary = hsnSummary
+            HsnSummary = hsnSummary,
+            CreditNotes = creditNoteRows,
+            B2B = b2bRecipients,
+            B2CS = b2csRows,
+            DocIssue = docIssueList
         };
 
         return Result<Gstr1ReportDto>.Success(report);
@@ -426,27 +640,56 @@ public class ReportService : IReportService
     {
         var tenantId = RequireTenantId();
 
-        var effectiveFrom = fromDate ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        var effectiveTo = toDate ?? DateTime.UtcNow.Date;
-
-        var fromUtc = DateTime.SpecifyKind(effectiveFrom.Date, DateTimeKind.Utc);
-        var toUtc = DateTime.SpecifyKind(effectiveTo.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(fromDate, toDate, defaultToCurrentMonthIfBothNull: true);
 
         var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
 
         var salesQuery = _context.SalesInvoices
-            .Where(s => s.TenantId == tenantId && !s.IsDeleted && s.Status != InvoiceStatus.Cancelled && s.InvoiceDate >= fromUtc && s.InvoiceDate <= toUtc);
+            .Where(s => s.TenantId == tenantId 
+                     && !s.IsDeleted 
+                     && !s.IsCancelled 
+                     && s.Status != InvoiceStatus.Cancelled
+                     && s.InvoiceType != InvoiceType.SalesEstimate
+                     && s.InvoiceType != InvoiceType.ProformaInvoice
+                     && !s.InvoiceNumber.StartsWith("CASH-")
+                     && !s.InvoiceNumber.StartsWith("CM/")
+                     && !s.InvoiceNumber.StartsWith("EST-")
+                     && !s.InvoiceNumber.StartsWith("QTN/"));
 
         var purchaseQuery = _context.PurchaseBills
-            .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.Status != PurchaseBillStatus.Cancelled && p.BillDate >= fromUtc && p.BillDate <= toUtc);
+            .Where(p => p.TenantId == tenantId && !p.IsDeleted && !p.IsCancelled && p.Status != PurchaseBillStatus.Cancelled);
 
         var returnsQuery = _context.SalesReturns
             .Include(r => r.OriginalSalesInvoice)
-            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+            .Include(r => r.Items)
+            .Where(r => r.TenantId == tenantId 
+                     && !r.IsDeleted 
+                     && !r.IsCancelled
+                     && (string.IsNullOrEmpty(r.OriginalInvoiceNumber) 
+                         || (!r.OriginalInvoiceNumber.StartsWith("CASH-")
+                             && !r.OriginalInvoiceNumber.StartsWith("CM/")
+                             && !r.OriginalInvoiceNumber.StartsWith("EST-")
+                             && !r.OriginalInvoiceNumber.StartsWith("QTN/"))));
 
         var purchaseReturnsQuery = _context.PurchaseReturns
             .Include(pr => pr.OriginalPurchaseBill)
-            .Where(pr => pr.TenantId == tenantId && !pr.IsDeleted && !pr.IsCancelled && pr.ReturnDate >= fromUtc && pr.ReturnDate <= toUtc);
+            .Where(pr => pr.TenantId == tenantId && !pr.IsDeleted && !pr.IsCancelled);
+
+        if (fromUtc.HasValue)
+        {
+            salesQuery = salesQuery.Where(s => s.InvoiceDate >= fromUtc.Value);
+            purchaseQuery = purchaseQuery.Where(p => p.BillDate >= fromUtc.Value);
+            returnsQuery = returnsQuery.Where(r => r.ReturnDate >= fromUtc.Value);
+            purchaseReturnsQuery = purchaseReturnsQuery.Where(pr => pr.ReturnDate >= fromUtc.Value);
+        }
+
+        if (toUtc.HasValue)
+        {
+            salesQuery = salesQuery.Where(s => s.InvoiceDate <= toUtc.Value);
+            purchaseQuery = purchaseQuery.Where(p => p.BillDate <= toUtc.Value);
+            returnsQuery = returnsQuery.Where(r => r.ReturnDate <= toUtc.Value);
+            purchaseReturnsQuery = purchaseReturnsQuery.Where(pr => pr.ReturnDate <= toUtc.Value);
+        }
 
         if (branchId.HasValue)
         {
@@ -456,7 +699,14 @@ public class ReportService : IReportService
             purchaseReturnsQuery = purchaseReturnsQuery.Where(pr => pr.BranchId == branchId.Value);
         }
 
-        var sales = await salesQuery.ToListAsync(cancellationToken);
+        var rawGstr3bSales = await salesQuery.ToListAsync(cancellationToken);
+        var sales = rawGstr3bSales.Where(s =>
+            !(s.CgstAmount == 0 && s.SgstAmount == 0 && s.IgstAmount == 0 && 
+              string.IsNullOrWhiteSpace(s.CustomerGSTIN) && 
+              !string.IsNullOrEmpty(s.AttributesJson) && 
+              (s.AttributesJson.Contains("\"isNonGst\":true") || s.AttributesJson.Contains("\"billingMode\":\"NON_GST\""))
+            )
+        ).ToList();
         var purchases = await purchaseQuery.ToListAsync(cancellationToken);
         var salesReturns = await returnsQuery.ToListAsync(cancellationToken);
         var purchaseReturns = await purchaseReturnsQuery.ToListAsync(cancellationToken);
@@ -471,16 +721,29 @@ public class ReportService : IReportService
         decimal crnIgst = 0m, crnCgst = 0m, crnSgst = 0m;
         foreach (var r in salesReturns)
         {
-            bool isInterState = r.OriginalSalesInvoice != null && r.OriginalSalesInvoice.TaxSupplyType == TaxSupplyType.InterState;
-            if (isInterState)
+            decimal itemCgst = r.Items != null ? r.Items.Sum(i => i.CgstAmount) : 0m;
+            decimal itemSgst = r.Items != null ? r.Items.Sum(i => i.SgstAmount) : 0m;
+            decimal itemIgst = r.Items != null ? r.Items.Sum(i => i.IgstAmount) : 0m;
+
+            if (itemCgst > 0 || itemSgst > 0 || itemIgst > 0)
             {
-                crnIgst += r.TaxAmount;
+                crnCgst += itemCgst;
+                crnSgst += itemSgst;
+                crnIgst += itemIgst;
             }
             else
             {
-                var half = Math.Round(r.TaxAmount / 2m, 2);
-                crnCgst += half;
-                crnSgst += (r.TaxAmount - half);
+                bool isInterState = r.OriginalSalesInvoice != null && r.OriginalSalesInvoice.TaxSupplyType == TaxSupplyType.InterState;
+                if (isInterState)
+                {
+                    crnIgst += r.TaxAmount;
+                }
+                else
+                {
+                    var half = Math.Round(r.TaxAmount / 2m, 2);
+                    crnCgst += half;
+                    crnSgst += (r.TaxAmount - half);
+                }
             }
         }
 
@@ -500,16 +763,25 @@ public class ReportService : IReportService
         decimal drnIgst = 0m, drnCgst = 0m, drnSgst = 0m;
         foreach (var pr in purchaseReturns)
         {
-            bool isInterState = pr.OriginalPurchaseBill != null && pr.OriginalPurchaseBill.TaxSupplyType == TaxSupplyType.InterState;
-            if (isInterState)
+            if (pr.CgstAmount > 0 || pr.SgstAmount > 0 || pr.IgstAmount > 0)
             {
-                drnIgst += pr.TaxAmount;
+                drnCgst += pr.CgstAmount;
+                drnSgst += pr.SgstAmount;
+                drnIgst += pr.IgstAmount;
             }
             else
             {
-                var half = Math.Round(pr.TaxAmount / 2m, 2);
-                drnCgst += half;
-                drnSgst += (pr.TaxAmount - half);
+                bool isInterState = pr.OriginalPurchaseBill != null && pr.OriginalPurchaseBill.TaxSupplyType == TaxSupplyType.InterState;
+                if (isInterState)
+                {
+                    drnIgst += pr.TaxAmount;
+                }
+                else
+                {
+                    var half = Math.Round(pr.TaxAmount / 2m, 2);
+                    drnCgst += half;
+                    drnSgst += (pr.TaxAmount - half);
+                }
             }
         }
 
@@ -519,7 +791,7 @@ public class ReportService : IReportService
         decimal inSgst = Math.Max(0m, grossInSgst - drnSgst);
         decimal totalInItc = inIgst + inCgst + inSgst;
 
-        // Rule 88A Statutory Set-off Waterfall:
+        // Tax Set-off Waterfall:
         // 1. Fully exhaust Input IGST against Output IGST, then Output CGST and Output SGST
         decimal remInIgst = inIgst;
         decimal remOutIgst = outIgst;
@@ -580,8 +852,8 @@ public class ReportService : IReportService
         {
             TenantName = tenant?.BusinessName ?? "Business Tenant",
             GSTIN = tenant?.GSTIN ?? string.Empty,
-            FromDate = effectiveFrom,
-            ToDate = effectiveTo,
+            FromDate = fromDate ?? (fromUtc.HasValue ? fromUtc.Value.Date : DateTime.UtcNow.Date),
+            ToDate = toDate ?? (toUtc.HasValue ? toUtc.Value.Date : DateTime.UtcNow.Date),
             OutwardTaxableValue = outTaxable,
             OutwardIgst = outIgst,
             OutwardCgst = outCgst,
@@ -609,26 +881,38 @@ public class ReportService : IReportService
     {
         var tenantId = RequireTenantId();
 
-        var effectiveFrom = fromDate ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        var effectiveTo = toDate ?? DateTime.UtcNow.Date;
-
-        var fromUtc = DateTime.SpecifyKind(effectiveFrom.Date, DateTimeKind.Utc);
-        var toUtc = DateTime.SpecifyKind(effectiveTo.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+        var (fromUtc, toUtc) = DateHelper.ResolveDateRangeUtc(fromDate, toDate, defaultToCurrentMonthIfBothNull: false);
 
         var salesQuery = _context.SalesInvoices
             .Include(s => s.Items)
-            .Where(s => s.TenantId == tenantId && !s.IsDeleted && s.Status != InvoiceStatus.Cancelled && s.InvoiceDate >= fromUtc && s.InvoiceDate <= toUtc);
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted && !s.IsCancelled && s.Status != InvoiceStatus.Cancelled);
 
         var purchaseQuery = _context.PurchaseBills
-            .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.Status != PurchaseBillStatus.Cancelled && p.BillDate >= fromUtc && p.BillDate <= toUtc);
+            .Where(p => p.TenantId == tenantId && !p.IsDeleted && !p.IsCancelled && p.Status != PurchaseBillStatus.Cancelled);
 
         var salesReturnQuery = _context.SalesReturns
             .Include(r => r.Items)
-            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled);
 
         var purchaseReturnQuery = _context.PurchaseReturns
             .Include(r => r.Items)
-            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled && r.ReturnDate >= fromUtc && r.ReturnDate <= toUtc);
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted && !r.IsCancelled);
+
+        if (fromUtc.HasValue)
+        {
+            salesQuery = salesQuery.Where(s => s.InvoiceDate >= fromUtc.Value);
+            purchaseQuery = purchaseQuery.Where(p => p.BillDate >= fromUtc.Value);
+            salesReturnQuery = salesReturnQuery.Where(r => r.ReturnDate >= fromUtc.Value);
+            purchaseReturnQuery = purchaseReturnQuery.Where(r => r.ReturnDate >= fromUtc.Value);
+        }
+
+        if (toUtc.HasValue)
+        {
+            salesQuery = salesQuery.Where(s => s.InvoiceDate <= toUtc.Value);
+            purchaseQuery = purchaseQuery.Where(p => p.BillDate <= toUtc.Value);
+            salesReturnQuery = salesReturnQuery.Where(r => r.ReturnDate <= toUtc.Value);
+            purchaseReturnQuery = purchaseReturnQuery.Where(r => r.ReturnDate <= toUtc.Value);
+        }
 
         if (branchId.HasValue)
         {
@@ -642,6 +926,24 @@ public class ReportService : IReportService
         var purchases = await purchaseQuery.ToListAsync(cancellationToken);
         var salesReturns = await salesReturnQuery.ToListAsync(cancellationToken);
         var purchaseReturns = await purchaseReturnQuery.ToListAsync(cancellationToken);
+
+        var expenseQuery = _context.ExpenseVouchers
+            .Where(e => e.TenantId == tenantId && !e.IsDeleted);
+
+        if (fromUtc.HasValue)
+        {
+            var fDate = fromUtc.Value.Date;
+            expenseQuery = expenseQuery.Where(e => e.ExpenseDate >= fDate);
+        }
+
+        if (toUtc.HasValue)
+        {
+            var tDate = toUtc.Value.Date;
+            expenseQuery = expenseQuery.Where(e => e.ExpenseDate <= tDate);
+        }
+
+        var expenses = await expenseQuery.ToListAsync(cancellationToken);
+        decimal totalExpenses = expenses.Sum(e => e.Amount);
 
         decimal grossSales = sales.Sum(s => s.TotalAmount);
         decimal salesReturnAmount = salesReturns.Sum(r => r.TotalAmount);
@@ -674,8 +976,8 @@ public class ReportService : IReportService
 
         var summary = new SummaryReportDto
         {
-            FromDate = effectiveFrom,
-            ToDate = effectiveTo,
+            FromDate = fromDate ?? (fromUtc.HasValue ? fromUtc.Value.Date : DateTime.UtcNow.Date),
+            ToDate = toDate ?? (toUtc.HasValue ? toUtc.Value.Date : DateTime.UtcNow.Date),
             TotalSales = totalSales,
             TotalInvoicesCount = sales.Count,
             TotalCollected = totalCollected,
@@ -683,6 +985,10 @@ public class ReportService : IReportService
             TotalPurchases = totalPurchases,
             TotalPurchaseBillsCount = purchases.Count,
             TotalPayables = totalPayables,
+            TotalSalesReturns = salesReturnAmount,
+            TotalSalesReturnsCount = salesReturns.Count,
+            TotalExpenses = totalExpenses,
+            TotalExpensesCount = expenses.Count,
             OutputGst = Math.Max(0m, outputGst),
             InputGstItc = Math.Max(0m, inputGstItc),
             NetGstPayable = netGst,

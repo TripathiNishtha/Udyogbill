@@ -64,6 +64,7 @@ public class PlatformPasswordResetOtp : BaseAuditableEntity
     public string OtpCode { get; set; } = string.Empty;
     public DateTimeOffset ExpiresAtUtc { get; set; }
     public bool IsUsed { get; set; } = false;
+    public int FailedAttempts { get; set; } = 0;
 }
 
 public class PlatformLeadPopupConfig : BaseAuditableEntity

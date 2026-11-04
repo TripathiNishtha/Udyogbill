@@ -119,7 +119,31 @@ public class TenantService : ITenantService
             tenant.IsActive,
             configDto,
             branchesDto,
-            subDto
+            subDto,
+            tenant.LogoUrl,
+            tenant.UpiId,
+            tenant.BankName,
+            tenant.BankAccountNumber,
+            tenant.BankIfsc,
+            tenant.BankBranch,
+            tenant.AddressLine1,
+            tenant.AddressLine2,
+            tenant.City,
+            tenant.State,
+            tenant.StateCode,
+            tenant.Pincode,
+            tenant.Email,
+            tenant.Website,
+            SmtpHost: tenant.SmtpHost,
+            SmtpPort: tenant.SmtpPort,
+            SmtpUsername: tenant.SmtpUsername,
+            SmtpPassword: tenant.SmtpPassword,
+            SmtpFromEmail: tenant.SmtpFromEmail,
+            SmtpFromName: tenant.SmtpFromName,
+            SmtpEnableSsl: tenant.SmtpEnableSsl,
+            AdminPassword: null,
+            ApparelSubType: tenant.ApparelSubType,
+            HardwareSubType: tenant.HardwareSubType
         );
 
         return Result<TenantDetailsDto>.Success(details);
@@ -160,7 +184,7 @@ public class TenantService : ITenantService
                 t.IsActive,
                 t.CreatedAtUtc,
                 t.LogoUrl,
-                t.AdminPassword
+                null
             ))
             .ToListAsync(cancellationToken);
 

@@ -337,6 +337,7 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                     existingSub.Status = SubscriptionStatus.Active;
                     existingSub.EndsAtUtc = DateTimeOffset.UtcNow.AddDays(durationDays);
                     existingSub.PricePaid = basePrice;
+                    existingSub.TrialEndsAtUtc = null;
                 }
                 else
                 {
@@ -347,10 +348,12 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                         Status = SubscriptionStatus.Active,
                         StartsAtUtc = DateTimeOffset.UtcNow,
                         EndsAtUtc = DateTimeOffset.UtcNow.AddDays(durationDays),
+                        TrialEndsAtUtc = null,
                         PricePaid = basePrice,
                         CurrencyCode = "INR"
                     });
                 }
+                tenant.Status = TenantStatus.Active;
             }
         }
 
@@ -588,19 +591,54 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             .Select(i => MapToInvoiceDto(i))
             .ToListAsync(cancellationToken);
 
+        var now = DateTimeOffset.UtcNow;
         var planName = sub?.Plan?.Name ?? "Free Trial Tier";
         var planCode = sub?.Plan?.Code ?? "TRIAL";
-        var planExpiry = sub?.EndsAtUtc ?? DateTimeOffset.UtcNow.AddDays(14);
-        int planRemaining = Math.Max(0, (int)(planExpiry - DateTimeOffset.UtcNow).TotalDays);
+
+        DateTimeOffset planExpiry;
+        bool isTrial = false;
+
+        if (sub != null)
+        {
+            if (sub.Status == SubscriptionStatus.Active)
+            {
+                planExpiry = sub.EndsAtUtc;
+                isTrial = false;
+            }
+            else if (sub.Status == SubscriptionStatus.Trial)
+            {
+                planExpiry = sub.TrialEndsAtUtc ?? sub.EndsAtUtc;
+                isTrial = true;
+            }
+            else
+            {
+                planExpiry = sub.EndsAtUtc;
+                isTrial = false;
+            }
+        }
+        else
+        {
+            planExpiry = tenant.CreatedAtUtc.AddDays(14);
+            isTrial = true;
+        }
+
+        int planRemaining = Math.Max(0, (int)(planExpiry - now).TotalDays);
+        bool isExpired = (planExpiry < now) || 
+            sub?.Status == SubscriptionStatus.Expired || 
+            sub?.Status == SubscriptionStatus.Suspended || 
+            sub?.Status == SubscriptionStatus.Cancelled;
+        bool isReadOnly = isExpired;
 
         var result = new TenantSubscriptionStatusSummaryDto(
             CurrentPlanCode: planCode,
             CurrentPlanName: planName,
             PlanExpiresAtUtc: planExpiry,
             PlanRemainingDays: planRemaining,
-            IsTrial: sub?.Status == SubscriptionStatus.Trial || sub == null,
+            IsTrial: isTrial,
             Addons: addonDtos,
-            RecentInvoices: recentInvoices
+            RecentInvoices: recentInvoices,
+            IsReadOnly: isReadOnly,
+            IsExpired: isExpired
         );
 
         return Result<TenantSubscriptionStatusSummaryDto>.Success(result);
@@ -709,16 +747,6 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
     {
         try
         {
-            // Ensure column exists
-            try
-            {
-                await _context.Database.ExecuteSqlRawAsync(
-                    @"ALTER TABLE ""AddOns"" ADD COLUMN IF NOT EXISTS ""AnnualPrice"" numeric NOT NULL DEFAULT 0;
-                      ALTER TABLE ""AddOns"" ADD COLUMN IF NOT EXISTS ""IsHidden"" boolean NOT NULL DEFAULT FALSE;",
-                    cancellationToken);
-            }
-            catch {}
-
             var addons = await _context.AddOns
                 .IgnoreQueryFilters()
                 .OrderBy(a => a.Name)
@@ -791,7 +819,12 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             new(Guid.Parse("22222222-2222-2222-2222-222222222222"), "ADDON_GARMENTS", "Apparel & Garments Matrix", "2D Size x Color SKU Matrix, variant generation, clothing hang-tag barcode studio.", 399m, "Monthly", true, false, null, 0, 3990m, false),
             new(Guid.Parse("33333333-3333-3333-3333-333333333333"), "ADDON_MANUFACTURING", "Manufacturing & Bakery (BOM)", "Recipe / Bill of Materials (BOM), raw materials auto-consumption, batch production runs & yield tracking.", 599m, "Monthly", true, false, null, 0, 5990m, false),
             new(Guid.Parse("44444444-4444-4444-4444-444444444444"), "ADDON_FMCG", "FMCG, Grocery & Distribution", "Multi-unit conversion (Case/Box/Pcs), free scheme discounts (10+1 free), auto re-order thresholds.", 399m, "Monthly", true, false, null, 0, 3990m, false),
-            new(Guid.Parse("55555555-5555-5555-5555-555555555555"), "ADDON_ACCOUNTING", "Dual-Entry Financial Accounting", "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", 499m, "Monthly", true, false, null, 0, 4990m, false)
+            new(Guid.Parse("55555555-5555-5555-5555-555555555555"), "ADDON_ACCOUNTING", "Dual-Entry Financial Accounting", "Chart of Accounts (COA), Journal & Contra vouchers, Bank Reconciliation (BRS), and P&L / Balance Sheet.", 499m, "Monthly", true, false, null, 0, 4990m, false),
+            new(Guid.Parse("d275a8ac-6566-4087-8b32-997bc4bc5aff"), "ADDON_AI_PRO", "AI Pro Purchase Bill Scanner", "AI-powered purchase bill OCR, smart item extraction, batch detection (500 scans/month).", 149m, "Monthly", true, false, null, 0, 1490m, false),
+            new(Guid.Parse("f29c2451-72cc-424d-82b3-1474dee10892"), "ADDON_EXTRA_1_USER", "Additional Team Member (1 User)", "Add 1 additional operator / user seat to your organization.", 799m, "Annual", true, false, null, 0, 799m, false),
+            new(Guid.Parse("d1cd1f8b-d8d4-4c53-a6b6-228e482cfca1"), "ADDON_EXTRA_5_USERS", "5 Additional Users Pack", "Add 5 additional operator / user seats to your organization.", 2999m, "Annual", true, false, null, 0, 2999m, false),
+            new(Guid.Parse("994bf0b3-1564-4f4d-b7b4-a15b55c71e90"), "ADDON_WHATSAPP", "WhatsApp Cloud Automation", "Automated PDF invoices, payment reminders, and customer notifications via WhatsApp.", 499m, "Monthly", true, false, null, 0, 4990m, false),
+            new(Guid.Parse("1564fdaf-23d0-4a30-9dd7-f6560cbcaeca"), "ADDON_EWAYBILL", "E-Way Bill & E-Invoice", "Direct government NIC portal sync, JSON generation and automated QR code stamping.", 99m, "Monthly", true, false, null, 0, 990m, false)
         };
     }
 
@@ -970,6 +1003,20 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
                 config.EnableExpiryTracking = false;
                 config.EnableScheduleH1DrugTracking = false;
             }
+            else if (request.AddonCode == "ADDON_AI_PRO")
+            {
+                tenant.IsAiAddonActive = false;
+                configDict["ai-pro"] = false;
+                configDict["ai-scanner"] = false;
+            }
+            else if (request.AddonCode == "ADDON_EXTRA_1_USER")
+            {
+                tenant.MaxAllowedUsers = Math.Max(1, tenant.MaxAllowedUsers - 1);
+            }
+            else if (request.AddonCode == "ADDON_EXTRA_5_USERS")
+            {
+                tenant.MaxAllowedUsers = Math.Max(1, tenant.MaxAllowedUsers - 5);
+            }
             else if (request.AddonCode == "ADDON_GARMENTS")
             {
                 config.EnableSizeColorMatrix = false;
@@ -1041,6 +1088,21 @@ public class SubscriptionPaymentService : ISubscriptionPaymentService
             tenant.IsPharmaSfaActive = true;
             if (tenant.MaxAllowedMrUsers <= 0) tenant.MaxAllowedMrUsers = 15;
             if (tenant.MaxAllowedManagerUsers <= 0) tenant.MaxAllowedManagerUsers = 5;
+        }
+        else if (addonCode == "ADDON_AI_PRO")
+        {
+            tenant.IsAiAddonActive = true;
+            tenant.AiScansLimit = Math.Max(tenant.AiScansLimit, 500);
+            configDict["ai-pro"] = true;
+            configDict["ai-scanner"] = true;
+        }
+        else if (addonCode == "ADDON_EXTRA_1_USER")
+        {
+            tenant.MaxAllowedUsers += 1;
+        }
+        else if (addonCode == "ADDON_EXTRA_5_USERS")
+        {
+            tenant.MaxAllowedUsers += 5;
         }
         else if (addonCode == "ADDON_PHARMA")
         {

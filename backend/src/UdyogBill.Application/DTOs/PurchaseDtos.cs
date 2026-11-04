@@ -235,6 +235,9 @@ public record CreatePurchaseBillItemRequest
     public string? Packing { get; set; }
     public string? HsnCode { get; set; }
     public string? AttributesJson { get; set; } = "{}";
+    public decimal? NewSellingPrice { get; set; }
+    public decimal? NewMinimumSellingPrice { get; set; }
+    public bool UpdateMasterRates { get; set; } = false;
 }
 
 public record CreatePurchaseBillRequest
@@ -291,7 +294,9 @@ public record PurchaseBillItemDto(
     decimal IgstAmount,
     decimal CessRate,
     decimal CessAmount,
-    decimal TotalAmount
+    decimal TotalAmount,
+    Guid? VariantId = null,
+    string AttributesJson = "{}"
 );
 
 public record PurchaseBillPaymentDto(
@@ -394,6 +399,10 @@ public record CreatePurchaseReturnItemRequest
 
 public record CreatePurchaseReturnRequest
 {
+    public string ReturnType { get; set; } = "GoodsReturn"; // "GoodsReturn" | "SchemeDiscount"
+    public decimal FinancialAmount { get; set; } = 0m;
+    public decimal FinancialGstRate { get; set; } = 0m;
+    public string? SchemeReferenceNumber { get; set; }
     public Guid? OriginalPurchaseBillId { get; set; }
     public string? OriginalBillNumber { get; set; }
     public Guid PartyId { get; set; }
@@ -421,6 +430,7 @@ public record PurchaseReturnItemDto(
 public record PurchaseReturnDto(
     Guid Id,
     string DebitNoteNumber,
+    string ReturnType,
     DateTimeOffset ReturnDate,
     Guid? OriginalPurchaseBillId,
     string? OriginalBillNumber,
@@ -436,4 +446,16 @@ public record PurchaseReturnDto(
     bool IsCancelled,
     DateTimeOffset CreatedAtUtc,
     IReadOnlyList<PurchaseReturnItemDto> Items
+);
+
+public record LastDealHintDto(
+    decimal UnitPrice,
+    decimal Quantity,
+    decimal FreeQuantity,
+    decimal DiscountPercent,
+    string FreeSchemeText,
+    decimal Mrp,
+    DateTime? Date,
+    string DocumentNumber,
+    string PartyName
 );

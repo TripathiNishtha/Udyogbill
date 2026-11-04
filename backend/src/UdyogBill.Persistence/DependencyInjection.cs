@@ -38,14 +38,18 @@ public static class DependencyInjection
         services.AddScoped<IIndustryService, IndustryService>();
         services.AddScoped<IPlanService, PlanService>();
         services.AddScoped<ISuperAdminService, SuperAdminService>();
+        services.AddScoped<ICompanyManagementService, CompanyManagementService>();
         services.AddScoped<ITenantHierarchyService, TenantHierarchyService>();
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IPartyService, PartyService>();
         services.AddScoped<ISalesService, SalesService>();
+        services.AddScoped<ISalesOrderService, SalesOrderService>();
         services.AddScoped<IPurchaseService, PurchaseService>();
         services.AddScoped<IQuotationService, QuotationService>();
         services.AddScoped<IBarcodeService, BarcodeService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IIndustryReportService, IndustryReportService>();
+        services.AddScoped<IEnterpriseReportService, EnterpriseReportService>();
         services.AddScoped<ITenantAuditService, TenantAuditService>();
         services.AddScoped<IIndustryCapabilitiesService, IndustryCapabilitiesService>();
         services.AddScoped<IBankingAndExpenseService, BankingAndExpenseService>();
@@ -71,6 +75,9 @@ public static class DependencyInjection
         services.AddScoped<IBrokerService, BrokerService>();
         services.AddScoped<ISandboxGstService, SandboxGstService>();
         services.AddScoped<IHrmService, HrmService>();
+        services.AddScoped<UdyogBill.Application.Services.AutoParts.IAutoPartsService, AutoPartsService>();
+        services.AddScoped<IJewelleryService, JewelleryService>();
+        services.AddScoped<IInternalSalesForceService, InternalSalesForceService>();
 
         return services;
     }

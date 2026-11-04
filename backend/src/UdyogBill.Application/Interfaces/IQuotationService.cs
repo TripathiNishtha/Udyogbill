@@ -24,6 +24,7 @@ public interface IQuotationService
     Task<Result<QuotationDetailsDto>> GetQuotationByNumberAsync(string quotationNumber, CancellationToken cancellationToken = default);
 
     Task<Result<Guid>> CreateQuotationAsync(CreateQuotationRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<Result<Guid>> UpdateQuotationAsync(Guid id, CreateQuotationRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<Guid>> ConvertQuotationToInvoiceAsync(Guid quotationId, ConvertQuotationRequest request, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<Result<bool>> CancelQuotationAsync(Guid id, string cancellationReason, string? ipAddress = null, CancellationToken cancellationToken = default);
 }

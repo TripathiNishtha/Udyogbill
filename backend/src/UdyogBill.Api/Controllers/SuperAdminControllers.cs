@@ -51,6 +51,15 @@ public class SuperAdminTenantsController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpGet("{id:guid}/security-audit")]
+    [ProducesResponseType(typeof(TenantSecurityAuditSummaryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSecurityAudit([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _superAdminService.GetTenantSecurityAuditAsync(id, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpPut("{id:guid}/status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -108,6 +117,16 @@ public class SuperAdminTenantsController : BaseApiController
     {
         var result = await _superAdminService.UpdateTenantSubscriptionAsync(id, new UpdateTenantSubscriptionRequest(Guid.Empty, SubscriptionStatus.Active, DateTimeOffset.UtcNow.AddYears(1), true, $"AI Add-on set to {isEnabled}"), HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken);
         return Ok(new { success = true, tenantId = id, isAiAddonEnabled = isEnabled, quota = monthlyQuota });
+    }
+
+    [HttpPost("{id:guid}/toggle-multitab-billing")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ToggleMultiTabBilling(Guid id, [FromQuery] bool isEnabled, CancellationToken cancellationToken = default)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _superAdminService.ToggleMultiTabBillingAsync(id, isEnabled, ipAddress, cancellationToken);
+        return HandleResult(result);
     }
 
     [HttpDelete("{id:guid}")]

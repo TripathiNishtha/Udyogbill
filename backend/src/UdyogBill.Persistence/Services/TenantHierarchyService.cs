@@ -10,6 +10,7 @@ using UdyogBill.Domain.Entities.Tenants;
 using UdyogBill.Domain.Enums;
 using UdyogBill.Persistence.Context;
 using UdyogBill.Shared;
+using UdyogBill.Shared.Constants;
 
 namespace UdyogBill.Persistence.Services;
 
@@ -207,17 +208,23 @@ public class TenantHierarchyService : ITenantHierarchyService
             }
         }
 
+        var branchGstin = request.GSTIN?.Trim().ToUpperInvariant();
+        var branchStateCode = GstStateHelper.NormalizeStateCode(request.StateCode ?? request.State, branchGstin, "09");
+        var branchState = !string.IsNullOrWhiteSpace(request.State)
+            ? (GstStateHelper.GetStateNameByCode(branchStateCode) ?? request.State.Trim())
+            : (GstStateHelper.GetStateNameByCode(branchStateCode) ?? "Uttar Pradesh");
+
         var branch = new TenantBranch
         {
             TenantId = tenantId,
             BranchCode = normalizedCode,
             BranchName = request.BranchName.Trim(),
-            GSTIN = request.GSTIN?.Trim().ToUpperInvariant(),
+            GSTIN = branchGstin,
             AddressLine1 = request.AddressLine1?.Trim(),
             AddressLine2 = request.AddressLine2?.Trim(),
             City = request.City?.Trim(),
-            State = request.State?.Trim(),
-            StateCode = request.StateCode?.Trim(),
+            State = branchState,
+            StateCode = branchStateCode,
             Pincode = request.Pincode?.Trim(),
             Phone = request.Phone?.Trim(),
             Email = request.Email?.Trim(),
@@ -279,13 +286,19 @@ public class TenantHierarchyService : ITenantHierarchyService
             }
         }
 
+        var branchGstin = request.GSTIN?.Trim().ToUpperInvariant();
+        var branchStateCode = GstStateHelper.NormalizeStateCode(request.StateCode ?? request.State, branchGstin, "09");
+        var branchState = !string.IsNullOrWhiteSpace(request.State)
+            ? (GstStateHelper.GetStateNameByCode(branchStateCode) ?? request.State.Trim())
+            : (GstStateHelper.GetStateNameByCode(branchStateCode) ?? "Uttar Pradesh");
+
         branch.BranchName = request.BranchName.Trim();
-        branch.GSTIN = request.GSTIN?.Trim().ToUpperInvariant();
+        branch.GSTIN = branchGstin;
         branch.AddressLine1 = request.AddressLine1?.Trim();
         branch.AddressLine2 = request.AddressLine2?.Trim();
         branch.City = request.City?.Trim();
-        branch.State = request.State?.Trim();
-        branch.StateCode = request.StateCode?.Trim();
+        branch.State = branchState;
+        branch.StateCode = branchStateCode;
         branch.Pincode = request.Pincode?.Trim();
         branch.Phone = request.Phone?.Trim();
         branch.Email = request.Email?.Trim();
@@ -803,10 +816,6 @@ public class TenantHierarchyService : ITenantHierarchyService
                 : null;
 
             var isCurrentValid = _passwordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash, user.PasswordSalt);
-            if (!isCurrentValid && tenant != null && !string.IsNullOrEmpty(tenant.AdminPassword) && string.Equals(request.CurrentPassword.Trim(), tenant.AdminPassword.Trim()))
-            {
-                isCurrentValid = true;
-            }
 
             if (!isCurrentValid)
             {
@@ -819,10 +828,7 @@ public class TenantHierarchyService : ITenantHierarchyService
             user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword, out var newSalt);
             user.PasswordSalt = newSalt;
 
-            if (tenant != null && (user.IsTenantAdmin || string.Equals(user.Email, tenant.AdminEmail, StringComparison.OrdinalIgnoreCase)))
-            {
-                tenant.AdminPassword = request.NewPassword.Trim();
-            }
+
         }
 
         if (!string.IsNullOrWhiteSpace(request.FullName))
@@ -835,6 +841,45 @@ public class TenantHierarchyService : ITenantHierarchyService
             user.PhoneNumber = request.PhoneNumber.Trim();
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var newEmail = request.Email.Trim().ToLowerInvariant();
+            if (!string.Equals(user.Email?.Trim(), newEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var addr = new System.Net.Mail.MailAddress(newEmail);
+                    if (addr.Address != newEmail)
+                    {
+                        return Result.Failure("Invalid email address format.", "INVALID_EMAIL");
+                    }
+                }
+                catch
+                {
+                    return Result.Failure("Invalid email address format.", "INVALID_EMAIL");
+                }
+
+                var emailExists = await _context.Users
+                    .AnyAsync(u => u.Id != user.Id && u.Email.ToLower() == newEmail && !u.IsDeleted, cancellationToken);
+
+                if (emailExists)
+                {
+                    return Result.Failure("Email address is already in use by another account.", "EMAIL_ALREADY_EXISTS");
+                }
+
+                var tenant = user.TenantId.HasValue
+                    ? await _context.Tenants.FirstOrDefaultAsync(t => t.Id == user.TenantId.Value, cancellationToken)
+                    : null;
+
+                if (tenant != null && (user.IsTenantAdmin || string.Equals(user.Email, tenant.AdminEmail, StringComparison.OrdinalIgnoreCase)))
+                {
+                    tenant.AdminEmail = newEmail;
+                }
+
+                user.Email = newEmail;
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
@@ -844,7 +889,6 @@ public class TenantHierarchyService : ITenantHierarchyService
         var tenantId = RequireTenantId();
 
         var user = await _context.Users
-            .Include(u => u.UserRoles)
             .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Id == userId && !u.IsDeleted, cancellationToken);
 
         if (user == null)
@@ -852,7 +896,14 @@ public class TenantHierarchyService : ITenantHierarchyService
             return Result.Failure("User not found.", "NOT_FOUND");
         }
 
-        _context.UserRoles.RemoveRange(user.UserRoles);
+        var existingUserRoles = await _context.UserRoles
+            .Where(ur => ur.TenantId == tenantId && ur.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        if (existingUserRoles.Count > 0)
+        {
+            _context.UserRoles.RemoveRange(existingUserRoles);
+        }
 
         if (request.RoleIds != null && request.RoleIds.Count > 0)
         {
@@ -863,13 +914,23 @@ public class TenantHierarchyService : ITenantHierarchyService
 
             foreach (var rId in validRoleIds)
             {
-                user.UserRoles.Add(new UserRole
+                var newUserRole = new UserRole
                 {
+                    Id = Guid.NewGuid(),
                     TenantId = tenantId,
                     UserId = user.Id,
                     RoleId = rId
-                });
+                };
+                _context.UserRoles.Add(newUserRole);
             }
+
+            var isTenantAdmin = await _context.Roles
+                .AnyAsync(r => r.TenantId == tenantId && validRoleIds.Contains(r.Id) && (r.IsSystemRole || r.Name == "Tenant Administrator"), cancellationToken);
+            user.IsTenantAdmin = isTenantAdmin;
+        }
+        else
+        {
+            user.IsTenantAdmin = false;
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -881,7 +942,6 @@ public class TenantHierarchyService : ITenantHierarchyService
         var tenantId = RequireTenantId();
 
         var user = await _context.Users
-            .Include(u => u.UserPermissions)
             .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Id == userId && !u.IsDeleted, cancellationToken);
 
         if (user == null)
@@ -889,18 +949,28 @@ public class TenantHierarchyService : ITenantHierarchyService
             return Result.Failure("User not found.", "NOT_FOUND");
         }
 
-        _context.UserPermissions.RemoveRange(user.UserPermissions);
+        var existingPermissions = await _context.UserPermissions
+            .Where(up => up.TenantId == tenantId && up.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        if (existingPermissions.Count > 0)
+        {
+            _context.UserPermissions.RemoveRange(existingPermissions);
+        }
 
         if (request.GrantedPermissionIds != null)
         {
             foreach (var pId in request.GrantedPermissionIds.Distinct())
             {
-                user.UserPermissions.Add(new UserPermission
+                var newPerm = new UserPermission
                 {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
                     UserId = user.Id,
                     PermissionId = pId,
                     IsGranted = true
-                });
+                };
+                _context.UserPermissions.Add(newPerm);
             }
         }
 
@@ -908,12 +978,15 @@ public class TenantHierarchyService : ITenantHierarchyService
         {
             foreach (var pId in request.RevokedPermissionIds.Distinct())
             {
-                user.UserPermissions.Add(new UserPermission
+                var newPerm = new UserPermission
                 {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
                     UserId = user.Id,
                     PermissionId = pId,
                     IsGranted = false
-                });
+                };
+                _context.UserPermissions.Add(newPerm);
             }
         }
 
@@ -1132,8 +1205,8 @@ public class TenantHierarchyService : ITenantHierarchyService
         var indConfig = t.IndustryConfigs.FirstOrDefault();
         TenantIndustryConfigDto? configDto = indConfig == null ? null : new TenantIndustryConfigDto(
             indConfig.IndustryId,
-            t.Industry.Name,
-            t.Industry.Code,
+            t.Industry?.Name ?? "Sweets, Bakery & Confectionery",
+            t.Industry?.Code ?? "SWEETS_BAKERY",
             indConfig.EnableBatchTracking,
             indConfig.EnableExpiryTracking,
             indConfig.EnableSerialTracking,
@@ -1169,8 +1242,8 @@ public class TenantHierarchyService : ITenantHierarchyService
         TenantSubscriptionSummaryDto? subDto = activeSub == null ? null : new TenantSubscriptionSummaryDto(
             activeSub.Id,
             activeSub.PlanId,
-            activeSub.Plan.Name,
-            activeSub.Plan.Code,
+            activeSub.Plan?.Name ?? "Standard",
+            activeSub.Plan?.Code ?? "STD",
             activeSub.Status,
             activeSub.StartsAtUtc,
             activeSub.EndsAtUtc,
@@ -1220,7 +1293,10 @@ public class TenantHierarchyService : ITenantHierarchyService
             t.SmtpPassword,
             t.SmtpFromEmail,
             t.SmtpFromName,
-            t.SmtpEnableSsl
+            t.SmtpEnableSsl,
+            null,
+            t.ApparelSubType,
+            t.HardwareSubType
         );
 
         return Result<TenantDetailsDto>.Success(details);
@@ -1257,11 +1333,39 @@ public class TenantHierarchyService : ITenantHierarchyService
         tenant.AddressLine1 = request.AddressLine1?.Trim();
         tenant.AddressLine2 = request.AddressLine2?.Trim();
         tenant.City = request.City?.Trim();
-        tenant.State = request.State?.Trim();
-        tenant.StateCode = request.StateCode?.Trim();
+
+        var normalizedStateCode = GstStateHelper.NormalizeStateCode(request.StateCode ?? request.State, tenant.GSTIN, "09");
+        var resolvedStateName = !string.IsNullOrWhiteSpace(request.State)
+            ? (GstStateHelper.GetStateNameByCode(normalizedStateCode) ?? request.State.Trim())
+            : (GstStateHelper.GetStateNameByCode(normalizedStateCode) ?? "Uttar Pradesh");
+
+        tenant.State = resolvedStateName;
+        tenant.StateCode = normalizedStateCode;
         tenant.Pincode = request.Pincode?.Trim();
         tenant.Email = request.Email?.Trim();
         tenant.Website = request.Website?.Trim();
+
+        // Also sync head office / default branch so branches are never left with null state code
+        var headBranch = await _context.TenantBranches
+            .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.IsHeadOffice && !b.IsDeleted, cancellationToken)
+            ?? await _context.TenantBranches
+            .FirstOrDefaultAsync(b => b.TenantId == tenantId && !b.IsDeleted, cancellationToken);
+
+        if (headBranch != null)
+        {
+            if (string.IsNullOrWhiteSpace(headBranch.StateCode) || headBranch.StateCode == headBranch.State)
+            {
+                headBranch.StateCode = normalizedStateCode;
+            }
+            if (string.IsNullOrWhiteSpace(headBranch.State))
+            {
+                headBranch.State = resolvedStateName;
+            }
+            if (string.IsNullOrWhiteSpace(headBranch.GSTIN) && !string.IsNullOrWhiteSpace(tenant.GSTIN))
+            {
+                headBranch.GSTIN = tenant.GSTIN;
+            }
+        }
 
         // Outgoing Mail / SMTP Server Configuration
         tenant.SmtpHost = request.SmtpHost?.Trim();
@@ -1274,6 +1378,18 @@ public class TenantHierarchyService : ITenantHierarchyService
         tenant.SmtpFromEmail = request.SmtpFromEmail?.Trim();
         tenant.SmtpFromName = request.SmtpFromName?.Trim();
         tenant.SmtpEnableSsl = request.SmtpEnableSsl;
+
+        if (!string.IsNullOrWhiteSpace(request.ApparelSubType))
+        {
+            var raw = request.ApparelSubType.Trim().ToUpperInvariant();
+            tenant.ApparelSubType = (raw == "SHOES" || raw == "BOTH" || raw == "GARMENTS") ? raw : "GARMENTS";
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.HardwareSubType))
+        {
+            var rawHw = request.HardwareSubType.Trim().ToUpperInvariant();
+            tenant.HardwareSubType = (rawHw == "PAINTS" || rawHw == "HARDWARE" || rawHw == "BOTH") ? rawHw : "BOTH";
+        }
 
         if (request.LogoUrl != null)
         {
@@ -1462,9 +1578,15 @@ public class TenantHierarchyService : ITenantHierarchyService
             .OrderByDescending(s => s.CreatedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+
+        var maxUsers = Math.Max(tenant?.MaxAllowedUsers ?? 1, plan.MaxUsers);
+
         var summary = new TenantQuotaSummaryDto(
             userCount,
-            plan.MaxUsers,
+            maxUsers,
             branchCount,
             plan.MaxBranches,
             warehouseCount,
@@ -1479,6 +1601,166 @@ public class TenantHierarchyService : ITenantHierarchyService
         );
 
         return Result<TenantQuotaSummaryDto>.Success(summary);
+    }
+
+    public async Task<Result<DocumentSeriesConfigDto>> GetDocumentSeriesConfigAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var setting = await _context.TenantSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Category == "Invoice" && s.Key == "DocumentSeriesConfig", cancellationToken);
+
+        DocumentSeriesConfigDto? cfg = null;
+        if (setting != null && !string.IsNullOrWhiteSpace(setting.Value))
+        {
+            try
+            {
+                cfg = System.Text.Json.JsonSerializer.Deserialize<DocumentSeriesConfigDto>(setting.Value, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { }
+        }
+
+        if (cfg == null)
+        {
+            cfg = new DocumentSeriesConfigDto();
+
+            // Smart detection from existing invoices (e.g. imported invoices like ASY-26-178)
+            var sampleInvoice = await _context.SalesInvoices
+                .Where(i => i.TenantId == tenantId)
+                .OrderByDescending(i => i.CreatedAtUtc)
+                .Select(i => i.InvoiceNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!string.IsNullOrEmpty(sampleInvoice) && !sampleInvoice.StartsWith("INV-") && !sampleInvoice.StartsWith("POS-"))
+            {
+                int lastNonDigit = -1;
+                for (int idx = sampleInvoice.Length - 1; idx >= 0; idx--)
+                {
+                    if (!char.IsDigit(sampleInvoice[idx]))
+                    {
+                        lastNonDigit = idx;
+                        break;
+                    }
+                }
+                if (lastNonDigit >= 0 && lastNonDigit < sampleInvoice.Length - 1)
+                {
+                    var detectedPrefix = sampleInvoice.Substring(0, lastNonDigit + 1);
+                    cfg.TaxInvoice.Prefix = detectedPrefix;
+                    cfg.TaxInvoice.Padding = 1;
+                }
+            }
+        }
+
+        await CalculateCurrentNextNumbersAsync(tenantId, cfg, cancellationToken);
+        return Result<DocumentSeriesConfigDto>.Success(cfg);
+    }
+
+    private async Task CalculateCurrentNextNumbersAsync(Guid tenantId, DocumentSeriesConfigDto cfg, CancellationToken cancellationToken)
+    {
+        if (cfg.TaxInvoice != null && !string.IsNullOrWhiteSpace(cfg.TaxInvoice.Prefix))
+        {
+            var pfx = cfg.TaxInvoice.Prefix.Trim();
+            var sfx = cfg.TaxInvoice.Suffix?.Trim() ?? string.Empty;
+            var maxNum = await GetMaxNumberFromDbAsync(_context.SalesInvoices.Where(i => i.TenantId == tenantId && i.InvoiceNumber.StartsWith(pfx)).Select(i => i.InvoiceNumber), pfx, sfx, cancellationToken);
+            if (maxNum >= cfg.TaxInvoice.NextNumber)
+            {
+                cfg.TaxInvoice.NextNumber = maxNum + 1;
+            }
+        }
+
+        if (cfg.CashMemo != null && !string.IsNullOrWhiteSpace(cfg.CashMemo.Prefix))
+        {
+            var pfx = cfg.CashMemo.Prefix.Trim();
+            var sfx = cfg.CashMemo.Suffix?.Trim() ?? string.Empty;
+            var maxNum = await GetMaxNumberFromDbAsync(_context.SalesInvoices.Where(i => i.TenantId == tenantId && i.InvoiceNumber.StartsWith(pfx)).Select(i => i.InvoiceNumber), pfx, sfx, cancellationToken);
+            if (maxNum >= cfg.CashMemo.NextNumber)
+            {
+                cfg.CashMemo.NextNumber = maxNum + 1;
+            }
+        }
+
+        if (cfg.Quotation != null && !string.IsNullOrWhiteSpace(cfg.Quotation.Prefix))
+        {
+            var pfx = cfg.Quotation.Prefix.Trim();
+            var sfx = cfg.Quotation.Suffix?.Trim() ?? string.Empty;
+            var maxNum = await GetMaxNumberFromDbAsync(_context.Quotations.Where(q => q.TenantId == tenantId && q.QuotationNumber.StartsWith(pfx)).Select(q => q.QuotationNumber), pfx, sfx, cancellationToken);
+            if (maxNum >= cfg.Quotation.NextNumber)
+            {
+                cfg.Quotation.NextNumber = maxNum + 1;
+            }
+        }
+
+        if (cfg.Challan != null && !string.IsNullOrWhiteSpace(cfg.Challan.Prefix))
+        {
+            var pfx = cfg.Challan.Prefix.Trim();
+            var sfx = cfg.Challan.Suffix?.Trim() ?? string.Empty;
+            var maxNum = await GetMaxNumberFromDbAsync(_context.DeliveryChallans.Where(c => c.TenantId == tenantId && c.ChallanNumber.StartsWith(pfx)).Select(c => c.ChallanNumber), pfx, sfx, cancellationToken);
+            if (maxNum >= cfg.Challan.NextNumber)
+            {
+                cfg.Challan.NextNumber = maxNum + 1;
+            }
+        }
+    }
+
+    private static async Task<int> GetMaxNumberFromDbAsync(IQueryable<string> query, string prefix, string suffix, CancellationToken cancellationToken)
+    {
+        var list = await query.ToListAsync(cancellationToken);
+        int max = 0;
+        foreach (var str in list)
+        {
+            if (string.IsNullOrWhiteSpace(str) || str.Length <= prefix.Length) continue;
+            var middle = str.Substring(prefix.Length);
+            if (!string.IsNullOrEmpty(suffix) && middle.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                middle = middle.Substring(0, middle.Length - suffix.Length);
+            }
+            if (int.TryParse(middle, out int p))
+            {
+                if (p > max) max = p;
+            }
+            else
+            {
+                var digits = new string(middle.TakeWhile(char.IsDigit).ToArray());
+                if (int.TryParse(digits, out int lead) && lead > max)
+                {
+                    max = lead;
+                }
+            }
+        }
+        return max;
+    }
+
+    public async Task<Result> UpdateDocumentSeriesConfigAsync(DocumentSeriesConfigDto request, string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        var setting = await _context.TenantSettings
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Category == "Invoice" && s.Key == "DocumentSeriesConfig", cancellationToken);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(request);
+
+        if (setting == null)
+        {
+            setting = new TenantSetting
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Category = "Invoice",
+                Key = "DocumentSeriesConfig",
+                Value = json,
+                ValueType = "json",
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            _context.TenantSettings.Add(setting);
+        }
+        else
+        {
+            setting.Value = json;
+            setting.ValueType = "json";
+            setting.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 
     #endregion

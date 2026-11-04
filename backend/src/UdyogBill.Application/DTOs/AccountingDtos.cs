@@ -460,3 +460,510 @@ public record SyncMigratedBillsResultDto(
 );
 
 #endregion
+
+#region Milestone 3: Bill-by-Bill Reference Settlement, Aging & Interest
+
+public record PendingBillDto(
+    Guid AllocationId,
+    string ReferenceNumber,
+    string ReferenceType,
+    DateTimeOffset Date,
+    DateTimeOffset? DueDate,
+    decimal TotalAmount,
+    decimal SettledAmount,
+    decimal PendingAmount,
+    int OverdueDays,
+    bool IsMsmeCritical
+);
+
+public record BillAgingPartySummaryDto(
+    Guid PartyId,
+    string PartyName,
+    string? Gstin,
+    string? PhoneNumber,
+    decimal TotalOutstanding,
+    decimal CurrentNotDue,
+    decimal Overdue0To30,
+    decimal Overdue31To60,
+    decimal Overdue61To90,
+    decimal Overdue90Plus,
+    int MsmeCriticalBillsCount,
+    List<PendingBillDto> Bills
+);
+
+public record BillAgingReportDto(
+    DateTimeOffset AsOfDate,
+    string AgingBasis,
+    decimal GrandTotalOutstanding,
+    decimal GrandTotalOverdue,
+    List<BillAgingPartySummaryDto> Parties
+);
+
+public record InterestCalculationDto(
+    Guid PartyId,
+    string PartyName,
+    decimal OverduePrincipal,
+    int DaysOverdue,
+    decimal AnnualRate,
+    decimal CalculatedInterest,
+    string Formula
+);
+
+public record GenerateInterestDebitNoteRequest(
+    Guid PartyId,
+    decimal InterestAmount,
+    string Narration
+);
+
+public record PdcChequeDto(
+    Guid Id,
+    string ChequeNumber,
+    DateTimeOffset ChequeDate,
+    DateTimeOffset MaturityDate,
+    Guid BankAccountId,
+    string BankAccountName,
+    Guid PartyLedgerId,
+    string PartyLedgerName,
+    decimal Amount,
+    string Direction,
+    string Status,
+    string? DrawerBankName,
+    string? PayeeName,
+    string? Narration,
+    Guid? RealizedVoucherId
+);
+
+public record CreatePdcChequeRequest(
+    string ChequeNumber,
+    DateTimeOffset ChequeDate,
+    DateTimeOffset MaturityDate,
+    Guid BankAccountId,
+    Guid PartyLedgerId,
+    decimal Amount,
+    string Direction,
+    string? DrawerBankName,
+    string? PayeeName,
+    string? Narration
+);
+
+#endregion
+
+#region Milestone 4: Indian Statutory TDS/TCS Suite
+
+public record TdsSectionConfigDto(
+    Guid Id,
+    string SectionCode,
+    string Description,
+    decimal ThresholdAmount,
+    decimal RateIndividualHuf,
+    decimal RateCompany,
+    decimal RateNonPan,
+    Guid? LiabilityLedgerId,
+    string? LiabilityLedgerName,
+    bool IsActive
+);
+
+public record TdsDeductionRecordDto(
+    Guid Id,
+    Guid VoucherId,
+    string VoucherNumber,
+    DateTimeOffset DeductionDate,
+    Guid PartyId,
+    string PartyName,
+    string? PanNumber,
+    string SectionCode,
+    decimal TaxableAmount,
+    decimal TdsRate,
+    decimal TdsAmount,
+    string? ChallanNumber,
+    string? BsrCode,
+    DateTimeOffset? ChallanDate,
+    bool IsPaid,
+    Guid? PaymentVoucherId
+);
+
+public record TdsCumulativeTrackerDto(
+    Guid PartyId,
+    string PartyName,
+    string? PanNumber,
+    decimal CumulativePurchasesThisFy,
+    decimal ThresholdLimit,
+    decimal ThresholdRemaining,
+    bool Is194QApplicable,
+    decimal PotentialTds
+);
+
+public record RecordChallanPaymentRequest(
+    List<Guid> DeductionRecordIds,
+    string ChallanNumber,
+    string BsrCode,
+    DateTimeOffset ChallanDate,
+    Guid BankAccountId,
+    string? ChequeOrUtrNumber
+);
+
+#endregion
+
+#region Milestone 5: Multi-Currency & Forex Gain/Loss Engine
+
+public record ForeignCurrencyMasterDto(
+    Guid Id,
+    string Code,
+    string Name,
+    string Symbol,
+    decimal ExchangeRateToInr,
+    DateTimeOffset LastUpdatedDate,
+    bool IsActive
+);
+
+public record ForexRevaluationPreviewDto(
+    Guid AccountId,
+    string AccountName,
+    string CurrencyCode,
+    decimal ForeignBalance,
+    decimal OldRate,
+    decimal NewRate,
+    decimal CurrentInrValue,
+    decimal RevaluedInrValue,
+    decimal UnrealizedGainLoss
+);
+
+public record RunForexRevaluationRequest(
+    DateTimeOffset AsOfDate,
+    List<Guid> AccountIds,
+    string? Narration
+);
+
+public record CreateCurrencyRequest(
+    string Code,
+    string Name,
+    string? Symbol,
+    decimal ExchangeRateToInr
+);
+
+public record UpdateCurrencyRateRequest(
+    decimal ExchangeRateToInr
+);
+
+#endregion
+
+#region Milestone 6: Cost Centres Profitability & Breakup
+
+public record CostCentreDetailDto(
+    Guid Id,
+    string Code,
+    string Name,
+    string? Category,
+    Guid? ParentCostCentreId,
+    string? ParentCostCentreName,
+    decimal MonthlyBudgetCap,
+    decimal TotalSpentThisMonth,
+    decimal RemainingBudget,
+    bool IsActive
+);
+
+public record CostCentrePnlLineDto(
+    Guid AccountId,
+    string AccountCode,
+    string AccountName,
+    string Category,
+    decimal Amount
+);
+
+public record CostCentrePnlReportDto(
+    Guid CostCentreId,
+    string CostCentreName,
+    string? Category,
+    decimal TotalRevenue,
+    decimal TotalDirectCost,
+    decimal GrossMargin,
+    decimal TotalOverheads,
+    decimal NetMargin,
+    List<CostCentrePnlLineDto> IncomeLines,
+    List<CostCentrePnlLineDto> ExpenseLines
+);
+
+#endregion
+
+#region Milestone 7: Fixed Assets & Dual Depreciation Engine
+
+public record FixedAssetDto(
+    Guid Id,
+    string AssetCode,
+    string AssetName,
+    string BlockCategory,
+    DateTimeOffset DateOfPurchase,
+    DateTimeOffset DatePutToUse,
+    decimal OriginalCost,
+    decimal ResidualValue,
+    decimal UsefulLifeYears,
+    string CompaniesActMethod,
+    decimal IncomeTaxRate,
+    decimal CurrentBookValue,
+    decimal CurrentTaxWdv,
+    string Status,
+    Guid? AssetLedgerId,
+    string? AssetLedgerName
+);
+
+public record CreateFixedAssetRequest(
+    string AssetCode,
+    string AssetName,
+    string BlockCategory,
+    DateTimeOffset DateOfPurchase,
+    DateTimeOffset DatePutToUse,
+    decimal OriginalCost,
+    decimal ResidualValue,
+    decimal UsefulLifeYears,
+    string CompaniesActMethod,
+    decimal IncomeTaxRate,
+    Guid? AssetLedgerId,
+    Guid? AccumulatedDepreciationLedgerId,
+    Guid? DepreciationExpenseLedgerId
+);
+
+public record Form3CdBlockRowDto(
+    string BlockName,
+    decimal DepreciationRate,
+    decimal OpeningWdv,
+    decimal AdditionsMoreThan180Days,
+    decimal AdditionsLessThan180Days,
+    decimal Deductions,
+    decimal AllowableDepreciation,
+    decimal ClosingWdv
+);
+
+public record Form3CdDepreciationReportDto(
+    int FinancialYear,
+    decimal TotalOpeningWdv,
+    decimal TotalAdditionsMoreThan180Days,
+    decimal TotalAdditionsLessThan180Days,
+    decimal TotalDeductions,
+    decimal TotalDepreciationAllowable,
+    decimal TotalClosingWdv,
+    List<Form3CdBlockRowDto> Blocks
+);
+
+public record RunBatchDepreciationRequest(
+    int FinancialYear,
+    string Method
+);
+
+public record DisposeFixedAssetRequest(
+    DateTimeOffset DisposalDate,
+    decimal DisposalProceeds,
+    Guid BankAccountId,
+    string? Narration
+);
+
+#endregion
+
+#region Milestone 8: Bank Feeds, BRS & Cheque Management
+
+public record BankFeedLineDto(
+    Guid Id,
+    Guid BankFeedStatementId,
+    DateTimeOffset TransactionDate,
+    string Description,
+    string? ReferenceNumber,
+    decimal Debit,
+    decimal Credit,
+    decimal Balance,
+    string Status,
+    Guid? MatchedVoucherId,
+    string? MappingNotes
+);
+
+public record MapBankTransactionRequest(
+    string ActionType,
+    Guid? SettleInvoiceId,
+    Guid? SettleBillId,
+    Guid? TargetAccountId,
+    string? Narration
+);
+
+public record BrsAdjustmentLineDto(
+    string LineType,
+    DateTimeOffset Date,
+    string VoucherNumber,
+    string Description,
+    decimal Amount
+);
+
+public record StatutoryBrsReportDto(
+    Guid BankAccountId,
+    string BankAccountName,
+    DateTimeOffset AsOfDate,
+    decimal BalanceAsPerBooks,
+    decimal ChequesIssuedNotPresented,
+    decimal ChequesDepositedNotCredited,
+    decimal OtherBankCredits,
+    decimal OtherBankDebits,
+    decimal BalanceAsPerBankStatement,
+    List<BrsAdjustmentLineDto> Adjustments
+);
+
+public record ChequeLeafItemDto(
+    Guid Id,
+    long LeafNumber,
+    string Status,
+    string? PayeeName,
+    decimal? Amount,
+    DateTimeOffset? IssueDate,
+    DateTimeOffset? ClearanceDate,
+    Guid? JournalVoucherId
+);
+
+public record ChequeBookDto(
+    Guid Id,
+    Guid BankAccountId,
+    string BankAccountName,
+    string BookNumber,
+    long StartLeafNumber,
+    long EndLeafNumber,
+    int TotalLeaves,
+    int IssuedLeavesCount,
+    List<ChequeLeafItemDto> Leaves
+);
+
+public record CreateChequeBookRequest(
+    Guid BankAccountId,
+    string BookNumber,
+    long StartLeafNumber,
+    long EndLeafNumber
+);
+
+#endregion
+
+#region Milestone 9: Final Accounts, AS-3 Cash Flow & Financial Ratios
+
+public record ComparativeLineDto(
+    string Code,
+    string Name,
+    string Category,
+    decimal AmountCurrent,
+    decimal AmountPrevious,
+    decimal VarianceAmount,
+    decimal VariancePercent,
+    int Level,
+    List<ComparativeLineDto> Children
+);
+
+public record ComparativeFinancialStatementDto(
+    string StatementType,
+    string PeriodCurrent,
+    string PeriodPrevious,
+    decimal GrandTotalCurrent,
+    decimal GrandTotalPrevious,
+    decimal VarianceAmount,
+    decimal VariancePercent,
+    List<ComparativeLineDto> Lines
+);
+
+public record CashFlowLineDto(
+    string Description,
+    decimal Amount,
+    string? DetailCode
+);
+
+public record CashFlowSectionDto(
+    string SectionTitle,
+    decimal SectionTotal,
+    List<CashFlowLineDto> Items
+);
+
+public record CashFlowStatementReportDto(
+    DateTimeOffset FromDate,
+    DateTimeOffset ToDate,
+    CashFlowSectionDto OperatingActivities,
+    CashFlowSectionDto InvestingActivities,
+    CashFlowSectionDto FinancingActivities,
+    decimal NetCashFlow,
+    decimal OpeningCashAndCashEquivalents,
+    decimal ClosingCashAndCashEquivalents
+);
+
+public record FinancialRatioMetricDto(
+    string MetricKey,
+    string Name,
+    string Category,
+    decimal Value,
+    string Unit,
+    string Benchmark,
+    string Status,
+    string FormulaExplanation,
+    decimal NumeratorValue,
+    decimal DenominatorValue
+);
+
+public record FinancialRatiosReportDto(
+    DateTimeOffset AsOfDate,
+    decimal CurrentRatio,
+    decimal QuickRatio,
+    decimal DebtEquityRatio,
+    decimal InterestCoverageRatio,
+    decimal DebtorsTurnoverDsoDays,
+    decimal CreditorsTurnoverDpoDays,
+    decimal InventoryTurnoverDsiDays,
+    decimal GrossProfitMarginPercent,
+    decimal NetProfitMarginPercent,
+    decimal ReturnOnCapitalEmployedPercent,
+    decimal ReturnOnEquityPercent,
+    List<FinancialRatioMetricDto> Metrics
+);
+
+#endregion
+
+#region Milestone 10: MCA Audit Trail, Maker-Checker & Budgets
+
+public record VoucherMakerCheckerDto(
+    Guid Id,
+    Guid JournalVoucherId,
+    string VoucherNumber,
+    DateTimeOffset VoucherDate,
+    string VoucherType,
+    decimal TotalAmount,
+    string Status,
+    string MakerName,
+    string? CheckerName,
+    string? Remarks,
+    DateTimeOffset? ReviewedAtUtc
+);
+
+public record BudgetAllocationRowDto(
+    Guid AccountId,
+    string AccountCode,
+    string AccountName,
+    string GroupName,
+    decimal AllocatedAmount,
+    decimal ActualSpent,
+    decimal VarianceAmount,
+    decimal VariancePercent,
+    decimal MonthlyCap
+);
+
+public record CorporateBudgetDto(
+    Guid Id,
+    string BudgetName,
+    int FiscalYear,
+    string? Description,
+    decimal TotalBudgetAmount,
+    bool IsActive,
+    List<BudgetAllocationRowDto> Allocations
+);
+
+public record CreateBudgetRequest(
+    string BudgetName,
+    int FiscalYear,
+    string? Description,
+    List<CreateBudgetAllocationItem> Allocations
+);
+
+public record CreateBudgetAllocationItem(
+    Guid AccountId,
+    Guid? CostCentreId,
+    decimal AllocatedAmount,
+    decimal MonthlyCapAmount
+);
+
+#endregion
