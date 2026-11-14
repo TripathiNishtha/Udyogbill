@@ -61,12 +61,12 @@ function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void })
 
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Full name is required";
-    if (!form.businessName.trim()) e.businessName = "Business / store name is required";
-    if (!/^\d{10}$/.test(form.mobile.trim())) e.mobile = "Please enter a valid 10-digit mobile number";
-    if (!form.email.includes("@")) e.email = "Please enter a valid email address";
-    if (!form.city.trim()) e.city = "City name is required";
-    if (!form.businessType) e.businessType = "Please select your business type";
+    if (!form.name.trim() && !form.businessName.trim()) {
+      e.name = "Please enter your name or shop name";
+    }
+    if (!/^\d{10}$/.test(form.mobile.trim())) {
+      e.mobile = "Please enter a valid 10-digit mobile number";
+    }
     return e;
   };
 
@@ -177,14 +177,14 @@ function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void })
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Full Name *
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Your Name / Business Name *
               </label>
               <input
                 type="text"
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Rajesh Kumar"
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, businessName: e.target.value }))}
+                placeholder="e.g. Rajesh Kumar / Rajesh Medical Store"
                 className={`w-full border rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors ${
                   errors.name ? "border-rose-400 bg-rose-50/20" : "border-slate-300"
                 }`}
@@ -192,28 +192,10 @@ function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void })
               {errors.name && <p className="text-rose-500 text-[11px] mt-1">{errors.name}</p>}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Business / Store Legal Name *
-              </label>
-              <input
-                type="text"
-                value={form.businessName}
-                onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
-                placeholder="e.g. Apex Healthcare & Distributors"
-                className={`w-full border rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors ${
-                  errors.businessName ? "border-rose-400 bg-rose-50/20" : "border-slate-300"
-                }`}
-              />
-              {errors.businessName && (
-                <p className="text-rose-500 text-[11px] mt-1">{errors.businessName}</p>
-              )}
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Mobile Number (10 Digits) *
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  10-Digit Mobile Number *
                 </label>
                 <input
                   type="tel"
@@ -234,76 +216,40 @@ function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void })
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Work Email Address *
+                  City (Optional)
                 </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  placeholder="name@business.com"
-                  className={`w-full border rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors ${
-                    errors.email ? "border-rose-400 bg-rose-50/20" : "border-slate-300"
-                  }`}
-                />
-                {errors.email && <p className="text-rose-500 text-[11px] mt-1">{errors.email}</p>}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">City *</label>
                 <input
                   type="text"
                   value={form.city}
                   onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
                   placeholder="e.g. Lucknow, Jaipur"
-                  className={`w-full border rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors ${
-                    errors.city ? "border-rose-400 bg-rose-50/20" : "border-slate-300"
-                  }`}
+                  className="w-full border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                 />
-                {errors.city && <p className="text-rose-500 text-[11px] mt-1">{errors.city}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Industry / Business Type *
-                </label>
-                <select
-                  value={form.businessType}
-                  onChange={(e) => setForm((f) => ({ ...f, businessType: e.target.value }))}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors ${
-                    errors.businessType ? "border-rose-400 bg-rose-50/20" : "border-slate-300"
-                  }`}
-                >
-                  <option value="">Select Industry...</option>
-                  {businessTypes.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-                {errors.businessType && (
-                  <p className="text-rose-500 text-[11px] mt-1">{errors.businessType}</p>
-                )}
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Specific Requirements / Questions (Optional)
+                Industry / Business Category (Optional)
               </label>
-              <textarea
-                rows={2}
-                value={form.message}
-                onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                placeholder="Tell us about your current billing setup, number of branches, or custom needs..."
-                className="w-full border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none transition-colors"
-              />
+              <select
+                value={form.businessType}
+                onChange={(e) => setForm((f) => ({ ...f, businessType: e.target.value }))}
+                className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+              >
+                <option value="">Select Industry (e.g. Retail, Pharma, Wholesale)...</option>
+                {businessTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-60 text-sm"
+              className="w-full text-white font-extrabold py-3 rounded-xl transition-all shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600 hover:from-orange-600 hover:to-amber-700 disabled:opacity-60 text-sm mt-2"
             >
               {loading ? (
                 <>
@@ -317,8 +263,23 @@ function ContactPopup({ open, onClose }: { open: boolean; onClose: () => void })
                 </>
               )}
             </button>
-            <p className="text-center text-[11px] text-slate-500">
-              🔒 100% Privacy Protected • Zero Sales Spam • Free 1-on-1 Consultation
+
+            {/* Direct WhatsApp Quick Connect Alternative */}
+            <div className="pt-2 text-center">
+              <span className="text-[11px] text-slate-500 block mb-2 font-medium">Prefer an instant reply without waiting?</span>
+              <a
+                href="https://wa.me/919473807622?text=Hi%2C%20I%20want%20to%20see%20a%20live%20demo%20of%20UdyogBill"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span>Chat Directly on WhatsApp: +91 94738 07622</span>
+              </a>
+            </div>
+
+            <p className="text-center text-[11px] text-slate-500 pt-1">
+              🔒 100% Privacy Protected • Zero Sales Spam • 1-on-1 Product Walkthrough
             </p>
           </form>
         )}
@@ -345,6 +306,7 @@ const navLinks = [
     ],
   },
   { label: "Pricing", href: "/pricing" },
+  { label: "Free Templates", href: "/templates" },
   { label: "Blog & Guides", href: "/blog" },
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "/contact" },
@@ -375,24 +337,24 @@ function Navbar({ onDemoClick }: { onDemoClick: () => void }) {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 print:hidden ${
         scrolled
-          ? "bg-[#fff7ed]/95 backdrop-blur-md shadow-xs border-b border-orange-200/80 py-2.5"
-          : "bg-[#fff7ed]/95 backdrop-blur-xs border-b border-orange-200/60 py-3"
+          ? "bg-[#fff7ed]/98 backdrop-blur-md shadow-md border-b border-orange-200/80"
+          : "bg-[#fff7ed]/98 backdrop-blur-xs border-b border-orange-200/60"
       }`}
     >
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-2.5 flex items-center justify-between">
         {/* Brand Logo & Trust Tag */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <Link href="/" className="flex items-center gap-2 shrink-0 group">
             <img
               src="/logo.png"
               alt="UdyogBill - Multi-Industry Cloud GST Billing & Inventory Software"
-              className="h-9 sm:h-10 w-auto object-contain transition-transform group-hover:scale-102"
+              className="h-11 sm:h-12 w-auto object-contain transition-transform group-hover:scale-102 drop-shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
             />
           </Link>
-          <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200/80 text-[11px] font-bold text-orange-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+          <span className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100/70 border border-orange-300/80 text-[11px] font-extrabold text-orange-800 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
             <span>GST &amp; E-Invoice Ready</span>
           </span>
         </div>
@@ -468,39 +430,55 @@ function Navbar({ onDemoClick }: { onDemoClick: () => void }) {
           })}
         </nav>
 
-        {/* Action Buttons (Login, Demo, Trial) */}
+        {/* Action Buttons: Clean Hierarchy (Download App -> Start Free Trial -> Sign In) */}
         <div className="hidden md:flex items-center gap-2.5">
-          <Link
-            href="/login"
-            className="text-xs font-bold text-slate-700 hover:text-orange-600 px-3.5 py-2 rounded-lg hover:bg-orange-50/50 transition-colors"
-          >
-            Sign In
-          </Link>
           <a
-            href="/contact"
-            onClick={(e) => { e.preventDefault(); onDemoClick(); }}
-            className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-300/80 px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+            href="/downloads/udyogbill-billing.apk"
+            download="UdyogBill-Billing.apk"
+            className="text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100/90 border border-emerald-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs hover:shadow-xs group cursor-pointer"
+            title="Download UdyogBill Store POS & GST Billing Android App"
           >
-            <Phone className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Book Free Demo</span>
+            <Download className="w-3.5 h-3.5 text-emerald-600 group-hover:-translate-y-0.5 transition-transform" />
+            <span>Download App</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           </a>
+
           <Link
             href="/register"
-            className="text-xs font-bold text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 px-4 py-2.5 rounded-xl shadow-sm shadow-orange-500/25 hover:shadow-orange-500/40 transition-all flex items-center gap-1.5 group cursor-pointer"
+            className="text-xs font-bold text-slate-800 hover:text-orange-600 bg-white hover:bg-orange-50/80 border border-slate-300 hover:border-orange-400 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
           >
+            <Sparkles className="w-3.5 h-3.5 text-orange-500" />
             <span>Start Free Trial</span>
+          </Link>
+
+          <Link
+            href="/login"
+            className="text-xs font-extrabold text-white bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600 hover:from-orange-600 hover:to-amber-700 px-4 py-1.5 rounded-xl shadow-md shadow-orange-500/25 hover:shadow-orange-500/40 transition-all flex items-center gap-1.5 group cursor-pointer"
+          >
+            <span>Sign In</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
-        {/* Mobile Hamburger Toggle */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="lg:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-          aria-label="Toggle Navigation Menu"
-        >
-          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Mobile Header (Download App CTA & Hamburger Toggle) */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <a
+            href="/downloads/udyogbill-billing.apk"
+            download="UdyogBill-Billing.apk"
+            className="text-xs font-black text-white bg-orange-600 hover:bg-orange-700 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm shadow-orange-500/25"
+            title="Download UdyogBill Billing App for Android"
+          >
+            <Download className="w-3.5 h-3.5 text-white" />
+            <span>Download App</span>
+          </a>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Toggle Navigation Menu"
+          >
+            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
@@ -566,6 +544,15 @@ function Navbar({ onDemoClick }: { onDemoClick: () => void }) {
           </div>
 
           <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+            <a
+              href="/downloads/udyogbill-billing.apk"
+              download="UdyogBill-Billing.apk"
+              onClick={() => setMenuOpen(false)}
+              className="w-full py-2.5 text-xs font-extrabold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl flex items-center justify-center gap-2 shadow-2xs"
+            >
+              <Download className="w-4 h-4 text-orange-600" />
+              <span>Download Billing App</span>
+            </a>
             <Link
               href="/login"
               onClick={() => setMenuOpen(false)}
@@ -600,7 +587,7 @@ function Navbar({ onDemoClick }: { onDemoClick: () => void }) {
 
 function Footer({ onDemoClick }: { onDemoClick: () => void }) {
   return (
-    <footer className="bg-[#fff7ed] text-slate-800 border-t border-orange-200/90 pt-16 pb-10">
+    <footer className="bg-[#fff7ed] text-slate-800 border-t border-orange-200/90 pt-16 pb-10 print:hidden">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 space-y-12">
         {/* Main 5-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
@@ -699,6 +686,9 @@ function Footer({ onDemoClick }: { onDemoClick: () => void }) {
             <ul className="space-y-2 text-xs">
               {[
                 ["Transparent Pricing Plans", "/pricing", "🏷️"],
+                ["Free GST Invoice Generator", "/tools/gst-invoice-generator", "🧾"],
+                ["Pharma PTR / Margin Calculator", "/tools/pharma-margin-calculator", "💊"],
+                ["Software Comparisons (Marg, Vyapar)", "/compare", "⚖️"],
                 ["Knowledge Base & Blog", "/blog", "📚"],
                 ["GST Guides & HSN Code List", "/blog", "🔍"],
                 ["Free Data Migration Guide", "/features", "🚀"],
@@ -762,16 +752,16 @@ function Footer({ onDemoClick }: { onDemoClick: () => void }) {
         </div>
 
         {/* Native Android Mobile Apps Banner */}
-        <div className="bg-gradient-to-br from-orange-50 via-white to-amber-50/50 border border-orange-200/90 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 transition-all shadow-xs">
+        <div className="bg-gradient-to-br from-orange-50 via-white to-amber-50/50 border border-orange-200/90 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 transition-all shadow-xs mb-8">
           <div className="max-w-xl text-center lg:text-left">
             <span className="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 border border-orange-300 px-3 py-1 rounded-full text-xs font-bold mb-2">
               📱 100% Native Android Architecture
             </span>
             <h3 className="text-lg sm:text-xl font-extrabold text-slate-950">
-              Download UdyogBill Dedicated Mobile Applications
+              Download UdyogBill Mobile Billing App
             </h3>
             <p className="text-xs text-slate-700 mt-1.5 leading-relaxed font-medium">
-              Two specialized apps tailored for your business: Store POS Billing App for counter sales and Pharma SFA App for medical rep field reporting.
+              Fast, offline-ready retail POS billing, barcode scanning, thermal printing, and GST invoice generation directly on your Android phone.
             </p>
           </div>
 
@@ -779,34 +769,152 @@ function Footer({ onDemoClick }: { onDemoClick: () => void }) {
             {/* Store Billing APK */}
             <a
               href="/downloads/udyogbill-billing.apk"
-              download="udyogbill-billing.apk"
-              className="flex items-center gap-3 bg-white border-2 border-orange-200 hover:border-orange-500 px-5 py-3.5 rounded-xl transition-all group shadow-xs hover:shadow-md"
+              download="UdyogBill-Billing.apk"
+              className="flex items-center gap-3 bg-white border-2 border-orange-200 hover:border-orange-500 px-6 py-3.5 rounded-xl transition-all group shadow-xs hover:shadow-md cursor-pointer"
             >
               <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-lg border border-orange-200">
                 🧾
               </div>
               <div className="text-left">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Store POS &amp; Billing</div>
-                <div className="text-xs font-extrabold text-slate-950 group-hover:text-orange-600 transition-colors">Download Billing APK</div>
+                <div className="text-xs font-extrabold text-slate-950 group-hover:text-orange-600 transition-colors">Download Billing App</div>
                 <div className="text-[10px] text-emerald-700 font-bold">Android Direct Package</div>
               </div>
             </a>
+          </div>
+        </div>
 
-            {/* Pharma SFA APK */}
-            <a
-              href="/downloads/udyogbill-sfa.apk"
-              download="udyogbill-sfa.apk"
-              className="flex items-center gap-3 bg-white border-2 border-slate-200 hover:border-emerald-500 px-5 py-3.5 rounded-xl transition-all group shadow-xs hover:shadow-md"
-            >
-              <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-lg border border-emerald-200">
-                🩺
+        {/* Free B2B Business Tools & Comparisons Row */}
+        <div className="border-t border-orange-200/80 pt-6 pb-2">
+          <div className="bg-orange-100/40 border border-orange-200/90 rounded-2xl p-5 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-orange-600 text-white text-[10px] font-extrabold uppercase tracking-wide">Free B2B Tools</span>
+                <h4 className="text-sm font-extrabold text-slate-900">Free Business Calculators &amp; Compliance Utilities</h4>
               </div>
-              <div className="text-left">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Field Force &amp; MR</div>
-                <div className="text-xs font-extrabold text-slate-950 group-hover:text-emerald-600 transition-colors">Download Pharma SFA</div>
-                <div className="text-[10px] text-emerald-700 font-bold">Field Tour Plans &amp; POB</div>
+              <p className="text-[11px] text-slate-600 font-medium">100% Free online tools for Indian MSMEs, Wholesalers &amp; Accountants. No login required.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 text-xs font-bold">
+              <Link
+                href="/tools/gst-invoice-generator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-orange-50 text-slate-800 hover:text-orange-700 border border-orange-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">🧾</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">GST Invoice Generator</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Print &amp; Download PDF Invoices</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/tools/pharma-margin-calculator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 border border-emerald-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">💊</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">Pharma PTR / PTS Calculator</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Deal Schemes (10+1) &amp; Margins</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/tools/eway-bill-distance-calculator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-amber-50 text-slate-800 hover:text-amber-800 border border-amber-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">🚚</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">E-Way Bill Validity Calculator</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Distance Expiry &amp; Rule 138(10)</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/tools/gst-late-fee-calculator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-slate-800 hover:text-rose-800 border border-rose-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">⏱️</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">GST Late Fee &amp; Interest (Sec 50)</span>
+                  <span className="text-[10px] text-slate-500 font-normal">GSTR-3B &amp; 18% p.a. Penalties</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/tools/fmcg-distributor-margin-calculator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-sky-50 text-slate-800 hover:text-sky-800 border border-sky-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">📈</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">FMCG Distributor ROI Calculator</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Credit Days &amp; Capital Interest</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/tools/paint-margin-density-calculator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-violet-50 text-slate-800 hover:text-violet-800 border border-violet-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">🎨</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">Paint Tinting &amp; Density Calc</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Liter to KG &amp; Machine Colorant</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/tools/tds-194q-calculator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-teal-50 text-slate-800 hover:text-teal-800 border border-teal-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">📋</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">TDS Sec 194Q &amp; TCS 206C(1H)</span>
+                  <span className="text-[10px] text-slate-500 font-normal">₹50 Lakh Turnover Thresholds</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/tools/garment-markup-calculator"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-pink-50 text-slate-800 hover:text-pink-800 border border-pink-200/70 shadow-2xs hover:shadow-xs transition-all group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">👕</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">Garment Set Markup Calculator</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Size Ratio &amp; Dead Stock Risk</span>
+                </div>
+              </Link>
+            </div>
+
+            <div className="pt-2.5 border-t border-orange-200/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2 text-slate-800">
+                <span className="font-bold flex items-center gap-1 text-slate-900">
+                  <span>📁 Free Excel Invoice Formats (.xlsx):</span>
+                </span>
+                <Link href="/templates" className="text-orange-700 hover:text-orange-900 font-semibold hover:underline">All Templates</Link>
+                <span className="text-slate-300">•</span>
+                <Link href="/templates/gst-invoice-format-excel" className="text-orange-700 hover:text-orange-900 font-semibold hover:underline">GST Invoice</Link>
+                <span className="text-slate-300">•</span>
+                <Link href="/templates/pharma-medical-store-bill-format" className="text-orange-700 hover:text-orange-900 font-semibold hover:underline">Pharma Chemist Bill</Link>
+                <span className="text-slate-300">•</span>
+                <Link href="/templates/retail-kirana-bill-book-format" className="text-orange-700 hover:text-orange-900 font-semibold hover:underline">Kirana Cash Memo</Link>
+                <span className="text-slate-300">•</span>
+                <Link href="/templates/garment-shop-bill-format-excel" className="text-orange-700 hover:text-orange-900 font-semibold hover:underline">Garment Apparel</Link>
+                <span className="text-slate-300">•</span>
+                <Link href="/templates/transport-delivery-challan-format" className="text-orange-700 hover:text-orange-900 font-semibold hover:underline">Delivery Challan</Link>
+                <span className="text-slate-300">•</span>
+                <Link href="/templates/proforma-invoice-format-word" className="text-orange-700 hover:text-orange-900 font-semibold hover:underline">Proforma Quote</Link>
               </div>
-            </a>
+            </div>
+
+            <div className="pt-2 border-t border-orange-200/60 flex items-center justify-between text-xs">
+              <span className="text-slate-600 font-medium">Looking for software alternatives?</span>
+              <Link
+                href="/compare"
+                className="text-orange-700 hover:text-orange-800 font-bold hover:underline flex items-center gap-1"
+              >
+                <span>Compare UdyogBill vs Marg ERP, Vyapar, Busy &amp; TallyPrime →</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -904,24 +1012,28 @@ function Footer({ onDemoClick }: { onDemoClick: () => void }) {
 function FloatingButtons({ onDemoClick }: { onDemoClick: () => void }) {
   return (
     <div
-      className="fixed bottom-6 right-5 flex flex-col gap-3"
+      className="fixed bottom-6 right-4 sm:right-6 flex flex-col items-end gap-2.5 print:hidden"
       style={{ zIndex: 999999, pointerEvents: "auto" }}
     >
       <a
         href="tel:+919473807622"
-        className="w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-108 bg-orange-500 hover:bg-orange-600 text-white"
+        className="h-10 px-3.5 rounded-full flex items-center gap-2 shadow-lg transition-all hover:scale-105 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs"
         title="Call Technical Support (+91 94738 07622)"
       >
-        <Phone className="w-5 h-5 text-white" />
+        <Phone className="w-3.5 h-3.5 text-white" />
+        <span className="hidden sm:inline">Call Expert: +91 94738 07622</span>
       </a>
+
       <a
         href="https://wa.me/919473807622?text=Hi%2C%20I%20want%20to%20know%20more%20about%20UdyogBill%20Software"
         target="_blank"
         rel="noopener noreferrer"
-        className="w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-108 bg-[#25D366] hover:bg-[#20bd5a]"
+        className="h-12 px-4 rounded-full flex items-center gap-2 shadow-2xl transition-all hover:scale-105 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs sm:text-sm border-2 border-white/60"
         title="Chat on WhatsApp"
       >
-        <MessageCircle className="w-5 h-5 text-white" />
+        <MessageCircle className="w-5 h-5 text-white shrink-0" />
+        <span>Chat on WhatsApp</span>
+        <span className="w-2 h-2 rounded-full bg-white animate-ping ml-0.5" />
       </a>
     </div>
   );
@@ -955,13 +1067,15 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   }, []);
 
   return (
-    <div className="marketing-site-wrapper min-h-screen flex flex-col bg-[#fff7ed] text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
+    <div className="marketing-site-wrapper min-h-screen flex flex-col bg-[#fff7ed] text-slate-900 font-sans selection:bg-orange-500 selection:text-white print:bg-white print:min-h-0 print:m-0 print:p-0">
       <Navbar onDemoClick={() => setPopupOpen(true)} />
-      <main className="flex-1 pt-16 pb-12 bg-[#fff7ed] text-slate-900">{children}</main>
+      <main className="flex-1 pt-14 sm:pt-16 pb-12 bg-[#fff7ed] text-slate-900 print:p-0 print:m-0 print:bg-white">{children}</main>
       <Footer onDemoClick={() => setPopupOpen(true)} />
       <FloatingButtons onDemoClick={() => setPopupOpen(true)} />
-      <ContactPopup open={popupOpen} onClose={() => setPopupOpen(false)} />
-      <Smart3dLeadPopup />
+      <div className="print:hidden">
+        <ContactPopup open={popupOpen} onClose={() => setPopupOpen(false)} />
+        <Smart3dLeadPopup />
+      </div>
     </div>
   );
 }
