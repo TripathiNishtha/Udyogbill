@@ -33,12 +33,17 @@ export default function ContactClient() {
 
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Full name is required";
-    if (!form.businessName.trim()) e.businessName = "Business / Company name is required";
-    if (!/^\d{10}$/.test(form.mobile.trim())) e.mobile = "Please enter a valid 10-digit mobile number";
-    if (form.email.trim() && !form.email.includes("@")) e.email = "Please enter a valid email address";
-    if (!form.city.trim()) e.city = "City name is required";
-    if (!form.businessType) e.businessType = "Please select your industry category";
+    const digitsOnly = form.mobile.replace(/\D/g, "");
+    const cleanMobile = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+    if (cleanMobile.length !== 10) {
+      e.mobile = "Please enter a valid 10-digit mobile number";
+    }
+    if (!form.name.trim() && !form.businessName.trim()) {
+      e.name = "Please enter your name or business name";
+    }
+    if (form.email.trim() && !form.email.includes("@")) {
+      e.email = "Please enter a valid email address";
+    }
     return e;
   };
 
@@ -52,20 +57,26 @@ export default function ContactClient() {
     setErrors({});
     setLoading(true);
 
+    const digitsOnly = form.mobile.replace(/\D/g, "");
+    const cleanMobile = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+    const finalBusinessName = form.businessName.trim() || `${form.name.trim() || "User"} Business`;
+    const finalCity = form.city.trim() || "Online / Pan India";
+    const finalBusinessType = form.businessType || "Retail & Supermarket";
+
     const attr = getAttributionData();
-    const industry = detectIndustryCode(window.location.pathname, form.businessType);
+    const industry = detectIndustryCode(window.location.pathname, finalBusinessType);
 
     try {
       const res = await fetch("/api/backend/public/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name.trim(),
-          businessName: form.businessName.trim(),
-          mobile: form.mobile.trim(),
+          name: form.name.trim() || finalBusinessName,
+          businessName: finalBusinessName,
+          mobile: cleanMobile,
           email: form.email.trim(),
-          city: form.city.trim(),
-          businessType: form.businessType,
+          city: finalCity,
+          businessType: finalBusinessType,
           message: form.message.trim(),
           source: "contact_page",
           industryCode: industry,
@@ -86,7 +97,7 @@ export default function ContactClient() {
 
       // Fire GA4 conversion event
       trackLeadConversion({
-        city: form.city,
+        city: finalCity,
         industryCode: industry,
         source: "contact-page",
       });
