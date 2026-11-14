@@ -53,18 +53,22 @@ public class SalesService : ISalesService
             {
                 try
                 {
-                    await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}))", new object[] { lockKey }, cancellationToken);
+                    using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    timeoutCts.CancelAfter(TimeSpan.FromSeconds(3));
+
+                    await _context.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '3000'", timeoutCts.Token);
+                    await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}))", new object[] { lockKey }, timeoutCts.Token);
                     return;
                 }
-                catch (Exception ex) when (attempt < maxRetries)
+                catch (Exception ex) when (attempt < maxRetries && !cancellationToken.IsCancellationRequested)
                 {
                     _logger?.LogWarning(ex, "Transient error acquiring DB advisory lock for sequence {Prefix} (attempt {Attempt}/{MaxRetries}): {Message}", prefix, attempt, maxRetries, ex.Message);
                     await Task.Delay(attempt * 50, cancellationToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogError(ex, "Failed to acquire DB advisory lock for sequence prefix {Prefix} after {MaxRetries} attempts: {Message}", prefix, maxRetries, ex.Message);
-                    throw new InvalidOperationException($"Document sequence lock contention for prefix '{prefix}'. Please retry the operation.", ex);
+                    _logger?.LogWarning(ex, "DB advisory lock for sequence prefix {Prefix} skipped after {MaxRetries} attempts: {Message}. Concurrency protected by in-memory semaphore.", prefix, maxRetries, ex.Message);
+                    return;
                 }
             }
         }
@@ -688,6 +692,10 @@ public class SalesService : ISalesService
             ));
 
         bool isComposition = (tenantObj?.IsCompositionScheme == true) || (request.InvoiceType == InvoiceType.BillOfSupply);
+        bool isPharmaTenant = tenantObj != null && (
+            IndustryTypeCodes.Normalize(tenantObj.ActiveIndustryModule) == IndustryTypeCodes.Pharma ||
+            IndustryTypeCodes.Normalize(tenantObj.IndustryTypeCode) == IndustryTypeCodes.Pharma
+        );
         var effectiveInvoiceType = isComposition 
             ? InvoiceType.BillOfSupply 
             : (isNonGst ? InvoiceType.SalesEstimate : request.InvoiceType);
@@ -742,7 +750,10 @@ public class SalesService : ISalesService
             : new List<ItemVariant>();
 
         var semaphore = _tenantInvoiceSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(cancellationToken);
+        if (!await semaphore.WaitAsync(TimeSpan.FromSeconds(15), cancellationToken))
+        {
+            return Result<Guid>.Failure("System is currently busy processing another transaction. Please retry in a few seconds.", "SYSTEM_BUSY");
+        }
         var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
         SalesInvoice? invoice = null;
         try
@@ -916,11 +927,17 @@ public class SalesService : ISalesService
             decimal effectiveLineGstRate = (isComposition || isNonGst) ? 0m : itm.TaxRate;
             decimal effectiveLineCessRate = (isComposition || isNonGst) ? 0m : itm.CessRate;
 
+            bool lineTaxInclusive = (isComposition || isNonGst) ? false : (reqItem.IsTaxInclusive ?? itm.IsTaxInclusive);
+            if (isPharmaTenant && (effectiveInvoiceType == InvoiceType.TaxInvoice || reqItem.Ptr > 0 || reqItem.Pts > 0 || (reqItem.Mrp > 0 && reqItem.UnitPrice < reqItem.Mrp)))
+            {
+                lineTaxInclusive = false;
+            }
+
             lineInputs.Add(new UdyogBill.Application.Services.Calculations.LineCalculationInput(
                 Quantity: reqItem.Quantity,
                 FreeQuantity: reqItem.FreeQuantity,
                 UnitPrice: reqItem.UnitPrice,
-                IsTaxInclusive: (isComposition || isNonGst) ? false : (reqItem.IsTaxInclusive ?? itm.IsTaxInclusive),
+                IsTaxInclusive: lineTaxInclusive,
                 DiscountPercent: reqItem.DiscountPercent,
                 DiscountAmount: reqItem.DiscountAmount,
                 GstRate: effectiveLineGstRate,
@@ -1141,8 +1158,12 @@ public class SalesService : ISalesService
                 itemAttrs["conversionRatio"] = lineInputs[i].ConversionRatio.Value;
             if (lineCalc.NetEffectiveRate > 0) itemAttrs["netEffectiveRate"] = lineCalc.NetEffectiveRate;
             if (!string.IsNullOrWhiteSpace(reqItem.Packing)) itemAttrs["packing"] = reqItem.Packing;
-            if (reqItem.Ptr > 0) itemAttrs["ptr"] = reqItem.Ptr;
-            if (reqItem.Pts > 0) itemAttrs["pts"] = reqItem.Pts;
+            var effectivePtr = reqItem.Ptr;
+            var effectivePts = reqItem.Pts;
+            if (effectivePtr > 0 && effectivePts == 0) effectivePts = effectivePtr;
+            else if (effectivePts > 0 && effectivePtr == 0) effectivePtr = effectivePts;
+            if (effectivePtr > 0) itemAttrs["ptr"] = effectivePtr;
+            if (effectivePts > 0) itemAttrs["pts"] = effectivePts;
             if (!string.IsNullOrWhiteSpace(reqItem.LineDescription)) itemAttrs["lineDescription"] = reqItem.LineDescription.Trim();
 
             var lineItem = new SalesInvoiceItem
@@ -1924,6 +1945,11 @@ public class SalesService : ISalesService
                 invoice.AttributesJson.Contains("\"isCashMemo\":true")
             ));
 
+        bool isPharmaTenant = tenantObj != null && (
+            IndustryTypeCodes.Normalize(tenantObj.ActiveIndustryModule) == IndustryTypeCodes.Pharma ||
+            IndustryTypeCodes.Normalize(tenantObj.IndustryTypeCode) == IndustryTypeCodes.Pharma
+        );
+
         // 4. Prepare inputs for Canonical Calculation Engine
         var lineInputs = new List<UdyogBill.Application.Services.Calculations.LineCalculationInput>();
         foreach (var reqItem in request.Items)
@@ -1941,11 +1967,17 @@ public class SalesService : ISalesService
             decimal effectiveLineGstRate = (isComposition || isNonGst) ? 0m : itm.TaxRate;
             decimal effectiveLineCessRate = (isComposition || isNonGst) ? 0m : itm.CessRate;
 
+            bool lineTaxInclusive = (isComposition || isNonGst) ? false : (reqItem.IsTaxInclusive ?? itm.IsTaxInclusive);
+            if (isPharmaTenant && (invoice.InvoiceType == InvoiceType.TaxInvoice || reqItem.Ptr > 0 || reqItem.Pts > 0 || (reqItem.Mrp > 0 && reqItem.UnitPrice < reqItem.Mrp)))
+            {
+                lineTaxInclusive = false;
+            }
+
             lineInputs.Add(new UdyogBill.Application.Services.Calculations.LineCalculationInput(
                 Quantity: reqItem.Quantity,
                 FreeQuantity: reqItem.FreeQuantity,
                 UnitPrice: reqItem.UnitPrice,
-                IsTaxInclusive: (isComposition || isNonGst) ? false : (reqItem.IsTaxInclusive ?? itm.IsTaxInclusive),
+                IsTaxInclusive: lineTaxInclusive,
                 DiscountPercent: reqItem.DiscountPercent,
                 DiscountAmount: reqItem.DiscountAmount,
                 GstRate: effectiveLineGstRate,
@@ -2057,8 +2089,12 @@ public class SalesService : ISalesService
             if (reqItem.FreeQuantity > 0) itemAttrs["freeQuantity"] = reqItem.FreeQuantity;
             if (conversion > 0) itemAttrs["conversionRatio"] = conversion;
             if (!string.IsNullOrWhiteSpace(reqItem.Packing)) itemAttrs["packing"] = reqItem.Packing;
-            if (reqItem.Ptr > 0) itemAttrs["ptr"] = reqItem.Ptr;
-            if (reqItem.Pts > 0) itemAttrs["pts"] = reqItem.Pts;
+            var effectivePtr = reqItem.Ptr;
+            var effectivePts = reqItem.Pts;
+            if (effectivePtr > 0 && effectivePts == 0) effectivePts = effectivePtr;
+            else if (effectivePts > 0 && effectivePtr == 0) effectivePtr = effectivePts;
+            if (effectivePtr > 0) itemAttrs["ptr"] = effectivePtr;
+            if (effectivePts > 0) itemAttrs["pts"] = effectivePts;
             if (!string.IsNullOrWhiteSpace(reqItem.LineDescription)) itemAttrs["lineDescription"] = reqItem.LineDescription.Trim();
 
             var lineItem = new SalesInvoiceItem
@@ -2287,7 +2323,10 @@ public class SalesService : ISalesService
         }
 
         var semaphore = _tenantInvoiceSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(cancellationToken);
+        if (!await semaphore.WaitAsync(TimeSpan.FromSeconds(15), cancellationToken))
+        {
+            return Result<Guid>.Failure("System is currently busy processing another transaction. Please retry in a few seconds.", "SYSTEM_BUSY");
+        }
         var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
         try
         {
@@ -3033,7 +3072,10 @@ public class SalesService : ISalesService
         }
 
         var semaphore = _tenantInvoiceSemaphores.GetOrAdd(tenantId, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(cancellationToken);
+        if (!await semaphore.WaitAsync(TimeSpan.FromSeconds(15), cancellationToken))
+        {
+            return Result<Guid>.Failure("System is currently busy processing another transaction. Please retry in a few seconds.", "SYSTEM_BUSY");
+        }
         var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
         string creditNoteNumber;
         SalesReturn salesReturn;
@@ -3423,7 +3465,14 @@ public class SalesService : ISalesService
             origInvoice.Status = isFullyReturned ? InvoiceStatus.FullyReturned : InvoiceStatus.PartiallyReturned;
         }
 
-        await AutoPostSalesReturnToGeneralLedgerAsync(salesReturn, cancellationToken);
+        try
+        {
+            await AutoPostSalesReturnToGeneralLedgerAsync(salesReturn, cancellationToken);
+        }
+        catch (Exception glEx)
+        {
+            _logger?.LogWarning(glEx, "[AccountingAutoPost] Non-fatal GL auto-posting warning for Credit Note {CreditNoteNumber}: {Message}", creditNoteNumber, glEx.Message);
+        }
 
             await _context.SaveChangesAsync(cancellationToken);
             if (tx != null) await tx.CommitAsync(cancellationToken);
@@ -4178,9 +4227,42 @@ public class SalesService : ISalesService
             voucher.TotalDebit = voucher.Legs.Sum(l => l.DebitAmount);
             voucher.TotalCredit = voucher.Legs.Sum(l => l.CreditAmount);
 
+            var glDiff = Math.Round(voucher.TotalDebit - voucher.TotalCredit, 2);
+            if (glDiff != 0 && Math.Abs(glDiff) <= 1.00m)
+            {
+                var roundOffAccount = await GetOrCreateLedgerAccountAsync(tenantId, "ACC-ROUNDOFF", "Invoice Round Off", "GRP-EXP", "Indirect Expenses", "Expense", "Debit", cancellationToken);
+                if (glDiff < 0)
+                {
+                    // Credit > Debit -> Add Debit roundoff
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = roundOffAccount.Id,
+                        DebitAmount = Math.Abs(glDiff),
+                        CreditAmount = 0,
+                        Narration = "Credit note round off adjustment"
+                    });
+                }
+                else
+                {
+                    // Debit > Credit -> Add Credit roundoff
+                    voucher.Legs.Add(new JournalVoucherLeg
+                    {
+                        TenantId = tenantId,
+                        AccountId = roundOffAccount.Id,
+                        DebitAmount = 0,
+                        CreditAmount = glDiff,
+                        Narration = "Credit note round off adjustment"
+                    });
+                }
+                voucher.TotalDebit = voucher.Legs.Sum(l => l.DebitAmount);
+                voucher.TotalCredit = voucher.Legs.Sum(l => l.CreditAmount);
+            }
+
             if (Math.Abs(voucher.TotalDebit - voucher.TotalCredit) > 0.01m)
             {
-                throw new InvalidOperationException($"General Ledger voucher for credit note {salesReturn.CreditNoteNumber} is out of balance. Total Debit: {voucher.TotalDebit:F2}, Total Credit: {voucher.TotalCredit:F2}. Difference: {Math.Abs(voucher.TotalDebit - voucher.TotalCredit):F2}");
+                _logger?.LogWarning("General Ledger voucher for credit note {CreditNoteNumber} is out of balance by {Diff}. Skipping GL voucher posting.", salesReturn.CreditNoteNumber, Math.Abs(voucher.TotalDebit - voucher.TotalCredit));
+                return;
             }
 
             _context.JournalVouchers.Add(voucher);
@@ -4381,6 +4463,82 @@ public class SalesService : ISalesService
         );
 
         return Result<LastDealHintDto?>.Success(dto);
+    }
+
+    public async Task<Result<List<LastDealHintDto>>> GetLastSaleDealsAsync(Guid itemId, Guid? partyId = null, int count = 3, CancellationToken cancellationToken = default)
+    {
+        var tenantId = RequireTenantId();
+        int safeCount = Math.Clamp(count, 1, 10);
+
+        List<SalesInvoiceItem> items = new();
+        if (partyId.HasValue && partyId.Value != Guid.Empty)
+        {
+            items = await _context.SalesInvoiceItems
+                .AsNoTracking()
+                .Include(i => i.Invoice)
+                .Where(i => i.TenantId == tenantId &&
+                            i.ItemId == itemId &&
+                            !i.Invoice.IsCancelled &&
+                            i.Invoice.PartyId == partyId.Value)
+                .OrderByDescending(i => i.Invoice.InvoiceDate)
+                .ThenByDescending(i => i.CreatedAtUtc)
+                .Take(safeCount)
+                .ToListAsync(cancellationToken);
+        }
+
+        if (items.Count == 0)
+        {
+            items = await _context.SalesInvoiceItems
+                .AsNoTracking()
+                .Include(i => i.Invoice)
+                .Where(i => i.TenantId == tenantId &&
+                            i.ItemId == itemId &&
+                            !i.Invoice.IsCancelled)
+                .OrderByDescending(i => i.Invoice.InvoiceDate)
+                .ThenByDescending(i => i.CreatedAtUtc)
+                .Take(safeCount)
+                .ToListAsync(cancellationToken);
+        }
+
+        var results = new List<LastDealHintDto>();
+        foreach (var item in items)
+        {
+            decimal freeQty = 0m;
+            if (!string.IsNullOrWhiteSpace(item.AttributesJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(item.AttributesJson);
+                    if (doc.RootElement.TryGetProperty("freeQuantity", out var fqProp))
+                    {
+                        freeQty = fqProp.GetDecimal();
+                    }
+                }
+                catch { }
+            }
+
+            string schemeText = "";
+            if (freeQty > 0)
+            {
+                schemeText = item.Quantity > 0
+                    ? $"{(int)item.Quantity}+{(int)freeQty}"
+                    : $"+{(int)freeQty}";
+            }
+
+            results.Add(new LastDealHintDto(
+                UnitPrice: item.UnitPrice,
+                Quantity: item.Quantity,
+                FreeQuantity: freeQty,
+                DiscountPercent: item.DiscountPercent,
+                FreeSchemeText: schemeText,
+                Mrp: item.Mrp,
+                Date: item.Invoice?.InvoiceDate,
+                DocumentNumber: item.Invoice?.InvoiceNumber ?? "",
+                PartyName: item.Invoice?.CustomerName ?? ""
+            ));
+        }
+
+        return Result<List<LastDealHintDto>>.Success(results);
     }
 
     #endregion

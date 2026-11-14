@@ -38,6 +38,13 @@ public class IdempotencyFilter : IAsyncActionFilter
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
+        var httpMethod = context.HttpContext.Request.Method;
+        if (HttpMethods.IsGet(httpMethod) || HttpMethods.IsHead(httpMethod) || HttpMethods.IsOptions(httpMethod))
+        {
+            await next();
+            return;
+        }
+
         if (!context.HttpContext.Request.Headers.TryGetValue("Idempotency-Key", out var headerVal) ||
             string.IsNullOrWhiteSpace(headerVal))
         {
@@ -46,12 +53,7 @@ public class IdempotencyFilter : IAsyncActionFilter
         }
 
         var key = headerVal.ToString().Trim();
-        var tenantId = _tenantContext.TenantId;
-        if (tenantId == Guid.Empty)
-        {
-            await next();
-            return;
-        }
+        var tenantId = _tenantContext.TenantId; // Can be Guid.Empty for SuperAdmin / Platform actions
 
         // Enable buffering to safely read and compute payload hash
         context.HttpContext.Request.EnableBuffering();
@@ -69,7 +71,18 @@ public class IdempotencyFilter : IAsyncActionFilter
 
         var lockKey = $"{tenantId}:{key}";
         var semaphore = _inFlightLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync();
+        if (!await semaphore.WaitAsync(TimeSpan.FromSeconds(15)))
+        {
+            context.Result = new ObjectResult(new
+            {
+                error = "This transaction is currently being processed. Please wait a moment.",
+                code = "CONCURRENT_REQUEST"
+            })
+            {
+                StatusCode = StatusCodes.Status409Conflict
+            };
+            return;
+        }
 
         try
         {
@@ -94,6 +107,12 @@ public class IdempotencyFilter : IAsyncActionFilter
                     return;
                 }
 
+                if (existing.StatusCode == StatusCodes.Status204NoContent || string.IsNullOrEmpty(existing.ResponseBody))
+                {
+                    context.Result = new StatusCodeResult(existing.StatusCode);
+                    return;
+                }
+
                 context.Result = new ContentResult
                 {
                     StatusCode = existing.StatusCode,
@@ -114,6 +133,7 @@ public class IdempotencyFilter : IAsyncActionFilter
 
                     var record = new IdempotentRequest
                     {
+                        Id = Guid.NewGuid(),
                         TenantId = tenantId,
                         IdempotencyKey = key,
                         RequestPath = context.HttpContext.Request.Path,
@@ -121,7 +141,8 @@ public class IdempotencyFilter : IAsyncActionFilter
                         RequestHash = payloadHash,
                         StatusCode = code,
                         ResponseBody = responseJson,
-                        ExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(7)
+                        ExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(7),
+                        CreatedAtUtc = DateTimeOffset.UtcNow
                     };
 
                     _db.IdempotentRequests.Add(record);
@@ -130,6 +151,31 @@ public class IdempotencyFilter : IAsyncActionFilter
                 catch
                 {
                     // In case of duplicate key collision from parallel instances, first write wins
+                }
+            }
+            else if (executedContext.Result is StatusCodeResult statusResult && statusResult.StatusCode >= 200 && statusResult.StatusCode < 300)
+            {
+                try
+                {
+                    var record = new IdempotentRequest
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        IdempotencyKey = key,
+                        RequestPath = context.HttpContext.Request.Path,
+                        HttpMethod = context.HttpContext.Request.Method,
+                        RequestHash = payloadHash,
+                        StatusCode = statusResult.StatusCode,
+                        ResponseBody = string.Empty,
+                        ExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(7),
+                        CreatedAtUtc = DateTimeOffset.UtcNow
+                    };
+
+                    _db.IdempotentRequests.Add(record);
+                    await _db.SaveChangesAsync();
+                }
+                catch
+                {
                 }
             }
         }
